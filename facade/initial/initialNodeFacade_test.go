@@ -4,12 +4,33 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
+func TestInitialNodeFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil status metrics should error", func(t *testing.T) {
+		t.Parallel()
+
+		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, nil)
+		assert.Equal(t, facade.ErrNilStatusMetrics, err)
+		assert.True(t, check.IfNil(inf))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, &testscommon.StatusMetricsStub{})
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(inf))
+	})
+}
+
+func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 	defer func() {
 		r := recover()
@@ -19,7 +40,8 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	}()
 
 	apiInterface := "127.0.0.1:7799"
-	inf := NewInitialNodeFacade(apiInterface, true)
+	inf, err := NewInitialNodeFacade(apiInterface, true, &testscommon.StatusMetricsStub{})
+	assert.Nil(t, err)
 
 	inf.SetSyncer(nil)
 	b := inf.RestAPIServerDebugMode()

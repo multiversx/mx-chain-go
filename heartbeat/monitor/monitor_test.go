@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/heartbeat/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,13 +46,14 @@ func createHeartbeatMessage(active bool, publicKeyBytes []byte) *heartbeat.Heart
 	marshaller := testscommon.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
 	return &heartbeat.HeartbeatV2{
-		Payload:         payloadBytes,
-		VersionNumber:   "v01",
-		NodeDisplayName: "node name",
-		Identity:        "identity",
-		Nonce:           0,
-		PeerSubType:     0,
-		Pubkey:          publicKeyBytes,
+		Payload:            payloadBytes,
+		VersionNumber:      "v01",
+		NodeDisplayName:    "node name",
+		Identity:           "identity",
+		Nonce:              0,
+		PeerSubType:        0,
+		Pubkey:             publicKeyBytes,
+		NumTrieNodesSynced: 150,
 	}
 }
 
@@ -457,4 +458,5 @@ func checkResults(t *testing.T, message *heartbeat.HeartbeatV2, hb data.PubKeyHe
 	_, ok := providedPids[hb.PidString]
 	assert.True(t, ok)
 	delete(providedPids, hb.PidString)
+	assert.Equal(t, message.NumTrieNodesSynced, hb.NumTrieNodesReceived)
 }

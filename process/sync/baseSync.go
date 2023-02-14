@@ -8,25 +8,25 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap/metricsLoader"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/sync")
@@ -575,7 +575,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and then, if it is not found in the pool, from network).
 // If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
-// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
@@ -717,13 +717,6 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 
 // rollBack decides if rollBackOneBlock must be called
 func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
-	if boot.headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-	if boot.headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
 	var roleBackOneBlockExecuted bool
 	var err error
 	var currHeaderHash []byte
@@ -847,10 +840,11 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	finalBlockHash := boot.forkDetector.GetHighestFinalBlockHash()
 	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce
 	isFinalBlockRollBack := currHeader.GetNonce() == finalBlockNonce
+	canRollbackBlock := boot.canRollbackBlock(currHeader)
 
 	headerWithScheduledMiniBlocks := currHeader.HasScheduledMiniBlocks()
 	headerHashDoesNotMatchWithFinalBlockHash := !bytes.Equal(currHeaderHash, finalBlockHash)
-	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack
+	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack && canRollbackBlock
 	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
 
 	log.Debug("baseBootstrap.shouldAllowRollback",
@@ -859,10 +853,17 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 		"headerWithScheduledMiniBlocks", headerWithScheduledMiniBlocks,
 		"headerHashDoesNotMatchWithFinalBlockHash", headerHashDoesNotMatchWithFinalBlockHash,
 		"allowFinalBlockRollBack", allowFinalBlockRollBack,
+		"canRollbackBlock", canRollbackBlock,
 		"allowRollBack", allowRollBack,
 	)
 
 	return allowRollBack
+}
+
+func (boot *baseBootstrap) canRollbackBlock(currHeader data.HeaderHandler) bool {
+	firstCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
+
+	return currHeader.GetNonce() >= firstCommittedNonce.Value && firstCommittedNonce.HasValue
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
@@ -1061,7 +1062,7 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), hashes)
 }
 
-// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
+// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exists there,
 // and if not it will be requested from network
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
@@ -1161,8 +1162,8 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 }
 
 // GetNodeState method returns the sync state of the node. If it returns 'NsNotSynchronized', this means that the node
-// is not synchronized yet and it has to continue the bootstrapping mechanism. If it returns 'NsSynchronized', this means
-// that the node is already synced and it can participate to the consensus. This method could also returns 'NsNotCalculated'
+// is not synchronized yet, and it has to continue the bootstrapping mechanism. If it returns 'NsSynchronized', this means
+// that the node is already synced, and it can participate in the consensus. This method could also return 'NsNotCalculated'
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
 func (boot *baseBootstrap) GetNodeState() common.NodeState {

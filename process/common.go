@@ -9,19 +9,19 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process")
@@ -210,9 +210,9 @@ func GetMarshalizedHeaderFromStorage(
 		return nil, ErrNilStorage
 	}
 
-	hdrStore := storageService.GetStorer(blockUnit)
-	if check.IfNil(hdrStore) {
-		return nil, ErrNilHeadersStorage
+	hdrStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
@@ -594,7 +594,7 @@ func getHeaderFromPoolWithNonce(
 			ErrMissingHeader, shardId, nonce)
 	}
 
-	//TODO what should we do when we get from pool more than one header with same nonce and shardId
+	// TODO what should we do when we get from pool more than one header with same nonce and shardId
 	return headers[len(headers)-1], hashes[len(hashes)-1], nil
 }
 
@@ -617,9 +617,9 @@ func GetHeaderHashFromStorageWithNonce(
 		return nil, ErrNilMarshalizer
 	}
 
-	headerStore := storageService.GetStorer(blockUnit)
-	if headerStore == nil {
-		return nil, ErrNilHeadersStorage
+	headerStore, err := storageService.GetStorer(blockUnit)
+	if err != nil {
+		return nil, err
 	}
 
 	nonceToByteSlice := uint64Converter.ToByteSlice(nonce)
@@ -718,13 +718,13 @@ func DisplayProcessTxDetails(
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
 func IsAllowedToSaveUnderKey(key []byte) bool {
-	prefixLen := len(core.ElrondProtectedKeyPrefix)
+	prefixLen := len(core.ProtectedKeyPrefix)
 	if len(key) < prefixLen {
 		return true
 	}
 
 	trimmedKey := key[:prefixLen]
-	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+	return !bytes.Equal(trimmedKey, []byte(core.ProtectedKeyPrefix))
 }
 
 // SortVMOutputInsideData returns the output accounts as a sorted list

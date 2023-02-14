@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("heartbeat/monitor")
@@ -172,18 +172,19 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 	pkHexString := monitor.pubKeyConverter.Encode(heartbeatV2.GetPubkey())
 
 	pubKeyHeartbeat := &data.PubKeyHeartbeat{
-		PublicKey:       pkHexString,
-		TimeStamp:       messageTime,
-		IsActive:        monitor.isActive(messageAge),
-		ReceivedShardID: monitor.shardId,
-		ComputedShardID: computedShardID,
-		VersionNumber:   heartbeatV2.GetVersionNumber(),
-		NodeDisplayName: heartbeatV2.GetNodeDisplayName(),
-		Identity:        heartbeatV2.GetIdentity(),
-		PeerType:        stringType,
-		Nonce:           heartbeatV2.GetNonce(),
-		PeerSubType:     heartbeatV2.GetPeerSubType(),
-		PidString:       pid.Pretty(),
+		PublicKey:            pkHexString,
+		TimeStamp:            messageTime,
+		IsActive:             monitor.isActive(messageAge),
+		ReceivedShardID:      monitor.shardId,
+		ComputedShardID:      computedShardID,
+		VersionNumber:        heartbeatV2.GetVersionNumber(),
+		NodeDisplayName:      heartbeatV2.GetNodeDisplayName(),
+		Identity:             heartbeatV2.GetIdentity(),
+		PeerType:             stringType,
+		Nonce:                heartbeatV2.GetNonce(),
+		PeerSubType:          heartbeatV2.GetPeerSubType(),
+		PidString:            pid.Pretty(),
+		NumTrieNodesReceived: heartbeatV2.NumTrieNodesSynced,
 	}
 
 	return pubKeyHeartbeat, nil

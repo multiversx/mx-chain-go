@@ -1,14 +1,15 @@
 package interceptedBlocks
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -289,6 +290,20 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 	err := checkHeaderHandler(hdr)
 
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
+}
+
+func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	hdr := createDefaultHeaderHandler()
+	hdr.CheckFieldsForNilCalled = func() error {
+		return expectedErr
+	}
+
+	err := checkHeaderHandler(hdr)
+
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestCheckHeaderHandler_ShouldWork(t *testing.T) {

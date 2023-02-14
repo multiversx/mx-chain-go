@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +50,7 @@ func TestDepthFirstTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDepthFirstTrieSyncer(arg)
-	err := d.StartSyncing(EmptyTrieHash, context.Background())
+	err := d.StartSyncing(common.EmptyTrieHash, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -59,7 +60,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	d, _ := NewDepthFirstTrieSyncer(arg)
-	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
+	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(common.EmptyTrieHash)), nil)
 
 	assert.Equal(t, ErrNilContext, err)
 }
@@ -125,7 +126,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
@@ -186,7 +187,7 @@ func TestDepthFirstTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, err = trie.Get(keyVal)
+		val, _, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}

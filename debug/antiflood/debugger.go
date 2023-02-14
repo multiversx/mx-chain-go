@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const sizeUint32 = 4
@@ -69,7 +69,7 @@ type debugger struct {
 
 // NewAntifloodDebugger creates a new antiflood debugger able to hold antiflood events
 func NewAntifloodDebugger(config config.AntifloodDebugConfig) (*debugger, error) {
-	cache, err := lrucache.NewCache(config.CacheSize)
+	lruCache, err := cache.NewLRUCache(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating NewAntifloodDebugger", err)
 	}
@@ -78,7 +78,7 @@ func NewAntifloodDebugger(config config.AntifloodDebugConfig) (*debugger, error)
 	}
 
 	d := &debugger{
-		cache:             cache,
+		cache:             lruCache,
 		intervalAutoPrint: time.Second * time.Duration(config.IntervalAutoPrintInSeconds),
 	}
 

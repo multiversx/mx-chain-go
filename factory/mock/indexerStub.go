@@ -1,19 +1,19 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // IndexerStub is a mock implementation fot the Indexer interface
 type IndexerStub struct {
-	SaveBlockCalled func(args *indexer.ArgsSaveBlockData)
+	SaveBlockCalled func(args *outport.ArgsSaveBlockData)
 }
 
 // SaveBlock -
-func (im *IndexerStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
+func (im *IndexerStub) SaveBlock(args *outport.ArgsSaveBlockData) {
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(args)
 	}
@@ -29,12 +29,12 @@ func (im *IndexerStub) SetTxLogsProcessor(_ process.TransactionLogProcessorDatab
 }
 
 // SaveRoundsInfo -
-func (im *IndexerStub) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+func (im *IndexerStub) SaveRoundsInfo(_ []*outport.RoundInfo) {
 	panic("implement me")
 }
 
 // SaveValidatorsRating -
-func (im *IndexerStub) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
+func (im *IndexerStub) SaveValidatorsRating(_ string, _ []*outport.ValidatorRatingInfo) {
 
 }
 

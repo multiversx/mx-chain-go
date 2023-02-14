@@ -1,11 +1,11 @@
 package storageBootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
 
 var _ process.BootstrapperFromStorage = (*metaStorageBootstrapper)(nil)
@@ -49,7 +49,10 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 	}
 
 	base.bootstrapper = &boot
-	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	base.headerNonceHashStore, err = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	return &boot, nil
 }
@@ -122,7 +125,14 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			"hash", shardHeaderHash)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
-		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
+		storer, err := msb.store.GetStorer(hdrNonceHashDataUnit)
+		if err != nil {
+			log.Debug("could not get storage unit",
+				"unit", hdrNonceHashDataUnit,
+				"error", err.Error())
+			return
+		}
+
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		err = storer.Remove(nonceToByteSlice)
 		if err != nil {

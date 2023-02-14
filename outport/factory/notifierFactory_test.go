@@ -3,24 +3,25 @@ package factory_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 	return &factory.EventNotifierFactoryArgs{
-		Enabled:          true,
-		UseAuthorization: true,
-		ProxyUrl:         "http://localhost:5000",
-		Username:         "",
-		Password:         "",
-		Marshaller:       &testscommon.MarshalizerMock{},
-		Hasher:           &hashingMocks.HasherMock{},
-		PubKeyConverter:  &testscommon.PubkeyConverterMock{},
+		Enabled:           true,
+		UseAuthorization:  true,
+		ProxyUrl:          "http://localhost:5000",
+		Username:          "",
+		Password:          "",
+		RequestTimeoutSec: 1,
+		Marshaller:        &testscommon.MarshalizerMock{},
+		Hasher:            &hashingMocks.HasherMock{},
+		PubKeyConverter:   &testscommon.PubkeyConverterMock{},
 	}
 }
 

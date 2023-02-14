@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsinglesig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +26,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	nbMetaNodes := 4
 	nbShards := 1
 	consensusGroupSize := 3
-	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	singleSigner := integrationTests.TestSingleBlsSigner
 
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
@@ -164,7 +163,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	nbShards := 1
 	consensusGroupSize := 3
 
-	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	singleSigner := integrationTests.TestSingleBlsSigner
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
@@ -236,7 +235,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	nbShards := 1
 	consensusGroupSize := 3
 
-	singleSigner := &mclsinglesig.BlsSingleSigner{}
+	singleSigner := integrationTests.TestSingleBlsSigner
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(

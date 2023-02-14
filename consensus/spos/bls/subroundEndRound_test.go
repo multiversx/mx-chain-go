@@ -5,16 +5,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,7 +68,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
@@ -102,7 +103,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
@@ -137,7 +138,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
@@ -173,11 +174,11 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -199,7 +200,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 	)
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
@@ -208,8 +209,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilMultiSigner, err)
+	assert.True(t, check.IfNil(srEndRound))
+	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testing.T) {
@@ -243,7 +244,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
@@ -278,7 +279,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.Nil(t, srEndRound)
+	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -313,7 +314,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.NotNil(t, srEndRound)
+	assert.False(t, check.IfNil(srEndRound))
 	assert.Nil(t, err)
 }
 
@@ -321,12 +322,14 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	multiSignerMock := mock.InitMultiSignerMock()
-	multiSignerMock.AggregateSigsCalled = func(bitmap []byte) ([]byte, error) {
-		return nil, crypto.ErrNilHasher
-	}
 
-	container.SetMultiSigner(multiSignerMock)
+	signatureHandler := &mock.SignatureHandlerStub{
+		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+			return nil, crypto.ErrNilHasher
+		},
+	}
+	container.SetSignatureHandler(signatureHandler)
+
 	sr.Header = &block.Header{}
 
 	sr.SetSelfPubKey("A")
@@ -343,7 +346,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
 
-	blProcMock := mock.InitBlockProcessorMock()
+	blProcMock := mock.InitBlockProcessorMock(container.Marshalizer())
 	blProcMock.CommitBlockCalled = func(
 		header data.HeaderHandler,
 		body data.BodyHandler,
@@ -409,7 +412,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		err = errors.New("error marshalized data to broadcast")
 		return make(map[uint32][]byte), make(map[string][][]byte), err
@@ -444,7 +447,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
@@ -480,7 +483,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	err := errors.New("")
 	container := mock.InitConsensusCore()
 
-	bpm := mock.InitBlockProcessorMock()
+	bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
@@ -854,7 +857,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	// update roundHandler's mock so it will calculate for real the duration
+	// update roundHandler's mock, so it will calculate for real the duration
 	container := mock.InitConsensusCore()
 	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()

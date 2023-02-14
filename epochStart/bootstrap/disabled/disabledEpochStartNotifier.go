@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 // EpochStartNotifier -
@@ -23,7 +23,7 @@ func (desn *EpochStartNotifier) UnregisterHandler(_ epochStart.ActionHandler) {
 }
 
 // NotifyAllPrepare -
-func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler, _ epochStart.ValidatorInfoCacher) {
 }
 
 // NotifyAll -

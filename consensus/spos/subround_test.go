@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -357,13 +358,13 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
+func TestSubround_NilContainerMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetMultiSigner(nil)
+	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(nil))
 
 	sr, err := spos.NewSubround(
 		-1,

@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,11 +25,15 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	}
 
 	startingNonce := uint64(6)
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
-	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	n := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		n.Close()
@@ -119,11 +123,15 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 		t.Skip("this is not a short test")
 	}
 
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
-	node := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = node.Messenger.Close()

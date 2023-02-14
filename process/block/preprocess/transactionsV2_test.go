@@ -5,19 +5,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func createTransactionPreprocessor() *transactions {
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txPreProcArgs := ArgsTransactionPreProcessor{
 		TxDataPool:           dataPool.Transactions(),
-		Store:                &mock.ChainStorerMock{},
+		Store:                &storageStubs.ChainStorerStub{},
 		Hasher:               &hashingMocks.HasherMock{},
 		Marshalizer:          &mock.MarshalizerMock{},
 		TxProcessor:          &testscommon.TxProcessorMock{},
@@ -60,10 +60,7 @@ func createTransactionPreprocessor() *transactions {
 				return false
 			},
 		},
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 2,
-		FrontRunningProtectionEnableEpoch:           2,
-		ScheduledMiniBlocksEnableEpoch:              2,
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		TxTypeHandler: &testscommon.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				if bytes.Equal(tx.GetRcvAddr(), []byte("smart contract address")) {

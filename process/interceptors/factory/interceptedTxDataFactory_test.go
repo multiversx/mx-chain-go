@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"testing"
 
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -168,16 +168,16 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
+func TestNewInterceptedTxDataFactory_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, cryptoComponents := createMockComponentHolders()
-	coreComponents.EpochNotifierField = nil
+	coreComponents.EnableEpochsHandlerField = nil
 	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {

@@ -3,15 +3,15 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // CoreComponentsMock -
@@ -20,6 +20,7 @@ type CoreComponentsMock struct {
 	Marsh                        marshal.Marshalizer
 	Hash                         hashing.Hasher
 	EpochNotifierField           process.EpochNotifier
+	EnableEpochsHandlerField     common.EnableEpochsHandler
 	TxSignHasherField            hashing.Hasher
 	UInt64ByteSliceConv          typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv               core.PubkeyConverter
@@ -27,7 +28,6 @@ type CoreComponentsMock struct {
 	PathHdl                      storage.PathManagerHandler
 	ChainIdCalled                func() string
 	MinTransactionVersionCalled  func() uint32
-	StatusHandlerCalled          func() core.AppStatusHandler
 	GenesisNodesSetupCalled      func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField          process.TxVersionCheckerHandler
 	ChanStopNode                 chan endProcess.ArgEndProcess
@@ -132,12 +132,9 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
 }
 
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	if ccm.StatusHandlerCalled != nil {
-		return ccm.StatusHandlerCalled()
-	}
-	return nil
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.EnableEpochsHandlerField
 }
 
 // GenesisNodesSetup -

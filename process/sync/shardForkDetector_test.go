@@ -3,11 +3,12 @@ package sync_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
@@ -33,7 +34,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
@@ -46,7 +47,7 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		nil,
 		0,
 	)
-	assert.Nil(t, sfd)
+	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
@@ -60,7 +61,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		0,
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, sfd)
+	assert.False(t, check.IfNil(sfd))
 
 	assert.Equal(t, uint64(0), sfd.LastCheckpointNonce())
 	assert.Equal(t, uint64(0), sfd.LastCheckpointRound())

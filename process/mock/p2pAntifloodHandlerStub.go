@@ -3,9 +3,9 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // P2PAntifloodHandlerStub -
@@ -66,7 +66,7 @@ func (p2pahs *P2PAntifloodHandlerStub) BlacklistPeer(peer core.PeerID, reason st
 }
 
 // Close -
-func (af *P2PAntifloodHandlerStub) Close() error {
+func (p2pahs *P2PAntifloodHandlerStub) Close() error {
 	return nil
 }
 

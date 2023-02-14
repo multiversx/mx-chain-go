@@ -5,17 +5,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -100,7 +101,8 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
-	rewardsCreatorProxy.epochEnableV2 = 1
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.StakingV2EnableEpochField = 1
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics
 
@@ -126,7 +128,8 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV2, rCreatorV2)
-	rewardsCreatorProxy.epochEnableV2 = 5
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub.StakingV2EnableEpochField = 5
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics
 
@@ -214,7 +217,7 @@ func TestRewardsCreatorProxy_CreateMarshalizedData(t *testing.T) {
 	blockBody := createDefaultBlockBody()
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		CreateMarshalizedDataCalled: func(body *block.Body) map[string][][]byte {
+		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			if blockBody == body {
 				return expectedValue
 			}
@@ -224,7 +227,7 @@ func TestRewardsCreatorProxy_CreateMarshalizedData(t *testing.T) {
 
 	rewardsCreatorProxy, _, _ := createTestData(rewardCreatorV1, rCreatorV1)
 
-	protocolSustainabilityRewards := rewardsCreatorProxy.CreateMarshalizedData(blockBody)
+	protocolSustainabilityRewards := rewardsCreatorProxy.CreateMarshalledData(blockBody)
 	require.Equal(t, expectedValue, protocolSustainabilityRewards)
 }
 
@@ -259,14 +262,14 @@ func TestRewardsCreatorProxy_SaveTxBlockToStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		SaveTxBlockToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
+		SaveBlockDataToStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
 
 	rewardsCreatorProxy, _, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
 
-	rewardsCreatorProxy.SaveTxBlockToStorage(metaBlock, blockBody)
+	rewardsCreatorProxy.SaveBlockDataToStorage(metaBlock, blockBody)
 	require.Equal(t, true, functionCalled)
 }
 
@@ -277,14 +280,14 @@ func TestRewardsCreatorProxy_DeleteTxsFromStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		DeleteTxsFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
+		DeleteBlockDataFromStorageCalled: func(metaBlock data.MetaHeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
 
 	rewardsCreatorProxy, _, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
 
-	rewardsCreatorProxy.DeleteTxsFromStorage(metaBlock, blockBody)
+	rewardsCreatorProxy.DeleteBlockDataFromStorage(metaBlock, blockBody)
 	require.Equal(t, true, functionCalled)
 }
 
@@ -321,10 +324,9 @@ func TestRewardsCreatorProxy_IsInterfaceNil(t *testing.T) {
 func createTestData(rewardCreator *mock.RewardsCreatorStub, rcType configuredRewardsCreator) (*rewardsCreatorProxy, map[uint32][]*state.ValidatorInfo, *block.MetaBlock) {
 	args := createDefaultRewardsCreatorProxyArgs()
 	rewardsCreatorProxy := &rewardsCreatorProxy{
-		rc:            rewardCreator,
-		epochEnableV2: 200,
-		configuredRC:  rcType,
-		args:          &args,
+		rc:           rewardCreator,
+		configuredRC: rcType,
+		args:         &args,
 	}
 
 	vInfo := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100, uint32(14400))

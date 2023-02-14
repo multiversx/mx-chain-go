@@ -7,11 +7,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -298,7 +298,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		t,
 		destinationAddressBytes,
 		accnts,
-		// transfer did not happened
+		// transfer did not happen
 		big.NewInt(0),
 		scCode,
 		map[string]*big.Int{"a": expectedValueForVariable})

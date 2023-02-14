@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 package delegation
@@ -8,15 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
+	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,6 +59,12 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = processBlocks(t, round, nonce, roundsPerEpoch, nodesMap)
+
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -73,11 +80,6 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 
 	nodeIndexForDelegationOwner := 0
 	delegationAddress := createNewDelegationSystemSC(nodes[nodeIndexForDelegationOwner], nodes)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
 
 	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
 
@@ -96,7 +98,8 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 
 	round, nonce = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
 
-	checkRewardsUpdatedInDelegationSC(t, nodes, delegationAddress, epochs)
+	lastEpoch := round / (roundsPerEpoch + 1)
+	checkRewardsUpdatedInDelegationSC(t, nodes, delegationAddress, uint32(lastEpoch))
 
 	balancesBeforeClaimRewards := getNodesBalances(nodes)
 	balanceToConsumeForGas := core.SafeMul(integrationTests.MinTxGasPrice, core.MinMetaTxExtraGasCost)
@@ -222,7 +225,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 	node := getNodeWithShardID(nodes, core.MetachainShardId)
 
 	systemVM, _ := node.VMContainer.Get(factory.SystemVirtualMachine)
-	for i := uint32(1); i <= lastEpoch; i++ {
+	for i := uint32(2); i <= lastEpoch; i++ {
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallerAddr:  vm.EndOfEpochAddress,
@@ -238,7 +241,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 		assert.Nil(t, err)
 		assert.NotNil(t, vmOutput)
 
-		require.Equal(t, len(vmOutput.ReturnData), 3)
+		require.Equal(t, 3, len(vmOutput.ReturnData))
 		rwdInBigInt := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 		assert.True(t, rwdInBigInt.Cmp(big.NewInt(0)) > 0)
 	}

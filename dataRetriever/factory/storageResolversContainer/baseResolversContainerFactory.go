@@ -3,23 +3,23 @@ package storageResolversContainers
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/disabled"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	disabledResolvers "github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/disabled"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	disabledResolvers "github.com/multiversx/mx-chain-go/dataRetriever/resolvers/disabled"
+	"github.com/multiversx/mx-chain-go/dataRetriever/storageResolvers"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
@@ -112,7 +112,10 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	unit dataRetriever.UnitType,
 ) (dataRetriever.Resolver, error) {
 
-	txStorer := brcf.store.GetStorer(unit)
+	txStorer, err := brcf.store.GetStorer(unit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -171,7 +174,10 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 }
 
 func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopic string) (dataRetriever.Resolver, error) {
-	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	miniBlocksStorer, err := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
 
 	arg := storageResolvers.ArgSliceResolver{
 		Messenger:                brcf.messenger,
@@ -233,4 +239,29 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 	peerAuthResolver := disabledResolvers.NewDisabledPeerAuthenticatorResolver()
 
 	return brcf.container.Add(identifierPeerAuth, peerAuthResolver)
+}
+
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
+	validatorInfoStorer, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	if err != nil {
+		return err
+	}
+
+	identifierValidatorInfo := common.ValidatorInfoTopic
+	arg := storageResolvers.ArgSliceResolver{
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        identifierValidatorInfo,
+		Storage:                  validatorInfoStorer,
+		DataPacker:               brcf.dataPacker,
+		Marshalizer:              brcf.marshalizer,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+	validatorInfoResolver, err := storageResolvers.NewSliceResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }

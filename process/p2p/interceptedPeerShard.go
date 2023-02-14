@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/p2p/message"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 const interceptedPeerShardType = "intercepted peer shard"
@@ -22,7 +22,7 @@ type ArgInterceptedPeerShard struct {
 
 // interceptedPeerShard is a wrapper over PeerShard message
 type interceptedPeerShard struct {
-	peerShardMessage message.PeerShard
+	peerShardMessage factory.PeerShard
 	numOfShards      uint32
 }
 
@@ -58,8 +58,8 @@ func checkArgs(args ArgInterceptedPeerShard) error {
 	return nil
 }
 
-func createPeerShardMessage(marshaller marshal.Marshalizer, buff []byte) (*message.PeerShard, error) {
-	peerShard := &message.PeerShard{}
+func createPeerShardMessage(marshaller marshal.Marshalizer, buff []byte) (*factory.PeerShard, error) {
+	peerShard := &factory.PeerShard{}
 	err := marshaller.Unmarshal(peerShard, buff)
 	if err != nil {
 		return nil, err

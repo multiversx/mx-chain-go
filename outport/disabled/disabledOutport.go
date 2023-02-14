@@ -1,9 +1,9 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport"
 )
 
 type disabledOutport struct{}
@@ -14,7 +14,7 @@ func NewDisabledOutport() *disabledOutport {
 }
 
 // SaveBlock does nothing
-func (n *disabledOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
+func (n *disabledOutport) SaveBlock(_ *outportcore.ArgsSaveBlockData) {
 }
 
 // RevertIndexedBlock does nothing
@@ -22,7 +22,7 @@ func (n *disabledOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // SaveRoundsInfo does nothing
-func (n *disabledOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
+func (n *disabledOutport) SaveRoundsInfo(_ []*outportcore.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys does nothing
@@ -30,11 +30,11 @@ func (n *disabledOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32)
 }
 
 // SaveValidatorsRating does nothing
-func (n *disabledOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
+func (n *disabledOutport) SaveValidatorsRating(_ string, _ []*outportcore.ValidatorRatingInfo) {
 }
 
 // SaveAccounts does nothing
-func (n *disabledOutport) SaveAccounts(_ uint64, _ []data.UserAccountHandler) {
+func (n *disabledOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
 }
 
 // FinalizedBlock does nothing

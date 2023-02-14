@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -227,12 +227,12 @@ func jailNodes(nodes []*integrationTests.TestProcessorNode, blsKeys [][]byte) {
 		stakingAcc := acc.(state.UserAccountHandler)
 
 		for _, blsKey := range blsKeys {
-			marshaledData, _ := stakingAcc.DataTrieTracker().RetrieveValue(blsKey)
+			marshaledData, _, _ := stakingAcc.RetrieveValue(blsKey)
 			stakingData := &systemSmartContracts.StakedDataV2_0{}
 			_ = integrationTests.TestMarshalizer.Unmarshal(stakingData, marshaledData)
 			stakingData.Jailed = true
 			marshaledData, _ = integrationTests.TestMarshalizer.Marshal(stakingData)
-			_ = stakingAcc.DataTrieTracker().SaveKeyValue(blsKey, marshaledData)
+			_ = stakingAcc.SaveKeyValue(blsKey, marshaledData)
 		}
 
 		_ = node.AccntState.SaveAccount(stakingAcc)
@@ -367,7 +367,7 @@ func testBLSKeyOwnerIsAddress(t *testing.T, nodes []*integrationTests.TestProces
 		acnt, _ := n.AccntState.GetExistingAccount(vm.StakingSCAddress)
 		userAcc, _ := acnt.(state.UserAccountHandler)
 
-		marshaledData, _ := userAcc.DataTrieTracker().RetrieveValue(blsKey)
+		marshaledData, _, _ := userAcc.RetrieveValue(blsKey)
 		stakingData := &systemSmartContracts.StakedDataV2_0{}
 		_ = integrationTests.TestMarshalizer.Unmarshal(stakingData, marshaledData)
 		assert.Equal(t, stakingData.OwnerAddress, address)

@@ -3,10 +3,10 @@ package pruning
 import (
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/mock"
 )
 
 // NewEmptyPruningStorer -
@@ -68,8 +68,8 @@ func (ps *PruningStorer) PersistersMapByEpochToSlice() []uint32 {
 }
 
 // ProcessPersistersToClose -
-func (ps *PruningStorer) ProcessPersistersToClose() []uint32 {
-	persistersToClose := ps.processPersistersToClose()
+func (ps *PruningStorer) ProcessPersistersToClose(lastEpochNeeded uint32) []uint32 {
+	persistersToClose := ps.processPersistersToClose(lastEpochNeeded)
 	slice := make([]uint32, 0)
 	for _, p := range persistersToClose {
 		slice = append(slice, p.epoch)

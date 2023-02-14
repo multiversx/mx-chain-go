@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +26,7 @@ func Test_NewShardedTxPool(t *testing.T) {
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	goodArgs := ArgShardedTxPool{
-		Config: storageUnit.CacheConfig{
+		Config: storageunit.CacheConfig{
 			Capacity:             100,
 			SizePerSender:        10,
 			SizeInBytes:          409600,
@@ -96,7 +96,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageUnit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
+	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
 		Config: config,
 		TxGasHandler: &txcachemocks.TxGasHandlerMock{
@@ -359,7 +359,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func Test_routeToCacheUnions(t *testing.T) {
-	config := storageUnit.CacheConfig{
+	config := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,
@@ -402,7 +402,7 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	config := storageUnit.CacheConfig{
+	config := storageunit.CacheConfig{
 		Capacity:             100,
 		SizePerSender:        10,
 		SizeInBytes:          409600,

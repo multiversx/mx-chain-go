@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 const batchDelaySeconds = 10
@@ -77,9 +77,9 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 
 // CreateStorageLevelDB creates a storage levelDB
 func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
-	cacher, _ := lrucache.NewCache(50000)
-	store, _ := storageUnit.NewStorageUnit(
+	db, _ := database.NewLevelDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	cacher, _ := cache.NewLRUCache(50000)
+	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
 	)
@@ -89,9 +89,9 @@ func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 
 // CreateStorageLevelDBSerial creates a storage levelDB serial
 func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
-	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
-	cacher, _ := lrucache.NewCache(50000)
-	store, _ := storageUnit.NewStorageUnit(
+	db, _ := database.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
+	cacher, _ := cache.NewLRUCache(50000)
+	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
 	)

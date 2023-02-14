@@ -5,19 +5,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,10 +80,10 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createMetaStore() *mock.ChainStorerMock {
-	return &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &storageStubs.StorerStub{}
+func createMetaStore() *storageStubs.ChainStorerStub {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{}, nil
 		},
 	}
 }
@@ -230,7 +231,7 @@ func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	cryptoComp.MultiSig = nil
+	cryptoComp.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(nil)
 	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -602,10 +603,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsPeerAuthForMetachain := 1
 	numInterceptorsHeartbeatForMetachain := 1
 	numInterceptorsShardValidatorInfoForMetachain := 1
+	numInterceptorValidatorInfo := 1
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-		numInterceptorsShardValidatorInfoForMetachain
+		numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

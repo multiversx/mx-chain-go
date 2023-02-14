@@ -1,8 +1,8 @@
 package presenter
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var maxSpeedHistorySaved = 2000
@@ -178,4 +178,14 @@ func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) 
 	epochLoadPercent := 100 - int(float64(roundsRemained)/float64(roundsPerEpoch)*100.0)
 
 	return currentRound, epochFinishRound, epochLoadPercent, remainingTime
+}
+
+// GetTrieSyncNumProcessedNodes will return the number of processed nodes during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
+}
+
+// GetTrieSyncNumBytesReceived will return the number of bytes synced during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncNumBytesReceived() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumReceivedBytes)
 }

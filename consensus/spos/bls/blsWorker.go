@@ -1,8 +1,8 @@
 package bls
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
 // peerMaxMessagesPerSec defines how many messages can be propagated by a pid in a round. The value was chosen by
@@ -16,6 +16,14 @@ import (
 // Validators only send one signature message in a round, treating the edge case of a delayed message, will need at most
 // 2 messages per round (which is ok as it is below the set value of 5)
 const peerMaxMessagesPerSec = uint32(6)
+
+// defaultMaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
+// received from the same public key for the default message types
+const defaultMaxNumOfMessageTypeAccepted = uint32(1)
+
+// maxNumOfMessageTypeSignatureAccepted represents the maximum number of the signature message type accepted in one round to be
+// received from the same public key
+const maxNumOfMessageTypeSignatureAccepted = uint32(2)
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
@@ -128,6 +136,15 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	}
 
 	return false
+}
+
+// GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
+func (wrk *worker) GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32 {
+	if msgType == MtSignature {
+		return maxNumOfMessageTypeSignatureAccepted
+	}
+
+	return defaultMaxNumOfMessageTypeAccepted
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -7,48 +7,50 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
-	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
+	"github.com/multiversx/mx-chain-go/heartbeat/processor"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	interceptorsProcessor "github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/networksharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
 
@@ -110,7 +112,7 @@ func NewTestHeartbeatNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	minPeersWaiting int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	heartbeatExpiryTimespanInSec int64,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
@@ -154,9 +156,9 @@ func NewTestHeartbeatNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerFromConfig(p2pConfig)
-	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
@@ -202,7 +204,7 @@ func NewTestHeartbeatNode(
 func NewTestHeartbeatNodeWithCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
 	keys TestKeyPair,
 ) *TestHeartbeatNode {
@@ -225,9 +227,9 @@ func NewTestHeartbeatNodeWithCoordinator(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerFromConfig(p2pConfig)
-	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
-	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
+	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	arg := networksharding.ArgPeerShardMapper{
 		PeerIdPkCache:         pidPk,
 		FallbackPkShardCache:  pkShardId,
@@ -271,7 +273,7 @@ func CreateNodesWithTestHeartbeatNode(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	numObserversOnShard int,
-	p2pConfig config.P2PConfig,
+	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestHeartbeatNode {
 
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
@@ -279,29 +281,30 @@ func CreateNodesWithTestHeartbeatNode(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestHeartbeatNode)
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
+	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
+	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:    shardConsensusGroupSize,
-			MetaConsensusGroupSize:     metaConsensusGroupSize,
-			Marshalizer:                TestMarshalizer,
-			Hasher:                     TestHasher,
-			ShardIDAsObserver:          shardId,
-			NbShards:                   uint32(numShards),
-			EligibleNodes:              validatorsForNodesCoordinator,
-			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:        cache,
-			Shuffler:                   &shardingMocks.NodeShufflerMock{},
-			BootStorer:                 CreateMemUnit(),
-			WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-			Epoch:                      0,
-			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-			WaitingListFixEnabledEpoch: 0,
-			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:              false,
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			ShardIDAsObserver:       shardId,
+			NbShards:                uint32(numShards),
+			EligibleNodes:           validatorsForNodesCoordinator,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:     suCache,
+			Shuffler:                &shardingMocks.NodeShufflerMock{},
+			BootStorer:              CreateMemUnit(),
+			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+			Epoch:                   0,
+			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:           false,
+			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -328,25 +331,26 @@ func CreateNodesWithTestHeartbeatNode(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:    shardConsensusGroupSize,
-				MetaConsensusGroupSize:     metaConsensusGroupSize,
-				Marshalizer:                TestMarshalizer,
-				Hasher:                     TestHasher,
-				ShardIDAsObserver:          shardId,
-				NbShards:                   uint32(numShards),
-				EligibleNodes:              validatorsForNodesCoordinator,
-				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:        cache,
-				Shuffler:                   &shardingMocks.NodeShufflerMock{},
-				BootStorer:                 CreateMemUnit(),
-				WaitingNodes:               make(map[uint32][]nodesCoordinator.Validator),
-				Epoch:                      0,
-				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
-				WaitingListFixEnabledEpoch: 0,
-				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
-				NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
-				IsFullArchive:              false,
+				ShardConsensusGroupSize: shardConsensusGroupSize,
+				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
+				Hasher:                  TestHasher,
+				ShardIDAsObserver:       shardId,
+				NbShards:                uint32(numShards),
+				EligibleNodes:           validatorsForNodesCoordinator,
+				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:     suCache,
+				Shuffler:                &shardingMocks.NodeShufflerMock{},
+				BootStorer:              CreateMemUnit(),
+				WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
+				Epoch:                   0,
+				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
+				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+				IsFullArchive:           false,
+				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
@@ -388,9 +392,9 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 func (thn *TestHeartbeatNode) initDataPools() {
 	thn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, thn.ShardCoordinator.SelfId())
 
-	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg)
-	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
+	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
+	suCache, _ := storageunit.NewCache(cacherCfg)
+	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
 }
 
 func (thn *TestHeartbeatNode) initStorage() {
@@ -443,7 +447,7 @@ func (thn *TestHeartbeatNode) initResolvers() {
 		DataPools:                thn.DataPool,
 		Uint64ByteSliceConverter: TestUint64Converter,
 		DataPacker:               dataPacker,
-		TriesContainer: &mock.TriesHolderStub{
+		TriesContainer: &trieMock.TriesHolderStub{
 			GetCalled: func(bytes []byte) common.Trie {
 				return &trieMock.TrieStub{}
 			},
@@ -503,7 +507,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 }
 
 func (thn *TestHeartbeatNode) initRequestedItemsHandler() {
-	thn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
+	thn.RequestedItemsHandler = cache.NewTimeCache(roundDuration)
 }
 
 func (thn *TestHeartbeatNode) initInterceptors() {
@@ -797,4 +801,14 @@ func (thn *TestHeartbeatNode) Close() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (thn *TestHeartbeatNode) IsInterfaceNil() bool {
 	return thn == nil
+}
+
+func createCryptoPair() TestKeyPair {
+	suite := mcl.NewSuiteBLS12()
+	keyGen := signing.NewKeyGenerator(suite)
+
+	kp := TestKeyPair{}
+	kp.Sk, kp.Pk = keyGen.GeneratePair()
+
+	return kp
 }

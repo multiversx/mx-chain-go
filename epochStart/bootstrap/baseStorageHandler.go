@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 type miniBlocksInfo struct {
@@ -71,7 +71,11 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 		return nil, err
 	}
 
-	bootstrapUnit := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapUnit, err := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	err = bootstrapUnit.Put(key, registryBytes)
 	if err != nil {
 		return nil, err
@@ -90,14 +94,22 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler
 
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
-	metaHdrStorage := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	err = metaHdrStorage.Put(headerHash, headerBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-	metaHdrNonceStorage := bsh.storageService.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	metaHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	err = metaHdrNonceStorage.Put(nonceToByteSlice, headerHash)
 	if err != nil {
 		return nil, err
@@ -114,14 +126,22 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
-	shardHdrStorage := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	shardHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	err = shardHdrStorage.Put(headerHash, headerBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(hdr.GetNonce())
-	shardHdrNonceStorage := bsh.storageService.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(hdr.GetShardID()))
+	shardHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(hdr.GetShardID()))
+	if err != nil {
+		return nil, err
+	}
+
 	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash)
 	if err != nil {
 		return nil, err
@@ -137,13 +157,21 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
-	metaHdrStorage := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return err
+	}
+
 	err = metaHdrStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes)
 	if err != nil {
 		return err
 	}
 
-	triggerStorage := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	triggerStorage, err := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+
 	err = triggerStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes)
 	if err != nil {
 		return err

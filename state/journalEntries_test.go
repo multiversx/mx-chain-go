@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,8 +58,9 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 
 	updateCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return marshalizer.Marshal(codeEntry)
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
+			return serializedCodeEntry, 0, err
 		},
 		UpdateCalled: func(key, value []byte) error {
 			updateCalled = true

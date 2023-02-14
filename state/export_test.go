@@ -1,9 +1,9 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
@@ -24,12 +24,12 @@ func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 
 // LoadDataTrie -
 func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
-	return adb.loadDataTrie(accountHandler)
+	return adb.loadDataTrie(accountHandler, adb.getMainTrie())
 }
 
 // GetAccount -
 func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return adb.getAccount(address)
+	return adb.getAccount(address, adb.getMainTrie())
 }
 
 // GetObsoleteHashes -

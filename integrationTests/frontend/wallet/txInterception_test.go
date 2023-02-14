@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -102,11 +102,11 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	valMinting, _ := big.NewInt(0).SetString(mintingValue, 10)
 	valMinting.Mul(valMinting, big.NewInt(5000000))
 
-	node := integrationTests.NewTestProcessorNode(
-		maxShards,
-		nodeShardId,
-		txSignPrivKeyShardId,
-	)
+	node := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          nodeShardId,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	node.EconomicsData.SetMinGasPrice(10)
 	txHexHash := ""

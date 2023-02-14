@@ -4,15 +4,37 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	testsCommonStorage "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewLogsRepository(t *testing.T) {
+	t.Parallel()
+
+	t.Run("storer not found", func(t *testing.T) {
+		t.Parallel()
+
+		repository := newLogsRepository(&storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, errors.New("new error")
+			},
+		}, testscommon.MarshalizerMock{})
+		require.Nil(t, repository)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, testscommon.MarshalizerMock{})
+		require.NotNil(t, repository)
+	})
+}
 
 func TestLogsRepository_GetLogsShouldWork(t *testing.T) {
 	epoch := uint32(7)
@@ -64,9 +86,9 @@ func TestLogsRepository_GetLogShouldFallbackToPreviousEpoch(t *testing.T) {
 
 func TestLogsRepository_GetLogShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	storageService := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testsCommonStorage.StorerStub{
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
@@ -74,7 +96,7 @@ func TestLogsRepository_GetLogShouldNotFallbackToPreviousEpochIfZero(t *testing.
 
 					return nil, errors.New("expected")
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -102,9 +124,9 @@ func TestLogsRepository_GetLogsShouldFallbackToPreviousEpoch(t *testing.T) {
 
 func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
-	storageService := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &testsCommonStorage.StorerStub{
+	storageService := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
 				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
@@ -112,7 +134,7 @@ func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing
 
 					return nil, errors.New("expected")
 				},
-			}
+			}, nil
 		},
 	}
 

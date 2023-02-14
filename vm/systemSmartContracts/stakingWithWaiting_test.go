@@ -5,12 +5,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,12 +22,9 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		atArgParser,
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -91,12 +86,9 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		atArgParser,
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -174,12 +166,9 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(
-		blockChainHook,
-		hooks.NewVMCryptoHook(),
-		atArgParser,
-		&stateMock.AccountsStub{},
-		&mock.RaterMock{})
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.inputParser = atArgParser
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"

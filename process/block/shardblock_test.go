@@ -13,34 +13,34 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/process"
-	blproc "github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/process"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -264,7 +264,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	round := uint64(4)
 	checkRoundCt := atomicCore.Counter{}
 
-	roundNotifier := &mock.RoundNotifierStub{
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
 		CheckRoundCalled: func(r uint64) {
 			checkRoundCt.Increment()
 			require.Equal(t, round, r)
@@ -274,7 +274,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	arguments.RoundNotifier = roundNotifier
+	arguments.EnableRoundsHandler = enableRoundsHandler
 
 	shardProcessor, _ := blproc.NewShardProcessor(arguments)
 	header := &block.Header{Round: round}
@@ -286,19 +286,18 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
-	assert.True(t, statusIdleSet && statusBusySet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -469,10 +468,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -652,7 +648,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tpm := &testscommon.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	store := &mock.ChainStorerMock{}
+	store := &storageStubs.ChainStorerStub{}
 	accounts := &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
@@ -693,10 +689,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -1437,7 +1430,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1489,7 +1482,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1547,7 +1540,7 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		args.DataComponents = &mock.DataComponentsMock{
-			Storage:  &mock.ChainStorerMock{},
+			Storage:  &storageStubs.ChainStorerStub{},
 			DataPool: poolsHolder,
 			BlockChain: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1841,9 +1834,14 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	sp, _ := blproc.NewShardProcessor(arguments)
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
@@ -1923,20 +1921,27 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+
+	expectedFirstNonce.HasValue = true
+	expectedFirstNonce.Value = hdr.Nonce
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
@@ -2112,13 +2117,27 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	arguments.BlockTracker = blockTrackerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
+	debuggerMethodWasCalled := false
+	debugger := &testscommon.ProcessDebuggerStub{
+		SetLastCommittedBlockRoundCalled: func(round uint64) {
+			assert.Equal(t, hdr.Round, round)
+			debuggerMethodWasCalled = true
+		},
+	}
 
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	err := sp.SetProcessDebugger(nil)
+	assert.Equal(t, process.ErrNilProcessDebugger, err)
+
+	err = sp.SetProcessDebugger(debugger)
+	assert.Nil(t, err)
+
+	err = sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
+	assert.True(t, debuggerMethodWasCalled)
 	// this should sleep as there is an async call to display current hdr and block in CommitBlock
 	time.Sleep(time.Second)
 }
@@ -2191,9 +2210,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *indexer.Pool
-	saveBlockCalledMutex := sync.Mutex{}
-
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -2209,37 +2225,22 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	statusComponents.Outport = &testscommon.OutportStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
-			saveBlockCalledMutex.Lock()
-			txsPool = args.TransactionsPool
-			saveBlockCalledMutex.Unlock()
+	called := false
+	statusComponents.Outport = &outport.OutportStub{
+		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
+			called = true
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
+			return &outportcore.ArgsSaveBlockData{}, nil
+		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
-			switch blockType {
-			case block.TxBlock:
-				return map[string]data.TransactionHandler{
-					"tx_1": &transaction.Transaction{Nonce: 1},
-					"tx_2": &transaction.Transaction{Nonce: 2},
-				}
-			case block.SmartContractResultBlock:
-				return map[string]data.TransactionHandler{
-					"utx_1": &smartContractResult.SmartContractResult{Nonce: 1},
-					"utx_2": &smartContractResult.SmartContractResult{Nonce: 2},
-				}
-			default:
-				return nil
-			}
-		},
-	}
 	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.MetaBlock{}, []byte("hash"), nil
@@ -2256,8 +2257,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	assert.Equal(t, 2, len(txsPool.Txs))
-	assert.Equal(t, 2, len(txsPool.Scrs))
+	require.True(t, called)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
@@ -2588,10 +2588,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2699,10 +2696,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3094,10 +3088,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3252,7 +3243,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 			m := make(map[string][]byte)
 			m[string(txHash)] = buffTx
@@ -3278,10 +3269,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&epochNotifier.EpochNotifierStub{},
-		2,
-		2,
-		2,
+		&testscommon.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -3319,7 +3307,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
 	datapool.Headers().AddHeader(metablockHash, metablockHeader)
 
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
@@ -3327,7 +3315,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return marshalizerMock.Marshal(metablockHeader)
 			},
-		}
+		}, nil
 	}
 
 	miniBlockHeader := block.MiniBlockHeader{
@@ -3499,7 +3487,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -3654,7 +3642,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -3796,7 +3784,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	putCalledNr := uint32(0)
-	store := &mock.ChainStorerMock{
+	store := &storageStubs.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 			atomic.AddUint32(&putCalledNr, 1)
 			wg.Done()
@@ -4056,8 +4044,8 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 		ShardInfo: make([]block.ShardData, 0),
 	}
 
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
@@ -4065,7 +4053,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 				GetCalled: func(key []byte) ([]byte, error) {
 					return marshalizer.Marshal(&metaBlock)
 				},
-			}
+			}, nil
 		},
 	}
 
@@ -4390,7 +4378,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	poolMock := dataRetrieverMock.CreatePoolsHolder(1, 0)
 
-	storer := &mock.ChainStorerMock{}
+	storer := &storageStubs.ChainStorerStub{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -4440,7 +4428,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	storer.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		return metaBytes, nil
 	}
-	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 		return &storageStubs.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
@@ -4448,7 +4436,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return metaBytes, nil
 			},
-		}
+		}, nil
 	}
 
 	err = sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes, &block.Header{})
@@ -4476,13 +4464,13 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 		},
 	}
 
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	storer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			if unitType == dataRetriever.ScheduledSCRsUnit {
-				return nil
+				return nil, errors.New("key not found")
 			}
 
-			return hdrStore
+			return hdrStore, nil
 		},
 	}
 
@@ -5043,6 +5031,9 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
+	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		IsScheduledMiniBlocksFlagEnabledField: true,
+	}
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {
@@ -5056,7 +5047,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)
@@ -5064,12 +5055,10 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 		},
 	}
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
-	arguments.ScheduledMiniBlocksEnableEpoch = 0
 
 	sp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	sp.EpochConfirmed(1, 0)
 	_, _, err = sp.CreateMiniBlocks(func() bool { return false })
 	require.Nil(t, err)
 	require.True(t, called.IsSet())

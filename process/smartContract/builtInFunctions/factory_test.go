@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,6 +31,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		Accounts:             &stateMock.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
 		AutomaticCrawlerAddresses: [][]byte{
 			bytes.Repeat([]byte{1}, 32),
 		},
@@ -87,32 +88,87 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	return gasMap
 }
 
-func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
+func TestCreateBuiltInFunctionContainer(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArguments()
-	args.GasSchedule = nil
-	builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
-	assert.NotNil(t, err)
-	assert.Nil(t, builtInFuncFactory)
+	t.Run("nil gas schedule should error", func(t *testing.T) {
+		t.Parallel()
 
-	args = createMockArguments()
-	args.MapDNSAddresses = nil
-	builtInFuncFactory, err = CreateBuiltInFunctionsFactory(args)
-	assert.Equal(t, process.ErrNilDnsAddresses, err)
-	assert.Nil(t, builtInFuncFactory)
+		args := createMockArguments()
+		args.GasSchedule = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilGasSchedule, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
 
-	args = createMockArguments()
-	builtInFuncFactory, err = CreateBuiltInFunctionsFactory(args)
-	assert.Nil(t, err)
-	assert.Equal(t, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()), 31)
+		args := createMockArguments()
+		args.Marshalizer = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil accounts should error", func(t *testing.T) {
+		t.Parallel()
 
-	err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
-	assert.Nil(t, err)
+		args := createMockArguments()
+		args.Accounts = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilAccountsAdapter, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil map dns addresses should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.False(t, builtInFuncFactory.BuiltInFunctionContainer().IsInterfaceNil())
-	assert.False(t, builtInFuncFactory.NFTStorageHandler().IsInterfaceNil())
-	assert.False(t, builtInFuncFactory.ESDTGlobalSettingsHandler().IsInterfaceNil())
+		args := createMockArguments()
+		args.MapDNSAddresses = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilDnsAddresses, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArguments()
+		args.ShardCoordinator = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilShardCoordinator, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil epoch notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArguments()
+		args.EpochNotifier = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilEpochNotifier, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("nil epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArguments()
+		args.EnableEpochsHandler = nil
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+		assert.Nil(t, builtInFuncFactory)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArguments()
+		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
+		assert.Nil(t, err)
+		assert.Equal(t, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()), 31)
+
+		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
+		assert.Nil(t, err)
+
+		assert.False(t, builtInFuncFactory.BuiltInFunctionContainer().IsInterfaceNil())
+		assert.False(t, builtInFuncFactory.NFTStorageHandler().IsInterfaceNil())
+		assert.False(t, builtInFuncFactory.ESDTGlobalSettingsHandler().IsInterfaceNil())
+	})
 }
 
 func TestCreateBuiltInFunctionContainerGetAllowedAddress_Errors(t *testing.T) {

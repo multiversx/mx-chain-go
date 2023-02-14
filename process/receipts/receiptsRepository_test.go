@@ -5,17 +5,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	testsCommonStorage "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,6 +56,24 @@ func TestNewReceiptsRepository(t *testing.T) {
 		repository, err := NewReceiptsRepository(arguments)
 		require.ErrorIs(t, err, errCannotCreateReceiptsRepository)
 		require.ErrorContains(t, err, core.ErrNilStore.Error())
+		require.True(t, check.IfNil(repository))
+	})
+
+	t.Run("storer not found", func(t *testing.T) {
+		expectedErr := errors.New("expected error")
+		arguments := ArgsNewReceiptsRepository{
+			Marshaller: testscommon.MarshalizerMock{},
+			Hasher:     &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return nil, expectedErr
+				},
+			},
+		}
+
+		repository, err := NewReceiptsRepository(arguments)
+		require.ErrorIs(t, err, errCannotCreateReceiptsRepository)
+		require.ErrorContains(t, err, expectedErr.Error())
 		require.True(t, check.IfNil(repository))
 	})
 
@@ -214,7 +232,7 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 
 func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 	store := &testsCommonStorage.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &testsCommonStorage.StorerStub{
 				PutCalled: func(key, data []byte) error {
 					return errors.New("bad")
@@ -222,7 +240,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					return nil, errors.New("bad")
 				},
-			}
+			}, nil
 		},
 	}
 

@@ -5,16 +5,16 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/receipts")
@@ -39,7 +39,10 @@ func NewReceiptsRepository(args ArgsNewReceiptsRepository) (*receiptsRepository,
 		return nil, fmt.Errorf("%w: %v", errCannotCreateReceiptsRepository, err)
 	}
 
-	storer := args.Store.GetStorer(dataRetriever.ReceiptsUnit)
+	storer, err := args.Store.GetStorer(dataRetriever.ReceiptsUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errCannotCreateReceiptsRepository, err)
+	}
 
 	return &receiptsRepository{
 		marshaller:        args.Marshaller,

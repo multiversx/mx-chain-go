@@ -52,9 +52,6 @@ var ErrNilLeafNode = errors.New("the leaf node is nil")
 // ErrNilNode is raised when we reach a nil node
 var ErrNilNode = errors.New("the node is nil")
 
-// ErrInvalidLength signals that length of the array is invalid
-var ErrInvalidLength = errors.New("invalid array length")
-
 // ErrWrongTypeAssertion signals that wrong type was provided
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
@@ -108,3 +105,12 @@ var ErrNilIdleNodeProvider = errors.New("nil idle node provider")
 
 // ErrNilRootHashHolder signals that a nil root hash holder was provided
 var ErrNilRootHashHolder = errors.New("nil root hash holder provided")
+
+// ErrNilTrieIteratorChannels signals that nil trie iterator channels has been provided
+var ErrNilTrieIteratorChannels = errors.New("nil trie iterator channels")
+
+// ErrNilTrieIteratorLeavesChannel signals that a nil trie iterator leaves channel has been provided
+var ErrNilTrieIteratorLeavesChannel = errors.New("nil trie iterator leaves channel")
+
+// ErrNilTrieIteratorErrChannel signals that a nil trie iterator error channel has been provided
+var ErrNilTrieIteratorErrChannel = errors.New("nil trie iterator error channel")

@@ -1,13 +1,13 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 type bootstrapDataProvider struct {
@@ -45,12 +45,12 @@ func (bdp *bootstrapDataProvider) LoadForPath(
 		}
 	}()
 
-	cacher, err := lrucache.NewCache(10)
+	cacher, err := cache.NewLRUCache(10)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	storer, err := storageunit.NewStorageUnit(cacher, persister)
 	if err != nil {
 		return nil, nil, err
 	}

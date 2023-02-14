@@ -6,19 +6,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
-	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,7 +75,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledNotE
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
@@ -97,7 +96,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetRequiredHe
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
@@ -119,10 +118,43 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocks
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
+}
+
+func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocksSyncedMiniblocksShouldBeReturned(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultDataSyncerFactoryArgs()
+	notarizedShardHeader := createTestHeader()
+	notarizedShardHeader.Epoch = 2
+	prevHeader := &block.Header{Nonce: 2}
+	expectedHeadersMap := map[string]data.HeaderHandler{
+		"hash1": notarizedShardHeader,
+		string(notarizedShardHeader.GetPrevHash()): prevHeader,
+	}
+	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+			return expectedHeadersMap, nil
+		},
+	}
+	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
+			return map[string]*block.MiniBlock{
+				"mb": {},
+			}, nil
+		},
+	}
+
+	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
+
+	header, headersMap, mbs, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	require.Nil(t, err)
+	require.Equal(t, expectedHeadersMap, headersMap)
+	require.Equal(t, prevHeader, header)
+	require.Equal(t, 1, len(mbs))
 }
 
 func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnabled(t *testing.T) {
@@ -144,7 +176,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnab
 
 	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Equal(t, expectedHeadersMap, headersMap)
 	require.Equal(t, prevHeader, header)

@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	nodesCoord "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // nodesCoordinator -
@@ -85,7 +85,7 @@ func (n *nodesCoordinator) ShardIdForEpoch(_ uint32) (uint32, error) {
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
-func (ncm *nodesCoordinator) ShuffleOutForEpoch(_ uint32) {
+func (n *nodesCoordinator) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes -

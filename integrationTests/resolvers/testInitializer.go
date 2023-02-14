@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 // Log -
@@ -26,8 +26,16 @@ func CreateResolverRequester(
 	numShards := uint32(2)
 
 	txSignShardId := uint32(0)
-	nResolver := integrationTests.NewTestProcessorNode(numShards, resolverShardID, txSignShardId)
-	nRequester := integrationTests.NewTestProcessorNode(numShards, requesterShardID, txSignShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          resolverShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numShards,
+		NodeShardId:          requesterShardID,
+		TxSignPrivKeyShardId: txSignShardId,
+	})
 
 	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
@@ -68,6 +76,8 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 		TxCount:            0,
 		ShardID:            0,
 		BlockBodyType:      block.TxBlock,
+		AccumulatedFees:    big.NewInt(0),
+		DeveloperFees:      big.NewInt(0),
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)
@@ -79,18 +89,23 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 // CreateMetaHeader -
 func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.MetaBlock{
-		Nonce:           nonce,
-		Epoch:           0,
-		ShardInfo:       make([]block.ShardData, 0),
-		Signature:       []byte("signature"),
-		PubKeysBitmap:   []byte{1},
-		PrevHash:        []byte("prev hash"),
-		PrevRandSeed:    []byte("prev rand seed"),
-		RandSeed:        []byte("rand seed"),
-		RootHash:        []byte("root hash"),
-		TxCount:         0,
-		ChainID:         chainID,
-		SoftwareVersion: []byte("v1.0"),
+		Nonce:                  nonce,
+		Epoch:                  0,
+		ShardInfo:              make([]block.ShardData, 0),
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte{1},
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ChainID:                chainID,
+		SoftwareVersion:        []byte("v1.0"),
+		DeveloperFees:          big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
+		DevFeesInEpoch:         big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)

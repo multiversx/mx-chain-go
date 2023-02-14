@@ -3,11 +3,11 @@ package trie_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,12 +77,14 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 	tsm, _ := trie.NewTrieStorageManager(args)
 	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 
-	errChan := make(chan error, 1)
-	leavesCh := make(chan core.KeyValueHolder)
-	ts.TakeSnapshot(nil, nil, leavesCh, errChan, &trieMock.MockStatistics{}, 10)
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder),
+		ErrChan:    make(chan error, 1),
+	}
+	ts.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 
 	select {
-	case <-leavesCh:
+	case <-iteratorChannels.LeavesChan:
 	default:
 		assert.Fail(t, "unclosed channel")
 	}
