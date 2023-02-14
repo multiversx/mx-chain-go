@@ -11,6 +11,7 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +67,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		managedCoreComponents.ChanStopNodeProcess(),
 		managedCoreComponents.NodeTypeProvider(),
-		managedCoreComponents.EnableEpochsHandler(),
+		&testscommon.EnableEpochsHandlerStub{},
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 	)

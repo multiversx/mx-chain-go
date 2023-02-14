@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -33,7 +32,7 @@ type syncValidatorStatus struct {
 	nodeCoordinator     StartInEpochNodesCoordinator
 	genesisNodesConfig  sharding.GenesisNodesSetupHandler
 	memDB               storage.Storer
-	enableEpochsHandler common.EnableEpochsHandler
+	enableEpochsHandler nodesCoordinator.EnableEpochsHandler
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
@@ -50,7 +49,7 @@ type ArgsNewSyncValidatorStatus struct {
 	ChanNodeStop                    chan endProcess.ArgEndProcess
 	NodeTypeProvider                NodeTypeProviderHandler
 	IsFullArchive                   bool
-	EnableEpochsHandler             common.EnableEpochsHandler
+	EnableEpochsHandler             nodesCoordinator.EnableEpochsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 

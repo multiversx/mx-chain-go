@@ -114,8 +114,6 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsBalanceWaitingListsFlagEnabledField: true,
-			IsStakingV4Step2FlagEnabledField:      true,
-			IsStakingV4Step3FlagEnabledField:      true,
 		},
 	}
 

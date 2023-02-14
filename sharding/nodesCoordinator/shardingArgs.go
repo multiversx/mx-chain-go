@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -30,7 +29,7 @@ type ArgNodesCoordinator struct {
 	ChanStopNode                    chan endProcess.ArgEndProcess
 	NodeTypeProvider                NodeTypeProviderHandler
 	IsFullArchive                   bool
-	EnableEpochsHandler             common.EnableEpochsHandler
+	EnableEpochsHandler             EnableEpochsHandler
 	ValidatorInfoCacher             epochStart.ValidatorInfoCacher
 	NodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }

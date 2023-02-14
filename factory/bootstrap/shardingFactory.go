@@ -105,7 +105,7 @@ func CreateNodesCoordinator(
 	startEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
 	nodeTypeProvider core.NodeTypeProviderHandler,
-	enableEpochsHandler common.EnableEpochsHandler,
+	enableEpochsHandler nodesCoordinator.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 ) (nodesCoordinator.NodesCoordinator, error) {

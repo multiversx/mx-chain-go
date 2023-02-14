@@ -94,7 +94,7 @@ type indexHashedNodesCoordinator struct {
 	isFullArchive                   bool
 	chanStopNode                    chan endProcess.ArgEndProcess
 	nodeTypeProvider                NodeTypeProviderHandler
-	enableEpochsHandler             common.EnableEpochsHandler
+	enableEpochsHandler             EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }
@@ -148,10 +148,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
-	err = ihnc.updateEnableEpochsHandler(ihnc.currentEpoch)
-	if err != nil {
-		return nil, err
-	}
+	ihnc.enableEpochsHandler.EpochConfirmed(ihnc.currentEpoch, 0)
 
 	ihnc.loadingFromDisk.Store(false)
 
@@ -605,11 +602,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	err := ihnc.updateEnableEpochsHandler(newEpoch)
-	if err != nil {
-		log.Error("EpochStartPrepare failed", "error", err)
-		return
-	}
+	ihnc.enableEpochsHandler.EpochConfirmed(newEpoch, 0)
 
 	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
@@ -1290,13 +1283,4 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 	}
 
 	return shardValidatorInfo, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) updateEnableEpochsHandler(epoch uint32) error {
-	epochSubscriberHandler, ok := ihnc.enableEpochsHandler.(core.EpochSubscriberHandler)
-	if !ok {
-		return epochStart.ErrCannotCastEnableEpochsHandlerToEpochSubscriberHandler
-	}
-	epochSubscriberHandler.EpochConfirmed(epoch, 0)
-	return nil
 }

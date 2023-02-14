@@ -1382,11 +1382,7 @@ func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
 func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandlerMock := &mock.EnableEpochsHandlerMock{
-		StakingV4Step2EnableEpochField: stakingV4Epoch,
-	}
 	arguments := createArguments()
-	arguments.EnableEpochsHandler = enableEpochsHandlerMock
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1406,7 +1402,7 @@ func TestIndexHashedNodesCoordinator_computeShardForSelfPublicKeyWithStakingV4(t
 	require.Equal(t, nc.shardIDAsObserver, computedShardId)
 	require.False(t, isValidator)
 
-	enableEpochsHandlerMock.EpochConfirmed(stakingV4Epoch, 0)
+	arguments.EnableEpochsHandler.EpochConfirmed(stakingV4Epoch, 0)
 
 	computedShardId, isValidator = nc.computeShardForSelfPublicKey(nc.nodesConfig[epoch])
 	require.Equal(t, metaShard, computedShardId)
@@ -2100,11 +2096,8 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPk(t *testing.
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *testing.T) {
 	t.Parallel()
-	enableEpochsHandlerMock := &mock.EnableEpochsHandlerMock{
-		StakingV4Step2EnableEpochField: stakingV4Epoch,
-	}
+
 	arguments := createArguments()
-	arguments.EnableEpochsHandler = enableEpochsHandlerMock
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	shard0Eligible := &state.ShardValidatorInfo{
@@ -2134,7 +2127,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListWithStakingV4(t *
 	require.Equal(t, ErrReceivedAuctionValidatorsBeforeStakingV4, err)
 	require.Nil(t, newNodesConfig)
 
-	require.Nil(t, nc.updateEnableEpochsHandler(stakingV4Epoch))
+	arguments.EnableEpochsHandler.EpochConfirmed(stakingV4Epoch, 0)
 
 	newNodesConfig, err = nc.computeNodesConfigFromList(validatorInfos)
 	require.Nil(t, err)
@@ -2334,7 +2327,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t
 			shardMetaLeaving1,
 		}
 
-	enableEpochsHandlerMock.StakingV4Step1EnableEpochField = uint32(1000000)
+	enableEpochsHandlerMock.StakingV4Step1EnableEpochField = uint32(stakingV4Epoch)
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorInfos)
 	assert.Nil(t, err)
 

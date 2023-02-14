@@ -166,7 +166,7 @@ func TestIndexHashedNodesCoordinator_IsEpochInConfig(t *testing.T) {
 	epoch := uint32(1)
 	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
 
-	require.Nil(t, ihnc.updateEnableEpochsHandler(stakingV4Epoch))
+	arguments.EnableEpochsHandler.EpochConfirmed(stakingV4Epoch, 0)
 
 	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, ihnc.validatorInfoCacher)
 	validatorsInfo, _ := ihnc.createValidatorInfoFromBody(body, 10, epoch)

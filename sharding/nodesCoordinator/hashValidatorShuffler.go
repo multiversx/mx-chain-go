@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -23,7 +22,7 @@ type NodesShufflerArgs struct {
 	Adaptivity           bool
 	ShuffleBetweenShards bool
 	MaxNodesEnableConfig []config.MaxNodesChangeConfig
-	EnableEpochsHandler  common.EnableEpochsHandler
+	EnableEpochsHandler  EnableEpochsHandler
 }
 
 type shuffleNodesArg struct {
@@ -39,7 +38,7 @@ type shuffleNodesArg struct {
 	nodesPerShard          uint32
 	nbShards               uint32
 	maxNodesToSwapPerShard uint32
-	enableEpochsHandler    common.EnableEpochsHandler
+	enableEpochsHandler    EnableEpochsHandler
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -57,7 +56,7 @@ type randHashShuffler struct {
 	availableNodesConfigs []config.MaxNodesChangeConfig
 	mutShufflerParams     sync.RWMutex
 	validatorDistributor  ValidatorsDistributor
-	enableEpochsHandler   common.EnableEpochsHandler
+	enableEpochsHandler   EnableEpochsHandler
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -72,7 +71,7 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 
 	var configs []config.MaxNodesChangeConfig
 
-	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
+	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "MaxNodesEnableConfig", args.MaxNodesEnableConfig)
 
 	if args.MaxNodesEnableConfig != nil {
 		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -732,12 +731,7 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
 
-	epochSubscriberHandler, ok := rhs.enableEpochsHandler.(core.EpochSubscriberHandler)
-	if !ok {
-		log.Error("UpdateShufflerConfig: could not cast enableEpochsHandler to EpochSubscriberHandler")
-		return
-	}
-	epochSubscriberHandler.EpochConfirmed(epoch, 0)
+	rhs.enableEpochsHandler.EpochConfirmed(epoch, 0)
 }
 
 func (rhs *randHashShuffler) sortConfigs() {

@@ -114,7 +114,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	enableEpochsHandler        common.EnableEpochsHandler
+	enableEpochsHandler        nodesCoordinator.EnableEpochsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -181,7 +181,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer             storage.Storer
 	TrieSyncStatisticsProvider      common.SizeSyncStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
-	EnableEpochsHandler             common.EnableEpochsHandler
+	EnableEpochsHandler             nodesCoordinator.EnableEpochsHandler
 }
 
 type dataToSync struct {

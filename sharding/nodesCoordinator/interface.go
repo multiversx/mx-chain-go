@@ -167,3 +167,16 @@ type EpochNotifier interface {
 	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
+
+// EnableEpochsHandler is used to verify which flags are set in the confirmed epoch based on EnableEpochs config
+type EnableEpochsHandler interface {
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	RefactorPeersMiniBlocksEnableEpoch() uint32
+	ScheduledMiniBlocksEnableEpoch() uint32
+	IsBalanceWaitingListsFlagEnabled() bool
+	StakingV4Step2EnableEpoch() uint32
+	IsStakingV4Started() bool
+	IsStakingV4Step2Enabled() bool
+	IsStakingV4Step3Enabled() bool
+	IsInterfaceNil() bool
+}
