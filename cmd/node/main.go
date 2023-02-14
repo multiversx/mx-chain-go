@@ -97,15 +97,14 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		return errCfg
 	}
 
-	// check config here
-	errCheckEpochsCfg := sanityCheckEnableEpochsStakingV4(cfgs, log)
-	if errCheckEpochsCfg != nil {
-		return errCfg
-	}
-
 	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
 	if errCfgOverride != nil {
 		return errCfgOverride
+	}
+
+	errCheckEpochsCfg := config.SanityCheckEnableEpochsStakingV4(cfgs)
+	if errCheckEpochsCfg != nil {
+		return errCfg
 	}
 
 	if !check.IfNil(fileLogging) {
@@ -252,59 +251,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,
 	}, nil
-}
-
-func sanityCheckEnableEpochsStakingV4(cfg *config.Configs, log logger.Logger) error {
-	enableEpochsCfg := cfg.EpochConfig.EnableEpochs
-	stakingV4StepsInOrder := (enableEpochsCfg.StakingV4Step1EnableEpoch < enableEpochsCfg.StakingV4Step2EnableEpoch) &&
-		(enableEpochsCfg.StakingV4Step2EnableEpoch < enableEpochsCfg.StakingV4Step3EnableEpoch)
-
-	if !stakingV4StepsInOrder {
-		return fmt.Errorf("staking v4 enable epochs are not in ascending order" +
-			"; expected StakingV4Step1EnableEpoch < StakingV4Step2EnableEpoch < StakingV4Step3EnableEpoch")
-	}
-
-	stakingV4StepsInExpectedOrder := (enableEpochsCfg.StakingV4Step1EnableEpoch == enableEpochsCfg.StakingV4Step2EnableEpoch-1) &&
-		(enableEpochsCfg.StakingV4Step2EnableEpoch == enableEpochsCfg.StakingV4Step3EnableEpoch-1)
-	if !stakingV4StepsInExpectedOrder {
-		log.Warn("staking v4 enable epoch steps should be in cardinal order " +
-			"(e.g.: StakingV4Step1EnableEpoch = 2, StakingV4Step2EnableEpoch = 3, StakingV4Step3EnableEpoch = 4)" +
-			"; can leave them as they are for playground purposes" +
-			", but DO NOT use them in production, since system's behavior is undefined")
-	}
-
-	maxNodesConfigAdaptedForStakingV4 := false
-	for idx, maxNodesChangeCfg := range enableEpochsCfg.MaxNodesChangeEnableEpoch {
-		if maxNodesChangeCfg.EpochEnable == enableEpochsCfg.StakingV4Step2EnableEpoch {
-			maxNodesConfigAdaptedForStakingV4 = true
-
-			if idx == 0 {
-				log.Warn(fmt.Sprintf("found config change in MaxNodesChangeEnableEpoch for StakingV4Step3EnableEpoch = %d, ", enableEpochsCfg.StakingV4Step3EnableEpoch) +
-					"but no previous config change entry in MaxNodesChangeEnableEpoch")
-			} else {
-				prevMaxNodesChange := enableEpochsCfg.MaxNodesChangeEnableEpoch[idx-1]
-				if prevMaxNodesChange.NodesToShufflePerShard != maxNodesChangeCfg.NodesToShufflePerShard {
-					log.Warn("previous MaxNodesChangeEnableEpoch.NodesToShufflePerShard != MaxNodesChangeEnableEpoch.NodesToShufflePerShard with EnableEpoch = StakingV4Step3EnableEpoch" +
-						"; can leave them as they are for playground purposes, but DO NOT use them in production, since this will influence rewards")
-				}
-
-				numShards := cfg.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards
-				expectedMaxNumNodes := prevMaxNodesChange.MaxNumNodes - (numShards + 1) - prevMaxNodesChange.NodesToShufflePerShard
-				if expectedMaxNumNodes != maxNodesChangeCfg.MaxNumNodes {
-					return fmt.Errorf(fmt.Sprintf("expcted MaxNodesChangeEnableEpoch.MaxNumNodes for StakingV4Step3EnableEpoch = %d, but got %d",
-						expectedMaxNumNodes, maxNodesChangeCfg.MaxNumNodes))
-				}
-			}
-
-			break
-		}
-	}
-
-	if !maxNodesConfigAdaptedForStakingV4 {
-		return fmt.Errorf("no MaxNodesChangeEnableEpoch config found for EpochEnable = StakingV4Step3EnableEpoch(%d)", enableEpochsCfg.StakingV4Step3EnableEpoch)
-	}
-
-	return nil
 }
 
 func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig) (factory.FileLoggingHandler, error) {
