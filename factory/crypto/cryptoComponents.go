@@ -89,6 +89,7 @@ type cryptoComponents struct {
 	txSignKeyGen         crypto.KeyGenerator
 	p2pKeyGen            crypto.KeyGenerator
 	messageSignVerifier  vm.MessageSignVerifier
+	consensusSigHandler  consensus.SignatureHandler
 	cryptoParams
 	p2pCryptoParams
 }
@@ -182,7 +183,18 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
-	p2pCryptoParams, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
+	p2pCryptoParamsInstance, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
+	if err != nil {
+		return nil, err
+	}
+
+	signatureHolderArgs := ArgsSignatureHolder{
+		PubKeys:              []string{cp.publicKeyString},
+		PrivKeyBytes:         cp.privateKeyBytes,
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+	}
+	consensusSigHandler, err := NewSignatureHolder(signatureHolderArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +210,9 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		txSignKeyGen:         txSignKeyGen,
 		p2pKeyGen:            p2pKeyGenerator,
 		messageSignVerifier:  messageSignVerifier,
+		consensusSigHandler:  consensusSigHandler,
 		cryptoParams:         *cp,
-		p2pCryptoParams:      *p2pCryptoParams,
+		p2pCryptoParams:      *p2pCryptoParamsInstance,
 		p2pSingleSigner:      p2pSingleSigner,
 	}, nil
 }
@@ -271,6 +284,11 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -303,6 +321,11 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 
 	var err error
 	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}

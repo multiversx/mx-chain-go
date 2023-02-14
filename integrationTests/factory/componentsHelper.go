@@ -56,6 +56,8 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
 		WorkingDir: tb.TempDir(),
+		DbDir:      "dbDir",
+		LogsDir:    "logsDir",
 		UseLogView: true,
 		Version:    Version,
 	}
