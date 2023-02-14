@@ -68,15 +68,27 @@ func TestSanityCheckEnableEpochsStakingV4(t *testing.T) {
 		require.Equal(t, errStakingV4StepsNotInOrder, err)
 	})
 
-	t.Run("staking v4 steps not in ascending order, should work", func(t *testing.T) {
+	t.Run("staking v4 steps not in cardinal order, should work", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig()
+
 		cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 1
 		cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 		cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 6
-
 		err := SanityCheckEnableEpochsStakingV4(cfg)
+		require.Nil(t, err)
+
+		cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 6
+		err = SanityCheckEnableEpochsStakingV4(cfg)
+		require.Nil(t, err)
+
+		cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 5
+		cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 6
+		err = SanityCheckEnableEpochsStakingV4(cfg)
 		require.Nil(t, err)
 	})
 
