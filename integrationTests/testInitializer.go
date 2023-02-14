@@ -2401,6 +2401,9 @@ func UpdateRound(nodes []*TestProcessorNode, round uint64) {
 	for _, n := range nodes {
 		n.RoundHandler.IndexField = int64(round)
 	}
+
+	// this delay is needed in order for the round to be properly updated in the nodes
+	time.Sleep(10 * time.Millisecond)
 }
 
 // ProposeBlocks proposes blocks for a given number of rounds

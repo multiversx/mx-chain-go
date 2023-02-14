@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -424,17 +425,20 @@ func TestTransactionsSync_ReceivedValidatorInfo(t *testing.T) {
 	transactionsSyncer.mutPendingTx.Unlock()
 
 	wasReceivedAll := atomic.Flag{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		select {
 		case <-transactionsSyncer.chReceivedAll:
 			wasReceivedAll.SetValue(true)
-			return
 		case <-time.After(time.Second):
 		}
+		wg.Done()
 	}()
 
 	// received all missing validators info with success
 	transactionsSyncer.receivedValidatorInfo(txHash, svi)
+	wg.Wait()
 	transactionsSyncer.mutPendingTx.Lock()
 	assert.Equal(t, 1, len(transactionsSyncer.mapValidatorsInfo))
 	transactionsSyncer.mutPendingTx.Unlock()

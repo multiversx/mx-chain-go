@@ -138,7 +138,7 @@ func (ln *leafNode) commitCheckpoint(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -183,7 +183,7 @@ func (ln *leafNode) commitSnapshot(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
