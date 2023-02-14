@@ -1101,7 +1101,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 
 				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
 				wgEnd.Done()
-				fmt.Println("finished")
 			}()
 		} else {
 			go func() {
@@ -1110,7 +1109,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 
 				_, _ = tr.GetSerializedNode([]byte("dog"))
 				wgEnd.Done()
-				fmt.Println("finished")
 			}()
 		}
 	}
