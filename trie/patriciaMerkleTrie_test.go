@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -36,7 +37,7 @@ func emptyTrie() common.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
+func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
 
@@ -45,7 +46,8 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		SnapshotsBufferLen:    10,
 		SnapshotsGoroutineNum: 1,
 	}
-	args := trie.NewTrieStorageManagerArgs{
+
+	return trie.NewTrieStorageManagerArgs{
 		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
 		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
 		Marshalizer:            marshalizer,
@@ -54,10 +56,14 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
+}
+
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
+	args := getDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
-	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, maxTrieLevelInMemory
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -1065,6 +1071,71 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultTrieStorageManagerParameters()
+	args.MainStorer = &storage.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			// gets take a long time
+			time.Sleep(time.Millisecond * 10)
+			return key, nil
+		},
+	}
+
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, 5)
+	numGoRoutines := 1000
+	wgStart := sync.WaitGroup{}
+	wgStart.Add(numGoRoutines)
+	wgEnd := sync.WaitGroup{}
+	wgEnd.Add(numGoRoutines)
+
+	for i := 0; i < numGoRoutines; i++ {
+		if i%2 == 0 {
+			go func() {
+				time.Sleep(time.Millisecond * 100)
+				wgStart.Done()
+
+				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
+				wgEnd.Done()
+				fmt.Println("finished")
+			}()
+		} else {
+			go func() {
+				time.Sleep(time.Millisecond * 100)
+				wgStart.Done()
+
+				_, _ = tr.GetSerializedNode([]byte("dog"))
+				wgEnd.Done()
+				fmt.Println("finished")
+			}()
+		}
+	}
+
+	wgStart.Wait()
+	chanClosed := make(chan struct{})
+	go func() {
+		_ = tr.Close()
+		close(chanClosed)
+	}()
+
+	chanGetsEnded := make(chan struct{})
+	go func() {
+		wgEnd.Wait()
+		close(chanGetsEnded)
+	}()
+
+	timeout := time.Second * 10
+	select {
+	case <-chanClosed: // ok
+	case <-chanGetsEnded:
+		assert.Fail(t, "trie should have been closed before all gets ended")
+	case <-time.After(timeout):
+		assert.Fail(t, "timeout waiting for trie to be closed")
+	}
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
