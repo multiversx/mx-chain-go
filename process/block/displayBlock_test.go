@@ -208,7 +208,7 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			defer func() {
 				r := recover()
 				if r != nil {
-					assert.Fail(t, fmt.Sprintf("should not have panicked: %v", r))
+					assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
 				}
 			}()
 
@@ -248,7 +248,7 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			defer func() {
 				r := recover()
 				if r != nil {
-					assert.Fail(t, fmt.Sprintf("should not have panicked: %v", r))
+					assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
 				}
 			}()
 
