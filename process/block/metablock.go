@@ -149,7 +149,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
-	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
+	argsTransactionCounter := ArgsTransactionCounter{
+		AppStatusHandler: mp.appStatusHandler,
+		Hasher:           mp.hasher,
+		Marshalizer:      mp.marshalizer,
+		ShardID:          core.MetachainShardId,
+	}
+	mp.txCounter, err = NewTransactionCounter(argsTransactionCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -682,7 +688,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.GetMiniBlockHeaderHandlers()))
 	}
 
-	mp.restoreBlockBody(bodyHandler)
+	mp.restoreBlockBody(headerHandler, bodyHandler)
 
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -1284,7 +1290,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	go func() {
-		mp.txCounter.setNumProcessedTxsMetric(mp.appStatusHandler)
+		mp.txCounter.headerExecuted(header)
 		mp.headersCounter.displayLogInfo(
 			header,
 			body,

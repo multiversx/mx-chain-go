@@ -125,7 +125,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
-	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
+	argsTransactionCounter := ArgsTransactionCounter{
+		AppStatusHandler: sp.appStatusHandler,
+		Hasher:           sp.hasher,
+		Marshalizer:      sp.marshalizer,
+		ShardID:          sp.shardCoordinator.SelfId(),
+	}
+	sp.txCounter, err = NewTransactionCounter(argsTransactionCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -624,7 +630,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	sp.restoreBlockBody(bodyHandler)
+	sp.restoreBlockBody(headerHandler, bodyHandler)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -1039,7 +1045,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	// write data to log
 	go func() {
-		sp.txCounter.setNumProcessedTxsMetric(sp.appStatusHandler)
+		sp.txCounter.headerExecuted(header)
 		sp.txCounter.displayLogInfo(
 			header,
 			body,
