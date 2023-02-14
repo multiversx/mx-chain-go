@@ -29,13 +29,13 @@ func TestCheckOperationModes(t *testing.T) {
 		require.Empty(t, res)
 		require.Equal(t, "operation-mode flag cannot contain both db-lookup-extension and historical-balances", err.Error())
 
-		res, err = ParseOperationModes(fmt.Sprintf("%s,%s", OperationModeLiteObserver, OperationModeHistoricalBalances))
+		res, err = ParseOperationModes(fmt.Sprintf("%s,%s", OperationModeSnapshotlessObserver, OperationModeHistoricalBalances))
 		require.Empty(t, res)
-		require.Equal(t, "operation-mode flag cannot contain both lite-observer and historical-balances", err.Error())
+		require.Equal(t, "operation-mode flag cannot contain both snapshotless-observer and historical-balances", err.Error())
 
-		res, err = ParseOperationModes(fmt.Sprintf("%s,%s", OperationModeLiteObserver, OperationModeFullArchive))
+		res, err = ParseOperationModes(fmt.Sprintf("%s,%s", OperationModeSnapshotlessObserver, OperationModeFullArchive))
 		require.Empty(t, res)
-		require.Equal(t, "operation-mode flag cannot contain both lite-observer and full-archive", err.Error())
+		require.Equal(t, "operation-mode flag cannot contain both snapshotless-observer and full-archive", err.Error())
 	})
 
 	t.Run("ok config", func(t *testing.T) {
