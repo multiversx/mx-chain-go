@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -101,6 +102,12 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 		nCopy := n
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.BlockProcessor.NumCommitBlockCalled++
+			headerHash, _ := core.CalculateHash(
+				n.Node.GetCoreComponents().InternalMarshalizer(),
+				n.Node.GetCoreComponents().Hasher(),
+				header,
+			)
+			nCopy.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
 
 			mutex.Lock()
