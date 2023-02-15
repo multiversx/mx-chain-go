@@ -412,8 +412,9 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		ChanNodeStop:                    sesb.coreComponentsHolder.ChanStopNodeProcess(),
 		NodeTypeProvider:                sesb.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler:             sesb.enableEpochsHandler,
+		EnableEpochsHandler:             sesb.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: sesb.nodesCoordinatorRegistryFactory,
+		EnableEpochsConfig:              sesb.enableEpochsConfig,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

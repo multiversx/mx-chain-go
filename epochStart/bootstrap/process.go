@@ -95,6 +95,7 @@ type epochStartBootstrap struct {
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
 	flagsConfig                config.ContextFlagsConfig
+	enableEpochsConfig         config.EnableEpochs
 	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -114,7 +115,6 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	enableEpochsHandler        nodesCoordinator.EnableEpochsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -166,6 +166,7 @@ type ArgsEpochStartBootstrap struct {
 	GeneralConfig                   config.Config
 	PrefsConfig                     config.PreferencesConfig
 	FlagsConfig                     config.ContextFlagsConfig
+	EnableEpochsConfig              config.EnableEpochs
 	EconomicsData                   process.EconomicsDataHandler
 	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator         sharding.Coordinator
@@ -181,7 +182,6 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer             storage.Storer
 	TrieSyncStatisticsProvider      common.SizeSyncStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
-	EnableEpochsHandler             nodesCoordinator.EnableEpochsHandler
 }
 
 type dataToSync struct {
@@ -205,6 +205,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		generalConfig:                   args.GeneralConfig,
 		prefsConfig:                     args.PrefsConfig,
 		flagsConfig:                     args.FlagsConfig,
+		enableEpochsConfig:              args.EnableEpochsConfig,
 		economicsData:                   args.EconomicsData,
 		genesisNodesConfig:              args.GenesisNodesConfig,
 		genesisShardCoordinator:         args.GenesisShardCoordinator,
@@ -228,7 +229,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:                args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider:      args.TrieSyncStatisticsProvider,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
-		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -734,8 +734,9 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                   e.prefsConfig.FullArchive,
-		EnableEpochsHandler:             e.enableEpochsHandler,
+		EnableEpochsHandler:             e.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+		EnableEpochsConfig:              e.enableEpochsConfig,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
@@ -1026,7 +1027,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.enableEpochsHandler.ScheduledMiniBlocksEnableEpoch(),
+		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)

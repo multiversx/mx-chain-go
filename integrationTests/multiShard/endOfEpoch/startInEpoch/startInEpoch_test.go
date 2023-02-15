@@ -64,7 +64,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
 		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
@@ -225,12 +224,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, coreComponents.EpochNotifier())
+	coreComponents.EnableEpochsHandlerField = enableEpochsHandler
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&testscommon.MarshalizerMock{},
 		444,
 	)
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(integrationTests.CreateEnableEpochsConfig(), &epochNotifierMock.EpochNotifierStub{})
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
@@ -240,6 +241,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
+		EnableEpochsConfig:         enableEpochsConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
@@ -269,7 +271,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		EnableEpochsHandler:        enableEpochsHandler,
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

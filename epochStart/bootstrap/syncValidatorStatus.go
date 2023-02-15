@@ -9,9 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -32,7 +36,7 @@ type syncValidatorStatus struct {
 	nodeCoordinator     StartInEpochNodesCoordinator
 	genesisNodesConfig  sharding.GenesisNodesSetupHandler
 	memDB               storage.Storer
-	enableEpochsHandler nodesCoordinator.EnableEpochsHandler
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
@@ -49,8 +53,9 @@ type ArgsNewSyncValidatorStatus struct {
 	ChanNodeStop                    chan endProcess.ArgEndProcess
 	NodeTypeProvider                NodeTypeProviderHandler
 	IsFullArchive                   bool
-	EnableEpochsHandler             nodesCoordinator.EnableEpochsHandler
+	EnableEpochsHandler             common.EnableEpochsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	EnableEpochsConfig              config.EnableEpochs
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -110,6 +115,11 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	s.memDB = disabled.CreateMemUnit()
 
+	enableEpochsHandlerNodesCoordinator, err := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, &timemachine.DisabledEpochNotifier{})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize:         int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
 		MetaConsensusGroupSize:          int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
@@ -128,7 +138,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ChanStopNode:                    args.ChanNodeStop,
 		NodeTypeProvider:                args.NodeTypeProvider,
 		IsFullArchive:                   args.IsFullArchive,
-		EnableEpochsHandler:             args.EnableEpochsHandler,
+		EnableEpochsHandler:             enableEpochsHandlerNodesCoordinator,
 		ValidatorInfoCacher:             s.dataPool.CurrentEpochValidatorInfo(),
 		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}

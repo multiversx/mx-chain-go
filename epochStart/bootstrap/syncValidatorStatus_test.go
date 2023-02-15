@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -313,5 +314,6 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		IsFullArchive:                   false,
 		EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		EnableEpochsConfig:              config.EnableEpochs{},
 	}
 }

@@ -8,13 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/block"
-	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -194,11 +192,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(bcf.enableEpochs, &timemachine.DisabledEpochNotifier{})
-	if err != nil {
-		return nil, err
-	}
-
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:            bcf.coreComponents,
 		CryptoComponentsHolder:          bcf.cryptoComponents,
@@ -206,6 +199,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		GeneralConfig:                   bcf.config,
 		PrefsConfig:                     bcf.prefConfig.Preferences,
 		FlagsConfig:                     bcf.flagsConfig,
+		EnableEpochsConfig:              bcf.enableEpochs,
 		EconomicsData:                   bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:         genesisShardCoordinator,
@@ -222,7 +216,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ScheduledSCRsStorer:             nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider:      tss,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		EnableEpochsHandler:             enableEpochsHandler,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

@@ -227,8 +227,8 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			StakingV4Step2EnableEpochField: 99999,
+		EnableEpochsConfig: config.EnableEpochs{
+			StakingV4Step2EnableEpoch: 99999,
 		},
 	}
 }
