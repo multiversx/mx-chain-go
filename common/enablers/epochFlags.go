@@ -599,12 +599,6 @@ func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
 	return holder.optimizeNFTStoreFlag.IsSet()
 }
 
-// IsTransferToMetaFlagEnabled returns false
-// This is used for consistency into vm-common
-func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
-	return false
-}
-
 // IsESDTNFTImprovementV1FlagEnabled returns true if esdtMultiTransferFlag is enabled
 // this is a duplicate for ESDTMultiTransferEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsESDTNFTImprovementV1FlagEnabled() bool {
