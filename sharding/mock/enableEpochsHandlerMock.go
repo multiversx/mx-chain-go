@@ -507,11 +507,6 @@ func (mock *EnableEpochsHandlerMock) IsCheckTransferFlagEnabled() bool {
 	return false
 }
 
-// IsTransferToMetaFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsTransferToMetaFlagEnabled() bool {
-	return false
-}
-
 // IsESDTNFTImprovementV1FlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return false

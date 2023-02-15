@@ -916,11 +916,6 @@ func (stub *EnableEpochsHandlerStub) IsCheckTransferFlagEnabled() bool {
 	return stub.IsCheckTransferFlagEnabledField
 }
 
-// IsTransferToMetaFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
-	return false
-}
-
 // IsESDTNFTImprovementV1FlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsESDTNFTImprovementV1FlagEnabled() bool {
 	stub.RLock()
