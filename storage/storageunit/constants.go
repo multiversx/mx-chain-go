@@ -9,8 +9,7 @@ const (
 	SizeLRUCache = storageUnit.SizeLRUCache
 )
 
-// LvlDB currently the only supported DBs
-// More to be added
+// DB types that are currently supported
 const (
 	// LvlDB represents a levelDB storage identifier
 	LvlDB = storageUnit.LvlDB
