@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
@@ -45,6 +46,7 @@ type transactionSimulator struct {
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	refundDetector         refundHandler
+	dataFieldParser        DataFieldParser
 }
 
 // NewTransactionSimulator returns a new instance of a transactionSimulator
@@ -71,6 +73,14 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		return nil, ErrNilHasher
 	}
 
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: args.AddressPubKeyConverter.Len(),
+		Marshalizer:   args.Marshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
 		intermProcContainer:    args.IntermediateProcContainer,
@@ -80,6 +90,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		marshalizer:            args.Marshalizer,
 		hasher:                 args.Hasher,
 		refundDetector:         transactionAPI.NewRefundDetector(),
+		dataFieldParser:        dataFieldParser,
 	}, nil
 }
 
@@ -220,23 +231,31 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		ReturnMessage: string(scr.ReturnMessage),
 		GasLimit:      scr.GasLimit,
 	})
+	res := ts.dataFieldParser.Parse(scr.Data, scr.SndAddr, scr.RcvAddr, ts.shardCoordinator.NumberOfShards())
 
 	resScr := &transaction.ApiSmartContractResult{
-		Nonce:          scr.Nonce,
-		Value:          scr.Value,
-		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
-		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
-		RelayedValue:   scr.RelayedValue,
-		Code:           hex.EncodeToString(scr.Code),
-		Data:           string(scr.Data),
-		PrevTxHash:     hex.EncodeToString(scr.PrevTxHash),
-		OriginalTxHash: hex.EncodeToString(scr.OriginalTxHash),
-		GasLimit:       scr.GasLimit,
-		GasPrice:       scr.GasPrice,
-		CallType:       scr.CallType,
-		CodeMetadata:   hex.EncodeToString(scr.CodeMetadata),
-		ReturnMessage:  string(scr.ReturnMessage),
-		IsRefund:       isRefund,
+		Nonce:             scr.Nonce,
+		Value:             scr.Value,
+		RcvAddr:           ts.addressPubKeyConverter.Encode(scr.RcvAddr),
+		SndAddr:           ts.addressPubKeyConverter.Encode(scr.SndAddr),
+		RelayedValue:      scr.RelayedValue,
+		Code:              hex.EncodeToString(scr.Code),
+		Data:              string(scr.Data),
+		PrevTxHash:        hex.EncodeToString(scr.PrevTxHash),
+		OriginalTxHash:    hex.EncodeToString(scr.OriginalTxHash),
+		GasLimit:          scr.GasLimit,
+		GasPrice:          scr.GasPrice,
+		CallType:          scr.CallType,
+		CodeMetadata:      hex.EncodeToString(scr.CodeMetadata),
+		ReturnMessage:     string(scr.ReturnMessage),
+		IsRefund:          isRefund,
+		Operation:         res.Operation,
+		Function:          res.Function,
+		ESDTValues:        res.ESDTValues,
+		Tokens:            res.Tokens,
+		Receivers:         datafield.EncodeBytesSlice(ts.addressPubKeyConverter.Encode, res.Receivers),
+		ReceiversShardIDs: res.ReceiversShardID,
+		IsRelayed:         res.IsRelayed,
 	}
 
 	if scr.OriginalSender != nil {
