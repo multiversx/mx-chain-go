@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -338,6 +339,18 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
+// ConsensusSigHandler returns the consensus signature handler
+func (mcc *managedCryptoComponents) ConsensusSigHandler() consensus.SignatureHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.consensusSigHandler
+}
+
 // Clone creates a shallow clone of a managedCryptoComponents
 func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
@@ -352,6 +365,7 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 			txSignKeyGen:         mcc.TxSignKeyGen(),
 			p2pKeyGen:            mcc.P2pKeyGen(),
 			messageSignVerifier:  mcc.MessageSignVerifier(),
+			consensusSigHandler:  mcc.ConsensusSigHandler(),
 			cryptoParams:         mcc.cryptoParams,
 			p2pCryptoParams:      mcc.p2pCryptoParams,
 		}

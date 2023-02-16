@@ -247,7 +247,19 @@ var (
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
-		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics.",
+		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics if no other related flags are set.",
+		Value: "",
+	}
+	// dbDirectory defines a flag for the path for the db directory.
+	dbDirectory = cli.StringFlag{
+		Name:  "db-path",
+		Usage: "This flag specifies the `directory` where the node will store databases.",
+		Value: "",
+	}
+	// logsDirectory defines a flag for the path for the logs directory.
+	logsDirectory = cli.StringFlag{
+		Name:  "logs-path",
+		Usage: "This flag specifies the `directory` where the node will store logs.",
 		Value: "",
 	}
 
@@ -356,7 +368,7 @@ var (
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
-		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: lite-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
+		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
 )
@@ -413,6 +425,8 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		dbDirectory,
+		logsDirectory,
 		operationMode,
 	}
 }
@@ -420,8 +434,9 @@ func getFlags() []cli.Flag {
 func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
+	flagsConfig.WorkingDir = getWorkingDir(ctx, workingDirectory, log)
+	flagsConfig.DbDir = getCustomDirIfSet(ctx, dbDirectory, log)
+	flagsConfig.LogsDir = getCustomDirIfSet(ctx, logsDirectory, log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
@@ -502,8 +517,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	return nil
 }
 
-func getWorkingDir(workingDir string, log logger.Logger) string {
+func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
 	var err error
+
+	workingDir := ctx.GlobalString(cliFlag.Name)
 	if len(workingDir) == 0 {
 		workingDir, err = os.Getwd()
 		if err != nil {
@@ -511,9 +528,19 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 			workingDir = ""
 		}
 	}
-	log.Trace("working directory", "path", workingDir)
+	log.Trace("working directory", "dirName", cliFlag.Name, "path", workingDir)
 
 	return workingDir
+}
+
+func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
+	dirStr := ctx.GlobalString(cliFlag.Name)
+
+	if len(dirStr) == 0 {
+		return getWorkingDir(ctx, workingDirectory, log)
+	}
+
+	return getWorkingDir(ctx, cliFlag, log)
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
@@ -558,7 +585,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		processDbLookupExtensionMode(log, configs)
 	}
 
-	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeLiteObserver)
+	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
 	if isInLiteObserverMode {
 		processLiteObserverMode(log, configs)
 	}
@@ -567,38 +594,46 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 }
 
 func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
+	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
 	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.PreferencesConfig.Preferences.FullArchive = true
 
 	log.Warn("the node is in historical balances mode! Will auto-set some config values",
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 		"StoragePruning.ValidatorCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData,
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.AccountsTrieCleanOldEpochsData", configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData,
 		"GeneralSettings.StartInEpochEnabled", configs.GeneralConfig.GeneralSettings.StartInEpochEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"Preferences.FullArchive", configs.PreferencesConfig.Preferences.FullArchive,
 	)
 }
 
 func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+	configs.GeneralConfig.StoragePruning.Enabled = true
 
 	log.Warn("the node is in DB lookup extension mode! Will auto-set some config values",
 		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
+		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
 	)
 }
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
-	log.Warn("the node is in lite observer mode! Will auto-set some config values",
+	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
 		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }
 

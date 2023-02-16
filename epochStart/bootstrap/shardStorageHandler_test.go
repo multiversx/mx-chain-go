@@ -51,7 +51,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		ShardHeader:         &block.Header{Nonce: 1},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 }
 
@@ -76,7 +76,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		ShardHeader:        &block.Header{Nonce: 1},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
 }
 
@@ -131,7 +131,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 			ShardHeader:        &block.Header{Nonce: 1},
 		}
 
-		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
@@ -169,7 +169,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		NodesConfig:        &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.Nil(t, err)
 }
 

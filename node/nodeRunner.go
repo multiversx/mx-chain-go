@@ -114,7 +114,7 @@ func (nr *nodeRunner) Start() error {
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
-	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
+	err = cleanupStorageIfNecessary(flagsConfig.DbDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
@@ -1352,7 +1352,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		ImportDbConfig:       *nr.configs.ImportDbConfig,
 		FlagsConfig:          *nr.configs.FlagsConfig,
 		EnableEpochs:         nr.configs.EpochConfig.EnableEpochs,
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
@@ -1432,7 +1432,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
 		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.WorkingDir,
+		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}
 
