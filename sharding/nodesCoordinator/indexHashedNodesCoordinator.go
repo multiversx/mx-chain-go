@@ -591,7 +591,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	metaBlock, castOk := metaHdr.(*block.MetaBlock)
+	_, castOk := metaHdr.(*block.MetaBlock)
 	if !castOk {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
 		return
@@ -618,15 +618,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	if err != nil {
 		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
 		return
-	}
-
-	prevNumOfShards := uint32(len(metaBlock.ShardInfo))
-	if prevNumOfShards != newNodesConfig.nbShards {
-		log.Warn("number of shards does not match",
-			"previous epoch", ihnc.currentEpoch,
-			"previous number of shards", prevNumOfShards,
-			"new epoch", newEpoch,
-			"new number of shards", newNodesConfig.nbShards)
 	}
 
 	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
