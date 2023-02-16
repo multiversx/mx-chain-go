@@ -128,21 +128,21 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return d.init(args)
-	case "createNewDelegationContract":
+	case vm.CreateNewDelegationContract:
 		return d.createNewDelegationContract(args)
-	case "getAllContractAddresses":
+	case vm.GetAllContractAddresses:
 		return d.getAllContractAddresses(args)
-	case "getContractConfig":
+	case vm.GetContractConfig:
 		return d.getContractConfig(args)
-	case "changeMinDeposit":
+	case vm.ChangeMinDeposit:
 		return d.changeMinDeposit(args)
-	case "changeMinDelegationAmount":
+	case vm.ChangeMinDelegationAmount:
 		return d.changeMinDelegationAmount(args)
-	case "makeNewContractFromValidatorData":
+	case vm.MakeNewContractFromValidatorData:
 		return d.makeNewContractFromValidatorData(args)
-	case "mergeValidatorToDelegationSameOwner":
+	case vm.MergeValidatorToDelegationSameOwner:
 		return d.mergeValidatorToDelegation(args, d.checkCallerIsOwnerOfContract)
-	case "mergeValidatorToDelegationWithWhitelist":
+	case vm.MergeValidatorToDelegationWithWhitelist:
 		return d.mergeValidatorToDelegation(args, d.isAddressWhiteListedForMerge)
 	}
 
