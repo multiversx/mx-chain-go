@@ -193,7 +193,7 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Resolvers: generalCfg.Resolvers,
+			Requesters: generalCfg.Requesters,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -214,8 +214,8 @@ func createMockEpochStartBootstrapArgs(
 		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return notarizedShardHeader, nil, nil
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return notarizedShardHeader, nil, nil, nil
 					},
 					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 						return notarizedShardHeader.GetRootHash()
@@ -1168,8 +1168,8 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return nil, nil, expectedErr
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return nil, nil, nil, expectedErr
 					},
 				}, nil
 			},
@@ -2024,8 +2024,8 @@ func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyn
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return nil, nil, expectedErr
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return nil, nil, nil, expectedErr
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return notarizedShardHeader.GetRootHash()
@@ -2112,8 +2112,8 @@ func TestEpochStartBootstrap_updateDataForScheduled(t *testing.T) {
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil, nil
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return expectedSyncData.rootHashToSync
@@ -2218,8 +2218,8 @@ func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil, nil
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return expectedSyncData.rootHashToSync

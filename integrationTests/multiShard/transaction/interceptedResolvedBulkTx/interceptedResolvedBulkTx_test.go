@@ -10,7 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -390,11 +390,11 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 	fmt.Println("Request nodes start asking the data...")
 	reqShardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
 	for i := 0; i < nodesPerShard; i++ {
-		resolver, _ := nodes[i].ResolverFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
-		txResolver, ok := resolver.(*resolvers.TxResolver)
+		requester, _ := nodes[i].RequestersFinder.Get(factory.TransactionTopic + reqShardCoordinator.CommunicationIdentifier(1))
+		txRequester, ok := requester.(requestHandlers.HashSliceRequester)
 		assert.True(t, ok)
 
-		_ = txResolver.RequestDataFromHashArray(txHashesGenerated, 0)
+		_ = txRequester.RequestDataFromHashArray(txHashesGenerated, 0)
 	}
 
 	time.Sleep(time.Second * 5)

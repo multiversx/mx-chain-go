@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -49,10 +50,12 @@ type ConsensusCoreHandler interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
+	// PrivateKey returns the private key stored in the ConsensusCore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
-	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
+	// SingleSigner returns the single signer stored in the ConsensusCore used for randomness and leader's signature generation
 	SingleSigner() crypto.SingleSigner
+	// KeyGenerator returns the key generator stored in the ConsensusCore
+	KeyGenerator() crypto.KeyGenerator
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
@@ -63,6 +66,10 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
+	// MessageSignerHandler returns the p2p signing handler
+	MessageSigningHandler() consensus.P2PSigningHandler
+	// PeerBlackListHandler return the peer blacklist handler
+	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	// SignatureHandler returns the signature handler component
 	SignatureHandler() consensus.SignatureHandler
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -94,6 +101,8 @@ type ConsensusService interface {
 	IsMessageWithFinalInfo(consensus.MessageType) bool
 	// IsMessageTypeValid returns if the current messageType is valid
 	IsMessageTypeValid(consensus.MessageType) bool
+	// IsMessageWithInvalidSigners returns if the current messageType is with invalid signers
+	IsMessageWithInvalidSigners(consensus.MessageType) bool
 	// IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	// IsSubroundStartRound returns if the current subround is about start round
@@ -158,5 +167,13 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*outport.RoundInfo)
+	IsInterfaceNil() bool
+}
+
+// PeerBlackListCacher can determine if a certain peer id is blacklisted or not
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
+	Has(pid core.PeerID) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

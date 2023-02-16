@@ -95,6 +95,7 @@ func saveMetricsForCommittedShardBlock(
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
 }
 
 func incrementCountAcceptedBlocks(

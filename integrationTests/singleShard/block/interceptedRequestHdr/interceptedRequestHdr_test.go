@@ -3,6 +3,7 @@ package interceptedRequestHdr
 import (
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -78,13 +79,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
-	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0, 0)
+	hdrRequester := requester.(requestHandlers.HeaderRequester)
+	_ = hdrRequester.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1, 0)
+	_ = hdrRequester.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadBoth(t, chanDone1, chanDone2)
 }
@@ -147,13 +148,13 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
 	//request header from pool
-	res, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	assert.Nil(t, err)
-	hdrResolver := res.(*resolvers.HeaderResolver)
-	_ = hdrResolver.RequestDataFromNonce(0, 0)
+	hdrRequester := requester.(requestHandlers.HeaderRequester)
+	_ = hdrRequester.RequestDataFromNonce(0, 0)
 
 	//request header that is stored
-	_ = hdrResolver.RequestDataFromNonce(1, 0)
+	_ = hdrRequester.RequestDataFromNonce(1, 0)
 
 	testChansShouldReadNone(t, chanDone1, chanDone2)
 }
@@ -175,6 +176,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	hdr2 := &block.Header{
@@ -193,6 +196,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	return hdr1, hdr2
