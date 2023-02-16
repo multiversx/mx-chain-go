@@ -41,7 +41,6 @@ func createMockArguments() ArgNodeFacade {
 		Node:                   &mock.NodeStub{},
 		ApiResolver:            &mock.ApiResolverStub{},
 		RestAPIServerDebugMode: false,
-		TxSimulatorProcessor:   &mock.TxExecutionSimulatorStub{},
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
 			SimultaneousRequests:               1,
 			SameSourceRequests:                 1,

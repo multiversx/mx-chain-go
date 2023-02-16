@@ -587,11 +587,13 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
-				Status:     "ok",
-				FailReason: "no reason",
-				ScResults:  nil,
-				Receipts:   nil,
-				Hash:       "hash",
+				SimulationResults: dataTx.SimulationResults{
+					Status:     "ok",
+					FailReason: "no reason",
+					ScResults:  nil,
+					Receipts:   nil,
+					Hash:       "hash",
+				},
 			}, nil
 		},
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
@@ -642,11 +644,13 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
-				Status:     "ok",
-				FailReason: "no reason",
-				ScResults:  nil,
-				Receipts:   nil,
-				Hash:       "hash",
+				SimulationResults: dataTx.SimulationResults{
+					Status:     "ok",
+					FailReason: "no reason",
+					ScResults:  nil,
+					Receipts:   nil,
+					Hash:       "hash",
+				},
 			}, nil
 		},
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
@@ -819,11 +823,13 @@ func TestSimulateTransaction(t *testing.T) {
 		SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 			processTxWasCalled = true
 			return &txSimData.SimulationResults{
-				Status:     "ok",
-				FailReason: "no reason",
-				ScResults:  nil,
-				Receipts:   nil,
-				Hash:       "hash",
+				SimulationResults: dataTx.SimulationResults{
+					Status:     "ok",
+					FailReason: "no reason",
+					ScResults:  nil,
+					Receipts:   nil,
+					Hash:       "hash",
+				},
 			}, nil
 		},
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*dataTx.Transaction, []byte, error) {
