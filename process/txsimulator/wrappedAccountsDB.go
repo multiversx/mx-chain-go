@@ -79,6 +79,10 @@ func (r *readOnlyAccountsDB) SaveAccount(account vmcommon.AccountHandler) error 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if check.IfNil(account) {
+		return nil
+	}
+
 	r.cashedAccounts[string(account.AddressBytes())] = account
 
 	return nil
