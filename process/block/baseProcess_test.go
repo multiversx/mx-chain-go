@@ -54,6 +54,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	busyIdentifier = "busy"
+	idleIdentifier = "idle"
+)
+
 func haveTime() time.Duration {
 	return 2000 * time.Millisecond
 }
@@ -2138,6 +2143,15 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
 
 		localErr := errors.New("execute all err")
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
@@ -2154,11 +2168,21 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		)
 
 		assert.Equal(t, localErr, err)
+		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 	t.Run("get root hash fail", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
 
 		localErr := errors.New("root hash err")
 		accounts := &stateMock.AccountsStub{
@@ -2175,6 +2199,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		)
 
 		assert.Equal(t, localErr, err)
+		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 }
 
@@ -2231,6 +2256,16 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	}
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	busyIdleCalled := make([]string, 0)
+	mockProcessHandler.SetIdleCalled = func() {
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+	}
+
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ScheduledTxsExecutionHandler = scheduledTxsExec
 	arguments.FeeHandler = feeHandler
@@ -2244,6 +2279,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 
 	assert.True(t, wasCalledSetScheduledGasAndFees)
 	assert.True(t, wasCalledSetScheduledRootHash)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 // get initial fees on first getGasAndFees call and final fees on second call
