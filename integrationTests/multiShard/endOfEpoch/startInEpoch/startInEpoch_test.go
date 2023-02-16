@@ -184,6 +184,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
 		assert.NoError(t, errRemoveDir)
+
+		errRemoveDir = os.RemoveAll("Static")
+		assert.NoError(t, errRemoveDir)
 	}()
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
@@ -253,8 +256,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return notarizedShardHeader, nil, nil
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return notarizedShardHeader, nil, nil, nil
 					},
 					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 						return notarizedShardHeader.GetRootHash()

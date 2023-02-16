@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
@@ -114,7 +115,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			EpochEconomics:               &mock.EpochEconomicsStub{},
 			EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
 			EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{
+				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+					return []byte("validator stats root hash"), nil
+				},
+			},
 			EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 		}
 
