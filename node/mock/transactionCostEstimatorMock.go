@@ -1,10 +1,14 @@
 package mock
 
-import "github.com/multiversx/mx-chain-core-go/data/transaction"
+import (
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+)
 
 // TransactionCostEstimatorMock  --
 type TransactionCostEstimatorMock struct {
-	ComputeTransactionGasLimitCalled func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	ComputeTransactionGasLimitCalled   func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	SimulateTransactionExecutionCalled func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 }
 
 // ComputeTransactionGasLimit --
@@ -13,6 +17,15 @@ func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transac
 		return tcem.ComputeTransactionGasLimitCalled(tx)
 	}
 	return &transaction.CostResponse{}, nil
+}
+
+// SimulateTransactionExecution ---
+func (tcem *TransactionCostEstimatorMock) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	if tcem.SimulateTransactionExecutionCalled != nil {
+		return tcem.SimulateTransactionExecutionCalled(tx)
+	}
+
+	return &txSimData.SimulationResults{}, nil
 }
 
 // IsInterfaceNil --

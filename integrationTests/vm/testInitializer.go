@@ -917,7 +917,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		txTypeHandler,
 		economicsData,
 		txSimulator,
-		argsNewTxProcessor.Accounts,
+		readOnlyAccountsDB,
 		shardCoordinator,
 		argsNewSCProcessor.EnableEpochsHandler,
 	)

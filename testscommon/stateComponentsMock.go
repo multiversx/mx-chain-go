@@ -7,12 +7,18 @@ import (
 
 // StateComponentsMock -
 type StateComponentsMock struct {
-	PeersAcc        state.AccountsAdapter
-	Accounts        state.AccountsAdapter
-	AccountsAPI     state.AccountsAdapter
-	AccountsRepo    state.AccountsRepository
-	Tries           common.TriesHolder
-	StorageManagers map[string]common.StorageManager
+	PeersAcc         state.AccountsAdapter
+	Accounts         state.AccountsAdapter
+	AccountsAPI      state.AccountsAdapter
+	AccountsSimulate state.AccountsAdapterWithClean
+	AccountsRepo     state.AccountsRepository
+	Tries            common.TriesHolder
+	StorageManagers  map[string]common.StorageManager
+}
+
+// AccountsAdapterSimulate -
+func (scm *StateComponentsMock) AccountsAdapterSimulate() state.AccountsAdapterWithClean {
+	return scm.AccountsSimulate
 }
 
 // Create -
