@@ -3,9 +3,9 @@ package factory
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"path"
 	"runtime/pprof"
+	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
@@ -27,19 +27,8 @@ func PrintStack() {
 	log.Debug(fmt.Sprintf("\n%s", buffer.String()))
 }
 
-// CleanupWorkingDir -
-func CleanupWorkingDir() {
-	workingDir := WorkingDir
-	if _, err := os.Stat(workingDir); !os.IsNotExist(err) {
-		err = os.RemoveAll(workingDir)
-		if err != nil {
-			log.Debug("CleanupWorkingDir", "error", err.Error())
-		}
-	}
-}
-
 // CreateDefaultConfig -
-func CreateDefaultConfig() *config.Configs {
+func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configPathsHolder := createConfigurationsPathsHolder()
 
 	generalConfig, _ := common.LoadMainConfig(configPathsHolder.MainConfig)
@@ -69,7 +58,7 @@ func CreateDefaultConfig() *config.Configs {
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir: "workingDir",
+		WorkingDir: tb.TempDir(),
 		DbDir:      "dbDir",
 		LogsDir:    "logsDir",
 		UseLogView: true,
