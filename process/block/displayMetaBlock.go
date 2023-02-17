@@ -99,7 +99,6 @@ func (hc *headersCounter) displayLogInfo(
 	log.Debug(message, arguments...)
 
 	log.Debug("metablock metrics info",
-		"shard", header.GetShardID(),
 		"total txs processed", countersProvider.TotalTxs(),
 		"block txs processed", countersProvider.CurrentBlockTxs(),
 		"hash", headerHash,
