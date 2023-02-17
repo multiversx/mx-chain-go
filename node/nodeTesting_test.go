@@ -305,7 +305,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	}()
 
 	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
@@ -327,7 +327,6 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 					wg.Done()
 				}
 			}
-			return nil
 		},
 	}
 

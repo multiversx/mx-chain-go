@@ -484,6 +484,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		InitiallyPaidFee: "1000",
 		Receivers:        []string{},
+		Fee:              "0",
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
