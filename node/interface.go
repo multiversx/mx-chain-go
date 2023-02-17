@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
