@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createGenesisBlock(shardId uint32) *block.Header {
@@ -159,11 +161,15 @@ func TestDisplayBlock_ConcurrencyTestForTotalTxs(t *testing.T) {
 			time.Sleep(time.Millisecond * 10)
 			defer wg.Done()
 
-			switch idx % 2 {
+			switch idx % 4 {
 			case 0:
 				txCounter.headerReverted(header)
 			case 1:
 				txCounter.headerExecuted(header)
+			case 2:
+				_ = txCounter.TotalTxs()
+			case 3:
+				_ = txCounter.CurrentBlockTxs()
 			}
 		}(i)
 	}
@@ -204,6 +210,7 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 		t.Parallel()
 
 		txCounter, _ := NewTransactionCounter(args)
+		require.False(t, check.IfNil(txCounter))
 		t.Run("nil header should not panic", func(t *testing.T) {
 			defer func() {
 				r := recover()
@@ -217,7 +224,8 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 		t.Run("empty header", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
 			txCounter.headerExecuted(&block.Header{})
-			assert.Equal(t, uint64(1000), txCounter.totalTxs)
+			assert.Equal(t, uint64(1000), txCounter.TotalTxs())
+			assert.Equal(t, uint64(0), txCounter.CurrentBlockTxs())
 		})
 		t.Run("header with peer miniblocks & rewards miniblocks", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
@@ -227,7 +235,8 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			}
 
 			txCounter.headerExecuted(blk)
-			assert.Equal(t, uint64(1200), txCounter.totalTxs)
+			assert.Equal(t, uint64(1200), txCounter.TotalTxs())
+			assert.Equal(t, uint64(200), txCounter.CurrentBlockTxs())
 		})
 		t.Run("header with scheduled from self and shard 1", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
@@ -237,13 +246,15 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			}
 
 			txCounter.headerExecuted(blk)
-			assert.Equal(t, uint64(1500), txCounter.totalTxs)
+			assert.Equal(t, uint64(1500), txCounter.TotalTxs())
+			assert.Equal(t, uint64(500), txCounter.CurrentBlockTxs())
 		})
 	})
 	t.Run("headerReverted", func(t *testing.T) {
 		t.Parallel()
 
 		txCounter, _ := NewTransactionCounter(args)
+		require.False(t, check.IfNil(txCounter))
 		t.Run("nil header should not panic", func(t *testing.T) {
 			defer func() {
 				r := recover()
@@ -257,7 +268,8 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 		t.Run("empty header", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
 			txCounter.headerReverted(&block.Header{})
-			assert.Equal(t, uint64(1000), txCounter.totalTxs)
+			assert.Equal(t, uint64(1000), txCounter.TotalTxs())
+			assert.Equal(t, uint64(0), txCounter.CurrentBlockTxs())
 		})
 		t.Run("header with peer miniblocks & rewards miniblocks", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
@@ -266,7 +278,8 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			}
 
 			txCounter.headerReverted(blk)
-			assert.Equal(t, uint64(800), txCounter.totalTxs) // 1000 - 200
+			assert.Equal(t, uint64(800), txCounter.TotalTxs())      // 1000 - 200
+			assert.Equal(t, uint64(0), txCounter.CurrentBlockTxs()) // unable to revert to the last executed block, so hardcoded to 0
 		})
 		t.Run("header with scheduled from self and shard 1", func(t *testing.T) {
 			txCounter.totalTxs = 1000 // initial value
@@ -275,22 +288,26 @@ func TestTransactionCounter_HeaderExecutedAndReverted(t *testing.T) {
 			}
 
 			txCounter.headerReverted(blk)
-			assert.Equal(t, uint64(500), txCounter.totalTxs) // 1000 - 500
+			assert.Equal(t, uint64(500), txCounter.TotalTxs())      // 1000 - 500
+			assert.Equal(t, uint64(0), txCounter.CurrentBlockTxs()) // unable to revert to the last executed block, so hardcoded to 0
 		})
 	})
 	t.Run("headerExecuted then headerReverted", func(t *testing.T) {
 		t.Parallel()
 
 		txCounter, _ := NewTransactionCounter(args)
+		require.False(t, check.IfNil(txCounter))
 		txCounter.totalTxs = 1000 // initial value
 		blk := &block.Header{
 			MiniBlockHeaders: []block.MiniBlockHeader{mbhPeer, mbhRwd, mbhScheduledFromShard0, mbhScheduledFromShard1},
 		}
 
 		txCounter.headerExecuted(blk)
-		assert.Equal(t, uint64(1700), txCounter.totalTxs)
+		assert.Equal(t, uint64(1700), txCounter.TotalTxs())
+		assert.Equal(t, uint64(700), txCounter.CurrentBlockTxs())
 
 		txCounter.headerReverted(blk)
-		assert.Equal(t, uint64(1000), txCounter.totalTxs)
+		assert.Equal(t, uint64(1000), txCounter.TotalTxs())
+		assert.Equal(t, uint64(0), txCounter.CurrentBlockTxs())
 	})
 }

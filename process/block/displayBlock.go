@@ -355,3 +355,24 @@ func DisplayLastNotarized(
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
 		"hash", lastNotarizedHdrHashForShard)
 }
+
+// CurrentBlockTxs returns the current block's number of processed transactions
+func (txc *transactionCounter) CurrentBlockTxs() uint64 {
+	txc.mutex.RLock()
+	defer txc.mutex.RUnlock()
+
+	return txc.currentBlockTxs
+}
+
+// TotalTxs returns the total number of processed transactions
+func (txc *transactionCounter) TotalTxs() uint64 {
+	txc.mutex.RLock()
+	defer txc.mutex.RUnlock()
+
+	return txc.totalTxs
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txc *transactionCounter) IsInterfaceNil() bool {
+	return txc == nil
+}

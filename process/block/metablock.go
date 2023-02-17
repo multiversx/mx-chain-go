@@ -1291,12 +1291,12 @@ func (mp *metaProcessor) CommitBlock(
 	go func() {
 		mp.txCounter.headerExecuted(header)
 		mp.headersCounter.displayLogInfo(
+			mp.txCounter,
 			header,
 			body,
 			headerHash,
 			numShardHeadersFromPool,
 			mp.blockTracker,
-			uint64(mp.roundHandler.TimeDuration().Seconds()),
 		)
 	}()
 
