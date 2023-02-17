@@ -922,11 +922,11 @@
     HeartbeatThresholdBetweenSends                   = 0.1  # 10%
     HeartbeatExpiryTimespanInSec                     = 3600 # 1h
     MinPeersThreshold                                = 0.8  # 80%
-    DelayBetweenRequestsInSec                        = 10   # 10sec
+    DelayBetweenRequestsInSec                        = 5    # 10sec
     MaxTimeoutInSec                                  = 7200 # 2h
     PeerShardTimeBetweenSendsInSec                   = 7200 # 2h
     PeerShardThresholdBetweenSends                   = 0.1  # 10%
-    MaxMissingKeysInRequest                          = 1000
+    MaxMissingKeysInRequest                          = 500
     MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
     HideInactiveValidatorIntervalInSec               = 3600 # 1h
     HardforkTimeBetweenSendsInSec                    = 60   # 1min
@@ -934,6 +934,6 @@
     TimeToReadDirectConnectionsInSec                 = 15   # 15sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
-        Capacity = 1000
+        Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
