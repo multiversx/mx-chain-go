@@ -387,7 +387,8 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
+	isInvalidData := check.IfNil(sr.Body) || sr.isInvalidHeaderOrData()
+	if isInvalidData {
 		return false
 	}
 
@@ -406,6 +407,10 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	)
 
 	return blockProcessedWithSuccess
+}
+
+func (sr *subroundBlock) isInvalidHeaderOrData() bool {
+	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
@@ -480,7 +485,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Header) {
+	if sr.isInvalidHeaderOrData() {
 		return false
 	}
 
