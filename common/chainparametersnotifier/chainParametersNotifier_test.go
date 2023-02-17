@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNew(t *testing.T) {
+func TestNewChainParametersNotifier(t *testing.T) {
 	t.Parallel()
 
 	notifier := NewChainParametersNotifier()
