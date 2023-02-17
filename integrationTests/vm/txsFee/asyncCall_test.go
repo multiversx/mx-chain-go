@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/assert"
@@ -141,12 +142,55 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
+	t.Run("backwards compatibility for unset flag", func(t *testing.T) {
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		firstContractCode := wasm.GetSCCode("./testdata/first/first.wasm")
+
+		expectedGasLimit := gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
+
+		enableEpoch := config.EnableEpochs{
+			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+		}
+
+		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
+	})
+	t.Run("fix activated", func(t *testing.T) {
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInit.wasm")
+
+		expectedGasLimit := gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
+
+		enableEpoch := config.EnableEpochs{
+			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+		}
+
+		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
+	})
+}
+
+func testAsyncCallsOnInitFunctionOnUpgrade(t *testing.T, enableEpochs config.EnableEpochs, expectedGasLimit uint64, gasScheduleNotifier core.GasScheduleNotifier) {
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardCoordinatorForShard0)
+	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinatorForShard0,
+		integrationtests.CreateMemUnit(),
+		gasScheduleNotifier,
+	)
 	require.Nil(t, err)
-	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardCoordinatorForShardMeta)
+	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinatorForShardMeta,
+		integrationtests.CreateMemUnit(),
+		gasScheduleNotifier,
+	)
 	require.Nil(t, err)
 
 	// step 1. deploy the first contract
@@ -216,19 +260,59 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 	assert.Equal(t, 1, len(intermediates))
 	testContextShardMeta.CleanIntermediateTransactions(t)
 
-	expectedGasLimit := testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
-		testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
-		testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newScCode))/2
 	assert.Equal(t, expectedGasLimit, intermediates[0].GetGasLimit())
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
+	t.Run("backwards compatibility for unset flag", func(t *testing.T) {
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		firstContractCode := wasm.GetSCCode("./testdata/first/first.wasm")
+
+		expectedGasLimit := gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
+
+		enableEpoch := config.EnableEpochs{
+			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+		}
+
+		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
+	})
+	t.Run("fix activated", func(t *testing.T) {
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInit.wasm")
+
+		expectedGasLimit := gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
+			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
+
+		enableEpoch := config.EnableEpochs{
+			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+		}
+
+		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
+	})
+}
+
+func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T, enableEpochs config.EnableEpochs, expectedGasLimit uint64, gasScheduleNotifier core.GasScheduleNotifier) {
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardCoordinatorForShard0)
+	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinatorForShard0,
+		integrationtests.CreateMemUnit(),
+		gasScheduleNotifier,
+	)
 	require.Nil(t, err)
-	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardCoordinatorForShardMeta)
+	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinatorForShardMeta,
+		integrationtests.CreateMemUnit(),
+		gasScheduleNotifier,
+	)
 	require.Nil(t, err)
 
 	// step 1. deploy the first contract
@@ -274,7 +358,6 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 	)
 	assert.Equal(t, 32, len(secondOwner))
 	assert.Equal(t, 32, len(scAddressSecond))
-	secondScCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInit.wasm")
 
 	intermediates = testContextShard0.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
@@ -300,8 +383,5 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 	assert.Equal(t, 1, len(intermediates))
 	testContextShardMeta.CleanIntermediateTransactions(t)
 
-	expectedGasLimit := testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
-		testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
-		testContextShard0.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(secondScCode))/2
 	assert.Equal(t, expectedGasLimit, intermediates[0].GetGasLimit())
 }
