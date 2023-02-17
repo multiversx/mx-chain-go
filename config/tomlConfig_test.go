@@ -678,6 +678,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
     AlwaysSaveTokenMetaDataEnableEpoch = 61
 
+		# RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
+		RuntimeCodeSizeFixEnableEpoch = 62
+
+    # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
+    RuntimeMemStoreLimitEnableEpoch = 63
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -771,6 +777,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			MaxBlockchainHookCountersEnableEpoch:        59,
 			WipeSingleNFTLiquidityDecreaseEnableEpoch:   60,
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
+			RuntimeCodeSizeFixEnableEpoch:               62,
+			RuntimeMemStoreLimitEnableEpoch:             63,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
