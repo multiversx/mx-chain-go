@@ -1,11 +1,11 @@
 package consensus
 
-// SubroundBlockType defines the types of subround block type
-type SubroundBlockType string
+// SubroundType defines the types of subround type
+type SubroundType string
 
 const (
-	// SubroundBlockTypeV1 defines the first variant of the subround block type
-	SubroundBlockTypeV1 SubroundBlockType = "subround v1"
-	// SubroundBlockTypeV2 defines the second variant of the subround block type
-	SubroundBlockTypeV2 SubroundBlockType = "subround v2"
+	// SubroundTypeV1 defines the first variant of the subround type
+	SubroundTypeV1 SubroundType = "subround v1"
+	// SubroundTypeV2 defines the second variant of the subround type
+	SubroundTypeV2 SubroundType = "subround v2"
 )

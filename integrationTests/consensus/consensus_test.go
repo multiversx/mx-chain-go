@@ -153,7 +153,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
 			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:       n.Node.IsInImportMode(),
-			SubroundBlockType:    consensus.SubroundBlockTypeV1,
+			SubroundType:         consensus.SubroundTypeV1,
 			ChainRunType:         common.ChainRunTypeRegular,
 		}
 

@@ -15,7 +15,8 @@ import (
 type subroundSignature struct {
 	*spos.Subround
 
-	appStatusHandler core.AppStatusHandler
+	appStatusHandler     core.AppStatusHandler
+	getMessageToSignFunc func() []byte
 }
 
 // NewSubroundSignature creates a subroundSignature object
@@ -41,6 +42,7 @@ func NewSubroundSignature(
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
 	srSignature.Extend = extend
+	srSignature.getMessageToSignFunc = srSignature.getMessageToSign
 
 	return &srSignature, nil
 }
@@ -79,7 +81,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.GetData(), uint16(selfIndex), sr.Header.GetEpoch())
+	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.getMessageToSignFunc(), uint16(selfIndex), sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -307,4 +309,8 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *subroundSignature) IsInterfaceNil() bool {
 	return sr == nil
+}
+
+func (sr *subroundSignature) getMessageToSign() []byte {
+	return sr.GetData()
 }

@@ -252,6 +252,11 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 	return sr.areSignaturesCollected(threshold)
 }
 
+// GetMessageToSign gets the message that should be signed
+func (sr *subroundSignatureV2) GetMessageToSign() []byte {
+	return sr.getMessageToSign()
+}
+
 // subroundEndRound
 
 // SubroundEndRound defines a type for the subroundEndRound structure
@@ -331,4 +336,9 @@ func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []by
 
 func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+}
+
+// GetMessageToVerifySig gets the message on which the signature should be verified
+func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
+	return sr.getMessageToVerifySig()
 }

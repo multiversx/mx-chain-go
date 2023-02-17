@@ -75,7 +75,7 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
 	args.ChainRunType = common.ChainRunTypeSovereign
-	args.SubroundBlockType = consensus.SubroundBlockTypeV2
+	args.SubroundType = consensus.SubroundTypeV2
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
