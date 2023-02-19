@@ -21,12 +21,15 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the database configuration
 type DBConfig struct {
-	FilePath          string
-	Type              string
-	BatchDelaySeconds int
-	MaxBatchSize      int
-	MaxOpenFiles      int
-	UseTmpAsFilePath  bool
+	FilePath            string
+	Type                string
+	BatchDelaySeconds   int
+	MaxBatchSize        int
+	MaxOpenFiles        int
+	UseTmpAsFilePath    bool
+	ShardedEnabled      bool
+	ShardIDProviderType string
+	NumShards           uint32
 }
 
 // StorageConfig will map the storage unit configuration

@@ -12,11 +12,14 @@ import (
 
 // PersisterFactory is the factory which will handle creating new databases
 type PersisterFactory struct {
-	dbType            string
-	batchDelaySeconds int
-	maxBatchSize      int
-	maxOpenFiles      int
-	shardIDProvider   storage.ShardIDProvider
+	dbType              string
+	batchDelaySeconds   int
+	maxBatchSize        int
+	maxOpenFiles        int
+	shardIDProvider     storage.ShardIDProvider
+	shardIDProviderType string
+	shardingEnabled     bool
+	numShards           uint32
 }
 
 // NewPersisterFactory will return a new instance of a PersisterFactory
@@ -26,11 +29,14 @@ func NewPersisterFactory(config config.DBConfig, shardIDProvider storage.ShardID
 	}
 
 	return &PersisterFactory{
-		dbType:            config.Type,
-		batchDelaySeconds: config.BatchDelaySeconds,
-		maxBatchSize:      config.MaxBatchSize,
-		maxOpenFiles:      config.MaxOpenFiles,
-		shardIDProvider:   shardIDProvider,
+		dbType:              config.Type,
+		batchDelaySeconds:   config.BatchDelaySeconds,
+		maxBatchSize:        config.MaxBatchSize,
+		maxOpenFiles:        config.MaxOpenFiles,
+		shardIDProvider:     shardIDProvider,
+		shardIDProviderType: config.ShardIDProviderType,
+		shardingEnabled:     config.ShardedEnabled,
+		numShards:           config.NumShards,
 	}, nil
 }
 
@@ -40,17 +46,34 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, errors.New("invalid file path")
 	}
 
-	switch storageunit.DBType(pf.dbType) {
+	dbType := storageunit.DBType(pf.dbType)
+
+	switch dbType {
 	case storageunit.LvlDB:
 		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.LvlDBSerial:
+		if pf.shardingEnabled {
+			shardIDProvider, err := pf.createShardIDProvider()
+			if err != nil {
+				return nil, err
+			}
+
+			return database.NewShardedDB(dbType, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
+		}
 		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageunit.ShardedLvlDBSerial:
-		return database.NewShardedSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, pf.shardIDProvider)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:
 		return nil, storage.ErrNotSupportedDBType
+	}
+}
+
+func (pf *PersisterFactory) createShardIDProvider() (storage.ShardIDProvider, error) {
+	switch storageunit.ShardIDProviderType(pf.shardIDProviderType) {
+	case storageunit.BinarySplit:
+		return database.NewShardIDProvider(pf.numShards)
+	default:
+		return nil, storage.ErrNotSupportedShardIDProviderType
 	}
 }
 
