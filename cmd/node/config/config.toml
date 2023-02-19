@@ -99,8 +99,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardedEnabled = true
-        NumShards = 4
 
 [ReceiptsStorage]
     [ReceiptsStorage.Cache]
