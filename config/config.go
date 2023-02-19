@@ -27,7 +27,6 @@ type DBConfig struct {
 	MaxBatchSize        int
 	MaxOpenFiles        int
 	UseTmpAsFilePath    bool
-	ShardedEnabled      bool
 	ShardIDProviderType string
 	NumShards           uint32
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-storage-go/leveldb"
 	"github.com/multiversx/mx-chain-storage-go/memorydb"
-	"github.com/multiversx/mx-chain-storage-go/shardeddb"
+	"github.com/multiversx/mx-chain-storage-go/sharded"
 )
 
 // MemDB represents the memory database storage. It holds a map of key value pairs
@@ -36,9 +36,10 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 
 // NewShardIDProvider is a constructor for shard id provider
 func NewShardIDProvider(numShards uint32) (storage.ShardIDProvider, error) {
-	return shardeddb.NewShardIDProvider(numShards)
+	return sharded.NewShardIDProvider(numShards)
 }
 
+// NewShardedDB is a constructor for sharded db based on provided db type
 func NewShardedDB(dbType storageunit.DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
-	return shardeddb.NewShardedPersister(dbType, path, batchDelaySeconds, maxBatchSize, maxOpenFiles, idPersister)
+	return sharded.NewShardedPersister(dbType, path, batchDelaySeconds, maxBatchSize, maxOpenFiles, idPersister)
 }

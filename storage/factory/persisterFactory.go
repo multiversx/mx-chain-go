@@ -18,7 +18,6 @@ type PersisterFactory struct {
 	maxOpenFiles        int
 	shardIDProvider     storage.ShardIDProvider
 	shardIDProviderType string
-	shardingEnabled     bool
 	numShards           uint32
 }
 
@@ -35,7 +34,6 @@ func NewPersisterFactory(config config.DBConfig, shardIDProvider storage.ShardID
 		maxOpenFiles:        config.MaxOpenFiles,
 		shardIDProvider:     shardIDProvider,
 		shardIDProviderType: config.ShardIDProviderType,
-		shardingEnabled:     config.ShardedEnabled,
 		numShards:           config.NumShards,
 	}, nil
 }
@@ -52,15 +50,13 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	case storageunit.LvlDB:
 		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.LvlDBSerial:
-		if pf.shardingEnabled {
-			shardIDProvider, err := pf.createShardIDProvider()
-			if err != nil {
-				return nil, err
-			}
-
-			return database.NewShardedDB(dbType, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
-		}
 		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
+	case storageunit.ShardedLvlDBSerial:
+		shardIDProvider, err := pf.createShardIDProvider()
+		if err != nil {
+			return nil, err
+		}
+		return database.NewShardedDB(dbType, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:
