@@ -56,7 +56,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		if err != nil {
 			return nil, err
 		}
-		return database.NewShardedDB(dbType, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
+		return database.NewShardedDB(storageunit.LvlDBSerial, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:
