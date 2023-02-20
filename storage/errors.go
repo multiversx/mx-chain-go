@@ -88,6 +88,9 @@ var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower t
 // ErrNilPersistersTracker signals that a nil persisters tracker has been provided
 var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
 
+// ErrNilShardIDProvider signals that a nil shard id provider has been provided
+var ErrNilShardIDProvider = errors.New("nil shard id provider")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.

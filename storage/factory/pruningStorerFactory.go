@@ -48,6 +48,7 @@ type StorageServiceFactory struct {
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
+	shardIDProvider               storage.ShardIDProvider
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -61,6 +62,7 @@ type StorageServiceFactoryArgs struct {
 	StorageType                   StorageServiceType
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	ShardIDProvider               storage.ShardIDProvider
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -91,6 +93,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
+		shardIDProvider:               args.ShardIDProvider,
 	}, nil
 }
 
@@ -107,6 +110,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.ShardIDProvider) {
+		return storage.ErrNilShardIDProvider
+	}
 
 	return nil
 }
@@ -118,56 +124,80 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 ) error {
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
 
-	txUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxStorage, disabledCustomDatabaseRemover)
+	txUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.TxStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	txUnit, err := psf.createPruningPersister(txUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 
-	unsignedTxUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.UnsignedTransactionStorage, disabledCustomDatabaseRemover)
+	unsignedTxUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.UnsignedTransactionStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	unsignedTxUnit, err := psf.createPruningPersister(unsignedTxUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 
-	rewardTxUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.RewardTxStorage, disabledCustomDatabaseRemover)
+	rewardTxUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.RewardTxStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	rewardTxUnit, err := psf.createPruningPersister(rewardTxUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
 
-	receiptsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage, disabledCustomDatabaseRemover)
+	receiptsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	receiptsUnit, err := psf.createPruningPersister(receiptsUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 
-	scheduledSCRsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ScheduledSCRsStorage, disabledCustomDatabaseRemover)
+	scheduledSCRsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ScheduledSCRsStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	scheduledSCRsUnit, err := psf.createPruningPersister(scheduledSCRsUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, scheduledSCRsUnit)
 
-	bootstrapUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BootstrapStorage, disabledCustomDatabaseRemover)
+	bootstrapUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.BootstrapStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	bootstrapUnit, err := psf.createPruningPersister(bootstrapUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 
-	miniBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MiniBlocksStorage, disabledCustomDatabaseRemover)
+	miniBlockUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.MiniBlocksStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	miniBlockUnit, err := psf.createPruningPersister(miniBlockUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
-	metaBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MetaBlockStorage, disabledCustomDatabaseRemover)
+	metaBlockUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.MetaBlockStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	metaBlockUnit, err := psf.createPruningPersister(metaBlockUnitArgs)
 	if err != nil {
 		return err
@@ -186,7 +216,10 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 
-	headerUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BlockHeaderStorage, disabledCustomDatabaseRemover)
+	headerUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.BlockHeaderStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	headerUnit, err := psf.createPruningPersister(headerUnitArgs)
 	if err != nil {
 		return err
@@ -199,14 +232,20 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.UserAccountsUnit, userAccountsUnit)
 
-	userAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover)
+	userAccountsCheckpointsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	userAccountsCheckpointsUnit, err := psf.createPruningPersister(userAccountsCheckpointsUnitArgs)
 	if err != nil {
 		return err
 	}
 	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, userAccountsCheckpointsUnit)
 
-	peerAccountsCheckpointsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover)
+	peerAccountsCheckpointsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	peerAccountsCheckpointsUnit, err := psf.createPruningPersister(peerAccountsCheckpointsUnitArgs)
 	if err != nil {
 		return err
@@ -264,14 +303,20 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	peerAccountsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
 	peerAccountsUnit, err := psf.createTrieUnit(psf.generalConfig.PeerAccountsTrieStorage, peerAccountsUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	store.AddStorer(dataRetriever.PeerAccountsUnit, peerAccountsUnit)
 
-	peerBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.PeerBlockBodyStorage, disabledCustomDatabaseRemover)
+	peerBlockUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerBlockBodyStorage, disabledCustomDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
 	peerBlockUnit, err := psf.createPruningPersister(peerBlockUnitArgs)
 	if err != nil {
 		return nil, err
@@ -363,7 +408,10 @@ func (psf *StorageServiceFactory) createTriePruningStorer(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
 ) (storage.Storer, error) {
-	accountsUnitArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
+	accountsUnitArgs, err := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover, psf.shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
 	if psf.storageType == ProcessStorageService {
 		accountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(accountsUnitArgs.EpochsData)
 	}
@@ -392,7 +440,10 @@ func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetr
 	shouldCreateStorer := psf.generalConfig.LogsAndEvents.SaveInStorageEnabled || psf.generalConfig.DbLookupExtensions.Enabled
 	if shouldCreateStorer {
 		var err error
-		txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover())
+		txLogsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.LogsAndEvents.TxLogsStorage, disabled.NewDisabledCustomDatabaseRemover(), psf.shardIDProvider)
+		if err != nil {
+			return err
+		}
 		txLogsUnit, err = psf.createPruningPersister(txLogsUnitArgs)
 		if err != nil {
 			return err
@@ -413,7 +464,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 
 	// Create the eventsHashesByTxHash (PRUNING) storer
 	eventsHashesByTxHashConfig := psf.generalConfig.DbLookupExtensions.ResultsHashesByTxHashStorageConfig
-	eventsHashesByTxHashStorerArgs := psf.createPruningStorerArgs(eventsHashesByTxHashConfig, disabled.NewDisabledCustomDatabaseRemover())
+	eventsHashesByTxHashStorerArgs, err := psf.createPruningStorerArgs(eventsHashesByTxHashConfig, disabled.NewDisabledCustomDatabaseRemover(), psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	eventsHashesByTxHashPruningStorer, err := psf.createPruningPersister(eventsHashesByTxHashStorerArgs)
 	if err != nil {
 		return err
@@ -423,7 +477,10 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 
 	// Create the miniblocksMetadata (PRUNING) storer
 	miniblocksMetadataConfig := psf.generalConfig.DbLookupExtensions.MiniblocksMetadataStorageConfig
-	miniblocksMetadataPruningStorerArgs := psf.createPruningStorerArgs(miniblocksMetadataConfig, disabled.NewDisabledCustomDatabaseRemover())
+	miniblocksMetadataPruningStorerArgs, err := psf.createPruningStorerArgs(miniblocksMetadataConfig, disabled.NewDisabledCustomDatabaseRemover(), psf.shardIDProvider)
+	if err != nil {
+		return err
+	}
 	miniblocksMetadataPruningStorer, err := psf.createPruningPersister(miniblocksMetadataPruningStorerArgs)
 	if err != nil {
 		return err
@@ -484,7 +541,8 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 func (psf *StorageServiceFactory) createPruningStorerArgs(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
-) pruning.StorerArgs {
+	shardIDProvider storage.ShardIDProvider,
+) (pruning.StorerArgs, error) {
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
@@ -495,6 +553,12 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfEpochsToKeep:     numOfEpochsToKeep,
 		NumOfActivePersisters: numOfActivePersisters,
 	}
+
+	persisterFactory, err := NewPersisterFactory(storageConfig.DB, shardIDProvider)
+	if err != nil {
+		return pruning.StorerArgs{}, err
+	}
+
 	args := pruning.StorerArgs{
 		Identifier:                storageConfig.DB.FilePath,
 		PruningEnabled:            pruningEnabled,
@@ -504,7 +568,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		CacheConf:                 GetCacherFromConfig(storageConfig.Cache),
 		PathManager:               psf.pathManager,
 		DbPath:                    dbPath,
-		PersisterFactory:          NewPersisterFactory(storageConfig.DB),
+		PersisterFactory:          persisterFactory,
 		Notifier:                  psf.epochStartNotifier,
 		MaxBatchSize:              storageConfig.DB.MaxBatchSize,
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
@@ -512,7 +576,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		EpochsData:                epochsData,
 	}
 
-	return args
+	return args, nil
 }
 
 func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (storage.Storer, error) {

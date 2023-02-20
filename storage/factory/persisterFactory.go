@@ -3,6 +3,7 @@ package factory
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -15,16 +16,22 @@ type PersisterFactory struct {
 	batchDelaySeconds int
 	maxBatchSize      int
 	maxOpenFiles      int
+	shardIDProvider   storage.ShardIDProvider
 }
 
 // NewPersisterFactory will return a new instance of a PersisterFactory
-func NewPersisterFactory(config config.DBConfig) *PersisterFactory {
+func NewPersisterFactory(config config.DBConfig, shardIDProvider storage.ShardIDProvider) (*PersisterFactory, error) {
+	if check.IfNil(shardIDProvider) {
+		return nil, storage.ErrNilShardIDProvider
+	}
+
 	return &PersisterFactory{
 		dbType:            config.Type,
 		batchDelaySeconds: config.BatchDelaySeconds,
 		maxBatchSize:      config.MaxBatchSize,
 		maxOpenFiles:      config.MaxOpenFiles,
-	}
+		shardIDProvider:   shardIDProvider,
+	}, nil
 }
 
 // Create will return a new instance of a DB with a given path
@@ -38,6 +45,8 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
 	case storageunit.LvlDBSerial:
 		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
+	case storageunit.ShardedLvlDBSerial:
+		return database.NewShardedSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, pf.shardIDProvider)
 	case storageunit.MemoryDB:
 		return database.NewMemDB(), nil
 	default:

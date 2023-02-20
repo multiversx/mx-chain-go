@@ -126,6 +126,7 @@ func getLatestDataProviderArgs() ArgsLatestDataProvider {
 		ParentDir:             "db",
 		DefaultEpochString:    "Epoch",
 		DefaultShardString:    "Shard",
+		ShardIDProvider:       &storageStubs.ShardIDProviderStub{},
 	}
 }
 

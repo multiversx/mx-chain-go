@@ -33,6 +33,7 @@ type ArgsLatestDataProvider struct {
 	ParentDir             string
 	DefaultEpochString    string
 	DefaultShardString    string
+	ShardIDProvider       storage.ShardIDProvider
 }
 
 type iteratedShardData struct {
@@ -49,10 +50,12 @@ type latestDataProvider struct {
 	parentDir             string
 	defaultEpochString    string
 	defaultShardString    string
+	shardIDProvider       storage.ShardIDProvider
 }
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
+	// TODO: check args
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
 		parentDir:             args.ParentDir,
@@ -60,6 +63,7 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 		defaultShardString:    args.DefaultShardString,
 		defaultEpochString:    args.DefaultEpochString,
 		bootstrapDataProvider: args.BootstrapDataProvider,
+		shardIDProvider:       args.ShardIDProvider,
 	}, nil
 }
 
@@ -124,7 +128,11 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB, ldp.shardIDProvider)
+	if err != nil {
+		return storage.LatestDataFromStorage{}, err
+	}
+
 	pathWithoutShard := filepath.Join(
 		parentDir,
 		fmt.Sprintf("%s_%d", ldp.defaultEpochString, lastEpoch),

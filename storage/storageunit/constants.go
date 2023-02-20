@@ -9,13 +9,14 @@ const (
 	SizeLRUCache = storageUnit.SizeLRUCache
 )
 
-// LvlDB currently the only supported DBs
-// More to be added
+// DB types that are currently supported
 const (
 	// LvlDB represents a levelDB storage identifier
 	LvlDB = storageUnit.LvlDB
 	// LvlDBSerial represents a levelDB storage with serialized operations identifier
 	LvlDBSerial = storageUnit.LvlDBSerial
+	// ShardedLvlDBSerial represents a sharded levelDB storage with serialized operations identifier
+	ShardedLvlDBSerial = storageUnit.ShardedLvlDBSerial
 	// MemoryDB represents an in memory storage identifier
 	MemoryDB = storageUnit.MemoryDB
 )

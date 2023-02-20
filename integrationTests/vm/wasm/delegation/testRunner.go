@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
@@ -46,6 +47,11 @@ func RunDelegationStressTest(
 		return nil, err
 	}
 
+	shardIDProvider, err := database.NewShardIDProvider(4)
+	if err != nil {
+		return nil, err
+	}
+
 	dbConfig := config.DBConfig{
 		FilePath:          "trie",
 		Type:              "LvlDBSerial",
@@ -53,7 +59,11 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfig, shardIDProvider)
+	if err != nil {
+		return nil, err
+	}
+
 	tempDir, err := ioutil.TempDir("", "integrationTest")
 	if err != nil {
 		return nil, err

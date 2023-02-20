@@ -428,6 +428,9 @@ func GetGeneralConfig() config.Config {
 			},
 			MaxNumAddressesInTransferRole: 100,
 		},
+		StorageShardIDProvider: config.StorageShardIDProvider{
+			NumShards: 4,
+		},
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
@@ -60,6 +61,7 @@ type bootstrapComponents struct {
 	headerVersionHandler    nodeFactory.HeaderVersionHandler
 	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
+	shardIDProvider         storage.ShardIDProvider
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -146,6 +148,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, fmt.Errorf("%w: %v", errors.ErrNewBootstrapDataProvider, err)
 	}
 
+	shardIDProvider, err := database.NewShardIDProvider(bcf.config.StorageShardIDProvider.NumShards)
+	if err != nil {
+		return nil, err
+	}
+
 	parentDir := filepath.Join(
 		bcf.workingDir,
 		common.DefaultDBPath,
@@ -157,6 +164,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		parentDir,
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
+		shardIDProvider,
 	)
 	if err != nil {
 		return nil, err
@@ -167,6 +175,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		latestStorageDataProvider,
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
+		shardIDProvider,
 	)
 	if err != nil {
 		return nil, err
@@ -201,6 +210,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
+		ShardIDProvider:            shardIDProvider,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -256,6 +266,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
+		shardIDProvider:         shardIDProvider,
 	}, nil
 }
 
@@ -301,6 +312,11 @@ func (bc *bootstrapComponents) HeaderIntegrityVerifier() nodeFactory.HeaderInteg
 	return bc.headerIntegrityVerifier
 }
 
+// ShardIDProvider returns the shard id provider for storage persister
+func (bc *bootstrapComponents) ShardIDProvider() storage.ShardIDProvider {
+	return bc.shardIDProvider
+}
+
 // createLatestStorageDataProvider will create the latest storage data provider handler
 func createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
@@ -308,6 +324,7 @@ func createLatestStorageDataProvider(
 	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
+	shardIDProvider storage.ShardIDProvider,
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := directoryhandler.NewDirectoryReader()
 
@@ -318,6 +335,7 @@ func createLatestStorageDataProvider(
 		ParentDir:             parentDir,
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
+		ShardIDProvider:       shardIDProvider,
 	}
 
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
@@ -329,12 +347,14 @@ func createUnitOpener(
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
 	defaultEpochString string,
 	defaultShardString string,
+	shardIDProvider storage.ShardIDProvider,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
 		DefaultEpochString:        defaultEpochString,
 		DefaultShardString:        defaultShardString,
+		ShardIDProvider:           shardIDProvider,
 	}
 
 	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
