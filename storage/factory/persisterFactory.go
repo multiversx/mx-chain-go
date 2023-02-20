@@ -2,12 +2,15 @@ package factory
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/pelletier/go-toml"
 )
 
 // PersisterFactory is the factory which will handle creating new databases
@@ -44,8 +47,21 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, errors.New("invalid file path")
 	}
 
-	dbType := storageunit.DBType(pf.dbType)
+	persister, err := pf.createDB(path)
+	if err != nil {
+		return nil, err
+	}
 
+	err = pf.createPersisterConfigFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return persister, nil
+}
+
+func (pf *PersisterFactory) createDB(path string) (storage.Persister, error) {
+	dbType := storageunit.DBType(pf.dbType)
 	switch dbType {
 	case storageunit.LvlDB:
 		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
@@ -62,6 +78,45 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
+}
+
+func (pf *PersisterFactory) createPersisterConfigFile(path string) error {
+	dbConfig := &config.DBConfig{
+		Type:                pf.dbType,
+		BatchDelaySeconds:   pf.batchDelaySeconds,
+		MaxBatchSize:        pf.maxBatchSize,
+		MaxOpenFiles:        pf.maxOpenFiles,
+		ShardIDProviderType: pf.shardIDProviderType,
+		NumShards:           pf.numShards,
+	}
+	err := SaveTomlFile(dbConfig, pf.getPersisterConfigFilePath(path))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SaveTomlFile will open and save data to toml file
+// TODO: move to core
+func SaveTomlFile(dest interface{}, relativePath string) error {
+	f, err := os.Create(relativePath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = f.Close()
+	}()
+
+	return toml.NewEncoder(f).Encode(dest)
+}
+
+func (pf *PersisterFactory) getPersisterConfigFilePath(path string) string {
+	return filepath.Join(
+		path,
+		"dbConfig.toml",
+	)
 }
 
 func (pf *PersisterFactory) createShardIDProvider() (storage.ShardIDProvider, error) {
