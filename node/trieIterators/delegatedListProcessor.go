@@ -94,12 +94,18 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 			continue
 		}
 
+		unStaked, errUn := dlp.getTotalUnStaked(delegationSC, delegatorAddress)
+		if errUn != nil {
+			continue
+		}
+
 		delegatorInfo, ok := delegatorsMap[string(delegatorAddress)]
 		if !ok {
 			delegatorInfo = &api.Delegator{
-				DelegatorAddress: dlp.publicKeyConverter.Encode(delegatorAddress),
-				DelegatedTo:      make([]*api.DelegatedValue, 0),
-				TotalAsBigInt:    big.NewInt(0),
+				DelegatorAddress:    dlp.publicKeyConverter.Encode(delegatorAddress),
+				DelegatedTo:         make([]*api.DelegatedValue, 0),
+				TotalAsBigInt:       big.NewInt(0),
+				TotalUnDelegatedBig: big.NewInt(0),
 			}
 
 			delegatorsMap[string(delegatorAddress)] = delegatorInfo
@@ -107,6 +113,10 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
+
+		delegatorInfo.TotalUnDelegatedBig.Add(delegatorInfo.TotalUnDelegatedBig, unStaked)
+		delegatorInfo.TotalUnDelegated = delegatorInfo.TotalUnDelegatedBig.String()
+
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
 			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
 			Value:               value.String(),
@@ -177,6 +187,32 @@ func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator 
 
 	if len(vmOutput.ReturnData) != 1 {
 		return nil, fmt.Errorf("%w, getActiveFund function should have returned one value", epochStart.ErrExecutingSystemScCode)
+	}
+
+	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+
+	return value, nil
+}
+
+func (dlp *delegatedListProcessor) getTotalUnStaked(delegationSC []byte, delegator []byte) (*big.Int, error) {
+	scQuery := &process.SCQuery{
+		ScAddress:  delegationSC,
+		FuncName:   "getUserUnStakedValue",
+		CallerAddr: delegationSC,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{delegator},
+	}
+
+	vmOutput, err := dlp.queryService.ExecuteQuery(scQuery)
+	if err != nil {
+		return nil, err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+
+	if len(vmOutput.ReturnData) != 1 {
+		return nil, fmt.Errorf("%w, getUserUnStakedValue function should have returned one value", epochStart.ErrExecutingSystemScCode)
 	}
 
 	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
