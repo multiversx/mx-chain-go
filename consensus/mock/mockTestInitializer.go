@@ -175,13 +175,6 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	marshalizerMock := MarshalizerMock{}
-	blsPrivateKeyMock := &PrivateKeyMock{}
-	blsSingleSignerMock := &SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) (bytes []byte, e error) {
-			return make([]byte, 0), nil
-		},
-	}
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}

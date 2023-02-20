@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -240,7 +241,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
 
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
 			countersBroadcast[broadcastMethodPrefix+topic]++

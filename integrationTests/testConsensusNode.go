@@ -121,7 +121,6 @@ func CreateNodesWithTestConsensusNode(
 
 	startTime := time.Now().Unix()
 	testHasher := createHasher(consensusType)
-	startTime := time.Now().Unix()
 
 	for shardID := range cp.NodesKeys {
 		for _, keysPair := range cp.NodesKeys[shardID] {
