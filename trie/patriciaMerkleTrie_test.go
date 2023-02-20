@@ -61,7 +61,7 @@ func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
 	args := getDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
+	maxTrieLevelInMemory := uint(1)
 
 	return trieStorageManager, args.Marshalizer, args.Hasher, maxTrieLevelInMemory
 }
