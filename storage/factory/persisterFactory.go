@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -47,12 +48,17 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, errors.New("invalid file path")
 	}
 
-	persister, err := pf.createDB(path)
+	dbConfig, err := pf.getDBConfig(path)
 	if err != nil {
 		return nil, err
 	}
 
-	err = pf.createPersisterConfigFile(path)
+	persister, err := pf.createDB(path, dbConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pf.createPersisterConfigFile(path, dbConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -60,27 +66,13 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	return persister, nil
 }
 
-func (pf *PersisterFactory) createDB(path string) (storage.Persister, error) {
-	dbType := storageunit.DBType(pf.dbType)
-	switch dbType {
-	case storageunit.LvlDB:
-		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageunit.LvlDBSerial:
-		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageunit.ShardedLvlDBSerial:
-		shardIDProvider, err := pf.createShardIDProvider()
-		if err != nil {
-			return nil, err
-		}
-		return database.NewShardedDB(storageunit.LvlDBSerial, path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles, shardIDProvider)
-	case storageunit.MemoryDB:
-		return database.NewMemDB(), nil
-	default:
-		return nil, storage.ErrNotSupportedDBType
+func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
+	dbConfigFromFile := &config.DBConfig{}
+	err := core.LoadTomlFile(dbConfigFromFile, pf.getPersisterConfigFilePath(path))
+	if err == nil {
+		return dbConfigFromFile, nil
 	}
-}
 
-func (pf *PersisterFactory) createPersisterConfigFile(path string) error {
 	dbConfig := &config.DBConfig{
 		Type:                pf.dbType,
 		BatchDelaySeconds:   pf.batchDelaySeconds,
@@ -89,7 +81,43 @@ func (pf *PersisterFactory) createPersisterConfigFile(path string) error {
 		ShardIDProviderType: pf.shardIDProviderType,
 		NumShards:           pf.numShards,
 	}
-	err := SaveTomlFile(dbConfig, pf.getPersisterConfigFilePath(path))
+
+	return dbConfig, nil
+}
+
+func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (storage.Persister, error) {
+	dbType := storageunit.DBType(dbConfig.Type)
+	switch dbType {
+	case storageunit.LvlDB:
+		return database.NewLevelDB(path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles)
+	case storageunit.LvlDBSerial:
+		return database.NewSerialDB(path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles)
+	case storageunit.ShardedLvlDBSerial:
+		shardIDProvider, err := pf.createShardIDProvider()
+		if err != nil {
+			return nil, err
+		}
+		return database.NewShardedDB(storageunit.LvlDBSerial, path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles, shardIDProvider)
+	case storageunit.MemoryDB:
+		return database.NewMemDB(), nil
+	default:
+		return nil, storage.ErrNotSupportedDBType
+	}
+}
+
+func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *config.DBConfig) error {
+	configFilePath := pf.getPersisterConfigFilePath(path)
+	f, err := core.OpenFile(configFilePath)
+	if err == nil {
+		// config file already exists, no need to create config
+		return nil
+	}
+
+	defer func() {
+		_ = f.Close()
+	}()
+
+	err = SaveTomlFile(dbConfig, configFilePath)
 	if err != nil {
 		return err
 	}
