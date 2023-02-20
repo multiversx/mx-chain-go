@@ -934,6 +934,6 @@
     TimeToReadDirectConnectionsInSec                 = 15   # 15sec      # time between consecutive peer shard mapper updates with direct connections
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
-        Capacity = 1000
+        Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
