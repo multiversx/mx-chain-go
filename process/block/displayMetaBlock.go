@@ -72,7 +72,7 @@ func (hc *headersCounter) displayLogInfo(
 	blockTracker process.BlockTracker,
 ) {
 	if check.IfNil(countersProvider) {
-		log.Warn("programming error in headersCounter.displayLogInfo", "countersProvider", nil)
+		log.Warn("programming error in headersCounter.displayLogInfo - nil countersProvider")
 		return
 	}
 
