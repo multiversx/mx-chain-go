@@ -151,7 +151,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshalizer,
+		Marshaller:            TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             createP2PConfig(initialAddresses),
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
@@ -173,7 +173,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshalizer,
+		Marshaller:            TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
@@ -200,7 +200,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           TestMarshalizer,
+		Marshaller:            TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
@@ -2449,6 +2449,9 @@ func UpdateRound(nodes []*TestProcessorNode, round uint64) {
 	for _, n := range nodes {
 		n.RoundHandler.IndexField = int64(round)
 	}
+
+	// this delay is needed in order for the round to be properly updated in the nodes
+	time.Sleep(10 * time.Millisecond)
 }
 
 // ProposeBlocks proposes blocks for a given number of rounds

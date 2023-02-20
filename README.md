@@ -5,21 +5,18 @@
 </div>
 <br>
 
-[![](https://img.shields.io/badge/made%20by-MultiversX-blue.svg)](https://multiversx.com/)
+[![](https://img.shields.io/badge/made%20by-MultiversX-blue.svg)](http://multiversx.com/)
 [![](https://img.shields.io/badge/project-MultiversX%20Mainnet-blue.svg)](https://explorer.multiversx.com/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/multiversx/mx-chain-go)](https://goreportcard.com/report/github.com/multiversx/mx-chain-go)
-[![LoC](https://tokei.rs/b1/github/multiversx/mx-chain-go?category=code)](https://github.com/multiversx/mx-chain-go)
-[![API Reference](https://godoc.org/github.com/multiversx/mx-chain-go?status.svg)](https://godoc.org/github.com/multiversx/mx-chain-go)
 [![codecov](https://codecov.io/gh/multiversx/mx-chain-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/multiversx/mx-chain-go)
 
 # mx-chain-go
 
-The go implementation for the MultiversX chain protocol
+The go implementation for the MultiversX protocol
 
 ## Installation and running
 
-In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below. 
-Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
+In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below.
 
 ### Step 1: install & configure go:
 The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.17.6.
@@ -39,7 +36,7 @@ $ cd cmd/node && go build
 The node depends on the Wasm Virtual Machine, which is automatically managed by the node.
 
 ### Step 3: creating the node’s identity:
-In order to be registered in the MultiversX network, a node must possess 2 types of (secret key, public key) pairs. One is used to identify the node’s credential used to generate transactions (having the sender field its account address) and the other is used in the process of the block signing. Please note that this is a preliminary mechanism, in the next releases the first (private, public key) pair will be dropped when the staking mechanism will be fully implemented. To build and run the keygenerator, the following commands will need to be run:
+In order to be registered in the MultiversX Network, a node must possess 2 types of (secret key, public key) pairs. One is used to identify the node’s credential used to generate transactions (having the sender field its account address) and the other is used in the process of the block signing. Please note that this is a preliminary mechanism, in the next releases the first (private, public key) pair will be dropped when the staking mechanism will be fully implemented. To build and run the keygenerator, the following commands will need to be run:
 
 ```
 $ cd $GOPATH/src/github.com/multiversx/mx-chain-go/cmd/keygenerator
@@ -84,22 +81,6 @@ sudo cp protoc-gen-gogoslick /usr/bin/
 ```
 
 Done
-
-## Using the Docker Image
-
-The following command runs a Node using the **latest** [Docker image](https://hub.docker.com/r/elrondnetwork/elrond-go-node) and maps a container folder to a local one that holds the necessary configuration:
-
-```
-docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:latest \
- --nodes-setup-file="/data/nodesSetup.json" \
- --p2p-config="/data/config/p2p.toml" \
- --validator-key-pem-file="/data/keys/validatorKey.pem"
- ```
-
- In the snippet above, make sure you adjust the path to a valid configuration folder and also provide the appropriate command line arguments to the Node. For more details go to [Node CLI](https://docs.multiversx.com/validators/node-cli).
-
- In order to run a container using the latest **development** version instead, use the image **`elrondnetwork/elrond-go-node:devlatest`**. Furthermore, in order to use a specific release or tagged branch, use the image **`elrondnetwork/elrond-go-node:<tag>`**.
-
 
 ## Progress
 
@@ -201,7 +182,7 @@ Please make sure your contributions adhere to our coding guidelines:
  - Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
  - Pull requests need to be based on and opened against the master branch.
  - Commit messages should be prefixed with the package(s) they modify.
-    - E.g. "core/indexer: fixed a typo"
+    - E.g. "outport/process: fixed a typo"
 
-Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX project.
+Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX protocol.
 

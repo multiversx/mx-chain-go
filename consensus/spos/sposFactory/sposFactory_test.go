@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -129,7 +130,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	messenger := &mock.MessengerStub{}
+	messenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 0
@@ -160,7 +161,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	messenger := &mock.MessengerStub{}
+	messenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return core.MetachainShardId

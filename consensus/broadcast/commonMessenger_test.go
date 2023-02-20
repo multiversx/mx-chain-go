@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +39,7 @@ func newTestBlockBody() *block.Body {
 func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t *testing.T) {
 	err := errors.New("sign message error")
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -63,7 +63,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 
 func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -117,7 +117,7 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 	}
 
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -155,7 +155,7 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
 
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
 			countersBroadcast[broadcastMethodPrefix+topic]++
