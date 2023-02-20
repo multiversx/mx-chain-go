@@ -482,9 +482,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -545,8 +542,8 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
 
-// ErrUnimplementedSubroundType signals an unimplemented subround type
-var ErrUnimplementedSubroundType = errors.New("unimplemented subround type")
+// ErrUnimplementedConsensusModel signals an unimplemented consensus model
+var ErrUnimplementedConsensusModel = errors.New("unimplemented consensus model")
 
 // ErrUnimplementedChainRunType signals an unimplemented chain run type
 var ErrUnimplementedChainRunType = errors.New("unimplemented chain run type")

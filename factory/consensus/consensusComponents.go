@@ -52,7 +52,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	SubroundType          consensus.SubroundType
+	ConsensusModel        consensus.ConsensusModel
 	ChainRunType          common.ChainRunType
 }
 
@@ -70,7 +70,7 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	subroundType          consensus.SubroundType
+	consensusModel        consensus.ConsensusModel
 	chainRunType          common.ChainRunType
 }
 
@@ -133,17 +133,17 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		subroundType:          args.SubroundType,
+		consensusModel:        args.ConsensusModel,
 		chainRunType:          args.ChainRunType,
 	}, nil
 }
 
 func checkCompatibleArguments(args ConsensusComponentsFactoryArgs) error {
-	if args.ChainRunType == common.ChainRunTypeSovereign && args.SubroundType != consensus.SubroundTypeV2 {
+	if args.ChainRunType == common.ChainRunTypeSovereign && args.ConsensusModel != consensus.ConsensusModelV2 {
 		return fmt.Errorf("%w between %s: %s and %s: %s",
 			errors.ErrIncompatibleArgumentsProvided,
 			"args.ChainRunType", args.ChainRunType,
-			"args.SubroundType", args.SubroundType,
+			"args.ConsensusModel", args.ConsensusModel,
 		)
 	}
 
@@ -318,7 +318,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.subroundType,
+		ccf.consensusModel,
 	)
 	if err != nil {
 		return nil, err

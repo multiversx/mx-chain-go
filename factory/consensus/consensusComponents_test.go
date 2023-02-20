@@ -146,7 +146,7 @@ func TestNewConsensusComponentsFactory_IncompatibleArguments(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
 	args.ChainRunType = common.ChainRunTypeSovereign
-	args.SubroundType = consensus.SubroundTypeV1
+	args.ConsensusModel = consensus.ConsensusModelV1
 
 	ccf, err := consensusComp.NewConsensusComponentsFactory(args)
 	assert.Nil(t, ccf)
@@ -338,7 +338,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
 		args.ChainRunType = common.ChainRunTypeSovereign
-		args.SubroundType = consensus.SubroundTypeV2
+		args.ConsensusModel = consensus.ConsensusModelV2
 
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
