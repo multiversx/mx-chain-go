@@ -1059,6 +1059,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.cleanupPools(headerHandler)
 
+	time.Sleep(5000 * time.Hour)
+
 	return nil
 }
 

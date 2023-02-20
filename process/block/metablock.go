@@ -1324,6 +1324,8 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.cleanupPools(headerHandler)
 
+	time.Sleep(5000 * time.Hour)
+
 	return nil
 }
 
