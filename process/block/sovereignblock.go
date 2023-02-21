@@ -14,11 +14,12 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var headerVersion = []byte("1")
+var rootHash = "uncomputed root hash"
 
 type sovereignBlockProcessor struct {
 	*shardProcessor
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	uncomputedRootHash           []byte
 }
 
 // NewSovereignBlockProcessor creates a new sovereign block processor
@@ -32,6 +33,8 @@ func NewSovereignBlockProcessor(
 		validatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
+	sbp.uncomputedRootHash = sbp.hasher.Compute(rootHash)
+
 	return sbp, nil
 }
 
@@ -40,8 +43,10 @@ func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (d
 	s.enableRoundsHandler.CheckRound(round)
 	header := &block.HeaderWithValidatorStats{
 		Header: &block.Header{
-			SoftwareVersion: headerVersion,
+			SoftwareVersion: process.SovereignHeaderVersion,
+			RootHash:        s.uncomputedRootHash,
 		},
+		ValidatorStatsRootHash: s.uncomputedRootHash,
 	}
 
 	err := s.setRoundNonceInitFees(round, nonce, header)
@@ -56,10 +61,6 @@ func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (d
 func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
-	}
-	commonHdr, ok := initialHdr.(*block.HeaderWithValidatorStats)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	s.processStatusHandler.SetBusy("sovereignBlockProcessor.CreateBlock")
@@ -77,9 +78,9 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 		return nil, nil, err
 	}
 
-	s.blockChainHook.SetCurrentHeader(commonHdr)
+	s.blockChainHook.SetCurrentHeader(initialHdr)
 	startTime := time.Now()
-	mbsFromMe := s.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, commonHdr.GetPrevRandSeed())
+	mbsFromMe := s.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, initialHdr.GetPrevRandSeed())
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)
 
@@ -122,7 +123,7 @@ func (s *sovereignBlockProcessor) ProcessBlock(headerHandler data.HeaderHandler,
 
 	for _, accounts := range s.accountsDB {
 		if accounts.JournalLen() != 0 {
-			log.Error("metaProcessor.CreateBlock first entry", "stack", accounts.GetStackDebugFirstEntry())
+			log.Error("sovereignBlockProcessor.ProcessBlock first entry", "stack", accounts.GetStackDebugFirstEntry())
 			return nil, nil, process.ErrAccountStateDirty
 		}
 	}
@@ -183,13 +184,8 @@ func (s *sovereignBlockProcessor) applyBodyToHeader(
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	sovereignHdr, ok := headerHandler.(*block.HeaderWithValidatorStats)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	var err error
-	err = sovereignHdr.SetMiniBlockHeaderHandlers(nil)
+	err = headerHandler.SetMiniBlockHeaderHandlers(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -198,22 +194,22 @@ func (s *sovereignBlockProcessor) applyBodyToHeader(
 	if err != nil {
 		return nil, err
 	}
-	err = sovereignHdr.SetRootHash(rootHash)
+	err = headerHandler.SetRootHash(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	rootHash, err = s.accountsDB[state.PeerAccountsState].RootHash()
+	validatorStatsRootHash, err := s.accountsDB[state.PeerAccountsState].RootHash()
 	if err != nil {
 		return nil, err
 	}
-	err = sovereignHdr.SetValidatorStatsRootHash(rootHash)
+	err = headerHandler.SetValidatorStatsRootHash(validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}
 
 	newBody := deleteSelfReceiptsMiniBlocks(body)
-	err = s.applyBodyInfoOnCommonHeader(sovereignHdr, newBody, nil)
+	err = s.applyBodyInfoOnCommonHeader(headerHandler, newBody, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -266,13 +262,7 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 		return err
 	}
 
-	header, ok := headerHandler.(*block.HeaderWithValidatorStats)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
-		return err
-	}
-
-	marshalizedHeader, err := s.marshalizer.Marshal(header)
+	marshalizedHeader, err := s.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -284,32 +274,36 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 	}
 
 	headerHash := s.hasher.Compute(string(marshalizedHeader))
-	s.saveShardHeader(header, headerHash, marshalizedHeader)
-	s.saveBody(body, header, headerHash)
+	s.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
+	s.saveBody(body, headerHandler, headerHash)
 
 	err = s.commitAll(headerHandler)
 	if err != nil {
 		return err
 	}
 
-	s.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
+	s.validatorStatisticsProcessor.DisplayRatings(headerHandler.GetEpoch())
 
-	err = s.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
+	err = s.forkDetector.AddHeader(headerHandler, headerHash, process.BHProcessed, nil, nil)
 	if err != nil {
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 		return err
 	}
 
-	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(s.blockChain)
-	s.blockTracker.AddSelfNotarizedHeader(s.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
+	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := getLastSelfNotarizedHeaderByItself(s.blockChain)
+	s.blockTracker.AddSelfNotarizedHeader(s.shardCoordinator.SelfId(), lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	go s.historyRepo.OnNotarizedBlocks(s.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+	go s.historyRepo.OnNotarizedBlocks(s.shardCoordinator.SelfId(), []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 
-	lastHeader := s.blockChain.GetCurrentBlockHeader()
-	lastBlockHash := s.blockChain.GetCurrentBlockHeaderHash()
+	s.updateState(lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	s.updateState(lastHeader.(*block.HeaderWithValidatorStats), lastBlockHash)
-	err = s.commonHeaderAndBodyCommit(header, body, headerHash, []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+	highestFinalBlockNonce := s.forkDetector.GetHighestFinalBlockNonce()
+	log.Debug("highest final shard block",
+		"shard", s.shardCoordinator.SelfId(),
+		"nonce", highestFinalBlockNonce,
+	)
+
+	err = s.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
 		return err
 	}
@@ -357,89 +351,78 @@ func (s *sovereignBlockProcessor) ProcessScheduledBlock(_ data.HeaderHandler, _ 
 }
 
 // DecodeBlockHeader decodes the current header
-func (s *sovereignBlockProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
-	if dta == nil {
+func (s *sovereignBlockProcessor) DecodeBlockHeader(data []byte) data.HeaderHandler {
+	if data == nil {
 		return nil
 	}
 
-	header, err := process.UnmarshalHeaderWithValidatorStats(s.marshalizer, dta)
+	header, err := process.UnmarshalHeaderWithValidatorStats(s.marshalizer, data)
 	if err != nil {
-		log.Debug("DecodeBlockHeader.UnmarshalShardHeader", "error", err.Error())
+		log.Debug("DecodeBlockHeader.UnmarshalHeaderWithValidatorStats", "error", err.Error())
 		return nil
 	}
 
 	return header
 }
 
-func (s *sovereignBlockProcessor) verifyValidatorStatisticsRootHash(header data.CommonHeaderHandler) error {
+func (s *sovereignBlockProcessor) verifyValidatorStatisticsRootHash(headerHandler data.HeaderHandler) error {
 	validatorStatsRH, err := s.accountsDB[state.PeerAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
-	validatorStatsInfo, ok := header.(data.ValidatorStatisticsInfoHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if !bytes.Equal(validatorStatsRH, validatorStatsInfo.GetValidatorStatsRootHash()) {
+	if !bytes.Equal(validatorStatsRH, headerHandler.GetValidatorStatsRootHash()) {
 		log.Debug("validator stats root hash mismatch",
 			"computed", validatorStatsRH,
-			"received", validatorStatsInfo.GetValidatorStatsRootHash(),
+			"received", headerHandler.GetValidatorStatsRootHash(),
 		)
 		return fmt.Errorf("%s, sovereign, computed: %s, received: %s, header nonce: %d",
 			process.ErrValidatorStatsRootHashDoesNotMatch,
 			logger.DisplayByteSlice(validatorStatsRH),
-			logger.DisplayByteSlice(validatorStatsInfo.GetValidatorStatsRootHash()),
-			header.GetNonce(),
+			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash()),
+			headerHandler.GetNonce(),
 		)
 	}
 
 	return nil
 }
 
-func (s *sovereignBlockProcessor) updateState(lastHdr *block.HeaderWithValidatorStats, lastHash []byte) {
-	if check.IfNil(lastHdr) {
+func (s *sovereignBlockProcessor) updateState(header data.HeaderHandler, headerHash []byte) {
+	if check.IfNil(header) {
 		log.Debug("updateState nil header")
 		return
 	}
 
-	s.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastHdr.GetValidatorStatsRootHash())
+	s.validatorStatisticsProcessor.SetLastFinalizedRootHash(header.GetValidatorStatsRootHash())
 
-	prevBlockHash := lastHdr.GetPrevHash()
-	prevBlock, errNotCritical := process.GetHeaderWithValidatorStats(
-		prevBlockHash,
+	prevHeaderHash := header.GetPrevHash()
+	prevHeader, errNotCritical := process.GetHeaderWithValidatorStats(
+		prevHeaderHash,
 		s.dataPool.Headers(),
 		s.marshalizer,
 		s.store,
 	)
 	if errNotCritical != nil {
-		log.Debug("could not get meta header from storage")
-		return
-	}
-
-	validatorInfo, ok := prevBlock.(data.ValidatorStatisticsInfoHandler)
-	if !ok {
-		log.Debug("wrong type assertion")
+		log.Debug("could not get header with validator stats from storage")
 		return
 	}
 
 	s.updateStateStorage(
-		lastHdr,
-		lastHdr.GetRootHash(),
-		prevBlock.GetRootHash(),
+		header,
+		header.GetRootHash(),
+		prevHeader.GetRootHash(),
 		s.accountsDB[state.UserAccountsState],
 	)
 
 	s.updateStateStorage(
-		lastHdr,
-		lastHdr.GetValidatorStatsRootHash(),
-		validatorInfo.GetValidatorStatsRootHash(),
+		header,
+		header.GetValidatorStatsRootHash(),
+		prevHeader.GetValidatorStatsRootHash(),
 		s.accountsDB[state.PeerAccountsState],
 	)
 
-	s.setFinalizedHeaderHashInIndexer(lastHdr.GetPrevHash())
-	s.blockChain.SetFinalBlockInfo(lastHdr.GetNonce(), lastHash, lastHdr.GetRootHash())
+	s.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
+	s.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, header.GetRootHash())
 }
 
 // IsInterfaceNil returns true if underlying object is nil
