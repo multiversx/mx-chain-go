@@ -37,7 +37,7 @@ type Messenger interface {
 	dataRetriever.TopicHandler
 	UnregisterMessageProcessor(topic string, identifier string) error
 	UnregisterAllMessageProcessors() error
-	UnjoinAllTopics() error
+	UnJoinAllTopics() error
 	ConnectedPeers() []core.PeerID
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	Broadcast(topic string, buff []byte)

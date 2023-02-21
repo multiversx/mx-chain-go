@@ -33,6 +33,8 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 			core.BuiltInFunctionESDTNFTBurn:          {},
 			core.BuiltInFunctionESDTNFTAddQuantity:   {},
 			core.BuiltInFunctionESDTNFTCreate:        {},
+			core.BuiltInFunctionESDTFreeze:           {},
+			core.BuiltInFunctionESDTUnFreeze:         {},
 		},
 		shardCoordinator: shardCoordinator,
 	}
@@ -103,7 +105,9 @@ func (tp *tokensProcessor) extractEsdtData(
 	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
 		identifier == core.BuiltInFunctionESDTNFTTransfer ||
 		identifier == core.BuiltInFunctionESDTWipe ||
-		identifier == core.BuiltInFunctionMultiESDTNFTTransfer
+		identifier == core.BuiltInFunctionMultiESDTNFTTransfer ||
+		identifier == core.BuiltInFunctionESDTFreeze ||
+		identifier == core.BuiltInFunctionESDTUnFreeze
 
 	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]

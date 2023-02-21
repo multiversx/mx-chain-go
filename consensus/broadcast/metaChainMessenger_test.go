@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ var nodePkBytes = []byte("node public key bytes")
 
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
+	messengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
@@ -123,7 +124,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T)
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -163,7 +164,7 @@ func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 	channelBroadcastCalled := make(chan bool, 1)
 	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 1)
 
-	messenger := &mock.MessengerStub{
+	messenger := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelBroadcastCalled <- true
 		},
@@ -219,7 +220,7 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
 
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			mutCounters.Lock()
 			countersBroadcast[broadcastMethodPrefix+topic]++
