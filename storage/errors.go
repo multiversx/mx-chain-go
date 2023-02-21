@@ -94,6 +94,9 @@ var ErrNilShardIDProvider = errors.New("nil shard id provider")
 // ErrNotSupportedShardIDProviderType is raised when an unsupported shard id provider type is provided
 var ErrNotSupportedShardIDProviderType = errors.New("invalid shard id provider type has been provided")
 
+// ErrInvalidFilePath signals that an invalid file path has been provided
+var ErrInvalidFilePath = errors.New("invalid file path")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.

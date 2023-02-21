@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -46,7 +45,7 @@ func NewPersisterFactory(config config.DBConfig) (*PersisterFactory, error) {
 // Create will return a new instance of a DB with a given path
 func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	if len(path) == 0 {
-		return nil, errors.New("invalid file path")
+		return nil, storage.ErrInvalidFilePath
 	}
 
 	dbConfig, err := pf.getDBConfig(path)
@@ -59,7 +58,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, err
 	}
 
-	err = pf.createPersisterConfigFile(path, dbConfig)
+	err = createPersisterConfigFile(path, dbConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +68,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 
 func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
-	err := core.LoadTomlFile(dbConfigFromFile, pf.getPersisterConfigFilePath(path))
+	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
 		log.Debug("getDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
 		return dbConfigFromFile, nil
@@ -135,7 +134,7 @@ func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (st
 	}
 }
 
-func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *config.DBConfig) error {
+func createPersisterConfigFile(path string, dbConfig *config.DBConfig) error {
 	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -147,7 +146,7 @@ func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *con
 		return err
 	}
 
-	configFilePath := pf.getPersisterConfigFilePath(path)
+	configFilePath := getPersisterConfigFilePath(path)
 	f, err := core.OpenFile(configFilePath)
 	if err == nil {
 		// config file already exists, no need to create config
@@ -166,7 +165,7 @@ func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *con
 	return nil
 }
 
-func (pf *PersisterFactory) getPersisterConfigFilePath(path string) string {
+func getPersisterConfigFilePath(path string) string {
 	return filepath.Join(
 		path,
 		dbConfigFileName,
