@@ -182,4 +182,3 @@ require (
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
-replace github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230208102100-6dc824ac734b => /home/bogdan/go2/src/github.com/multiversx/mx-chain-vm-go
