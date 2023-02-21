@@ -31,6 +31,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const gasPrice = uint64(10)
+const transactionSigVerificationGas = uint64(50000)
+const guardedAccountGas = uint64(250000)
+const transferGas = uint64(1000)
+
 func prepareTestContextForFreezeAccounts(tb testing.TB) *vm.VMTestContext {
 	unreachableEpoch := uint32(999999)
 	db := integrationtests.CreateStorer(tb.TempDir())
@@ -141,8 +146,7 @@ func isAccountGuarded(tb testing.TB, testContext *vm.VMTestContext, address []by
 }
 
 func setGuardian(testContext *vm.VMTestContext, userAddress []byte, guardianAddress []byte, uuid []byte) (vmcommon.ReturnCode, error) {
-	gasPrice := uint64(10)
-	gasLimit := uint64(250000 + 1000)
+	gasLimit := guardedAccountGas + transferGas
 
 	tx := vm.CreateTransaction(
 		getNonce(testContext, userAddress),
@@ -163,8 +167,7 @@ func setGuardianCoSigned(
 	newGuardianAddress []byte,
 	uuid []byte,
 ) (vmcommon.ReturnCode, error) {
-	gasPrice := uint64(10)
-	gasLimit := uint64(250000 + 50000 + 1000)
+	gasLimit := guardedAccountGas + transactionSigVerificationGas + transferGas
 
 	tx := vm.CreateTransaction(
 		getNonce(testContext, userAddress),
@@ -187,8 +190,7 @@ func removeGuardiansCoSigned(
 	userAddress []byte,
 	currentGuardianAddress []byte,
 ) (vmcommon.ReturnCode, error) {
-	gasPrice := uint64(10)
-	gasLimit := uint64(250000 + 50000 + 1000)
+	gasLimit := guardedAccountGas + transactionSigVerificationGas + transferGas
 
 	tx := vm.CreateTransaction(
 		getNonce(testContext, userAddress),
@@ -207,8 +209,7 @@ func removeGuardiansCoSigned(
 }
 
 func guardAccount(testContext *vm.VMTestContext, userAddress []byte) (vmcommon.ReturnCode, error) {
-	gasPrice := uint64(10)
-	gasLimit := uint64(400000 + 1000)
+	gasLimit := guardedAccountGas + transferGas
 
 	tx := vm.CreateTransaction(
 		getNonce(testContext, userAddress),
@@ -228,16 +229,13 @@ func transferFunds(
 	transferValue *big.Int,
 	receiverAddress []byte,
 ) error {
-	gasPrice := uint64(10)
-	gasLimit := uint64(1000)
-
 	tx := vm.CreateTransaction(
 		getNonce(testContext, senderAddress),
 		transferValue,
 		senderAddress,
 		receiverAddress,
 		gasPrice,
-		gasLimit,
+		transferGas,
 		make([]byte, 0))
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -251,8 +249,7 @@ func transferFundsCoSigned(
 	receiverAddress []byte,
 	guardianAddress []byte,
 ) error {
-	gasPrice := uint64(10)
-	gasLimit := uint64(51000)
+	gasLimit := transactionSigVerificationGas + transferGas
 
 	tx := vm.CreateTransaction(
 		getNonce(testContext, senderAddress),
@@ -282,6 +279,7 @@ func testNoGuardianIsSet(tb testing.TB, testContext *vm.VMTestContext, address [
 	require.Nil(tb, err)
 	assert.Nil(tb, active)
 	assert.Nil(tb, pending)
+	assert.False(tb, isAccountGuarded(tb, testContext, address))
 }
 
 func testActiveGuardian(
@@ -354,8 +352,8 @@ func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *tes
 	testNoGuardianIsSet(t, testContext, userAddress)
 
 	returnCode, err := setGuardianCoSigned(testContext, userAddress, guardianAddress, guardianAddress, uuid)
-	assert.Equal(t, process.ErrFailedTransaction, err)
-	assert.Equal(t, vmcommon.UserError, returnCode)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Equal(t, vmcommon.UserError, returnCode)
 
 	testNoGuardianIsSet(t, testContext, userAddress)
 }
@@ -373,8 +371,8 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	testNoGuardianIsSet(t, testContext, userAddress)
 
 	returnCode, err := setGuardian(testContext, userAddress, guardianAddress, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 	currentEpoch := uint32(0)
 
 	testActiveGuardian(t, testContext, userAddress, true, nil, nil, 0)
@@ -382,8 +380,8 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	// can not activate guardian now
 	returnCode, err = guardAccount(testContext, userAddress)
-	assert.Equal(t, process.ErrFailedTransaction, err)
-	assert.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
 
 	currentEpoch = vm.EpochGuardianDelay
 	setNewEpochOnContext(testContext, currentEpoch)
@@ -393,8 +391,8 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	// can activate guardian now
 	returnCode, err = guardAccount(testContext, userAddress)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
@@ -455,8 +453,8 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 
 	// userAddress can not send funds while protected without setting the guardian address
 	returnCode, err = guardAccount(testContext, userAddress)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 
 	testActiveGuardian(t, testContext, userAddress, false, guardianAddress, uuid, currentEpoch)
 	testPendingGuardian(t, testContext, userAddress, true, nil, nil, 0)
@@ -485,7 +483,7 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 }
 
 // Scenario 1 description:
-// 1.  create & mint 4 addresses: alice, bob, charlie abd delta
+// 1.  create & mint 4 addresses: alice, bob, charlie and delta
 // 2.  alice sets bob as guardian (test if pending)
 // 3.  alice can not set bob as guardian again (test if pending & same activation epoch)
 //   3.1 alice can not set bob as guardian again even if one epoch past
@@ -507,16 +505,16 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	defer testContext.Close()
 
 	uuid := []byte("uuid")
-	// transferValue := int64(2000000)
+	transferValue := big.NewInt(2000000)
 	initialMint := big.NewInt(1000000000000000000)
 
 	alice := []byte("alice-12345678901234567890123456")
 	bob := []byte("bob-1234567890123456789012345678")
 	charlie := []byte("charlie-123456789012345678901234")
 	delta := []byte("delta-12345678901234567890123456")
+	allAddresses := [][]byte{alice, bob, charlie, delta}
 
 	// step 1 -  mint addresses
-	allAddresses := [][]byte{alice, bob, charlie}
 	for _, address := range allAddresses {
 		mintAddress(t, testContext, address, initialMint)
 	}
@@ -528,17 +526,17 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	// step 2 - alice sets bob as guardian
 	step2Epoch := currentEpoch
 	returnCode, err := setGuardian(testContext, alice, bob, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.False(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.False(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, true, nil, nil, 0)
 	testPendingGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay)
 
 	// step 3 - alice wants to set bob as guardian again - should fail
 	returnCode, err = setGuardian(testContext, alice, bob, uuid)
-	assert.Equal(t, process.ErrFailedTransaction, err)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.False(t, isAccountGuarded(t, testContext, alice))
+	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.False(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, true, nil, nil, 0)
 	testPendingGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay)
 
@@ -546,9 +544,9 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	currentEpoch++
 	setNewEpochOnContext(testContext, currentEpoch)
 	returnCode, err = setGuardian(testContext, alice, bob, uuid)
-	assert.Equal(t, process.ErrFailedTransaction, err)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.False(t, isAccountGuarded(t, testContext, alice))
+	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.False(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, true, nil, nil, currentEpoch)
 	testPendingGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay) // initial epoch + EpochGuardianDelay
 
@@ -556,18 +554,18 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	currentEpoch++
 	setNewEpochOnContext(testContext, currentEpoch)
 	returnCode, err = guardAccount(testContext, alice)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay) // initial epoch + EpochGuardianDelay
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
 	// step 5 - alice sets charlie as pending guardian
 	step5Epoch := currentEpoch
 	returnCode, err = setGuardian(testContext, alice, charlie, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, false, charlie, uuid, step5Epoch+vm.EpochGuardianDelay)
 
@@ -575,18 +573,18 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	currentEpoch++
 	setNewEpochOnContext(testContext, currentEpoch)
 	returnCode, err = setGuardian(testContext, alice, delta, uuid)
-	assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
-	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, bob, uuid, step2Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, false, charlie, uuid, step5Epoch+vm.EpochGuardianDelay)
 
 	// step 6 - alice sets charlie as guardian immediately through a cosigned transaction
 	step6Epoch := currentEpoch
 	returnCode, err = setGuardianCoSigned(testContext, alice, bob, charlie, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step6Epoch) // instant set, no delay add
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
@@ -595,37 +593,37 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	setNewEpochOnContext(testContext, currentEpoch)
 	step7Epoch := currentEpoch
 	returnCode, err = setGuardianCoSigned(testContext, alice, charlie, bob, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, bob, uuid, step7Epoch) // instant set, no delay add
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
 	// step 8 - alice adds charlie as a pending guardian (test if pending & different activation epoch)
 	step8Epoch := currentEpoch
 	returnCode, err = setGuardian(testContext, alice, charlie, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 	testActiveGuardian(t, testContext, alice, false, bob, uuid, step7Epoch)
 	testPendingGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	currentEpoch += vm.EpochGuardianDelay
 	setNewEpochOnContext(testContext, currentEpoch)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
 	// step 9 - alice adds bob as a pending guardian and calls set charlie immediately cosigned and should remove the pending guardian
 	step9Epoch := currentEpoch
 	returnCode, err = setGuardian(testContext, alice, bob, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, false, bob, uuid, step9Epoch+vm.EpochGuardianDelay)
 	// guard account by charlie should remove bob pending guardian
 	returnCode, err = setGuardianCoSigned(testContext, alice, charlie, charlie, uuid)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
@@ -633,32 +631,32 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	currentEpoch++
 	setNewEpochOnContext(testContext, currentEpoch)
 	returnCode, err = removeGuardiansCoSigned(testContext, alice, charlie)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.False(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.False(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
 	// step 11 - alice guards the account immediately by calling the GuardAccount function
 	returnCode, err = guardAccount(testContext, alice)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.True(t, isAccountGuarded(t, testContext, alice))
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, isAccountGuarded(t, testContext, alice))
 	testActiveGuardian(t, testContext, alice, false, charlie, uuid, step8Epoch+vm.EpochGuardianDelay)
 	testPendingGuardian(t, testContext, alice, true, nil, nil, 0)
 
 	// 13. alice sends a guarded transaction, while account is guarded -> should work
-	err = transferFundsCoSigned(testContext, alice, big.NewInt(100), delta, charlie)
-	assert.Nil(t, err)
+	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
+	require.Nil(t, err)
 
 	// 14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
 	returnCode, err = removeGuardiansCoSigned(testContext, alice, charlie)
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
-	assert.False(t, isAccountGuarded(t, testContext, alice))
-	err = transferFundsCoSigned(testContext, alice, big.NewInt(100), delta, charlie)
-	assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.False(t, isAccountGuarded(t, testContext, alice))
+	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	// 14.1 alice sends unguarded transaction -> should work
-	err = transferFunds(testContext, alice, big.NewInt(100), delta)
-	assert.Nil(t, err)
+	err = transferFunds(testContext, alice, transferValue, delta)
+	require.Nil(t, err)
 }
