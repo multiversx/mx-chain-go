@@ -83,7 +83,7 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 		return process.ErrNilPrevRandSeed
 	}
 
-	return nil
+	return hdr.CheckFieldsForNil()
 }
 
 func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {

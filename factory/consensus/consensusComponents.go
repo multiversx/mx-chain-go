@@ -163,7 +163,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.bootstrapper.StartSyncingBlocks()
 
 	epoch := ccf.getEpoch()
-	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
+	consensusState, err := ccf.createConsensusState(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +381,7 @@ func (ccf *consensusComponentsFactory) getEpoch() uint32 {
 }
 
 // createConsensusState method creates a consensusState object
-func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consensusGroupSize int) (*spos.ConsensusState, error) {
+func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	if ccf.cryptoComponents.PublicKey() == nil {
 		return nil, errors.ErrNilPublicKey
 	}
@@ -397,6 +397,8 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 	if err != nil {
 		return nil, err
 	}
+
+	consensusGroupSize := ccf.processComponents.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(ccf.processComponents.ShardCoordinator().SelfId(), epoch)
 
 	roundConsensus := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,

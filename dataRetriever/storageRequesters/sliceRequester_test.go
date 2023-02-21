@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -115,7 +116,7 @@ func TestSliceRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 			return nil, expectedErr
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendWasCalled = true
 			return nil
@@ -149,7 +150,7 @@ func TestSliceRequester_RequestDataFromHashShouldWork(t *testing.T) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendWasCalled = true
 			return nil
@@ -175,7 +176,7 @@ func TestSliceRequester_RequestDataFromHashesShouldWork(t *testing.T) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			numSendCalled++
 			return nil
@@ -208,7 +209,7 @@ func TestSliceRequester_GetErroredShouldReturnErr(t *testing.T) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			numSendCalled++
 			return nil
@@ -247,7 +248,7 @@ func TestSliceRequester_SendErroredShouldReturnErr(t *testing.T) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			numSendCalled++
 			if numSendCalled == 1 {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -652,6 +653,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 	delay time.Duration,
 	roundDuration time.Duration,
 ) uint64 {
+	marshaller := mock.MarshalizerMock{}
 	receivedValue := uint64(0)
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
@@ -660,10 +662,10 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 	})
 	wrk.SetBlockProcessor(&testscommon.BlockProcessorStub{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-			return &block.Header{
-				ChainID:         chainID,
-				SoftwareVersion: []byte("version"),
-			}
+			header := &block.Header{}
+			_ = marshaller.Unmarshal(header, dta)
+
+			return header
 		},
 		RevertCurrentBlockCalled: func() {
 		},
@@ -681,9 +683,18 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 			return roundStartTimeStamp
 		},
 	})
-	hdr := &block.Header{ChainID: chainID}
+	hdr := &block.Header{
+		ChainID:         chainID,
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("roothash"),
+		SoftwareVersion: []byte("software version"),
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
-	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrStr, _ := marshaller.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
