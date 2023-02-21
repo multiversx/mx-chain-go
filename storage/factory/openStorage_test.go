@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
-	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,23 +19,11 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
 		DefaultEpochString:        "Epoch",
 		DefaultShardString:        "Shard",
-		ShardIDProvider:           &storageMocks.ShardIDProviderStub{},
 	}
 }
 
 func TestNewStorageUnitOpenHandler(t *testing.T) {
 	t.Parallel()
-
-	t.Run("nil shard id provider", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsOpenStorageUnits()
-		args.ShardIDProvider = nil
-
-		suoh, err := NewStorageUnitOpenHandler(args)
-		assert.Equal(t, storage.ErrNilShardIDProvider, err)
-		assert.True(t, check.IfNil(suoh))
-	})
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

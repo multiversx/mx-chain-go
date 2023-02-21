@@ -1491,7 +1491,6 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
-			ShardIDProvider:               pcf.bootstrapComponents.ShardIDProvider(),
 		},
 	)
 	if err != nil {

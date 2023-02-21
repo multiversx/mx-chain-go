@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1060,7 +1059,6 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 			MaxOpenFiles:      10,
 			BatchDelaySeconds: 2,
 		},
-		&storageStubs.ShardIDProviderStub{},
 	)
 	require.Nil(t, err)
 

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -21,7 +20,6 @@ type ArgsNewOpenStorageUnits struct {
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
 	DefaultEpochString        string
 	DefaultShardString        string
-	ShardIDProvider           storage.ShardIDProvider
 }
 
 type openStorageUnits struct {
@@ -29,33 +27,18 @@ type openStorageUnits struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	defaultEpochString        string
 	defaultShardString        string
-	shardIDProvider           storage.ShardIDProvider
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
-	err := checkStorageUnitOpenHandlerArgs(args)
-	if err != nil {
-		return nil, err
-	}
-
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
-		shardIDProvider:           args.ShardIDProvider,
 	}
 
 	return o, nil
-}
-
-func checkStorageUnitOpenHandlerArgs(args ArgsNewOpenStorageUnits) error {
-	if check.IfNil(args.ShardIDProvider) {
-		return storage.ErrNilShardIDProvider
-	}
-
-	return nil
 }
 
 // GetMostRecentStorageUnit will open bootstrap storage unit
@@ -65,7 +48,7 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	persisterFactory, err := NewPersisterFactory(dbConfig, o.shardIDProvider)
+	persisterFactory, err := NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +103,7 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory, err := NewPersisterFactory(dbConfig, o.shardIDProvider)
+	persisterFactory, err := NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil, err
 	}

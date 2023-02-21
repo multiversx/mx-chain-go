@@ -38,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -219,7 +218,6 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
-		ShardIDProvider:               &storage.ShardIDProviderStub{},
 	}
 }
 

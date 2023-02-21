@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -304,7 +303,6 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 			MaxOpenFiles:      10,
 			BatchDelaySeconds: 2,
 		},
-		&storageStubs.ShardIDProviderStub{},
 	)
 	require.Nil(t, err)
 	args.PersisterFactory = persisterFactory

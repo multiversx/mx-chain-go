@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -28,23 +27,17 @@ type PersisterFactory struct {
 	batchDelaySeconds   int
 	maxBatchSize        int
 	maxOpenFiles        int
-	shardIDProvider     storage.ShardIDProvider
 	shardIDProviderType string
 	numShards           uint32
 }
 
 // NewPersisterFactory will return a new instance of a PersisterFactory
-func NewPersisterFactory(config config.DBConfig, shardIDProvider storage.ShardIDProvider) (*PersisterFactory, error) {
-	if check.IfNil(shardIDProvider) {
-		return nil, storage.ErrNilShardIDProvider
-	}
-
+func NewPersisterFactory(config config.DBConfig) (*PersisterFactory, error) {
 	return &PersisterFactory{
 		dbType:              config.Type,
 		batchDelaySeconds:   config.BatchDelaySeconds,
 		maxBatchSize:        config.MaxBatchSize,
 		maxOpenFiles:        config.MaxOpenFiles,
-		shardIDProvider:     shardIDProvider,
 		shardIDProviderType: config.ShardIDProviderType,
 		numShards:           config.NumShards,
 	}, nil

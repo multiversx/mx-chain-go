@@ -440,7 +440,6 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
-	ShardIDProvider() storage.ShardIDProvider
 	IsInterfaceNil() bool
 }
 

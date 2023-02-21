@@ -179,7 +179,6 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	ShardIDProvider            storage.ShardIDProvider
 }
 
 type dataToSync struct {
@@ -226,7 +225,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
-		shardIDProvider:            args.ShardIDProvider,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -1114,7 +1112,6 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
-			ShardIDProvider:               e.shardIDProvider,
 		})
 	if err != nil {
 		return nil, err

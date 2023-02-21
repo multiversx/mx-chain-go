@@ -109,9 +109,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
 	}
-	if check.IfNil(args.ShardIDProvider) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardIDProvider)
-	}
 
 	return nil
 }

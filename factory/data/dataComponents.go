@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -29,7 +28,6 @@ type DataComponentsFactoryArgs struct {
 	EpochStartNotifier            factory.EpochStartNotifier
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
-	ShardIDProvider               storage.ShardIDProvider
 }
 
 type dataComponentsFactory struct {
@@ -41,7 +39,6 @@ type dataComponentsFactory struct {
 	statusCore                    factory.StatusCoreComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
-	shardIDProvider               storage.ShardIDProvider
 }
 
 // dataComponents struct holds the data components
@@ -77,9 +74,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.StatusCore.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
-	if check.IfNil(args.ShardIDProvider) {
-		return nil, errors.ErrNilShardIDProvider
-	}
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
@@ -90,7 +84,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		epochStartNotifier:            args.EpochStartNotifier,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		shardIDProvider:               args.ShardIDProvider,
 	}, nil
 }
 
@@ -179,7 +172,6 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
-			ShardIDProvider:               dcf.shardIDProvider,
 		})
 	if err != nil {
 		return nil, err
