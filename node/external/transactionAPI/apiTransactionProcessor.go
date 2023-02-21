@@ -348,7 +348,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
 	}
 	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
+		tx.TxFields[valueField] = wrappedTx.Tx.GetValue().String()
 	}
 
 	return tx
