@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/pelletier/go-toml"
 )
 
 const (
@@ -166,27 +165,12 @@ func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *con
 		_ = f.Close()
 	}()
 
-	err = SaveTomlFile(dbConfig, configFilePath)
+	err = core.SaveTomlFile(dbConfig, configFilePath)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// SaveTomlFile will open and save data to toml file
-// TODO: move to core
-func SaveTomlFile(dest interface{}, relativePath string) error {
-	f, err := os.Create(relativePath)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = f.Close()
-	}()
-
-	return toml.NewEncoder(f).Encode(dest)
 }
 
 func (pf *PersisterFactory) getPersisterConfigFilePath(path string) string {
