@@ -2329,13 +2329,17 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
+	result.OriginalSender = GetOriginalSenderForTx(tx)
+	return result
+}
+
+func GetOriginalSenderForTx(tx data.TransactionHandler) []byte {
 	origScr, ok := (tx).(*smartContractResult.SmartContractResult)
 	if ok {
-		result.OriginalSender = origScr.GetOriginalSender()
+		return origScr.GetOriginalSender()
 	} else {
-		result.OriginalSender = tx.GetSndAddr()
+		return tx.GetSndAddr()
 	}
-	return result
 }
 
 func (sc *scProcessor) createSmartContractResults(
