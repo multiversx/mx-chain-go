@@ -3,6 +3,7 @@ package interceptedRequestHdr
 import (
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -175,6 +176,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	hdr2 := &block.Header{
@@ -193,6 +196,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	return hdr1, hdr2
