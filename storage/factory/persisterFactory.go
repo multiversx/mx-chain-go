@@ -78,10 +78,11 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
 	err := core.LoadTomlFile(dbConfigFromFile, pf.getPersisterConfigFilePath(path))
 	if err == nil {
+		log.Debug("getDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
 		return dbConfigFromFile, nil
 	}
 
-	empty, err := checkIfDirIsEmpty(path)
+	empty := checkIfDirIsEmpty(path)
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
@@ -89,6 +90,8 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 			MaxBatchSize:      pf.maxBatchSize,
 			MaxOpenFiles:      pf.maxOpenFiles,
 		}
+
+		log.Debug("getDBConfig: loaded default db config")
 		return dbConfig, nil
 	}
 
@@ -101,20 +104,22 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 		NumShards:           pf.numShards,
 	}
 
+	log.Debug("getDBConfig: loaded db config from main config file")
 	return dbConfig, nil
 }
 
-func checkIfDirIsEmpty(path string) (bool, error) {
+func checkIfDirIsEmpty(path string) bool {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return false, err
+		log.Debug("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
+		return true
 	}
 
-	if len(files) != 0 {
-		return false, nil
+	if len(files) == 0 {
+		return true
 	}
 
-	return true, nil
+	return false
 }
 
 func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (storage.Persister, error) {
