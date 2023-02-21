@@ -341,6 +341,11 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	} else {
 		shardHeader, isShardHeader := headerHandler.(data.ShardHeaderHandler)
 		if isShardHeader {
+			_, isHeaderWithValidatorStats := headerHandler.(*block.HeaderWithValidatorStats)
+			if isHeaderWithValidatorStats {
+				valStatRootHash = shardHeader.GetValidatorStatsRootHash()
+			}
+
 			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
 		}
 	}

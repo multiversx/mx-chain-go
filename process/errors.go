@@ -1154,3 +1154,6 @@ var ErrNilShardBootstrap = errors.New("nil shard bootstrap")
 
 // ErrNilShardStorageBootstrapper signals that a nil shard storage bootstrapper was provided
 var ErrNilShardStorageBootstrapper = errors.New("nil shard storage bootstrapper")
+
+// ErrWrongHeaderVersion signals that a wrong header version has been found
+var ErrWrongHeaderVersion = errors.New("wrong header version")
