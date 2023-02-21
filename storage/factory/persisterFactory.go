@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	dbConfigFileName         = "config.toml"
 	defaultType              = "LvlDBSerial"
 	defaultBatchDelaySeconds = 2
 	defaultMaxBatchSize      = 100
@@ -86,9 +87,9 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
-			BatchDelaySeconds: pf.batchDelaySeconds,
-			MaxBatchSize:      pf.maxBatchSize,
-			MaxOpenFiles:      pf.maxOpenFiles,
+			BatchDelaySeconds: defaultBatchDelaySeconds,
+			MaxBatchSize:      defaultMaxBatchSize,
+			MaxOpenFiles:      defaultMaxOpenFiles,
 		}
 
 		log.Debug("getDBConfig: loaded default db config")
@@ -180,7 +181,7 @@ func SaveTomlFile(dest interface{}, relativePath string) error {
 func (pf *PersisterFactory) getPersisterConfigFilePath(path string) string {
 	return filepath.Join(
 		path,
-		"dbConfig.toml",
+		dbConfigFileName,
 	)
 }
 
