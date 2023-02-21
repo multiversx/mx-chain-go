@@ -348,7 +348,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
 	}
 	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = wrappedTx.Tx.GetValue().String()
+		tx.TxFields[valueField] = getTxValue(wrappedTx)
 	}
 
 	return tx
@@ -687,6 +687,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
+}
+
+func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
+	txValue := wrappedTx.Tx.GetValue()
+	if txValue != nil {
+		return txValue.String()
+	}
+	return "0"
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
