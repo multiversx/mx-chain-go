@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -12,6 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/pelletier/go-toml"
+)
+
+const (
+	defaultType              = "LvlDBSerial"
+	defaultBatchDelaySeconds = 2
+	defaultMaxBatchSize      = 100
+	defaultMaxOpenFiles      = 10
 )
 
 // PersisterFactory is the factory which will handle creating new databases
@@ -73,6 +81,17 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 		return dbConfigFromFile, nil
 	}
 
+	empty, err := checkIfDirIsEmpty(path)
+	if !empty {
+		dbConfig := &config.DBConfig{
+			Type:              defaultType,
+			BatchDelaySeconds: pf.batchDelaySeconds,
+			MaxBatchSize:      pf.maxBatchSize,
+			MaxOpenFiles:      pf.maxOpenFiles,
+		}
+		return dbConfig, nil
+	}
+
 	dbConfig := &config.DBConfig{
 		Type:                pf.dbType,
 		BatchDelaySeconds:   pf.batchDelaySeconds,
@@ -83,6 +102,19 @@ func (pf *PersisterFactory) getDBConfig(path string) (*config.DBConfig, error) {
 	}
 
 	return dbConfig, nil
+}
+
+func checkIfDirIsEmpty(path string) (bool, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return false, err
+	}
+
+	if len(files) != 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (storage.Persister, error) {
