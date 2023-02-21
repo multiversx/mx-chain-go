@@ -144,6 +144,17 @@ func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (st
 }
 
 func (pf *PersisterFactory) createPersisterConfigFile(path string, dbConfig *config.DBConfig) error {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// in memory db, no files available
+			log.Debug("createPersisterConfigFile: provided path not available, config file will not be created")
+			return nil
+		}
+
+		return err
+	}
+
 	configFilePath := pf.getPersisterConfigFilePath(path)
 	f, err := core.OpenFile(configFilePath)
 	if err == nil {
