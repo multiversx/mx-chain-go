@@ -16,7 +16,7 @@ const DurationBootstrapingTime = 2 * time.Second
 // FloodTheNetwork -
 func FloodTheNetwork(peer p2p.Messenger, topic string, isFlooding *atomic.Value, messageSize uint64) {
 	for {
-		_ = peer.BroadcastOnChannelBlocking(topic, topic, make([]byte, messageSize))
+		peer.BroadcastOnChannel(topic, topic, make([]byte, messageSize))
 
 		if !isFlooding.Load().(bool) {
 			return

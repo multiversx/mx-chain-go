@@ -162,7 +162,7 @@ let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERC
 export TOTAL_OBSERVERCOUNT=$total_observer_count
 
 # to enable the full archive feature on the observers, please use the --full-archive flag
-export EXTRA_OBSERVERS_FLAGS=""
+export EXTRA_OBSERVERS_FLAGS="-operation-mode db-lookup-extension"
 
 if [[ $MULTI_KEY_NODES -eq 1 ]]; then
   EXTRA_OBSERVERS_FLAGS="--no-key"
