@@ -315,7 +315,6 @@ func (tcn *TestConsensusNode) initNode(
 		node.WithStateComponents(stateComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithRoundDuration(roundTime),
-		node.WithConsensusGroupSize(consensusSize),
 		node.WithConsensusType(consensusType),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithValidatorSignatureSize(signatureSize),
