@@ -2669,7 +2669,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
 
-	tx := &transaction.Transaction{}
+	tx := &smartContractResult.SmartContractResult{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("scr")
 	tx.RcvAddr = []byte("DST")

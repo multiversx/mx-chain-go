@@ -2240,6 +2240,10 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 	txHash []byte,
 	asyncParams *vmcommon.AsyncArguments,
 ) (*smartContractResult.SmartContractResult, error) {
+	origScr, ok := (tx).(*smartContractResult.SmartContractResult)
+	if !ok {
+		return nil, process.ErrWrongTransactionType
+	}
 	scr := &smartContractResult.SmartContractResult{
 		Value:          big.NewInt(0),
 		RcvAddr:        tx.GetSndAddr(),
@@ -2247,7 +2251,7 @@ func (sc *scProcessor) createAsyncCallBackSCRFromVMOutput(
 		PrevTxHash:     txHash,
 		GasPrice:       tx.GetGasPrice(),
 		ReturnMessage:  []byte(vmOutput.ReturnMessage),
-		OriginalSender: tx.GetSndAddr(),
+		OriginalSender: origScr.GetOriginalSender(),
 	}
 	setOriginalTxHash(scr, txHash, tx)
 	relayedTx, isRelayed := isRelayedTx(tx)
@@ -2325,7 +2329,10 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
-	if result.Value.Cmp(zero) > 0 {
+	origScr, ok := (tx).(*smartContractResult.SmartContractResult)
+	if ok {
+		result.OriginalSender = origScr.GetOriginalSender()
+	} else {
 		result.OriginalSender = tx.GetSndAddr()
 	}
 	return result
