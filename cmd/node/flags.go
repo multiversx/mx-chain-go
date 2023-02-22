@@ -635,21 +635,13 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
-<<<<<<< HEAD
 	configs.FlagsConfig.SnapshotsEnabled = false
-=======
-	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
->>>>>>> rc/v1.6.0
 
 	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-<<<<<<< HEAD
 		"FlagsConfig.SnapshotsEnabled", configs.FlagsConfig.SnapshotsEnabled,
-=======
-		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
->>>>>>> rc/v1.6.0
 	)
 }
 
