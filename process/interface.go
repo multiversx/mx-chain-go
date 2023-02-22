@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -1148,7 +1147,7 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
-	ManagedPeersHolder() keysManagement.ManagedPeersHolder
+	ManagedPeersHolder() common.ManagedPeersHolder
 	IsInterfaceNil() bool
 }
 

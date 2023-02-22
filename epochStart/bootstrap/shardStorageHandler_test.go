@@ -16,11 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
-	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -1060,7 +1060,7 @@ type shardStorageArgs struct {
 	currentEpoch       uint32
 	uint64Converter    typeConverters.Uint64ByteSliceConverter
 	nodeTypeProvider   core.NodeTypeProviderHandler
-	managedPeersHolder keysManagement.ManagedPeersHolder
+	managedPeersHolder common.ManagedPeersHolder
 }
 
 func createDefaultShardStorageArgs() shardStorageArgs {

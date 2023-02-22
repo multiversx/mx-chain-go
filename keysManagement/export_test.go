@@ -3,6 +3,7 @@ package keysManagement
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // GetRoundsWithoutReceivedMessages -
@@ -49,7 +50,7 @@ func (holder *managedPeersHolder) GetPeerInfo(pkBytes []byte) *peerInfo {
 }
 
 // ManagedPeersHolder -
-func (handler *keysHandler) ManagedPeersHolder() ManagedPeersHolder {
+func (handler *keysHandler) ManagedPeersHolder() common.ManagedPeersHolder {
 	return handler.managedPeersHolder
 }
 

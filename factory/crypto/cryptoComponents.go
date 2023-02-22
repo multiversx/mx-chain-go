@@ -101,7 +101,7 @@ type cryptoComponents struct {
 	p2pKeyGen               crypto.KeyGenerator
 	messageSignVerifier     vm.MessageSignVerifier
 	consensusSigningHandler consensus.SigningHandler
-	managedPeersHolder      keysManagement.ManagedPeersHolder
+	managedPeersHolder      common.ManagedPeersHolder
 	keysHandler             consensus.KeysHandler
 	cryptoParams
 	p2pCryptoParams

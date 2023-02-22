@@ -6,11 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -356,7 +356,7 @@ func (mcc *managedCryptoComponents) ConsensusSigningHandler() consensus.SigningH
 }
 
 // ManagedPeersHolder returns the managed peers holder
-func (mcc *managedCryptoComponents) ManagedPeersHolder() keysManagement.ManagedPeersHolder {
+func (mcc *managedCryptoComponents) ManagedPeersHolder() common.ManagedPeersHolder {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 

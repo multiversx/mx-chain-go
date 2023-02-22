@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
-	"github.com/multiversx/mx-chain-go/keysManagement"
 )
 
 // CryptoComponentsMock -
@@ -19,7 +19,7 @@ type CryptoComponentsMock struct {
 	TxKeyGen          crypto.KeyGenerator
 	PubKey            crypto.PublicKey
 	PrivKey           crypto.PrivateKey
-	ManagedPeers      keysManagement.ManagedPeersHolder
+	ManagedPeers      common.ManagedPeersHolder
 	mutMultiSig       sync.RWMutex
 }
 
@@ -91,7 +91,7 @@ func (ccm *CryptoComponentsMock) PrivateKey() crypto.PrivateKey {
 }
 
 // ManagedPeersHolder -
-func (ccm *CryptoComponentsMock) ManagedPeersHolder() keysManagement.ManagedPeersHolder {
+func (ccm *CryptoComponentsMock) ManagedPeersHolder() common.ManagedPeersHolder {
 	return ccm.ManagedPeers
 }
 
