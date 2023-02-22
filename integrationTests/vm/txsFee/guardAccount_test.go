@@ -157,6 +157,7 @@ func getGuardiansData(tb testing.TB, testContext *vm.VMTestContext, address []by
 	require.Nil(tb, err)
 
 	active, pending, err := guardedAccount.GetConfiguredGuardians(userAccnt)
+	require.Nil(tb, err)
 
 	return active, pending, userAccnt.IsGuarded()
 }
@@ -770,6 +771,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		},
 		pending: nil,
 	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// step 10 - alice un-guards the account immediately by using a cosigned transaction
 	currentEpoch++
@@ -786,6 +788,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		},
 		pending: nil,
 	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// step 11 - alice guards the account immediately by calling the GuardAccount function
 	returnCode, err = guardAccount(testContext, alice)
@@ -800,6 +803,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		},
 		pending: nil,
 	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// 13. alice sends a guarded transaction, while account is guarded -> should work
 	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
@@ -818,6 +822,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		},
 		pending: nil,
 	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	// 14.1 alice sends unguarded transaction -> should work
