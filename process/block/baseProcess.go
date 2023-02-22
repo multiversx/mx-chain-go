@@ -335,20 +335,17 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var valStatRootHash, epochStartMetaHash, scheduledRootHash []byte
-	metaHeader, isMetaHeader := headerHandler.(data.MetaHeaderHandler)
-	if isMetaHeader {
-		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
+
+	validatorStatsGetter, isOk := headerHandler.(validatorStatsGetter)
+	if isOk {
+		valStatRootHash = validatorStatsGetter.GetValidatorStatsRootHash()
 	} else {
 		shardHeader, isShardHeader := headerHandler.(data.ShardHeaderHandler)
 		if isShardHeader {
-			_, isHeaderWithValidatorStats := headerHandler.(*block.HeaderWithValidatorStats)
-			if isHeaderWithValidatorStats {
-				valStatRootHash = shardHeader.GetValidatorStatsRootHash()
-			}
-
 			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
 		}
 	}
+
 	additionalData := headerHandler.GetAdditionalData()
 	if !check.IfNil(additionalData) {
 		scheduledRootHash = additionalData.GetScheduledRootHash()

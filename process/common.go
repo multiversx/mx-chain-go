@@ -26,6 +26,10 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+//TODO: If sovereign chain will have V2, the mechanism of getting header version when a new headers is created, should be like
+//the one used in main chain through versionedHeaderFactory.Create
+
+// SovereignHeaderVersion defines the software version of the new sovereign header created
 var SovereignHeaderVersion = []byte("S1")
 
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
