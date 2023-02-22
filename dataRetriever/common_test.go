@@ -13,63 +13,127 @@ import (
 func TestSetEpochHandlerToHdrResolver_GetErr(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("err")
-	resolverContainer := &mock.ResolversContainerStub{
-		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
-			return nil, localErr
-		},
-	}
-	epochHandler := &mock.EpochHandlerStub{}
+	t.Run("get function errors should return error", func(t *testing.T) {
+		t.Parallel()
 
-	err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-	require.Equal(t, localErr, err)
+		localErr := errors.New("err")
+		resolverContainer := &mock.ResolversContainerStub{
+			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
+				return nil, localErr
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
+
+		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
+		require.Equal(t, localErr, err)
+	})
+	t.Run("set epoch handler errors should return error", func(t *testing.T) {
+		t.Parallel()
+
+		localErr := errors.New("err")
+		resolverContainer := &mock.ResolversContainerStub{
+			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
+				return &mock.HeaderResolverStub{
+					SetEpochHandlerCalled: func(epochHandler dataRetriever.EpochHandler) error {
+						return localErr
+					},
+				}, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
+
+		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
+		require.Equal(t, localErr, err)
+	})
+	t.Run("wrong type should return error", func(t *testing.T) {
+		t.Parallel()
+
+		resolverContainer := &mock.ResolversContainerStub{
+			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
+				return nil, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
+
+		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
+		require.Equal(t, dataRetriever.ErrWrongTypeInContainer, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		resolverContainer := &mock.ResolversContainerStub{
+			GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
+				return &mock.HeaderResolverStub{}, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
+
+		err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
+		require.Nil(t, err)
+	})
 }
 
-func TestSetEpochHandlerToHdrResolver_CannotSetEpoch(t *testing.T) {
+func TestSetEpochHandlerToHdrRequester_GetErr(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("err")
-	resolverContainer := &mock.ResolversContainerStub{
-		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{
-				SetEpochHandlerCalled: func(epochHandler dataRetriever.EpochHandler) error {
-					return localErr
-				},
-			}, nil
-		},
-	}
-	epochHandler := &mock.EpochHandlerStub{}
+	t.Run("get function errors should return error", func(t *testing.T) {
+		t.Parallel()
 
-	err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-	require.Equal(t, localErr, err)
-}
+		localErr := errors.New("err")
+		requestersContainer := &mock.RequestersContainerStub{
+			GetCalled: func(key string) (requester dataRetriever.Requester, err error) {
+				return nil, localErr
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
 
-func TestSetEpochHandlerToHdrResolver_WrongType(t *testing.T) {
-	t.Parallel()
+		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
+		require.Equal(t, localErr, err)
+	})
+	t.Run("set epoch handler errors should return error", func(t *testing.T) {
+		t.Parallel()
 
-	resolverContainer := &mock.ResolversContainerStub{
-		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
-			return nil, nil
-		},
-	}
-	epochHandler := &mock.EpochHandlerStub{}
+		localErr := errors.New("err")
+		requestersContainer := &mock.RequestersContainerStub{
+			GetCalled: func(key string) (requester dataRetriever.Requester, err error) {
+				return &mock.HeaderRequesterStub{
+					SetEpochHandlerCalled: func(epochHandler dataRetriever.EpochHandler) error {
+						return localErr
+					},
+				}, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
 
-	err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-	require.Equal(t, dataRetriever.ErrWrongTypeInContainer, err)
-}
+		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
+		require.Equal(t, localErr, err)
+	})
+	t.Run("wrong type should return error", func(t *testing.T) {
+		t.Parallel()
 
-func TestSetEpochHandlerToHdrResolver_Ok(t *testing.T) {
-	t.Parallel()
+		requestersContainer := &mock.RequestersContainerStub{
+			GetCalled: func(key string) (requester dataRetriever.Requester, err error) {
+				return nil, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
 
-	resolverContainer := &mock.ResolversContainerStub{
-		GetCalled: func(key string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-	epochHandler := &mock.EpochHandlerStub{}
+		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
+		require.Equal(t, dataRetriever.ErrWrongTypeInContainer, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	err := dataRetriever.SetEpochHandlerToHdrResolver(resolverContainer, epochHandler)
-	require.Nil(t, err)
+		requestersContainer := &mock.RequestersContainerStub{
+			GetCalled: func(key string) (resolver dataRetriever.Requester, err error) {
+				return &mock.HeaderRequesterStub{}, nil
+			},
+		}
+		epochHandler := &mock.EpochHandlerStub{}
+
+		err := dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochHandler)
+		require.Nil(t, err)
+	})
 }
 
 func TestGetHdrNonceHashDataUnit(t *testing.T) {
