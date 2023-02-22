@@ -90,6 +90,7 @@ type ManagedPeersHolder interface {
 	SetValidatorState(pkBytes []byte, state bool)
 	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
+	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }
 

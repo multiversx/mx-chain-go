@@ -68,14 +68,14 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 
 func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	if check.IfNil(args.KeyGenerator) {
-		return fmt.Errorf("%w for args.KeyGenerator", errNilKeyGenerator)
+		return fmt.Errorf("%w for args.KeyGenerator", ErrNilKeyGenerator)
 	}
 	if check.IfNil(args.P2PKeyGenerator) {
-		return fmt.Errorf("%w for args.P2PKeyGenerator", errNilKeyGenerator)
+		return fmt.Errorf("%w for args.P2PKeyGenerator", ErrNilKeyGenerator)
 	}
 	if args.MaxRoundsWithoutReceivedMessages < minRoundsWithoutReceivedMessages {
 		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
-			errInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
+			ErrInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo
 		for _, blsKey := range identity.BLSKeys {
 			bls, err := hex.DecodeString(blsKey)
 			if err != nil {
-				return nil, fmt.Errorf("%w for key %s", errInvalidKey, blsKey)
+				return nil, fmt.Errorf("%w for key %s", ErrInvalidKey, blsKey)
 			}
 
 			blsStr := string(bls)
@@ -136,7 +136,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	pInfo, found := holder.data[string(publicKeyBytes)]
 	if found && len(pInfo.pid.Bytes()) != 0 {
 		return fmt.Errorf("%w for provided bytes %s and generated public key %s",
-			errDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
+			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
 	if !found {
@@ -182,7 +182,7 @@ func (holder *managedPeersHolder) GetPrivateKey(pkBytes []byte) (crypto.PrivateK
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
 		return nil, fmt.Errorf("%w in GetPrivateKey for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+			ErrMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
 	}
 
 	return pInfo.privateKey, nil
@@ -193,7 +193,7 @@ func (holder *managedPeersHolder) GetP2PIdentity(pkBytes []byte) ([]byte, core.P
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
 		return nil, "", fmt.Errorf("%w in GetP2PIdentity for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+			ErrMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
 	}
 
 	return pInfo.p2pPrivateKeyBytes, pInfo.pid, nil
@@ -204,7 +204,7 @@ func (holder *managedPeersHolder) GetMachineID(pkBytes []byte) (string, error) {
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
 		return "", fmt.Errorf("%w in GetMachineID for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+			ErrMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
 	}
 
 	return pInfo.machineID, nil
@@ -215,7 +215,7 @@ func (holder *managedPeersHolder) GetNameAndIdentity(pkBytes []byte) (string, st
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
 		return "", "", fmt.Errorf("%w in GetNameAndIdentity for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+			ErrMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
 	}
 
 	return pInfo.nodeName, pInfo.nodeIdentity, nil
@@ -323,7 +323,7 @@ func (holder *managedPeersHolder) GetNextPeerAuthenticationTime(pkBytes []byte) 
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
 		return time.Now(), fmt.Errorf("%w in GetNextPeerAuthenticationTime for public key %s",
-			errMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
+			ErrMissingPublicKeyDefinition, hex.EncodeToString(pkBytes))
 	}
 
 	return pInfo.getNextPeerAuthenticationTime(), nil
@@ -337,6 +337,11 @@ func (holder *managedPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, 
 	}
 
 	pInfo.setNextPeerAuthenticationTime(nextTime)
+}
+
+// IsMultiKeyMode returns true if the node has at least one managed key
+func (holder *managedPeersHolder) IsMultiKeyMode() bool {
+	return len(holder.GetManagedKeysByCurrentNode()) > 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

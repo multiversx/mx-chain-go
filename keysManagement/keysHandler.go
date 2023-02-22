@@ -6,18 +6,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // ArgsKeysHandler is the argument DTO struct for the NewKeysHandler constructor function
 type ArgsKeysHandler struct {
-	ManagedPeersHolder ManagedPeersHolder
+	ManagedPeersHolder common.ManagedPeersHolder
 	PrivateKey         crypto.PrivateKey
 	Pid                core.PeerID
 }
 
 // keysHandler will manage all keys available on the node either in single signer mode or multi key mode
 type keysHandler struct {
-	managedPeersHolder ManagedPeersHolder
+	managedPeersHolder common.ManagedPeersHolder
 	privateKey         crypto.PrivateKey
 	publicKey          crypto.PublicKey
 	publicKeyBytes     []byte
@@ -48,13 +49,13 @@ func NewKeysHandler(args ArgsKeysHandler) (*keysHandler, error) {
 
 func checkArgsKeysHandler(args ArgsKeysHandler) error {
 	if check.IfNil(args.ManagedPeersHolder) {
-		return errNilManagedPeersHolder
+		return ErrNilManagedPeersHolder
 	}
 	if check.IfNil(args.PrivateKey) {
-		return errNilPrivateKey
+		return ErrNilPrivateKey
 	}
 	if len(args.Pid) == 0 {
-		return errEmptyPeerID
+		return ErrEmptyPeerID
 	}
 
 	return nil

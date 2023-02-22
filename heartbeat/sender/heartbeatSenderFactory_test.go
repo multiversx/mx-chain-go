@@ -9,8 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -67,14 +65,8 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 			},
 		}
 		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
-			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
-				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
-				sk, pk := keygen.GeneratePair()
-				pkBytes, err := pk.ToByteArray()
-				assert.Nil(t, err)
-				keysMap := make(map[string]crypto.PrivateKey)
-				keysMap[string(pkBytes)] = sk
-				return keysMap
+			IsMultiKeyModeCalled: func() bool {
+				return true
 			},
 		}
 		hbSender, err := createHeartbeatSender(args)
@@ -105,11 +97,6 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 				return nil, 0, errors.New("not validator")
 			},
 		}
-		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
-			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
-				return make(map[string]crypto.PrivateKey)
-			},
-		}
 		hbSender, err := createHeartbeatSender(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(hbSender))
@@ -125,18 +112,8 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 			},
 		}
 		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
-			GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
-				keygen := signing.NewKeyGenerator(&mcl.SuiteBLS12{})
-				sk1, pk1 := keygen.GeneratePair()
-				pk1Bytes, err := pk1.ToByteArray()
-				assert.Nil(t, err)
-				sk2, pk2 := keygen.GeneratePair()
-				pk2Bytes, err := pk2.ToByteArray()
-				assert.Nil(t, err)
-				keysMap := make(map[string]crypto.PrivateKey)
-				keysMap[string(pk1Bytes)] = sk1
-				keysMap[string(pk2Bytes)] = sk2
-				return keysMap
+			IsMultiKeyModeCalled: func() bool {
+				return true
 			},
 		}
 		hbSender, err := createHeartbeatSender(args)

@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -30,7 +30,7 @@ type CryptoComponentsMock struct {
 	P2PKeyGen               crypto.KeyGenerator
 	MsgSigVerifier          vm.MessageSignVerifier
 	SigHandler              consensus.SigningHandler
-	ManagedPeersHolderField heartbeat.ManagedPeersHolder
+	ManagedPeersHolderField common.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
 	mutMultiSig             sync.RWMutex
 }
@@ -148,7 +148,7 @@ func (ccm *CryptoComponentsMock) ConsensusSigningHandler() consensus.SigningHand
 }
 
 // ManagedPeersHolder -
-func (ccm *CryptoComponentsMock) ManagedPeersHolder() heartbeat.ManagedPeersHolder {
+func (ccm *CryptoComponentsMock) ManagedPeersHolder() common.ManagedPeersHolder {
 	return ccm.ManagedPeersHolderField
 }
 

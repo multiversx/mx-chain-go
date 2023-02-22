@@ -762,6 +762,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -928,6 +929,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -1109,6 +1111,7 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
 		return nil, err

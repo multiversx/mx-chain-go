@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/heartbeat"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -186,7 +185,7 @@ type CryptoComponentsHolder interface {
 	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
 	ConsensusSigningHandler() consensus.SigningHandler
-	ManagedPeersHolder() heartbeat.ManagedPeersHolder
+	ManagedPeersHolder() common.ManagedPeersHolder
 	KeysHandler() consensus.KeysHandler
 	Clone() interface{}
 	IsInterfaceNil() bool

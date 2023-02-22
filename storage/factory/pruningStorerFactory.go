@@ -59,6 +59,7 @@ type StorageServiceFactoryArgs struct {
 	EpochStartNotifier            epochStart.EpochStartNotifier
 	NodeTypeProvider              NodeTypeProviderHandler
 	StorageType                   StorageServiceType
+	ManagedPeersHolder            storage.ManagedPeersHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 }
@@ -70,10 +71,12 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		return nil, err
 	}
 
-	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(
-		args.NodeTypeProvider,
-		args.Config.StoragePruning,
-	)
+	argsOldDataCleanerProvider := clean.ArgOldDataCleanerProvider{
+		NodeTypeProvider:    args.NodeTypeProvider,
+		PruningStorerConfig: args.Config.StoragePruning,
+		ManagedPeersHolder:  args.ManagedPeersHolder,
+	}
+	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(argsOldDataCleanerProvider)
 	if err != nil {
 		return nil, err
 	}
