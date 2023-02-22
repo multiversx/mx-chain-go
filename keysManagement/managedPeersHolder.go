@@ -339,7 +339,7 @@ func (holder *managedPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, 
 	pInfo.setNextPeerAuthenticationTime(nextTime)
 }
 
-// IsMultiKeyMode returns true if the key has at least one managed key
+// IsMultiKeyMode returns true if the node has at least one managed key
 func (holder *managedPeersHolder) IsMultiKeyMode() bool {
 	return len(holder.GetManagedKeysByCurrentNode()) > 0
 }
