@@ -2,6 +2,7 @@ package shard
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -179,7 +180,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 	}
 
 	switch ppcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return txPreprocessor, nil
 	case common.ChainRunTypeSovereign:
 		return preprocess.NewSovereignChainTransactionPreprocessor(txPreprocessor)

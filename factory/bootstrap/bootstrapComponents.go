@@ -270,7 +270,7 @@ func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBo
 	}
 
 	switch bcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return epochStartBootstrapper, nil
 	case common.ChainRunTypeSovereign:
 		return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)

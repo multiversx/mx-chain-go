@@ -712,7 +712,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
 	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
 		if err != nil {
 			return nil, err
@@ -775,7 +775,7 @@ func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args pee
 	}
 
 	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return validatorStatisticsProcessor, nil
 	case common.ChainRunTypeSovereign:
 		return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
@@ -1339,7 +1339,7 @@ func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker trac
 	}
 
 	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return blockTracker, nil
 	case common.ChainRunTypeSovereign:
 		return track.NewSovereignChainShardBlockTrack(blockTracker)
@@ -1745,7 +1745,7 @@ func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList pro
 	}
 
 	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return forkDetector, nil
 	case common.ChainRunTypeSovereign:
 		return sync.NewSovereignChainShardForkDetector(forkDetector)

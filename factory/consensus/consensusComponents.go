@@ -538,7 +538,7 @@ func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseSt
 	}
 
 	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return shardStorageBootstrapper, nil
 	case common.ChainRunTypeSovereign:
 		return storageBootstrap.NewSovereignChainShardStorageBootstrapper(shardStorageBootstrapper)
@@ -558,7 +558,7 @@ func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBoots
 	}
 
 	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return bootstrapper, nil
 	case common.ChainRunTypeSovereign:
 		return sync.NewSovereignChainShardBootstrap(bootstrapper)

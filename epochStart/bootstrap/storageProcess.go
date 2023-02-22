@@ -78,7 +78,7 @@ func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (*epochSt
 	}
 
 	switch args.ChainRunType {
-	case common.ChainRunTypeRegular:
+	case common.ChainRunTypeRegular, common.ChainRunTypeSovereignObserver:
 		return esb, nil
 	case common.ChainRunTypeSovereign:
 		scesb, err := NewSovereignChainEpochStartBootstrap(esb)
