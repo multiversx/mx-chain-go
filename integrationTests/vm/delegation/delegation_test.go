@@ -131,7 +131,7 @@ func doMergeValidatorToDelegationSameOwner(
 ) (uint64, uint64) {
 	numBlocksToProduce := uint64(3)
 	txDataFieldBuilder := txDataBuilder.NewBuilder()
-	txDataFieldBuilder.Func("mergeValidatorToDelegationSameOwner").Bytes(delegationAddress)
+	txDataFieldBuilder.Func(vm.MergeValidatorToDelegationSameOwner).Bytes(delegationAddress)
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txDataFieldBuilder.ToString(), core.MinMetaTxExtraGasCost)
 
 	return processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
@@ -154,7 +154,7 @@ func doMergeValidatorToDelegationWithWhitelist(
 	round, nonce = processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
 
 	txDataFieldBuilder.Clear()
-	txDataFieldBuilder.Func("mergeValidatorToDelegationWithWhitelist").Bytes(delegationAddress)
+	txDataFieldBuilder.Func(vm.MergeValidatorToDelegationWithWhitelist).Bytes(delegationAddress)
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txDataFieldBuilder.ToString(), core.MinMetaTxExtraGasCost)
 
 	round, nonce = processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
@@ -251,7 +251,7 @@ func createNewDelegationSystemSC(
 	node *integrationTests.TestProcessorNode,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
-	txData := "createNewDelegationContract" + "@00@00"
+	txData := vm.CreateNewDelegationContract + "@00@00"
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))

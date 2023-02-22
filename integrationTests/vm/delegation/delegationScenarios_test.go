@@ -257,7 +257,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 	// check that the min delegation amount has the correct value
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.DelegationManagerSCAddress,
-		FuncName:   "getContractConfig",
+		FuncName:   vm.GetContractConfig,
 		CallerAddr: vm.DelegationManagerSCAddress,
 		CallValue:  big.NewInt(0),
 		Arguments:  make([][]byte, 0),
@@ -1295,7 +1295,7 @@ func deployNewSc(
 	value *big.Int,
 	ownerAddress []byte,
 ) []byte {
-	txData := "createNewDelegationContract" + "@" + hex.EncodeToString(maxDelegationCap.Bytes()) + "@" + hex.EncodeToString(serviceFee.Bytes())
+	txData := vm.CreateNewDelegationContract + "@" + hex.EncodeToString(maxDelegationCap.Bytes()) + "@" + hex.EncodeToString(serviceFee.Bytes())
 	returnedCode, err := processTransaction(tpn, ownerAddress, vm.DelegationManagerSCAddress, txData, value)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)

@@ -192,7 +192,7 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	enableEpochsHandler.IsDelegationManagerFlagEnabledField = false
-	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.CreateNewDelegationContract, [][]byte{})
 
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -254,7 +254,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.CreateNewDelegationContract, [][]byte{})
 	dm.gasCost.MetaChainSystemSCsCost.DelegationMgrOps = 10
 
 	output := dm.Execute(vmInput)
@@ -345,7 +345,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.CreateNewDelegationContract, [][]byte{maxDelegationCap, serviceFee})
 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: make([][]byte, 0)})
 	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{
@@ -410,7 +410,7 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("getAllContractAddresses", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.GetAllContractAddresses, [][]byte{})
 
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -437,7 +437,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("changeMinDeposit", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.ChangeMinDeposit, [][]byte{})
 	vmInput.CallValue = big.NewInt(10)
 
 	output := dm.Execute(vmInput)
@@ -470,7 +470,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("changeMinDeposit", [][]byte{{25}})
+	vmInput := getDefaultVmInputForDelegationManager(vm.ChangeMinDeposit, [][]byte{{25}})
 	vmInput.CallerAddr = configChangeAddress
 	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDeposit: big.NewInt(0)})
 
@@ -490,7 +490,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.ChangeMinDelegationAmount, [][]byte{})
 	vmInput.CallValue = big.NewInt(10)
 
 	output := dm.Execute(vmInput)
@@ -530,7 +530,7 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.ChangeMinDelegationAmount, [][]byte{})
 	vmInput.Arguments = [][]byte{{25}}
 	vmInput.CallerAddr = configChangeAddress
 
@@ -559,7 +559,7 @@ func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.ChangeMinDelegationAmount, [][]byte{})
 	vmInput.Arguments = [][]byte{newMinDelegationAmount.Bytes()}
 	vmInput.CallerAddr = configChangeAddress
 
@@ -618,7 +618,7 @@ func TestDelegationManager_GetContractConfigErrors(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("getContractConfig", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.GetContractConfig, [][]byte{})
 	vmInput.CallerAddr = []byte("not the correct caller")
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -641,7 +641,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	eei.SetSCAddress(dm.delegationMgrSCAddress)
-	vmInput := getDefaultVmInputForDelegationManager("getContractConfig", [][]byte{})
+	vmInput := getDefaultVmInputForDelegationManager(vm.GetContractConfig, [][]byte{})
 
 	delegationManagement := &DelegationManagement{
 		NumOfContracts:      123,
@@ -681,7 +681,7 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.CreateNewDelegationContract, [][]byte{maxDelegationCap, serviceFee})
 
 	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.checkValidatorToDelegationInput(vmInput)
@@ -723,7 +723,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MakeNewContractFromValidatorData, [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
 	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
@@ -747,6 +747,11 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	vmInput.Arguments = [][]byte{maxDelegationCap, serviceFee}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{maxDelegationCap, serviceFee}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testing.T) {
@@ -762,7 +767,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationSameOwner, [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
 	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
@@ -844,7 +849,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationWithWhitelist, [][]byte{maxDelegationCap, serviceFee})
 	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
@@ -858,7 +863,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationWithWhitelist, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallValue.SetUint64(0)
 	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
 	eei.gasRemaining = vmInput.GasProvided
@@ -872,7 +877,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
 
 	eei.returnMessage = ""
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{[]byte("somearg")})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationWithWhitelist, [][]byte{[]byte("somearg")})
 	vmInput.CallValue.SetUint64(0)
 	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
 	eei.gasRemaining = vmInput.GasProvided
@@ -885,7 +890,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListNotWhitelisted(t *testing.T) {
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
 	eei.returnMessage = ""
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationWithWhitelist, make([][]byte, 0))
 	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
 	vmInput.CallValue.SetUint64(0)
 	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
@@ -908,7 +913,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListMissin
 
 func prepareVmInputContextAndDelegationManager(d *delegationManager, eei *vmContext) *vmcommon.ContractCallInput {
 	eei.returnMessage = ""
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
+	vmInput := getDefaultVmInputForDelegationManager(vm.MergeValidatorToDelegationWithWhitelist, make([][]byte, 0))
 	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
 	vmInput.CallValue.SetUint64(0)
 	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
@@ -1003,7 +1008,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataWithJailedNod
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MakeNewContractFromValidatorData, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
 	eei.scAddress = vm.DelegationManagerSCAddress
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
@@ -1055,7 +1060,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager(vm.MakeNewContractFromValidatorData, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallerAddr = caller
 	eei.scAddress = vm.DelegationManagerSCAddress
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
@@ -1075,7 +1080,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 	returnCode := validator.Execute(arguments)
 	require.Equal(t, returnCode, vmcommon.Ok)
 
-	vmInput = getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput = getDefaultVmInputForDelegationManager(vm.MakeNewContractFromValidatorData, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallerAddr = caller
 	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
 	vmInput.GasProvided = 1000000

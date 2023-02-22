@@ -3457,7 +3457,7 @@ func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	vmInput := getDefaultVmInputForFunc("getContractConfig", [][]byte{})
+	vmInput := getDefaultVmInputForFunc(vm.GetContractConfig, [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
 
 	vmInput.CallValue = big.NewInt(10)
@@ -3491,7 +3491,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	vmInput := getDefaultVmInputForFunc("getContractConfig", [][]byte{})
+	vmInput := getDefaultVmInputForFunc(vm.GetContractConfig, [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
 
 	ownerAddress := []byte("owner")

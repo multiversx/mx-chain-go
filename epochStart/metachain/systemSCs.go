@@ -1386,7 +1386,7 @@ func (s *systemSCProcessor) extractConfigFromESDTContract() ([][]byte, error) {
 			CallValue:   big.NewInt(0),
 			GasProvided: math.MaxUint64,
 		},
-		Function:      "getContractConfig",
+		Function:      vm.GetContractConfig,
 		RecipientAddr: vm.ESDTSCAddress,
 	}
 

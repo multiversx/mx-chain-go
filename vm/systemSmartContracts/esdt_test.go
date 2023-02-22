@@ -2656,7 +2656,7 @@ func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {
 	assert.Equal(t, uint32(newMinTokenNameLength), esdtData.MinTokenNameLength)
 	assert.Equal(t, newOwner, esdtData.OwnerAddress)
 
-	vmInput = getDefaultVmInputForFunc("getContractConfig", make([][]byte, 0))
+	vmInput = getDefaultVmInputForFunc(vm.GetContractConfig, make([][]byte, 0))
 	vmInput.CallerAddr = []byte("any address")
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)

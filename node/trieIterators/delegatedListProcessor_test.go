@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,7 +105,7 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 			switch query.FuncName {
-			case "getAllContractAddresses":
+			case vm.GetAllContractAddresses:
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
 				}, nil
@@ -151,7 +152,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 			switch query.FuncName {
-			case "getAllContractAddresses":
+			case vm.GetAllContractAddresses:
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
 				}, nil

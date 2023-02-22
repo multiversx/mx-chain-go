@@ -88,7 +88,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 		nodes,
 		stakingWalletAccount,
 		idxProposers,
-		"makeNewContractFromValidatorData",
+		vm.MakeNewContractFromValidatorData,
 		big.NewInt(0),
 		[]byte{10},
 		nonce,
@@ -183,7 +183,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 		nodes,
 		stakingWalletAccount,
 		idxProposers,
-		"createNewDelegationContract",
+		vm.CreateNewDelegationContract,
 		big.NewInt(10000),
 		[]byte{0},
 		nonce,
@@ -192,7 +192,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 
 	scAddressBytes, _ := hex.DecodeString("0000000000000000000100000000000000000000000000000000000002ffffff")
 	txData = txDataBuilder.NewBuilder().Clear().
-		Func("mergeValidatorToDelegationSameOwner").
+		Func(vm.MergeValidatorToDelegationSameOwner).
 		Bytes(scAddressBytes).
 		ToString()
 	integrationTests.PlayerSendsTransaction(
@@ -313,7 +313,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 		nodes,
 		stakingWalletAccount2,
 		idxProposers,
-		"createNewDelegationContract",
+		vm.CreateNewDelegationContract,
 		big.NewInt(10000),
 		[]byte{0},
 		nonce,
@@ -338,7 +338,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 5, nonce, round, idxProposers)
 
 	txData = txDataBuilder.NewBuilder().Clear().
-		Func("mergeValidatorToDelegationWithWhitelist").
+		Func(vm.MergeValidatorToDelegationWithWhitelist).
 		Bytes(scAddressBytes).
 		ToString()
 	integrationTests.PlayerSendsTransaction(

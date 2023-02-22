@@ -63,7 +63,7 @@ func (dlp *delegatedListProcessor) GetDelegatorsList(ctx context.Context) ([]*ap
 func (dlp *delegatedListProcessor) getAllDelegationContractAddresses() ([][]byte, error) {
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.DelegationManagerSCAddress,
-		FuncName:   "getAllContractAddresses",
+		FuncName:   vm.GetAllContractAddresses,
 		CallerAddr: vm.DelegationManagerSCAddress,
 		CallValue:  big.NewInt(0),
 		Arguments:  make([][]byte, 0),
