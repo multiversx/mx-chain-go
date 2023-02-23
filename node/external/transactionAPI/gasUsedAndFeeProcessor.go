@@ -81,14 +81,14 @@ func (gfp *gasUsedAndFeeProcessor) isESDTOperationWithSCCall(tx *transaction.Api
 	isESDTTransferOperation := tx.Operation == core.BuiltInFunctionESDTTransfer ||
 		tx.Operation == core.BuiltInFunctionESDTNFTTransfer || tx.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
 
-	receiverIsSC := core.IsSmartContractAddress(tx.Tx.GetRcvAddr())
+	isReceiverSC := core.IsSmartContractAddress(tx.Tx.GetRcvAddr())
 	hasFunction := tx.Function != ""
 	if !hasFunction {
 		return false
 	}
 
 	if tx.Sender != tx.Receiver {
-		return isESDTTransferOperation && receiverIsSC && hasFunction
+		return isESDTTransferOperation && isReceiverSC && hasFunction
 	}
 
 	if len(tx.Receivers) == 0 {
@@ -98,11 +98,11 @@ func (gfp *gasUsedAndFeeProcessor) isESDTOperationWithSCCall(tx *transaction.Api
 	receiver := tx.Receivers[0]
 	decodedReceiver, err := gfp.pubKeyConverter.Decode(receiver)
 	if err != nil {
-		log.Warn("gpf.isESDTOperationWithSCCall cannot decode receiver address", "error", err.Error())
+		log.Warn("gasUsedAndFeeProcessor.isESDTOperationWithSCCall cannot decode receiver address", "error", err.Error())
 		return false
 	}
 
-	receiverIsSC = core.IsSmartContractAddress(decodedReceiver)
+	isReceiverSC = core.IsSmartContractAddress(decodedReceiver)
 
-	return isESDTTransferOperation && receiverIsSC && hasFunction
+	return isESDTTransferOperation && isReceiverSC && hasFunction
 }

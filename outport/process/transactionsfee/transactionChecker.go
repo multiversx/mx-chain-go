@@ -18,23 +18,23 @@ func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.Transacti
 	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
 		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
 
-	receiverIsSC := core.IsSmartContractAddress(tx.GetRcvAddr())
+	isReceiverSC := core.IsSmartContractAddress(tx.GetRcvAddr())
 	hasFunction := res.Function != ""
 	if !hasFunction {
 		return false
 	}
 
 	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
-		return isESDTTransferOperation && receiverIsSC && hasFunction
+		return isESDTTransferOperation && isReceiverSC && hasFunction
 	}
 
 	if len(res.Receivers) == 0 {
 		return false
 	}
 
-	receiverIsSC = core.IsSmartContractAddress(res.Receivers[0])
+	isReceiverSC = core.IsSmartContractAddress(res.Receivers[0])
 
-	return isESDTTransferOperation && receiverIsSC && hasFunction
+	return isESDTTransferOperation && isReceiverSC && hasFunction
 }
 
 func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
