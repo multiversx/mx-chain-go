@@ -856,6 +856,6 @@ const (
 	ChainRunTypeRegular ChainRunType = "regular"
 	// ChainRunTypeSovereign defines the type of sovereign chain that can be run independently
 	ChainRunTypeSovereign ChainRunType = "sovereign"
-	// ChainRunTypeSovereignObserver defines the type of regular chain, which handles communication between regular and sovereign shard
+	// ChainRunTypeSovereignObserver defines the type of regular chain, which handles communication between a regular and sovereign shard
 	ChainRunTypeSovereignObserver ChainRunType = "sovereign_observer"
 )

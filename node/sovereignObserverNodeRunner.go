@@ -5,12 +5,11 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
-// sovereignObserverNodeRunner holds the sovereign observer node runner configuration and controls running of a node
 type sovereignObserverNodeRunner struct {
 	*nodeRunner
 }
 
-// NewSovereignObserverNodeRunner creates a sovereignObserverNodeRunner instance
+// NewSovereignObserverNodeRunner creates a new sovereign observer node
 func NewSovereignObserverNodeRunner(nodeRunner *nodeRunner) (*sovereignObserverNodeRunner, error) {
 	if nodeRunner == nil {
 		return nil, ErrNilNodeRunner
