@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -11,15 +11,13 @@ type sovereignObserverBlockProcessor struct {
 
 // NewSovereignObserverBlockProcessor creates a new sovereign observer block processor
 func NewSovereignObserverBlockProcessor(shardProcessor *shardProcessor) (*sovereignObserverBlockProcessor, error) {
-	if shardProcessor.IsInterfaceNil() {
-		return nil, core.ErrNilShardCoordinator
+	if check.IfNil(shardProcessor) {
+		return nil, errNilShardBlockProcessor
 	}
 
-	sbp := &sovereignObserverBlockProcessor{
+	return &sovereignObserverBlockProcessor{
 		shardProcessor: shardProcessor,
-	}
-
-	return sbp, nil
+	}, nil
 }
 
 func (sbp *sovereignObserverBlockProcessor) CommitBlock(

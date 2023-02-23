@@ -49,7 +49,7 @@ func TestCheckOperationModes(t *testing.T) {
 		require.Equal(t, []string{OperationModeDbLookupExtension, OperationModeFullArchive}, res)
 		require.NoError(t, err)
 
-		res, err = ParseOperationModes(fmt.Sprintf("%s", OperationModeSovereignObserver))
+		res, err = ParseOperationModes(OperationModeSovereignObserver)
 		require.Equal(t, []string{OperationModeSovereignObserver}, res)
 		require.NoError(t, err)
 
