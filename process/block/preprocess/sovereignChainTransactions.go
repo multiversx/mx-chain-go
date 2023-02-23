@@ -1,13 +1,15 @@
 package preprocess
 
 import (
+	"errors"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	"time"
 )
 
 type sovereignChainTransactions struct {
@@ -27,6 +29,8 @@ func NewSovereignChainTransactionPreprocessor(
 	}
 
 	sct.scheduledTXContinueFunc = sct.shouldContinueProcessingScheduledTx
+	sct.shouldSkipMiniBlockFunc = sct.shouldSkipMiniBlock
+	sct.shouldSkipTransactionFunc = sct.shouldSkipTransaction
 
 	return sct, nil
 }
@@ -151,9 +155,21 @@ func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
 
 	addressHasEnoughBalance := sct.hasAddressEnoughInitialBalance(tx)
 	if !addressHasEnoughBalance {
+		log.Debug("address has not enough initial balance", "sender", tx.SndAddr)
 		mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
 		return nil, nil, false
 	}
 
 	return tx, miniBlock, true
+}
+
+func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.MiniBlock) bool {
+	shouldSkipMiniBlock := miniBlock.SenderShardID != sct.shardCoordinator.SelfId() ||
+		!sct.isMiniBlockCorrect(miniBlock.Type)
+
+	return shouldSkipMiniBlock
+}
+
+func (sct *sovereignChainTransactions) shouldSkipTransaction(err error) bool {
+	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
 }

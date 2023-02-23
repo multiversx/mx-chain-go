@@ -312,7 +312,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			senderShardID,
 			receiverShardID,
 			mbInfo)
-		if err != nil {
+		if txs.shouldSkipTransactionFunc(err) {
 			continue
 		}
 
@@ -332,6 +332,10 @@ func (txs *transactions) createScheduledMiniBlocks(
 	log.Debug("createScheduledMiniBlocks has been finished")
 
 	return miniBlocks
+}
+
+func (tx *transactions) shouldSkipTransaction(err error) bool {
+	return err != nil
 }
 
 func (txs *transactions) verifyTransaction(

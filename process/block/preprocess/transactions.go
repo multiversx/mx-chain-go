@@ -67,7 +67,9 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 
-	scheduledTXContinueFunc func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
+	scheduledTXContinueFunc   func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
+	shouldSkipMiniBlockFunc   func(miniBlock *block.MiniBlock) bool
+	shouldSkipTransactionFunc func(err error) bool
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -190,6 +192,8 @@ func NewTransactionPreprocessor(
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx
+	txs.shouldSkipMiniBlockFunc = txs.shouldSkipMiniBlock
+	txs.shouldSkipTransactionFunc = txs.shouldSkipTransaction
 
 	return txs, nil
 }
@@ -373,10 +377,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 
 	allTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, miniBlock := range body.MiniBlocks {
-		shouldSkipMiniBlock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() ||
-			!txs.isMiniBlockCorrect(miniBlock.Type) ||
-			miniBlock.IsScheduledMiniBlock()
-		if shouldSkipMiniBlock {
+		if txs.shouldSkipMiniBlockFunc(miniBlock) {
 			continue
 		}
 
@@ -394,6 +395,14 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 	}
 
 	return allTxs, nil
+}
+
+func (txs *transactions) shouldSkipMiniBlock(miniBlock *block.MiniBlock) bool {
+	shouldSkipMiniBlock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() ||
+		!txs.isMiniBlockCorrect(miniBlock.Type) ||
+		miniBlock.IsScheduledMiniBlock()
+
+	return shouldSkipMiniBlock
 }
 
 func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {

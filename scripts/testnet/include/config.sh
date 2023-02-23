@@ -81,6 +81,15 @@ copyNodeConfig() {
   popd
 }
 
+copySovereignNodeConfig() {
+  pushd $TESTNETDIR
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./node/config/
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./txgen/config/nodeConfig/config
+
+  echo "Configuration files copied from the Sovereign Node to the working directories of the executables."
+  popd
+}
+
 updateNodeConfig() {
   pushd $TESTNETDIR/node/config
   cp p2p.toml p2p_edit.toml
