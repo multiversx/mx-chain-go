@@ -123,6 +123,33 @@ func TestPersisterFactory_GetDBConfig(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &expectedDBConfig, conf)
 	})
+
+	t.Run("create persister factory twice, should load from config file", func(t *testing.T) {
+		t.Parallel()
+
+		expectedDBConfig := createDefaultDBConfig()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		dirPath := t.TempDir()
+
+		_, err := pf.Create(dirPath)
+		require.Nil(t, err)
+
+		newDBConfig := config.DBConfig{
+			Type:              "type1",
+			BatchDelaySeconds: 1,
+			MaxBatchSize:      2,
+			MaxOpenFiles:      3,
+			NumShards:         4,
+		}
+
+		pf, _ = factory.NewPersisterFactory(newDBConfig)
+
+		conf, err := pf.GetDBConfig(dirPath)
+		require.Nil(t, err)
+		require.Equal(t, &expectedDBConfig, conf)
+	})
 }
 
 func TestCreatePersisterConfigFile(t *testing.T) {
