@@ -449,7 +449,7 @@
     SizeInBytes = 31457280  #30MB
     Shards = 4
 
-#PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
+#PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
     Capacity = 30000
@@ -669,12 +669,10 @@
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
     SnapshotsEnabled = true
-    AccountsStatePruningEnabled = true
+    AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
-    UserStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
-    PeerStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -684,7 +682,7 @@
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -693,7 +691,7 @@
         NumConcurrentVMs = 1
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
         ]
@@ -817,7 +815,7 @@
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]
-    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
 [LogsAndEvents]
@@ -915,28 +913,28 @@
     NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
 
-
 [HeartbeatV2]
     PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
     PeerAuthenticationTimeThresholdBetweenSends      = 0.1  # 10%   # max random threshold between messages, representing a percent of PeerAuthenticationTimeBetweenSendsInSec
     HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60   # 1min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
-    HeartbeatTimeThresholdBetweenSends               = 0.1  # 10%   # max random threshold between messages, representing a percent of HeartbeatTimeBetweenSendsInSec
-    HeartbeatExpiryTimespanInSec                     = 3600 # 1h    # heartbeat message max age allowed
-    MinPeersThreshold                                = 0.8  # 80%   # min threshold of peers to consider enough peer auths received
-    DelayBetweenPeerAuthenticationRequestsInSec      = 10   # 10sec # delay between requests
-    PeerAuthenticationMaxTimeoutForRequestsInSec     = 7200 # 2h    # max timeout allowed to receive peer auth messages from peers
+    HeartbeatTimeThresholdBetweenSends               = 0.1  # 10%        # max random threshold between messages, representing a percent of HeartbeatTimeBetweenSendsInSec
+    HeartbeatExpiryTimespanInSec                     = 3600 # 1h         # heartbeat message max age allowed
+    MinPeersThreshold                                = 0.8  # 80%        # min threshold of peers to consider enough peer auths received
+    DelayBetweenPeerAuthenticationRequestsInSec      = 5    # 5sec       # delay between requests
+    PeerAuthenticationMaxTimeoutForRequestsInSec     = 7200 # 2h         # max timeout allowed to receive peer auth messages from peers
     PeerShardTimeBetweenSendsInSec                   = 7200 # 2h
-    PeerShardTimeThresholdBetweenSends               = 0.1  # 10%   # max random threshold between messages, representing a percent of PeerShardTimeBetweenSendsInSec
-    MaxMissingKeysInRequest                          = 1000         # max number of missing keys allowed in a request
-    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min # max duration after which a peer is considered inactive
-    HideInactiveValidatorIntervalInSec               = 3600 # 1h    # time that an inactive validator is returned through api
-    HardforkTimeBetweenSendsInSec                    = 60   # 1min  # time between hardfork messages
-    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec # time between consecutive connections metrics updates
-    TimeToReadDirectConnectionsInSec                 = 15   # 15sec # time between consecutive peer shard mapper updates with direct connections
+    PeerShardTimeThresholdBetweenSends               = 0.1  # 10%        # max random threshold between messages, representing a percent of PeerShardTimeBetweenSendsInSec
+    MaxMissingKeysInRequest                          = 500               # max number of missing keys allowed in a request
+    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min      # max duration after which a peer is considered inactive
+    HideInactiveValidatorIntervalInSec               = 3600 # 1h         # time that an inactive validator is returned through api
+    HardforkTimeBetweenSendsInSec                    = 60   # 1min       # time between hardfork messages
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec      # time between consecutive connections metrics updates
+    TimeToReadDirectConnectionsInSec                 = 15   # 15sec      # time between consecutive peer shard mapper updates with direct connections
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
-        Capacity = 1000
+        Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB

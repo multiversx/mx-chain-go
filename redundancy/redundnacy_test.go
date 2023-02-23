@@ -3,17 +3,18 @@ package redundancy_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
-	"github.com/ElrondNetwork/elrond-go/redundancy/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/redundancy"
+	"github.com/multiversx/mx-chain-go/redundancy/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments(redundancyLevel int64) redundancy.ArgNodeRedundancy {
 	return redundancy.ArgNodeRedundancy{
 		RedundancyLevel:    redundancyLevel,
-		Messenger:          &mock.MessengerStub{},
+		Messenger:          &p2pmocks.MessengerStub{},
 		ObserverPrivateKey: &mock.PrivateKeyStub{},
 	}
 }
@@ -191,7 +192,7 @@ func TestResetInactivityIfNeeded_ShouldNotResetIfSelfPeerIDIsTheSameWithTheConse
 	selfPubKey := "1"
 	consensusMsgPubKey := "1"
 	consensusMsgPeerID := core.PeerID("PeerID_1")
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		IDCalled: func() core.PeerID {
 			return consensusMsgPeerID
 		},
@@ -211,7 +212,7 @@ func TestResetInactivityIfNeeded_ShouldResetRoundsOfInactivity(t *testing.T) {
 
 	selfPubKey := "1"
 	consensusMsgPubKey := "1"
-	messengerMock := &mock.MessengerStub{
+	messengerMock := &p2pmocks.MessengerStub{
 		IDCalled: func() core.PeerID {
 			return "PeerID_1"
 		},

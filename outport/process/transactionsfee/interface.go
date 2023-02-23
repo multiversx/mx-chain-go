@@ -3,8 +3,8 @@ package transactionsfee
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
 // FeesProcessorHandler defines the interface for the transaction fees processor

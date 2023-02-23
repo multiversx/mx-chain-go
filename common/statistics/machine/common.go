@@ -3,7 +3,7 @@ package machine
 import (
 	"os"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/shirou/gopsutil/process"
 )
 

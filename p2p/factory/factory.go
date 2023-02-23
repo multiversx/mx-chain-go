@@ -1,13 +1,15 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go-p2p/libp2p/crypto"
-	"github.com/ElrondNetwork/elrond-go-p2p/message"
-	messagecheck "github.com/ElrondNetwork/elrond-go-p2p/messageCheck"
-	"github.com/ElrondNetwork/elrond-go-p2p/peersHolder"
-	"github.com/ElrondNetwork/elrond-go-p2p/rating"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-p2p-go/libp2p"
+	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
+	"github.com/multiversx/mx-chain-p2p-go/message"
+	messagecheck "github.com/multiversx/mx-chain-p2p-go/messageCheck"
+	"github.com/multiversx/mx-chain-p2p-go/peersHolder"
+	"github.com/multiversx/mx-chain-p2p-go/rating"
 )
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -43,12 +45,12 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
 }
 
+// ConvertPublicKeyToPeerID will convert a public key to core.PeerID
+func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
+	return p2pCrypto.ConvertPublicKeyToPeerID(pk)
+}
+
 // NewMessageVerifier will return a new instance of messages verifier
 func NewMessageVerifier(args ArgsMessageVerifier) (p2p.P2PSigningHandler, error) {
 	return messagecheck.NewMessageVerifier(args)
-}
-
-// NewIdentityGenerator creates a new identity generator
-func NewIdentityGenerator() p2p.IdentityGenerator {
-	return crypto.NewIdentityGenerator()
 }

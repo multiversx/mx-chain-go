@@ -3,9 +3,9 @@ package storage
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go-storage/types"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // Cacher provides caching services

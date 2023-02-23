@@ -3,8 +3,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have

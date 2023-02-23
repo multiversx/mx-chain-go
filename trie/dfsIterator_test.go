@@ -3,7 +3,7 @@ package trie_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
