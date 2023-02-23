@@ -56,3 +56,8 @@ type HealthService interface {
 	io.Closer
 	RegisterComponent(component interface{})
 }
+
+// Runner defines a simple runner component behaviour
+type Runner interface {
+	Start() error
+}

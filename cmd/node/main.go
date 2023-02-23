@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/operationmodes"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
 	"github.com/multiversx/mx-chain-go/node"
@@ -130,7 +131,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 
 	cfgs.FlagsConfig.Version = version
 
-	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
+	nodeRunner, errRunner := createNodeRunner(cfgs, flagsConfig.OperationMode)
 	if errRunner != nil {
 		return errRunner
 	}
@@ -290,4 +291,17 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
 
 	return fileLogging, nil
+}
+
+func createNodeRunner(cfgs *config.Configs, operationMode string) (node.Runner, error) {
+	nodeRunner, err := node.NewNodeRunner(cfgs)
+	if err != nil {
+		return nil, err
+	}
+
+	if operationMode == operationmodes.OperationModeObserverSovereign {
+		return node.NewSovereignObserverNodeRunner(nodeRunner)
+	}
+
+	return nodeRunner, nil
 }

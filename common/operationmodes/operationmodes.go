@@ -10,6 +10,7 @@ const (
 	OperationModeDbLookupExtension    = "db-lookup-extension"
 	OperationModeHistoricalBalances   = "historical-balances"
 	OperationModeSnapshotlessObserver = "snapshotless-observer"
+	OperationModeObserverSovereign    = "observer-sovereign"
 )
 
 // ParseOperationModes will check and parse the operation modes
@@ -49,7 +50,7 @@ func ParseOperationModes(operationModeList string) ([]string, error) {
 
 func checkOperationModeValidity(mode string) error {
 	switch mode {
-	case OperationModeFullArchive, OperationModeDbLookupExtension, OperationModeHistoricalBalances, OperationModeSnapshotlessObserver:
+	case OperationModeFullArchive, OperationModeDbLookupExtension, OperationModeHistoricalBalances, OperationModeSnapshotlessObserver, OperationModeObserverSovereign:
 		return nil
 	default:
 		return fmt.Errorf("invalid operation mode <%s>", mode)

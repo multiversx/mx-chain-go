@@ -458,8 +458,10 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	}
 
 	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular: // TODO: Add new processor here fo case: common.ChainRunTypeSovereignObserver
+	case common.ChainRunTypeRegular:
 		return shardProcessor, nil
+	case common.ChainRunTypeSovereignObserver:
+		return block.NewSovereignObserverBlockProcessor(shardProcessor)
 	case common.ChainRunTypeSovereign:
 		return block.NewSovereignBlockProcessor(
 			shardProcessor,
