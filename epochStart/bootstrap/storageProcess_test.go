@@ -79,22 +79,30 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 		t.Parallel()
 
 		args.ChainRunType = common.ChainRunTypeRegular
-
 		esb, err := createEpochStartBootstrapper(args)
 
 		require.NotNil(t, esb)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 
 	t.Run("should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
 		args.ChainRunType = common.ChainRunTypeSovereign
-
 		esb, err := createEpochStartBootstrapper(args)
 
 		require.NotNil(t, esb)
-		assert.Nil(t, err)
+		require.Nil(t, err)
+	})
+
+	t.Run("should create a sovereign observer chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = common.ChainRunTypeSovereignObserver
+		esb, err := createEpochStartBootstrapper(args)
+
+		require.NotNil(t, esb)
+		require.Nil(t, err)
 	})
 
 	t.Run("should error when chain run type is not implemented", func(t *testing.T) {

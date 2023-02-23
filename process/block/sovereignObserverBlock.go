@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -12,29 +12,27 @@ type sovereignObserverBlockProcessor struct {
 
 // NewSovereignObserverBlockProcessor creates a new sovereign observer block processor
 func NewSovereignObserverBlockProcessor(shardProcessor *shardProcessor) (*sovereignObserverBlockProcessor, error) {
-	if shardProcessor.IsInterfaceNil() {
-		return nil, core.ErrNilShardCoordinator
+	if check.IfNil(shardProcessor) {
+		return nil, errNilShardBlockProcessor
 	}
 
-	sbp := &sovereignObserverBlockProcessor{
+	return &sovereignObserverBlockProcessor{
 		shardProcessor: shardProcessor,
-	}
-
-	return sbp, nil
+	}, nil
 }
 
-func (osb *sovereignObserverBlockProcessor) CommitBlock(
+func (sbp *sovereignObserverBlockProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	err := osb.shardProcessor.CommitBlock(headerHandler, bodyHandler)
+	err := sbp.shardProcessor.CommitBlock(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	finalizedBlockHash := osb.forkDetector.GetHighestFinalBlockHash()
+	finalizedBlockHash := sbp.forkDetector.GetHighestFinalBlockHash()
 
-	shardHeader, err := process.GetShardHeader(finalizedBlockHash, osb.dataPool.Headers(), osb.marshalizer, osb.store)
+	shardHeader, err := process.GetShardHeader(finalizedBlockHash, sbp.dataPool.Headers(), sbp.marshalizer, sbp.store)
 
 	for _, mbHash := range shardHeader.GetMiniBlockHeadersHashes() {
 		_ = mbHash // Get mb from storer

@@ -27,6 +27,12 @@ func NewSovereignBlockProcessor(
 	shardProcessor *shardProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (*sovereignBlockProcessor, error) {
+	if check.IfNil(shardProcessor) {
+		return nil, errNilShardBlockProcessor
+	}
+	if check.IfNil(validatorStatisticsProcessor) {
+		return nil, process.ErrNilValidatorStatistics
+	}
 
 	sbp := &sovereignBlockProcessor{
 		shardProcessor:               shardProcessor,

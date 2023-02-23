@@ -329,7 +329,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		cc, err := ccf.Create()
 
 		require.NotNil(t, cc)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 
 	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
@@ -344,7 +344,22 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		cc, err := ccf.Create()
 
 		require.NotNil(t, cc)
-		assert.Nil(t, err)
+		require.Nil(t, err)
+	})
+
+	t.Run("should create a shard storage and sync bootstrapper sovereign observer chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeSovereignObserver
+		args.ConsensusModel = consensus.ConsensusModelV1
+
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+		cc, err := ccf.Create()
+
+		require.NotNil(t, cc)
+		require.Nil(t, err)
 	})
 
 	t.Run("should error when chain run type is not implemented", func(t *testing.T) {

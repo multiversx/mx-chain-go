@@ -358,9 +358,8 @@ func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 		ppcf.chainRunType = common.ChainRunTypeRegular
 
 		preProc, errCreate := ppcf.createTxPreProcessor()
-
-		assert.NotNil(t, preProc)
-		assert.Nil(t, errCreate)
+		require.NotNil(t, preProc)
+		require.Nil(t, errCreate)
 	})
 
 	t.Run("createTxPreProcessor should create a sovereign chain instance", func(t *testing.T) {
@@ -373,9 +372,22 @@ func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 		ppcf.chainRunType = common.ChainRunTypeSovereign
 
 		preProc, errCreate := ppcf.createTxPreProcessor()
+		require.NotNil(t, preProc)
+		require.Nil(t, errCreate)
+	})
 
-		assert.NotNil(t, preProc)
-		assert.Nil(t, errCreate)
+	t.Run("createTxPreProcessor should create a sovereign observer chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		ppcf, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcf)
+
+		ppcf.chainRunType = common.ChainRunTypeSovereignObserver
+
+		preProc, errCreate := ppcf.createTxPreProcessor()
+		require.NotNil(t, preProc)
+		require.Nil(t, errCreate)
 	})
 
 	t.Run("createTxPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
@@ -388,9 +400,8 @@ func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 		ppcf.chainRunType = "X"
 
 		preProc, errCreate := ppcf.createTxPreProcessor()
-
-		assert.Nil(t, preProc)
-		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
+		require.Nil(t, preProc)
+		require.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
 	})
 }
 

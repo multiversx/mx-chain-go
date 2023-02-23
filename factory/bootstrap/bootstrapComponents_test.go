@@ -154,7 +154,7 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 		bc, err := bcf.Create()
 
 		require.NotNil(t, bc)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 
 	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
@@ -167,7 +167,20 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 		bc, err := bcf.Create()
 
 		require.NotNil(t, bc)
-		assert.Nil(t, err)
+		require.Nil(t, err)
+	})
+
+	t.Run("should create a epoch start bootstrapper sovereign observer chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.ChainRunType = common.ChainRunTypeSovereignObserver
+
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bc, err := bcf.Create()
+
+		require.NotNil(t, bc)
+		require.Nil(t, err)
 	})
 
 	t.Run("should error when chain run type is not implemented", func(t *testing.T) {

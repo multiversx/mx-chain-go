@@ -299,7 +299,7 @@ func createNodeRunner(cfgs *config.Configs, operationMode string) (node.Runner, 
 		return nil, err
 	}
 
-	if operationMode == operationmodes.OperationModeObserverSovereign {
+	if operationMode == operationmodes.OperationModeSovereignObserver {
 		return node.NewSovereignObserverNodeRunner(nodeRunner)
 	}
 
