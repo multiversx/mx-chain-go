@@ -19,11 +19,11 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler  core.AppStatusHandler
-	outportHandler    outport.OutportHandler
-	chainID           []byte
-	currentPid        core.PeerID
-	subroundBlockType consensus.SubroundBlockType
+	appStatusHandler core.AppStatusHandler
+	outportHandler   outport.OutportHandler
+	chainID          []byte
+	currentPid       core.PeerID
+	consensusModel   consensus.ConsensusModel
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -34,7 +34,7 @@ func NewSubroundsFactory(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
-	subroundBlockType consensus.SubroundBlockType,
+	consensusModel consensus.ConsensusModel,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -48,13 +48,13 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:     consensusDataContainer,
-		consensusState:    consensusState,
-		worker:            worker,
-		appStatusHandler:  appStatusHandler,
-		chainID:           chainID,
-		currentPid:        currentPid,
-		subroundBlockType: subroundBlockType,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: appStatusHandler,
+		chainID:          chainID,
+		currentPid:       currentPid,
+		consensusModel:   consensusModel,
 	}
 
 	return &fct, nil
@@ -172,15 +172,15 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	switch fct.subroundBlockType {
-	case consensus.SubroundBlockTypeV1:
+	switch fct.consensusModel {
+	case consensus.ConsensusModelV1:
 		fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
 		fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockInstance.receivedBlockBody)
 		fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
 		fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 		return nil
-	case consensus.SubroundBlockTypeV2:
+	case consensus.ConsensusModelV2:
 		subroundBlockV2Instance, errV2 := NewSubroundBlockV2(subroundBlockInstance)
 		if errV2 != nil {
 			return errV2
@@ -193,7 +193,7 @@ func (fct *factory) generateBlockSubround() error {
 
 		return nil
 	default:
-		return fmt.Errorf("%w type %v", errors.ErrUnimplementedSubroundType, fct.subroundBlockType)
+		return fmt.Errorf("%w model %v", errors.ErrUnimplementedConsensusModel, fct.consensusModel)
 	}
 }
 
@@ -230,6 +230,33 @@ func (fct *factory) generateBlockSubroundV1() (*subroundBlock, error) {
 }
 
 func (fct *factory) generateSignatureSubround() error {
+	subroundSignatureInstance, err := fct.generateSignatureSubroundV1()
+	if err != nil {
+		return err
+	}
+
+	switch fct.consensusModel {
+	case consensus.ConsensusModelV1:
+		fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureInstance.receivedSignature)
+		fct.consensusCore.Chronology().AddSubround(subroundSignatureInstance)
+
+		return nil
+	case consensus.ConsensusModelV2:
+		subroundSignatureV2Instance, errV2 := NewSubroundSignatureV2(subroundSignatureInstance)
+		if errV2 != nil {
+			return errV2
+		}
+
+		fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureV2Instance.receivedSignature)
+		fct.consensusCore.Chronology().AddSubround(subroundSignatureV2Instance)
+
+		return nil
+	default:
+		return fmt.Errorf("%w model %v", errors.ErrUnimplementedConsensusModel, fct.consensusModel)
+	}
+}
+
+func (fct *factory) generateSignatureSubroundV1() (*subroundSignature, error) {
 	subround, err := spos.NewSubround(
 		SrBlock,
 		SrSignature,
@@ -246,25 +273,53 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.appStatusHandler,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	subroundSignatureObject, err := NewSubroundSignature(
+	subroundSignatureInstance, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
 		fct.appStatusHandler,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
-	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
-
-	return nil
+	return subroundSignatureInstance, nil
 }
 
 func (fct *factory) generateEndRoundSubround() error {
+	subroundEndRoundInstance, err := fct.generateEndRoundSubroundV1()
+	if err != nil {
+		return err
+	}
+
+	switch fct.consensusModel {
+	case consensus.ConsensusModelV1:
+		fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundInstance.receivedBlockHeaderFinalInfo)
+		fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundEndRoundInstance.receivedInvalidSignersInfo)
+		fct.worker.AddReceivedHeaderHandler(subroundEndRoundInstance.receivedHeader)
+		fct.consensusCore.Chronology().AddSubround(subroundEndRoundInstance)
+
+		return nil
+	case consensus.ConsensusModelV2:
+		subroundSignatureV2Instance, errV2 := NewSubroundEndRoundV2(subroundEndRoundInstance)
+		if errV2 != nil {
+			return errV2
+		}
+
+		fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundSignatureV2Instance.receivedBlockHeaderFinalInfo)
+		fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundSignatureV2Instance.receivedInvalidSignersInfo)
+		fct.worker.AddReceivedHeaderHandler(subroundSignatureV2Instance.receivedHeader)
+		fct.consensusCore.Chronology().AddSubround(subroundSignatureV2Instance)
+
+		return nil
+	default:
+		return fmt.Errorf("%w model %v", errors.ErrUnimplementedConsensusModel, fct.consensusModel)
+	}
+}
+
+func (fct *factory) generateEndRoundSubroundV1() (*subroundEndRound, error) {
 	subround, err := spos.NewSubround(
 		SrSignature,
 		SrEndRound,
@@ -281,10 +336,10 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.appStatusHandler,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	subroundEndRoundObject, err := NewSubroundEndRound(
+	subroundEndRoundInstance, err := NewSubroundEndRound(
 		subround,
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
@@ -292,15 +347,10 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.appStatusHandler,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
-	fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
-	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
-	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
-
-	return nil
+	return subroundEndRoundInstance, nil
 }
 
 func (fct *factory) initConsensusThreshold() {

@@ -20,14 +20,14 @@ func NewSovereignNodeRunner(nodeRunner *nodeRunner) (*sovereignNodeRunner, error
 		nodeRunner: nodeRunner,
 	}
 
-	snr.getSubroundBlockTypeFunc = snr.getSubroundBlockType
+	snr.getConsensusModelFunc = snr.getConsensusModel
 	snr.getChainRunTypeFunc = snr.getChainRunType
 
 	return snr, nil
 }
 
-func (nr *sovereignNodeRunner) getSubroundBlockType() consensus.SubroundBlockType {
-	return consensus.SubroundBlockTypeV2
+func (nr *sovereignNodeRunner) getConsensusModel() consensus.ConsensusModel {
+	return consensus.ConsensusModelV2
 }
 
 func (snr *sovereignNodeRunner) getChainRunType() common.ChainRunType {

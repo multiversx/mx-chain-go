@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-storage-go/timecache"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -31,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -52,7 +52,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	SubroundBlockType     consensus.SubroundBlockType
+	ConsensusModel        consensus.ConsensusModel
 	ChainRunType          common.ChainRunType
 }
 
@@ -70,7 +70,7 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	subroundBlockType     consensus.SubroundBlockType
+	consensusModel        consensus.ConsensusModel
 	chainRunType          common.ChainRunType
 }
 
@@ -133,17 +133,17 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		subroundBlockType:     args.SubroundBlockType,
+		consensusModel:        args.ConsensusModel,
 		chainRunType:          args.ChainRunType,
 	}, nil
 }
 
 func checkCompatibleArguments(args ConsensusComponentsFactoryArgs) error {
-	if args.ChainRunType == common.ChainRunTypeSovereign && args.SubroundBlockType != consensus.SubroundBlockTypeV2 {
+	if args.ChainRunType == common.ChainRunTypeSovereign && args.ConsensusModel != consensus.ConsensusModelV2 {
 		return fmt.Errorf("%w between %s: %s and %s: %s",
 			errors.ErrIncompatibleArgumentsProvided,
 			"args.ChainRunType", args.ChainRunType,
-			"args.SubroundBlockType", args.SubroundBlockType,
+			"args.ConsensusModel", args.ConsensusModel,
 		)
 	}
 
@@ -318,7 +318,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.subroundBlockType,
+		ccf.consensusModel,
 	)
 	if err != nil {
 		return nil, err

@@ -23,6 +23,7 @@ type subroundEndRound struct {
 	displayStatistics             func()
 	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
+	getMessageToVerifySigFunc     func() []byte
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -46,10 +47,12 @@ func NewSubroundEndRound(
 		displayStatistics,
 		appStatusHandler,
 		sync.Mutex{},
+		nil,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
 	srEndRound.Extend = extend
+	srEndRound.getMessageToVerifySigFunc = srEndRound.getMessageToVerifySig
 
 	return &srEndRound, nil
 }
@@ -403,7 +406,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return nil, nil, err
 	}
 
-	err = sr.SignatureHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
+	err = sr.SignatureHandler().Verify(sr.getMessageToVerifySigFunc(), bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
@@ -416,6 +419,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
+	msg := sr.getMessageToVerifySigFunc()
 
 	if check.IfNil(sr.Header) {
 		return nil, spos.ErrNilHeader
@@ -433,7 +437,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 		}
 
 		isSuccessfull := true
-		err = sr.SignatureHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+		err = sr.SignatureHandler().VerifySignatureShare(uint16(i), sigShare, msg, sr.Header.GetEpoch())
 		if err != nil {
 			isSuccessfull = false
 
@@ -881,4 +885,8 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *subroundEndRound) IsInterfaceNil() bool {
 	return sr == nil
+}
+
+func (sr *subroundEndRound) getMessageToVerifySig() []byte {
+	return sr.GetData()
 }

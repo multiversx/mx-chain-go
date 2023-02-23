@@ -26,6 +26,12 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+//TODO: If sovereign chain will have V2, the mechanism of getting header version when a new headers is created, should be like
+//the one used in main chain through versionedHeaderFactory.Create
+
+// SovereignHeaderVersion defines the software version of the new sovereign header created
+var SovereignHeaderVersion = []byte("S1")
+
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
 
@@ -850,19 +856,30 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 }
 
 // UnmarshalHeaderWithValidatorStats unmarshalls a header with validator stats
-func UnmarshalHeaderWithValidatorStats(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
-	header := &block.HeaderWithValidatorStats{}
-	err := marshalizer.Unmarshal(header, headerBuffer)
+func UnmarshalHeaderWithValidatorStats(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.ShardHeaderHandler, error) {
+	hdrWithValidatorStats := &block.HeaderWithValidatorStats{}
+	err := marshalizer.Unmarshal(hdrWithValidatorStats, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(hdrWithValidatorStats.Header) {
+		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+	if !bytes.Equal(hdrWithValidatorStats.GetSoftwareVersion(), SovereignHeaderVersion) {
+		return nil, ErrWrongHeaderVersion
+	}
 
-	return header, nil
+	return hdrWithValidatorStats, nil
 }
 
 // UnmarshalShardHeader unmarshalls a shard header
 func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	hdr, err = UnmarshalHeaderWithValidatorStats(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
@@ -880,6 +897,9 @@ func UnmarshalShardHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (da
 	}
 	if check.IfNil(hdrV2.Header) {
 		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+	if bytes.Equal(hdrV2.GetSoftwareVersion(), SovereignHeaderVersion) {
+		return nil, ErrWrongHeaderVersion
 	}
 
 	return hdrV2, nil

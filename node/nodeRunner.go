@@ -81,8 +81,8 @@ const (
 type nodeRunner struct {
 	configs *config.Configs
 
-	getSubroundBlockTypeFunc func() consensus.SubroundBlockType
-	getChainRunTypeFunc      func() common.ChainRunType
+	getConsensusModelFunc func() consensus.ConsensusModel
+	getChainRunTypeFunc   func() common.ChainRunType
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -95,7 +95,7 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		configs: cfgs,
 	}
 
-	nr.getSubroundBlockTypeFunc = nr.getSubroundBlockType
+	nr.getConsensusModelFunc = nr.getConsensusModel
 	nr.getChainRunTypeFunc = nr.getChainRunType
 
 	return nr, nil
@@ -869,7 +869,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		SubroundBlockType:     nr.getSubroundBlockTypeFunc(),
+		ConsensusModel:        nr.getConsensusModelFunc(),
 		ChainRunType:          nr.getChainRunTypeFunc(),
 	}
 
@@ -1696,8 +1696,8 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func (nr *nodeRunner) getSubroundBlockType() consensus.SubroundBlockType {
-	return consensus.SubroundBlockTypeV1
+func (nr *nodeRunner) getConsensusModel() consensus.ConsensusModel {
+	return consensus.ConsensusModelV1
 }
 
 func (nr *nodeRunner) getChainRunType() common.ChainRunType {

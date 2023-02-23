@@ -1,11 +1,11 @@
 package consensus
 
-// SubroundBlockType defines the types of subround block type
-type SubroundBlockType string
+// ConsensusModel defines the consensus models
+type ConsensusModel string
 
 const (
-	// SubroundBlockTypeV1 defines the first variant of the subround block type
-	SubroundBlockTypeV1 SubroundBlockType = "subround v1"
-	// SubroundBlockTypeV2 defines the second variant of the subround block type
-	SubroundBlockTypeV2 SubroundBlockType = "subround v2"
+	// ConsensusModelV1 defines the first variant of the consensus model
+	ConsensusModelV1 ConsensusModel = "consensus model v1"
+	// ConsensusModelV2 defines the second variant of the consensus model
+	ConsensusModelV2 ConsensusModel = "consensus model v2"
 )

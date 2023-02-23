@@ -173,7 +173,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: GetStatusCoreComponents(),
 		ScheduledProcessor:   scheduledProcessor,
-		SubroundBlockType:    consensus.SubroundBlockTypeV1,
+		ConsensusModel:       consensus.ConsensusModelV1,
 		ChainRunType:         common.ChainRunTypeRegular,
 	}
 }

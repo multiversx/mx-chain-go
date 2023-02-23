@@ -18,8 +18,8 @@ import (
 func TestNewSubroundBlockV2_ShouldErrNilSubround(t *testing.T) {
 	t.Parallel()
 
-	sr, err := bls.NewSubroundBlockV2(nil)
-	assert.Nil(t, sr)
+	srV2, err := bls.NewSubroundBlockV2(nil)
+	assert.Nil(t, srV2)
 	assert.Equal(t, spos.ErrNilSubround, err)
 }
 

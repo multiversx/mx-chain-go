@@ -77,7 +77,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	return fct
@@ -126,7 +126,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -146,7 +146,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -168,7 +168,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -190,7 +190,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -212,7 +212,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -234,7 +234,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -256,7 +256,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -278,7 +278,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -300,7 +300,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -322,7 +322,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -344,7 +344,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -366,7 +366,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -388,7 +388,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -408,7 +408,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -437,7 +437,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		nil,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		consensus.SubroundBlockTypeV1,
+		consensus.ConsensusModelV1,
 	)
 
 	assert.Nil(t, fct)
@@ -483,7 +483,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 		err := fct.GenerateBlockSubround()
 		assert.NotNil(t, err)
 	})
-	t.Run("invalid subround type", func(t *testing.T) {
+	t.Run("invalid consensus model", func(t *testing.T) {
 		t.Parallel()
 
 		worker := initWorker()
@@ -500,7 +500,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 		)
 
 		err := fct.GenerateBlockSubround()
-		assert.ErrorIs(t, err, errors.ErrUnimplementedSubroundType)
+		assert.ErrorIs(t, err, errors.ErrUnimplementedConsensusModel)
 	})
 	t.Run("should work with v1", func(t *testing.T) {
 		t.Parallel()
@@ -538,7 +538,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 			chainID,
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
-			consensus.SubroundBlockTypeV2,
+			consensus.ConsensusModelV2,
 		)
 
 		err := fct.GenerateBlockSubround()
@@ -547,54 +547,184 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 	})
 }
 
-func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
+func TestFactory_GenerateSubroundSignature(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	t.Run("should fail when new subround fails", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateSignatureSubround()
+		fct := *initFactory()
+		fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+			return nil
+		}
 
-	assert.Equal(t, spos.ErrNilChannel, err)
+		err := fct.GenerateSignatureSubround()
+
+		assert.Equal(t, spos.ErrNilChannel, err)
+	})
+	t.Run("should fail when new subround Signature fails", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		fct := *initFactoryWithContainer(container)
+		container.SetSyncTimer(nil)
+
+		err := fct.GenerateSignatureSubround()
+
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
+	})
+	t.Run("invalid consensus model", func(t *testing.T) {
+		t.Parallel()
+
+		worker := initWorker()
+		consensusState := initConsensusState()
+
+		fct, _ := bls.NewSubroundsFactory(
+			mock.InitConsensusCore(),
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			"invalid",
+		)
+
+		err := fct.GenerateSignatureSubround()
+		assert.ErrorIs(t, err, errors.ErrUnimplementedConsensusModel)
+	})
+	t.Run("should work with v1", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		fct := *initFactoryWithContainer(container)
+
+		err := fct.GenerateSignatureSubround()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundSignature", fmt.Sprintf("%T", addedSubround))
+	})
+	t.Run("should work with v2", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		worker := initWorker()
+		consensusState := initConsensusState()
+
+		fct, _ := bls.NewSubroundsFactory(
+			container,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			consensus.ConsensusModelV2,
+		)
+
+		err := fct.GenerateSignatureSubround()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundSignatureV2", fmt.Sprintf("%T", addedSubround))
+	})
 }
 
-func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
+func TestFactory_GenerateSubroundEndRound(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
-	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
+	t.Run("should fail when new subround fails", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateSignatureSubround()
+		fct := *initFactory()
+		fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+			return nil
+		}
 
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
+		err := fct.GenerateEndRoundSubround()
 
-func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+		assert.Equal(t, spos.ErrNilChannel, err)
+	})
+	t.Run("should fail when new subround EndRound fails", func(t *testing.T) {
+		t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+		container := mock.InitConsensusCore()
+		fct := *initFactoryWithContainer(container)
+		container.SetSyncTimer(nil)
 
-	err := fct.GenerateEndRoundSubround()
+		err := fct.GenerateEndRoundSubround()
 
-	assert.Equal(t, spos.ErrNilChannel, err)
-}
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
+	})
+	t.Run("invalid consensus model", func(t *testing.T) {
+		t.Parallel()
 
-func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
-	t.Parallel()
+		worker := initWorker()
+		consensusState := initConsensusState()
 
-	container := mock.InitConsensusCore()
-	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
+		fct, _ := bls.NewSubroundsFactory(
+			mock.InitConsensusCore(),
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			"invalid",
+		)
 
-	err := fct.GenerateEndRoundSubround()
+		err := fct.GenerateEndRoundSubround()
+		assert.ErrorIs(t, err, errors.ErrUnimplementedConsensusModel)
+	})
+	t.Run("should work with v1", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		fct := *initFactoryWithContainer(container)
+
+		err := fct.GenerateEndRoundSubround()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundEndRound", fmt.Sprintf("%T", addedSubround))
+	})
+	t.Run("should work with v2", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		worker := initWorker()
+		consensusState := initConsensusState()
+
+		fct, _ := bls.NewSubroundsFactory(
+			container,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			consensus.ConsensusModelV2,
+		)
+
+		err := fct.GenerateEndRoundSubround()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundEndRoundV2", fmt.Sprintf("%T", addedSubround))
+	})
 }
 
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
