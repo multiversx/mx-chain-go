@@ -22,11 +22,11 @@ func NewSovereignObserverBlockProcessor(shardProcessor *shardProcessor) (*sovere
 	return sbp, nil
 }
 
-func (osb *sovereignObserverBlockProcessor) CommitBlock(
+func (sbp *sovereignObserverBlockProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	return osb.shardProcessor.CommitBlock(headerHandler, bodyHandler)
+	return sbp.shardProcessor.CommitBlock(headerHandler, bodyHandler)
 
 	// TODO: Add here custom functionality in next PRs
 }

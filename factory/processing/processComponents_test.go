@@ -128,9 +128,8 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
 		pc, err := pcf.Create()
-
-		assert.NotNil(t, pc)
-		assert.Nil(t, err)
+		require.NotNil(t, pc)
+		require.Nil(t, err)
 	})
 
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
@@ -145,8 +144,23 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		pcf.SetChainRunType(common.ChainRunTypeSovereign)
 
 		pc, err := pcf.Create()
+		require.NotNil(t, pc)
+		require.Nil(t, err)
+	})
 
-		assert.NotNil(t, pc)
-		assert.Nil(t, err)
+	t.Run("creating process components factory in sovereign observer chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeSovereign)
+
+		pc, err := pcf.Create()
+		require.NotNil(t, pc)
+		require.Nil(t, err)
 	})
 }

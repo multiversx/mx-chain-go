@@ -106,6 +106,42 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		require.NotNil(t, bp)
 		require.NotNil(t, vmFactoryForSimulate)
 	})
+
+	t.Run("new block processor creator for observer sovereign shard should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeSovereignObserver)
+
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+			&testscommon.RequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.BlockTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&txsimulator.ArgsTxSimulator{
+				VMOutputCacher: txcache.NewDisabledCache(),
+			},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+		)
+
+		require.NoError(t, err)
+		require.NotNil(t, bp)
+		require.NotNil(t, vmFactoryForSimulate)
+	})
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
