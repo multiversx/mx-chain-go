@@ -3,6 +3,7 @@ package block
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type sovereignObserverBlockProcessor struct {
@@ -26,7 +27,18 @@ func (osb *sovereignObserverBlockProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	return osb.shardProcessor.CommitBlock(headerHandler, bodyHandler)
+	err := osb.shardProcessor.CommitBlock(headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
 
-	// TODO: Add here custom functionality in next PRs
+	finalizedBlockHash := osb.forkDetector.GetHighestFinalBlockHash()
+
+	shardHeader, err := process.GetShardHeader(finalizedBlockHash, osb.dataPool.Headers(), osb.marshalizer, osb.store)
+
+	for _, mbHash := range shardHeader.GetMiniBlockHeadersHashes() {
+		_ = mbHash // Get mb from storer
+	}
+
+	return nil
 }
