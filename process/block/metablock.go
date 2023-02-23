@@ -8,20 +8,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	processOutport "github.com/ElrondNetwork/elrond-go/outport/process"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -43,9 +42,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	userStatePruningQueue        core.Queue
-	peerStatePruningQueue        core.Queue
-	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -86,13 +82,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return nil, process.ErrNilReceiptsRepository
-	}
-
-	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
-	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
-	if pruningDelay < defaultPruningDelay {
-		log.Warn("using default pruning delay", "pruning queue size", pruningQueueSize)
-		pruningDelay = defaultPruningDelay
 	}
 
 	processDebugger, err := createDisabledProcessDebugger()
@@ -143,6 +132,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
+		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp := metaProcessor{
@@ -156,7 +146,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
-		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
@@ -177,8 +166,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
-	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
-	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
 	return &mp, nil
 }
@@ -626,6 +613,7 @@ func (mp *metaProcessor) indexBlock(
 		Body:                   body,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
+		PreviousHeader:         lastMetaBlock,
 	})
 	if err != nil {
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
@@ -679,7 +667,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
-		if err != nil {
+		if errNotCritical != nil {
 			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
 			continue
 		}
@@ -1447,7 +1435,6 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		lastMetaBlock.GetRootHash(),
 		prevMetaBlock.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
-		mp.userStatePruningQueue,
 	)
 
 	mp.updateStateStorage(
@@ -1455,7 +1442,6 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevMetaBlock.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
-		mp.peerStatePruningQueue,
 	)
 
 	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
@@ -1633,6 +1619,9 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		}
 
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
+
+		shardedCrossChecksKey := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		mp.appStatusHandler.SetUInt64Value(shardedCrossChecksKey, heightValue)
 	}
 
 	mp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
@@ -2075,10 +2064,28 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHa
 
 	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
+	log.Debug("computeAccumulatedFeesInEpoch - meta block fees",
+		"meta nonce", metaHdr.GetNonce(),
+		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
+		"devFees", metaHdr.GetDeveloperFees().String(),
+		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String())
+
 	for _, shardData := range metaHdr.GetShardInfoHandlers() {
+		log.Debug("computeAccumulatedFeesInEpoch - adding shard data fees",
+			"shardHeader hash", shardData.GetHeaderHash(),
+			"shardHeader nonce", shardData.GetNonce(),
+			"shardHeader accumulated fees", shardData.GetAccumulatedFees().String(),
+			"shardHeader dev fees", shardData.GetDeveloperFees().String(),
+			"shardHeader leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(shardData.GetAccumulatedFees(), shardData.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String(),
+		)
+
 		currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, shardData.GetAccumulatedFees())
 		currentDevFeesInEpoch.Add(currentDevFeesInEpoch, shardData.GetDeveloperFees())
 	}
+
+	log.Debug("computeAccumulatedFeesInEpoch - fees in epoch",
+		"accumulatedFeesInEpoch", currentlyAccumulatedFeesInEpoch.String(),
+		"devFeesInEpoch", currentDevFeesInEpoch.String())
 
 	return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 }

@@ -9,31 +9,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/process"
-	blproc "github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/process"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -905,13 +905,12 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
@@ -923,7 +922,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	wg.Wait()
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 
 	expectedFirstNonce.HasValue = true
 	expectedFirstNonce.Value = hdr.Nonce
@@ -3004,13 +3003,12 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -3018,7 +3016,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	headerHandler, bodyHandler, err := mp.CreateBlock(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 
 	err = headerHandler.SetRound(uint64(1))
 	assert.Nil(t, err)
@@ -3038,12 +3036,11 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
-	statusBusySet = false
-	statusIdleSet = false
+	busyIdleCalled = make([]string, 0)
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestMetaProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
@@ -3667,4 +3664,46 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 	assert.Equal(t, []byte("g"), allMarshalledTxs["validatorInfo"][0])
 	assert.Equal(t, []byte("h"), allMarshalledTxs["validatorInfo"][1])
 	assert.Equal(t, []byte("i"), allMarshalledTxs["validatorInfo"][2])
+}
+
+func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
+	t.Parallel()
+
+	requireInstance := require.New(t)
+
+	savedMetrics := make(map[string]interface{})
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				savedMetrics[key] = value
+			},
+			SetStringValueHandler: func(key string, value string) {
+				savedMetrics[key] = value
+			},
+		},
+	}
+	arguments.BootstrapComponents = &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewMultiShardsCoordinatorMock(3),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	mp.UpdateShardsHeadersNonce(0, 37)
+	mp.UpdateShardsHeadersNonce(1, 38)
+	mp.UpdateShardsHeadersNonce(2, 39)
+
+	mp.SaveMetricCrossCheckBlockHeight()
+
+	requireInstance.NotEmpty(savedMetrics)
+	requireInstance.Equal("0: 37, 1: 38, 2: 39, ", savedMetrics["erd_cross_check_block_height"])
+	requireInstance.Equal(uint64(37), savedMetrics["erd_cross_check_block_height_0"])
+	requireInstance.Equal(uint64(38), savedMetrics["erd_cross_check_block_height_1"])
+	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
 }

@@ -114,6 +114,8 @@ type EnableEpochsHandlerStub struct {
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
+	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -985,6 +987,22 @@ func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bo
 	defer stub.RUnlock()
 
 	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
+}
+
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsAlwaysSaveTokenMetaDataEnabledField
 }
 
 // IsInterfaceNil -

@@ -3,11 +3,11 @@ package bootstrap
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
-	"github.com/ElrondNetwork/elrond-go/testscommon/syncer"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	"github.com/stretchr/testify/require"
 )
 

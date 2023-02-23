@@ -3,7 +3,7 @@ package mock
 import (
 	"encoding/hex"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // PubkeyConverterMock -

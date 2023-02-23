@@ -14,45 +14,49 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/process"
-	blproc "github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/outport"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/process"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	busyIdentifier = "busy"
+	idleIdentifier = "idle"
 )
 
 func haveTime() time.Duration {
@@ -2066,7 +2070,10 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	numHeaders := 5
 	headers := make([]block.Header, numHeaders)
 	for i := 0; i < numHeaders; i++ {
-		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
+		headers[i] = block.Header{
+			Nonce:    uint64(i),
+			RootHash: []byte(strconv.Itoa(i)),
+		}
 	}
 
 	hdrStore := &storageStubs.StorerStub{
@@ -2110,8 +2117,6 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	pruningQueue := queue.NewSliceQueue(uint(numHeaders - 1))
-
 	prevRootHash := []byte("rootHash")
 	for i := range headers {
 		sp.UpdateState(
@@ -2119,18 +2124,16 @@ func TestBaseProcessor_updateState(t *testing.T) {
 			headers[i].RootHash,
 			prevRootHash,
 			arguments.AccountsDB[state.UserAccountsState],
-			pruningQueue,
 		)
-		prevRootHash = headers[i].RootHash
 
-		if i < numHeaders-1 {
-			assert.Equal(t, 0, len(pruneRootHash))
-			assert.Equal(t, 0, len(cancelPruneRootHash))
-		}
+		assert.Equal(t, prevRootHash, pruneRootHash)
+		assert.Equal(t, prevRootHash, cancelPruneRootHash)
+
+		prevRootHash = headers[i].RootHash
 	}
 
-	assert.Equal(t, []byte("rootHash"), pruneRootHash)
-	assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
+	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), pruneRootHash)
+	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), cancelPruneRootHash)
 }
 
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
@@ -2140,6 +2143,15 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
 
 		localErr := errors.New("execute all err")
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
@@ -2156,11 +2168,21 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		)
 
 		assert.Equal(t, localErr, err)
+		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 	t.Run("get root hash fail", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
 
 		localErr := errors.New("root hash err")
 		accounts := &stateMock.AccountsStub{
@@ -2177,6 +2199,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		)
 
 		assert.Equal(t, localErr, err)
+		assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled)
 	})
 }
 
@@ -2233,6 +2256,16 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	}
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	busyIdleCalled := make([]string, 0)
+	mockProcessHandler.SetIdleCalled = func() {
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+	}
+
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ScheduledTxsExecutionHandler = scheduledTxsExec
 	arguments.FeeHandler = feeHandler
@@ -2246,6 +2279,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 
 	assert.True(t, wasCalledSetScheduledGasAndFees)
 	assert.True(t, wasCalledSetScheduledRootHash)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 // get initial fees on first getGasAndFees call and final fees on second call
@@ -2953,22 +2987,18 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
 func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.Config = config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			UserStatePruningQueueSize: 6,
-		},
-	}
+	arguments.Config = config.Config{}
 	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	bp.SetLastRestartNonce(1)
-	ph := bp.GetPruningHandler(12)
+	ph := bp.GetPruningHandler(10)
 	assert.False(t, ph.IsPruningEnabled())
 
 	bp.SetLastRestartNonce(1)
-	ph = bp.GetPruningHandler(13)
+	ph = bp.GetPruningHandler(11)
 	assert.False(t, ph.IsPruningEnabled())
 
 	bp.SetLastRestartNonce(1)
@@ -2979,11 +3009,7 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.Config = config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			UserStatePruningQueueSize: 4,
-		},
-	}
+	arguments.Config = config.Config{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	bp.SetLastRestartNonce(0)

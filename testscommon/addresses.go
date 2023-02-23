@@ -3,7 +3,7 @@ package testscommon
 import (
 	"encoding/hex"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 )
 
 // RealWorldBech32PubkeyConverter is a bech32 converter, to be used in tests

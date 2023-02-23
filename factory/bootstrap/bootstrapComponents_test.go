@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/bootstrap"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 

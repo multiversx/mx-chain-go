@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-vm-common"
+import "github.com/multiversx/mx-chain-vm-common-go"
 
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {

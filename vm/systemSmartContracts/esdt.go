@@ -1,4 +1,4 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. esdt.proto
 package systemSmartContracts
 
 import (
@@ -9,14 +9,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const numOfRetriesForIdentifier = 50
@@ -1058,6 +1058,14 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(builtInFunc),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0]},
+		Data:       nil,
+	}
+	e.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }

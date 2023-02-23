@@ -3,12 +3,12 @@ package dataRetriever
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/counting"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ResolverThrottler can monitor the number of the currently running resolver go routines
@@ -147,16 +147,6 @@ type TopicHandler interface {
 type TopicMessageHandler interface {
 	MessageHandler
 	TopicHandler
-}
-
-// Messenger defines which methods a p2p messenger should implement
-type Messenger interface {
-	MessageHandler
-	TopicHandler
-	UnregisterMessageProcessor(topic string, identifier string) error
-	UnregisterAllMessageProcessors() error
-	UnjoinAllTopics() error
-	ConnectedPeers() []core.PeerID
 }
 
 // IntRandomizer interface provides functionality over generating integer numbers

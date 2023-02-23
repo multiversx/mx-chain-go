@@ -3,18 +3,19 @@ package spos
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func initConsensusDataContainer() *ConsensusCore {
+	marshalizerMock := mock.MarshalizerMock{}
 	blockChain := &testscommon.ChainHandlerStub{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock(marshalizerMock)
 	bootstrapperMock := &mock.BootstrapperStub{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
@@ -23,7 +24,6 @@ func initConsensusDataContainer() *ConsensusCore {
 	multiSignerMock := cryptoMocks.NewMultiSigner()
 	keyGenerator := &mock.KeyGenMock{}
 	hasherMock := &hashingMocks.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
