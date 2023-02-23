@@ -12,6 +12,31 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandlerWithGasUsedAndFee) bool {
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+
+	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
+		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
+
+	receiverIsSC := core.IsSmartContractAddress(tx.GetRcvAddr())
+	hasFunction := res.Function != ""
+	if !hasFunction {
+		return false
+	}
+
+	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
+		return isESDTTransferOperation && receiverIsSC && hasFunction
+	}
+
+	if len(res.Receivers) == 0 {
+		return false
+	}
+
+	receiverIsSC = core.IsSmartContractAddress(res.Receivers[0])
+
+	return isESDTTransferOperation && receiverIsSC && hasFunction
+}
+
 func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())
 	isRightNonce := scr.Nonce == tx.GetNonce()+1
