@@ -975,7 +975,6 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					close(iteratorChannels.LeavesChan)
-					close(iteratorChannels.ErrChan)
 					stats.SnapshotFinished()
 				},
 				IsClosedCalled: func() bool {
@@ -1192,7 +1191,6 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					close(iteratorChannels.LeavesChan)
-					close(iteratorChannels.ErrChan)
 					stats.SnapshotFinished()
 					snapshotMutex.Unlock()
 				},
