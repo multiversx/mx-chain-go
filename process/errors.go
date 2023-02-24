@@ -1154,3 +1154,6 @@ var ErrNilVMContainer = errors.New("nil ErrNilVMContainer")
 
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")
+
+// ErrWrongTransactionType signals that transaction is invalid
+var ErrWrongTransactionType = errors.New("invalid transaction type")

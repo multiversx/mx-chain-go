@@ -35,7 +35,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 
 func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx data.TransactionHandler) error {
 	var err error
-
+	vmInput.OriginalCallerAddr = GetOriginalSenderForTx(tx)
 	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()

@@ -146,10 +146,22 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	require.Nil(t, err)
 	require.Equal(t, test.CallbackData, callbackValue)
 
+	originalCallerParent, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerParent)
+	require.Nil(t, err)
+	require.Equal(t, ownerOfParent.Address, originalCallerParent)
+
+	originalCallerCallback, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerCallback)
+	require.Nil(t, err)
+	require.Equal(t, ownerOfParent.Address, originalCallerCallback)
+
 	childHandler, err := net.NodesSharded[1][0].BlockchainHook.GetUserAccount(childAddress)
 	require.Nil(t, err)
 
 	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
 	require.Nil(t, err)
 	require.Equal(t, test.ChildData, childValue)
+
+	originalCallerChild, _, err := childHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerChild)
+	require.Nil(t, err)
+	require.Equal(t, ownerOfParent.Address, originalCallerChild)
 }
