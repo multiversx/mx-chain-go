@@ -30,7 +30,7 @@ const (
 var (
 	p2pBootstrapDelay      = time.Second * 5
 	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
-	log                    = logger.GetOrCreate("integrationtests")
+	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
 func encodeAddress(address []byte) string {
