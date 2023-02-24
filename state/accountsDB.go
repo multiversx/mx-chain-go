@@ -1263,6 +1263,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	defer func() {
 		adb.isSnapshotInProgress.Reset()
 		adb.updateMetricsOnSnapshotCompletion(metrics, stats)
+		close(errChan)
 	}()
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
@@ -1275,7 +1276,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	}
 
 	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
-	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
+	handleLoggingWhenError("could not remove lastSnapshotStarted", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
