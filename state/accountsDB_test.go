@@ -2832,7 +2832,7 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 		}
 
 		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
-		prepareTrie(tr)
+		prepareTrie(tr, 3)
 
 		rootHash, _ := tr.RootHash()
 		trieHashes, _ = tr.GetAllHashes()
@@ -2887,7 +2887,7 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 		}
 
 		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
-		prepareTrie(tr)
+		prepareTrie(tr, 3)
 
 		rootHash, _ := tr.RootHash()
 		trieHashes, _ = tr.GetAllHashes()
@@ -2902,17 +2902,13 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 	})
 }
 
-func prepareTrie(tr common.Trie) {
-	key1 := []byte("key1")
-	key2 := []byte("key2")
-	key3 := []byte("key3")
-	val1 := []byte("val1")
-	val2 := []byte("val2")
-	val3 := []byte("val3")
+func prepareTrie(tr common.Trie, numKeys int) {
+	for i := 0; i < numKeys; i++ {
+		key := fmt.Sprintf("key%d", i)
+		val := fmt.Sprintf("val%d", i)
+		_ = tr.Update([]byte(key), []byte(val))
+	}
 
-	_ = tr.Update(key1, val1)
-	_ = tr.Update(key2, val2)
-	_ = tr.Update(key3, val3)
 	_ = tr.Commit()
 }
 
