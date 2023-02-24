@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,6 +30,7 @@ const (
 var (
 	p2pBootstrapDelay      = time.Second * 5
 	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
 func encodeAddress(address []byte) string {
@@ -99,9 +101,16 @@ func initNodesAndTest(
 	return nodes
 }
 
-func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
-	for _, n := range nodes {
+func startNodesWithCommitBlock(
+	nodes []*integrationTests.TestConsensusNode,
+	mutex *sync.Mutex,
+	nonceForRoundMap map[uint64]uint64,
+	totalCalled *int,
+	consensusModel consensus.ConsensusModel,
+) error {
+	for idx, n := range nodes {
 		nCopy := n
+		i := idx
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.BlockProcessor.NumCommitBlockCalled++
 			headerHash, _ := core.CalculateHash(
@@ -116,6 +125,13 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
 			*totalCalled += 1
 			mutex.Unlock()
+
+			log.Debug("BlockProcessor.CommitBlockCalled",
+				"node index", i,
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"shard", header.GetShardID(),
+			)
 
 			return nil
 		}
@@ -153,7 +169,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
 			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:       n.Node.IsInImportMode(),
-			ConsensusModel:       consensus.ConsensusModelV1,
+			ConsensusModel:       consensusModel,
 			ChainRunType:         common.ChainRunTypeRegular,
 		}
 
@@ -213,7 +229,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string) {
+func runFullConsensusTest(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
@@ -240,7 +256,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 		nonceForRoundMap := make(map[uint64]uint64)
 		totalCalled := 0
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
 		assert.Nil(t, err)
 
 		chDone := make(chan bool)
@@ -260,15 +276,23 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSFullTest(t *testing.T) {
+func TestConsensusBLSFullTestConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType)
+	runFullConsensusTest(t, blsConsensusType, consensus.ConsensusModelV1)
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+func TestConsensusBLSFullTestConsensusModelV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, consensus.ConsensusModelV2)
+}
+
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
@@ -293,7 +317,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 		mutex := &sync.Mutex{}
 		nonceForRoundMap := make(map[uint64]uint64)
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
 		assert.Nil(t, err)
 
 		waitTime := time.Second * 30
@@ -306,12 +330,20 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSNotEnoughValidators(t *testing.T) {
+func TestConsensusBLSNotEnoughValidatorsConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
+	runConsensusWithNotEnoughValidators(t, blsConsensusType, consensus.ConsensusModelV1)
+}
+
+func TestConsensusBLSNotEnoughValidatorsConsensusModelV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithNotEnoughValidators(t, blsConsensusType, consensus.ConsensusModelV2)
 }
 
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
