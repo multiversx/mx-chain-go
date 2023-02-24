@@ -99,3 +99,12 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 	assert.Nil(t, requester.RequestDataFromEpoch(providedIdentifier))
 	assert.True(t, wasCalled)
 }
+
+func TestHeaderRequester_SetEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	argBase := createMockArgBaseRequester()
+	requester, _ := NewHeaderRequester(createMockArgHeaderRequester(argBase))
+
+	assert.Nil(t, requester.SetEpochHandler(nil))
+}
