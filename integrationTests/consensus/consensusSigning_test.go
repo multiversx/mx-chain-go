@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,11 +65,23 @@ func initNodesWithTestSigner(
 	return nodes
 }
 
-func TestConsensusWithInvalidSigners(t *testing.T) {
+func TestConsensusWithInvalidSignersConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	runConsensusWithInvalidSigners(t, consensus.ConsensusModelV1)
+}
+
+func TestConsensusWithInvalidSignersConsensusModelV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithInvalidSigners(t, consensus.ConsensusModelV2)
+}
+
+func runConsensusWithInvalidSigners(t *testing.T, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
@@ -95,7 +108,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		nonceForRoundMap := make(map[uint64]uint64)
 		totalCalled := 0
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
 		assert.Nil(t, err)
 
 		chDone := make(chan bool)
