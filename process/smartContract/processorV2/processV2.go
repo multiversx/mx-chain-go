@@ -2333,6 +2333,7 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 	return result
 }
 
+// GetOriginalSenderForTx obtains the original's sender address depending on transaction's type
 func GetOriginalSenderForTx(tx data.TransactionHandler) []byte {
 	origScr, ok := (tx).(*smartContractResult.SmartContractResult)
 	if ok {
