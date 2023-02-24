@@ -3,6 +3,8 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/state"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -312,7 +314,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			senderShardID,
 			receiverShardID,
 			mbInfo)
-		if txs.shouldSkipTransactionFunc(err) {
+		if err != nil {
 			continue
 		}
 
@@ -332,10 +334,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 	log.Debug("createScheduledMiniBlocks has been finished")
 
 	return miniBlocks
-}
-
-func (tx *transactions) shouldSkipTransaction(err error) bool {
-	return err != nil
 }
 
 func (txs *transactions) verifyTransaction(
@@ -374,7 +372,7 @@ func (txs *transactions) verifyTransaction(
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()
-	err = txs.txProcessor.VerifyTransaction(tx)
+	senderAccount, err := txs.txProcessor.VerifyTransaction(tx)
 	elapsedTime = time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
@@ -382,7 +380,7 @@ func (txs *transactions) verifyTransaction(
 	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
 	txs.accountTxsShards.Unlock()
 
-	if err != nil {
+	if txs.isVerifyTransactionFailedFunc(tx, senderAccount, err) {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
@@ -407,6 +405,10 @@ func (txs *transactions) verifyTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
+}
+
+func (txs *transactions) isVerifyTransactionFailed(_ data.TransactionHandler, _ state.UserAccountHandler, err error) bool {
+	return err != nil
 }
 
 func (txs *transactions) displayProcessingResults(

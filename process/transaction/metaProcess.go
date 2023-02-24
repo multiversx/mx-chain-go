@@ -138,17 +138,17 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 }
 
 // VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) (state.UserAccountHandler, error) {
 	if check.IfNil(tx) {
-		return process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 
 	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
+	return senderAccount, txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

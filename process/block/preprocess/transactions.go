@@ -66,10 +66,12 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	senderInfo                   map[string]*senderInfo
+	mutSenderInfo                sync.RWMutex
 
-	scheduledTXContinueFunc   func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
-	shouldSkipMiniBlockFunc   func(miniBlock *block.MiniBlock) bool
-	shouldSkipTransactionFunc func(err error) bool
+	scheduledTXContinueFunc       func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
+	shouldSkipMiniBlockFunc       func(miniBlock *block.MiniBlock) bool
+	isVerifyTransactionFailedFunc func(tx data.TransactionHandler, senderAccount state.UserAccountHandler, err error) bool
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -189,11 +191,12 @@ func NewTransactionPreprocessor(
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
+	txs.senderInfo = make(map[string]*senderInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx
 	txs.shouldSkipMiniBlockFunc = txs.shouldSkipMiniBlock
-	txs.shouldSkipTransactionFunc = txs.shouldSkipTransaction
+	txs.isVerifyTransactionFailedFunc = txs.isVerifyTransactionFailed
 
 	return txs, nil
 }
@@ -791,6 +794,10 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.accountTxsShards.Lock()
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accountTxsShards.Unlock()
+
+	txs.mutSenderInfo.Lock()
+	txs.senderInfo = make(map[string]*senderInfo)
+	txs.mutSenderInfo.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
 }

@@ -1,15 +1,20 @@
 package preprocess
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	state2 "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -184,10 +189,29 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
 			IsScheduledMiniBlocksFlagEnabledField: true,
 		}
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			VerifyTransactionCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   tx.Nonce,
+					Balance: big.NewInt(10),
+				}
+				return senderAccount, nil
+			},
+		}
 
-		tx1 := &transaction.Transaction{Nonce: 1}
-		tx2 := &transaction.Transaction{Nonce: 2, Data: []byte("X")}
-		tx3 := &transaction.Transaction{Nonce: 3}
+		tx1 := &transaction.Transaction{
+			Nonce: 1,
+			Value: big.NewInt(1),
+		}
+		tx2 := &transaction.Transaction{
+			Nonce: 2,
+			Value: big.NewInt(2),
+			Data:  []byte("X"),
+		}
+		tx3 := &transaction.Transaction{
+			Nonce: 3,
+			Value: big.NewInt(3),
+		}
 
 		txHash1 := []byte("1")
 		txHash2 := []byte("2")
@@ -397,5 +421,162 @@ func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testin
 		assert.Equal(t, wrappedTx.Tx, tx)
 		assert.Equal(t, mbi.mapMiniBlocks[0], mb)
 		assert.True(t, shouldContinue)
+	})
+}
+
+func TestTxsPreprocessor_IsVerifyTransactionFailedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("isVerifyTransactionFailed should return true when error is not nil and is not related to higher nonce in transaction", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		value := sctp.isVerifyTransactionFailed(nil, nil, errors.New("error"))
+
+		assert.True(t, value)
+	})
+
+	t.Run("isVerifyTransactionFailed should return true when sender account is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		value := sctp.isVerifyTransactionFailed(nil, nil, nil)
+
+		assert.True(t, value)
+	})
+
+	t.Run("isVerifyTransactionFailed should return true when transaction has a higher nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+		}
+		senderAccount := &state.UserAccountStub{
+			Nonce:   0,
+			Balance: big.NewInt(10),
+		}
+		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
+
+		assert.True(t, value)
+	})
+
+	t.Run("isVerifyTransactionFailed should return true when account has insufficient balance for fees", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+		}
+		senderAccount := &state.UserAccountStub{
+			Nonce:   1,
+			Balance: big.NewInt(0),
+		}
+		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
+
+		assert.True(t, value)
+	})
+
+	t.Run("isVerifyTransactionFailed should return true when account has insufficient funds", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+			Value:   big.NewInt(2),
+		}
+		senderAccount := &state.UserAccountStub{
+			Nonce:   1,
+			Balance: big.NewInt(2),
+		}
+		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
+
+		assert.True(t, value)
+	})
+
+	t.Run("isVerifyTransactionFailed should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+			Value:   big.NewInt(2),
+		}
+		senderAccount := &state.UserAccountStub{
+			Nonce:   1,
+			Balance: big.NewInt(10),
+		}
+		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
+
+		assert.False(t, value)
+
+		sctp.mutSenderInfo.RLock()
+		nonce := sctp.senderInfo[string(tx.GetSndAddr())].nonce
+		balance := sctp.senderInfo[string(tx.GetSndAddr())].balance
+		sctp.mutSenderInfo.RUnlock()
+
+		assert.Equal(t, uint64(2), nonce)
+		assert.Equal(t, big.NewInt(7), balance)
+
+		tx2 := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   2,
+			Value:   big.NewInt(5),
+		}
+
+		value = sctp.isVerifyTransactionFailed(tx2, senderAccount, nil)
+
+		assert.False(t, value)
+
+		sctp.mutSenderInfo.RLock()
+		nonce = sctp.senderInfo[string(tx2.GetSndAddr())].nonce
+		balance = sctp.senderInfo[string(tx2.GetSndAddr())].balance
+		sctp.mutSenderInfo.RUnlock()
+
+		assert.Equal(t, uint64(3), nonce)
+		assert.Equal(t, big.NewInt(1), balance)
 	})
 }

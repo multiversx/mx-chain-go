@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"errors"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
@@ -30,7 +32,7 @@ func NewSovereignChainTransactionPreprocessor(
 
 	sct.scheduledTXContinueFunc = sct.shouldContinueProcessingScheduledTx
 	sct.shouldSkipMiniBlockFunc = sct.shouldSkipMiniBlock
-	sct.shouldSkipTransactionFunc = sct.shouldSkipTransaction
+	sct.isVerifyTransactionFailedFunc = sct.isVerifyTransactionFailed
 
 	return sct, nil
 }
@@ -155,7 +157,7 @@ func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
 
 	addressHasEnoughBalance := sct.hasAddressEnoughInitialBalance(tx)
 	if !addressHasEnoughBalance {
-		log.Debug("address has not enough initial balance", "sender", tx.SndAddr)
+		log.Debug("address has not enough initial balance", "sender", sct.pubkeyConverter.Encode(tx.SndAddr))
 		mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
 		return nil, nil, false
 	}
@@ -170,6 +172,55 @@ func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.Mini
 	return shouldSkipMiniBlock
 }
 
-func (sct *sovereignChainTransactions) shouldSkipTransaction(err error) bool {
-	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
+func (sct *sovereignChainTransactions) isVerifyTransactionFailed(tx data.TransactionHandler, senderAccount state.UserAccountHandler, err error) bool {
+	if err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction) {
+		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", err)
+		return true
+	}
+
+	if check.IfNil(senderAccount) {
+		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrNilUserAccount)
+		return true
+	}
+
+	sct.mutSenderInfo.Lock()
+	defer sct.mutSenderInfo.Unlock()
+
+	sndAddr := string(tx.GetSndAddr())
+	si, ok := sct.senderInfo[sndAddr]
+	if !ok {
+		si = &senderInfo{
+			nonce:   senderAccount.GetNonce(),
+			balance: big.NewInt(0).Set(senderAccount.GetBalance()),
+		}
+	}
+
+	if si.nonce < tx.GetNonce() {
+		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrHigherNonceInTransaction,
+			"account nonce", si.nonce,
+			"tx nonce", tx.GetNonce())
+		return true
+	}
+
+	txFee := sct.economicsFee.ComputeTxFee(tx)
+	if si.balance.Cmp(txFee) < 0 {
+		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrInsufficientFee,
+			"account balance", si.balance.String(),
+			"fee needed", txFee.String())
+		return true
+	}
+
+	cost := big.NewInt(0).Add(txFee, tx.GetValue())
+	if si.balance.Cmp(cost) < 0 {
+		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrInsufficientFunds,
+			"account balance", si.balance.String(),
+			"cost", cost.String())
+		return true
+	}
+
+	si.nonce++
+	si.balance = big.NewInt(0).Sub(si.balance, cost)
+	sct.senderInfo[sndAddr] = si
+
+	return false
 }

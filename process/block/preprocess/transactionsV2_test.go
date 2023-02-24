@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -476,8 +477,8 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	var verifyTransactionErr error
 	preprocessor := createTransactionPreprocessor()
 	preprocessor.txProcessor = &testscommon.TxProcessorMock{
-		VerifyTransactionCalled: func(tx *transaction.Transaction) error {
-			return verifyTransactionErr
+		VerifyTransactionCalled: func(tx *transaction.Transaction) (state.UserAccountHandler, error) {
+			return nil, verifyTransactionErr
 		},
 	}
 	preprocessor.gasHandler = &mock.GasHandlerMock{

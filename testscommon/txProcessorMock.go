@@ -5,13 +5,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxProcessorMock -
 type TxProcessorMock struct {
 	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled          func(tx *transaction.Transaction) error
+	VerifyTransactionCalled          func(tx *transaction.Transaction) (state.UserAccountHandler, error)
 	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
 	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
@@ -26,12 +27,12 @@ func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transact
 }
 
 // VerifyTransaction -
-func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) error {
+func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) (state.UserAccountHandler, error) {
 	if etm.VerifyTransactionCalled != nil {
 		return etm.VerifyTransactionCalled(tx)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // SetBalancesToTrie -

@@ -2,13 +2,14 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxProcessorStub -
 type TxProcessorStub struct {
 	ProcessTransactionCalled func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled  func(tx *transaction.Transaction) error
+	VerifyTransactionCalled  func(tx *transaction.Transaction) (state.UserAccountHandler, error)
 }
 
 // ProcessTransaction -
@@ -21,12 +22,12 @@ func (tps *TxProcessorStub) ProcessTransaction(transaction *transaction.Transact
 }
 
 // VerifyTransaction -
-func (tps *TxProcessorStub) VerifyTransaction(tx *transaction.Transaction) error {
+func (tps *TxProcessorStub) VerifyTransaction(tx *transaction.Transaction) (state.UserAccountHandler, error) {
 	if tps.VerifyTransactionCalled != nil {
 		return tps.VerifyTransactionCalled(tx)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // IsInterfaceNil -

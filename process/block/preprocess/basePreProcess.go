@@ -111,6 +111,11 @@ type processedIndexes struct {
 	indexOfLastTxProcessedByProposer int32
 }
 
+type senderInfo struct {
+	nonce   uint64
+	balance *big.Int
+}
+
 // basePreProcess is the base struct for all pre-processors
 type basePreProcess struct {
 	gasTracker

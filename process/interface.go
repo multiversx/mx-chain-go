@@ -35,7 +35,7 @@ import (
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransaction(transaction *transaction.Transaction) error
+	VerifyTransaction(transaction *transaction.Transaction) (state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }
 
