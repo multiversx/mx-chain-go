@@ -694,7 +694,7 @@
     MaxNumberOfTrieReadsPerTx = 1500
 
 # Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
-# sign of each coefficient, 0 meaning + and 1 meaning -
+# sign of each coefficient, 0 meaning positive and 1 meaning negative
 # The current values for the coefficients were computed based on benchmarking.
 # For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
 [DynamicStorageLoad]
