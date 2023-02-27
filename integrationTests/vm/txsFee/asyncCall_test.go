@@ -152,7 +152,8 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
@@ -167,7 +168,8 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
@@ -274,7 +276,8 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)
@@ -289,7 +292,8 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier)

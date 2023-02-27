@@ -19,10 +19,10 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.11
 	github.com/multiversx/mx-chain-storage-go v1.0.7
-	github.com/multiversx/mx-chain-vm-common-go v1.3.37
+	github.com/multiversx/mx-chain-vm-common-go v1.3.38-0.20230227140728-5bd58c1e7990
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.50
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.51
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.77
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.78-0.20230227141039-a6e7c42fc7dd
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
