@@ -67,6 +67,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 		fmt.Println("trie level", trieKeysDepth[i])
 		gasLimit = uint64(trieLoadCost) + 10000
 		testGasConsumedForDataTrieLoad(t, testContext, sndNonce, key, sndAddr, scAddress, gasPrice, gasLimit, expectedGasCost)
+		sndNonce++
 	}
 }
 
@@ -122,8 +123,6 @@ func testGasConsumedForDataTrieLoad(
 	returnCode, errProcess := testContext.ScProcessor.ProcessSmartContractResult(scr)
 	require.Nil(t, errProcess)
 	require.Equal(t, vmcommon.Ok, returnCode)
-
-	nonce++
 
 	intermediate := testContext.GetIntermediateTransactions(t)
 	require.Equal(t, 1, len(intermediate))
