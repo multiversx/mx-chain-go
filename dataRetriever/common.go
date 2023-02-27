@@ -28,6 +28,29 @@ func SetEpochHandlerToHdrResolver(
 	return nil
 }
 
+// SetEpochHandlerToHdrRequester sets the epoch handler to the metablock hdr requester
+func SetEpochHandlerToHdrRequester(
+	requestersContainer RequestersContainer,
+	epochHandler EpochHandler,
+) error {
+	requester, err := requestersContainer.Get(factory.MetachainBlocksTopic)
+	if err != nil {
+		return err
+	}
+
+	hdrRequester, ok := requester.(HeaderRequester)
+	if !ok {
+		return ErrWrongTypeInContainer
+	}
+
+	err = hdrRequester.SetEpochHandler(epochHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetHdrNonceHashDataUnit gets the HdrNonceHashDataUnit by shard
 func GetHdrNonceHashDataUnit(shard uint32) UnitType {
 	if shard == core.MetachainShardId {
