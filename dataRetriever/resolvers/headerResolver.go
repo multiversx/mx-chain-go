@@ -1,6 +1,8 @@
 package resolvers
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
@@ -35,6 +37,7 @@ type HeaderResolver struct {
 	headers          dataRetriever.HeadersPool
 	hdrNoncesStorage storage.Storer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	mutEpochHandler  sync.RWMutex
 	epochHandler     dataRetriever.EpochHandler
 	shardCoordinator sharding.Coordinator
 }
@@ -97,7 +100,10 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 		return dataRetriever.ErrNilEpochHandler
 	}
 
+	hdrRes.mutEpochHandler.Lock()
 	hdrRes.epochHandler = epochHandler
+	hdrRes.mutEpochHandler.Unlock()
+
 	return nil
 }
 
@@ -221,7 +227,11 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		return nil, err
 	}
 	if isUnknownEpoch {
-		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
+		hdrRes.mutEpochHandler.RLock()
+		metaEpoch := hdrRes.epochHandler.MetaEpoch()
+		hdrRes.mutEpochHandler.RUnlock()
+
+		actualKey = []byte(core.EpochStartIdentifier(metaEpoch))
 	}
 
 	return hdrRes.searchFirst(actualKey)
