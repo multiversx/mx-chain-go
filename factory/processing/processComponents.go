@@ -404,6 +404,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 

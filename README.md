@@ -9,6 +9,7 @@
 [![](https://img.shields.io/badge/project-MultiversX%20Mainnet-blue.svg)](https://explorer.multiversx.com/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/multiversx/mx-chain-go)](https://goreportcard.com/report/github.com/multiversx/mx-chain-go)
 [![codecov](https://codecov.io/gh/multiversx/mx-chain-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/multiversx/mx-chain-go)
+[![Contributors](https://img.shields.io/github/contributors/multiversx/mx-chain-go)](https://github.com/multiversx/mx-chain-go/graphs/contributors)
 
 # mx-chain-go
 

@@ -24,6 +24,11 @@ func (r *resolver) SetDebugHandler(_ dataRetriever.DebugHandler) error {
 	return nil
 }
 
+// SetEpochHandler does nothing and returns nil
+func (r *resolver) SetEpochHandler(_ dataRetriever.EpochHandler) error {
+	return nil
+}
+
 // Close returns nil as it is disabled
 func (r *resolver) Close() error {
 	return nil
