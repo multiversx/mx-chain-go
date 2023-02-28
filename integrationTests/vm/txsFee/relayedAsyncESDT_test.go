@@ -37,7 +37,6 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -96,7 +95,6 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -155,7 +153,6 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 

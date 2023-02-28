@@ -23,7 +23,6 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)

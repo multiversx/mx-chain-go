@@ -27,7 +27,6 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -68,7 +67,6 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(500)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -110,7 +108,6 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(500)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -150,7 +147,6 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(570)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)

@@ -32,7 +32,6 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), gasPrice, gasLimit)
 
@@ -78,7 +77,6 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100000001), gasPrice, gasLimit)
 
