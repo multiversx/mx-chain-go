@@ -1615,7 +1615,7 @@ func trimSliceBootstrapHeaderInfo(in []bootstrapStorage.BootstrapHeaderInfo) []b
 	return ret
 }
 
-func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
+func (bp *baseProcessor) restoreBlockBody(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) {
 	if check.IfNil(bodyHandler) {
 		log.Debug("restoreMiniblocks nil bodyHandler")
 		return
@@ -1627,12 +1627,12 @@ func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
 		return
 	}
 
-	restoredTxNr, errNotCritical := bp.txCoordinator.RestoreBlockDataFromStorage(body)
+	_, errNotCritical := bp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
 		log.Debug("restoreBlockBody RestoreBlockDataFromStorage", "error", errNotCritical.Error())
 	}
 
-	go bp.txCounter.subtractRestoredTxs(restoredTxNr)
+	go bp.txCounter.headerReverted(headerHandler)
 }
 
 // RestoreBlockBodyIntoPools restores the block body into associated pools
