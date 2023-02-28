@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
@@ -107,15 +108,19 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:             argumentsBase,
-			SCToProtocol:                 &mock.SCToProtocolStub{},
-			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-			EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
-			EpochEconomics:               &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
-			EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-			EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
+			ArgBaseProcessor:          argumentsBase,
+			SCToProtocol:              &mock.SCToProtocolStub{},
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:            &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:       &mock.EpochRewardsCreatorStub{},
+			EpochValidatorInfoCreator: &mock.EpochValidatorInfoCreatorStub{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{
+				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+					return []byte("validator stats root hash"), nil
+				},
+			},
+			EpochSystemSCProcessor: &mock.EpochStartSystemSCStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

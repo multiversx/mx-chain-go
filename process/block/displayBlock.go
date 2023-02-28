@@ -20,32 +20,44 @@ import (
 )
 
 type transactionCounter struct {
-	mutex           sync.RWMutex
-	currentBlockTxs uint64
-	totalTxs        uint64
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
+	mutex            sync.RWMutex
+	currentBlockTxs  uint64
+	totalTxs         uint64
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	appStatusHandler core.AppStatusHandler
+	shardID          uint32
+}
+
+// ArgsTransactionCounter represents the arguments needed to create a new transaction counter
+type ArgsTransactionCounter struct {
+	AppStatusHandler core.AppStatusHandler
+	Hasher           hashing.Hasher
+	Marshalizer      marshal.Marshalizer
+	ShardID          uint32
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
-func NewTransactionCounter(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-) (*transactionCounter, error) {
-	if check.IfNil(hasher) {
+func NewTransactionCounter(args ArgsTransactionCounter) (*transactionCounter, error) {
+	if check.IfNil(args.AppStatusHandler) {
+		return nil, process.ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	return &transactionCounter{
-		mutex:           sync.RWMutex{},
-		currentBlockTxs: 0,
-		totalTxs:        0,
-		hasher:          hasher,
-		marshalizer:     marshalizer,
+		mutex:            sync.RWMutex{},
+		appStatusHandler: args.AppStatusHandler,
+		currentBlockTxs:  0,
+		totalTxs:         0,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		shardID:          args.ShardID,
 	}, nil
 }
 
@@ -56,16 +68,63 @@ func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHold
 	return
 }
 
-// subtractRestoredTxs updated the total processed txs in case of restore
-func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
+// headerReverted updates the total processed txs in case of restore. It also sets the current block txs to 0
+func (txc *transactionCounter) headerReverted(hdr data.HeaderHandler) {
+	if check.IfNil(hdr) {
+		log.Warn("programming error: nil header in transactionCounter.headerReverted function")
+		return
+	}
+
+	currentBlockTxs := txc.getProcessedTxCount(hdr)
+
 	txc.mutex.Lock()
-	defer txc.mutex.Unlock()
-	if txc.totalTxs < uint64(txsNr) {
+	txc.currentBlockTxs = 0
+	txc.safeSubtractTotalTxs(uint64(currentBlockTxs))
+	txc.appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
+	txc.mutex.Unlock()
+}
+
+func (txc *transactionCounter) safeSubtractTotalTxs(delta uint64) {
+	if txc.totalTxs < delta {
 		txc.totalTxs = 0
 		return
 	}
 
-	txc.totalTxs -= uint64(txsNr)
+	txc.totalTxs -= delta
+}
+
+func (txc *transactionCounter) headerExecuted(hdr data.HeaderHandler) {
+	if check.IfNil(hdr) {
+		log.Warn("programming error: nil header in transactionCounter.headerExecuted function")
+		return
+	}
+
+	currentBlockTxs := txc.getProcessedTxCount(hdr)
+
+	txc.mutex.Lock()
+	txc.currentBlockTxs = uint64(currentBlockTxs)
+	txc.totalTxs += uint64(currentBlockTxs)
+	txc.appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
+	txc.mutex.Unlock()
+}
+
+func (txc *transactionCounter) getProcessedTxCount(hdr data.HeaderHandler) int32 {
+	currentBlockTxs := int32(0)
+	for _, miniBlockHeaderHandler := range hdr.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeaderHandler.GetTypeInt32() == int32(block.PeerBlock) {
+			continue
+		}
+
+		isMiniblockScheduledFromMe := miniBlockHeaderHandler.GetSenderShardID() == txc.shardID &&
+			miniBlockHeaderHandler.GetProcessingType() == int32(block.Scheduled)
+		if isMiniblockScheduledFromMe {
+			continue
+		}
+
+		currentBlockTxs += miniBlockHeaderHandler.GetIndexOfLastTxProcessed() - miniBlockHeaderHandler.GetIndexOfFirstTxProcessed() + 1
+	}
+
+	return currentBlockTxs
 }
 
 // displayLogInfo writes to the output information about the block and transactions
@@ -76,14 +135,9 @@ func (txc *transactionCounter) displayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	_ dataRetriever.PoolsHolder,
-	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
-
-	txc.mutex.RLock()
-	appStatusHandler.SetUInt64Value(common.MetricNumProcessedTxs, txc.totalTxs)
-	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -187,8 +241,6 @@ func (txc *transactionCounter) displayTxBlockBody(
 	header data.HeaderHandler,
 	body *block.Body,
 ) []*display.LineData {
-	currentBlockTxs := 0
-
 	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -227,8 +279,6 @@ func (txc *transactionCounter) displayTxBlockBody(
 			lines = append(lines, display.NewLineData(false, []string{"", "TxsProcessedRange", strProcessedRange}))
 		}
 
-		currentBlockTxs += len(miniBlock.TxHashes)
-
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
 				lines = append(lines, display.NewLineData(false, []string{
@@ -250,11 +300,6 @@ func (txc *transactionCounter) displayTxBlockBody(
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
 	}
-
-	txc.mutex.Lock()
-	txc.currentBlockTxs = uint64(currentBlockTxs)
-	txc.totalTxs += uint64(currentBlockTxs)
-	txc.mutex.Unlock()
 
 	return lines
 }
@@ -309,4 +354,25 @@ func DisplayLastNotarized(
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
 		"hash", lastNotarizedHdrHashForShard)
+}
+
+// CurrentBlockTxs returns the current block's number of processed transactions
+func (txc *transactionCounter) CurrentBlockTxs() uint64 {
+	txc.mutex.RLock()
+	defer txc.mutex.RUnlock()
+
+	return txc.currentBlockTxs
+}
+
+// TotalTxs returns the total number of processed transactions
+func (txc *transactionCounter) TotalTxs() uint64 {
+	txc.mutex.RLock()
+	defer txc.mutex.RUnlock()
+
+	return txc.totalTxs
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txc *transactionCounter) IsInterfaceNil() bool {
+	return txc == nil
 }

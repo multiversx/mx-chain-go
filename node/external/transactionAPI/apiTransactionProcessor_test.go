@@ -484,6 +484,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		InitiallyPaidFee: "1000",
 		Receivers:        []string{},
+		Fee:              "0",
 	}
 
 	apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
@@ -748,6 +749,7 @@ func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransact
 	tx := &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
+		Value:   big.NewInt(100000 + int64(nonce)),
 	}
 
 	return &txcache.WrappedTransaction{
@@ -821,11 +823,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender, "sender")
+	res, err := atp.GetTransactionsPoolForSender(sender, "sender,value")
 	require.NoError(t, err)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
+	expectedValues := []string{"100001", "100002", "100003", "100004", "100005"}
 	for i, tx := range res.Transactions {
 		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, expectedValues[i], tx.TxFields[valueField])
 		require.Equal(t, sender, tx.TxFields["sender"])
 	}
 
