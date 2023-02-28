@@ -42,7 +42,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -134,6 +133,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
+		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp := metaProcessor{
@@ -147,7 +147,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
-		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
@@ -1621,6 +1620,9 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		}
 
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
+
+		shardedCrossChecksKey := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		mp.appStatusHandler.SetUInt64Value(shardedCrossChecksKey, heightValue)
 	}
 
 	mp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)

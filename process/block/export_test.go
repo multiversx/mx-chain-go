@@ -217,6 +217,10 @@ func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	return mp.requestMissingFinalityAttestingShardHeaders()
 }
 
+func (mp *metaProcessor) SaveMetricCrossCheckBlockHeight() {
+	mp.saveMetricCrossCheckBlockHeight()
+}
+
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
 	lastCrossNotarizedHeaders := make(map[uint32][]data.HeaderHandler)
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
