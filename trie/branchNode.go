@@ -855,34 +855,6 @@ func (bn *branchNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
 	return hashes, nil
 }
 
-func (bn *branchNode) getNumNodes() common.NumNodesDTO {
-	if check.IfNil(bn) {
-		return common.NumNodesDTO{}
-	}
-
-	currentNumNodes := common.NumNodesDTO{
-		Branches: 1,
-	}
-
-	for _, n := range bn.children {
-		if check.IfNil(n) {
-			continue
-		}
-
-		childNumNodes := n.getNumNodes()
-		currentNumNodes.Branches += childNumNodes.Branches
-		currentNumNodes.Leaves += childNumNodes.Leaves
-		currentNumNodes.Extensions += childNumNodes.Extensions
-		if childNumNodes.MaxLevel > currentNumNodes.MaxLevel {
-			currentNumNodes.MaxLevel = childNumNodes.MaxLevel
-		}
-	}
-
-	currentNumNodes.MaxLevel++
-
-	return currentNumNodes
-}
-
 func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || check.IfNil(bn) {
 		return false, nil, nil
