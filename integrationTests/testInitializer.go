@@ -2542,6 +2542,7 @@ func SaveDelegationContractsList(nodes []*TestProcessorNode) {
 
 var charsPool = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
 
+// GenerateTrieKeysForMaxLevel generates a list of keys that will fill a trie until the given level is reached
 func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) [][]byte {
 	keys := make([][]byte, 0)
 

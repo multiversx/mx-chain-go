@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -39,7 +38,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(100000)
 
-	scAddress := deployContract(t, testContext, "../wasm/testdata/trieStoreAndLoad/storage.wasm")
+	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/storage.wasm")
 	acc := getAccount(t, testContext, scAddress)
 	require.Nil(t, acc.DataTrie())
 
@@ -48,8 +47,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	senderBalance := big.NewInt(100000000)
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, sndNonce, senderBalance)
 
-	keys := insertInDataTrie(t, testContext, sndNonce, 15, sndAddr, scAddress, gasPrice, gasLimit)
-	sndNonce += uint64(len(keys))
+	keys := insertInDataTrie(t, testContext, scAddress, 15)
 
 	dataTrie := getAccountDataTrie(t, testContext, scAddress)
 	trieKeysDepth := getTrieDepthForKeys(t, dataTrie, keys)
@@ -58,11 +56,11 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	loadValCost := 32
 	wasmOpsCost := 14
 
-	newContractCode := wasm.GetSCCode("../wasm/testdata/trieStoreAndLoad/storage.wasm")
+	contractCode := wasm.GetSCCode("../wasm/testdata/trieStoreAndLoad/storage.wasm")
 	latestGasSchedule := gasScheduleNotifier.LatestGasSchedule()
-	AoTPrepare := latestGasSchedule[common.BaseOperationCost]["AoTPreparePerByte"] * uint64(len(newContractCode)) / 2
+	aotPrepare := latestGasSchedule[common.BaseOperationCost]["AoTPreparePerByte"] * uint64(len(contractCode)) / 2
 
-	gasCost := int64(apiCallsCost+loadValCost+wasmOpsCost) + int64(AoTPrepare)
+	gasCost := int64(apiCallsCost+loadValCost+wasmOpsCost) + int64(aotPrepare)
 
 	for i, key := range keys {
 		trieLoadCost := getExpectedConsumedGasForTrieLoad(testContext, int64(trieKeysDepth[i]))
@@ -79,24 +77,18 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 func insertInDataTrie(
 	t *testing.T,
 	testContext *vm.VMTestContext,
-	nonce uint64,
+	accAddr []byte,
 	maxTrieLevel int,
-	sndAddr []byte,
-	scAddress []byte,
-	gasPrice uint64,
-	gasLimit uint64,
 ) [][]byte {
-
+	acc := getAccount(t, testContext, accAddr)
 	keys := integrationTests.GenerateTrieKeysForMaxLevel(maxTrieLevel, 2)
 	for _, key := range keys {
-		txData := []byte("trieStore@" + hex.EncodeToString(key) + "@" + hex.EncodeToString(key))
-		tx := vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
-		nonce++
-
-		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
-		require.Nil(t, errProcess)
-		require.Equal(t, vmcommon.Ok, returnCode)
+		err := acc.SaveKeyValue(key, key)
+		require.Nil(t, err)
 	}
+
+	err := testContext.Accounts.SaveAccount(acc)
+	require.Nil(t, err)
 
 	return keys
 }
@@ -148,31 +140,6 @@ func getTrieDepthForKeys(t *testing.T, tr common.Trie, keys [][]byte) []uint32 {
 	}
 
 	return trieLevels
-}
-
-func deployContract(t *testing.T, testContext *vm.VMTestContext, pathToContract string) []byte {
-	owner := []byte("12345678901234567890123456789011")
-	ownerNonce := uint64(0)
-	ownerBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
-	gasLimit := uint64(2000)
-
-	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, ownerBalance)
-
-	scCode := wasm.GetSCCode(pathToContract)
-	tx := vm.CreateTransaction(ownerNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
-
-	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, vmcommon.Ok, retCode)
-	require.Nil(t, err)
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	scAddr, _ := testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
-	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-
-	return scAddr
 }
 
 func getAccount(t *testing.T, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
