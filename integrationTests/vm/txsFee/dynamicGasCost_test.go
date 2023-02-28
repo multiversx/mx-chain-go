@@ -36,7 +36,6 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	defer testContext.Close()
 
 	gasPrice := uint64(10)
-	gasLimit := uint64(100000)
 
 	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/storage.wasm")
 	acc := getAccount(t, testContext, scAddress)
@@ -68,7 +67,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 		expectedGasCost := trieLoadCost + gasCost
 
 		fmt.Println("trie level", trieKeysDepth[i])
-		gasLimit = uint64(trieLoadCost) + 10000
+		gasLimit := uint64(trieLoadCost) + 10000
 		testGasConsumedForDataTrieLoad(t, testContext, sndNonce, key, sndAddr, scAddress, gasPrice, gasLimit, expectedGasCost)
 		sndNonce++
 	}
