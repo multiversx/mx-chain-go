@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
@@ -158,21 +157,13 @@ func createRelayedTxV2(
 	userTx *transaction.Transaction,
 	gasLimitForUserTx uint64,
 ) *transaction.Transaction {
-	dataBuilder := txDataBuilder.NewBuilder()
-	txData := dataBuilder.
-		Func(core.RelayedTransactionV2).
-		Bytes(userTx.RcvAddr).
-		Int64(int64(userTx.Nonce)).
-		Bytes(userTx.Data).
-		Bytes(userTx.Signature)
-
 	tx := &transaction.Transaction{
 		Nonce:    relayer.Nonce,
 		Value:    big.NewInt(0).Set(userTx.Value),
 		RcvAddr:  userTx.SndAddr,
 		SndAddr:  relayer.Address,
 		GasPrice: integrationTests.MinTxGasPrice,
-		Data:     txData.ToBytes(),
+		Data:     integrationTests.PrepareRelayedTxDataV2(userTx),
 		ChainID:  userTx.ChainID,
 		Version:  userTx.Version,
 	}

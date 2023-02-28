@@ -16,22 +16,23 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/guardian"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	testscommonIntegrationTests "github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const txWithOptionVersion = 2
-const gasPrice = uint64(10)
 const guardianSigVerificationGas = uint64(50000)
 const guardAccountGas = uint64(250000)
 const unGuardAccountGas = uint64(250000)
@@ -42,8 +43,8 @@ var (
 	alice         = []byte("alice-12345678901234567890123456")
 	bob           = []byte("bob-1234567890123456789012345678")
 	charlie       = []byte("charlie-123456789012345678901234")
-	delta         = []byte("delta-12345678901234567890123456")
-	allAddresses  = [][]byte{alice, bob, charlie, delta}
+	david         = []byte("david-12345678901234567890123456")
+	allAddresses  = [][]byte{alice, bob, charlie, david}
 	uuid          = []byte("uuid")
 	transferValue = big.NewInt(2000000)
 	initialMint   = big.NewInt(1000000000000000000)
@@ -71,7 +72,7 @@ func createUnGuardedAccountStatus() guardAccountStatus {
 
 func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 	unreachableEpoch := uint32(999999)
-	db := integrationtests.CreateStorer(tb.TempDir())
+	db := testscommonIntegrationTests.CreateStorer(tb.TempDir())
 	gasScheduleDir := "../../../cmd/node/config/gasSchedules"
 
 	cfg := config.GasScheduleByEpochs{
@@ -422,7 +423,7 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
-	// alice is the user, bob is the guardian, charlie is the receiver, delta is the wrong guardian
+	// alice is the user, bob is the guardian, charlie is the receiver, david is the wrong guardian
 	mintAddress(t, testContext, alice, initialMint)
 
 	expectedStatus := createUnGuardedAccountStatus()
@@ -511,8 +512,8 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(transferValue.Int64()*4), getBalance(testContext, charlie))
 
-	// userAddress can not send funds while protected with a wrong guardian address (delta)
-	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, delta)
+	// userAddress can not send funds while protected with a wrong guardian address (david)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, david)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "mismatch between transaction guardian and configured account guardian")
 	require.Equal(t, big.NewInt(transferValue.Int64()*4), getBalance(testContext, charlie))
@@ -525,13 +526,13 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 }
 
 // Scenario 1 description:
-// 1.  create & mint 4 addresses: alice, bob, charlie and delta
+// 1.  create & mint 4 addresses: alice, bob, charlie and david
 // 2.  alice sets bob as guardian (test if pending)
 // 3.  alice can not set bob as guardian again (test if pending & same activation epoch)
 //   3.1 alice can not set bob as guardian again even if one epoch past
 // 4.  alice activates the guardian (test if active)
 // 5.  alice sets charlie as pending guardian (test if pending & different activation epoch)
-//   5.1. alice wants to set delta as pending guardian (transaction is not executable, will not be included in a miniblock)
+//   5.1. alice wants to set david as pending guardian (transaction is not executable, will not be included in a miniblock)
 // 6.  alice sets charlie as guardian immediately through a cosigned transaction (test active & pending guardians)
 // 7.  alice immediately sets bob as guardian through a cosigned transaction (test active & pending guardians)
 // 8.  alice adds charlie as a pending guardian (test if pending & different activation epoch)
@@ -641,10 +642,10 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	// step 5.1 - alice tries to set delta as pending guardian, overwriting charlie
+	// step 5.1 - alice tries to set david as pending guardian, overwriting charlie
 	currentEpoch++
 	setNewEpochOnContext(testContext, currentEpoch)
-	returnCode, err = setGuardian(testContext, alice, delta, uuid)
+	returnCode, err = setGuardian(testContext, alice, david, uuid)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	expectedStatus = guardAccountStatus{
@@ -795,7 +796,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// 13. alice sends a guarded transaction, while account is guarded -> should work
-	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
+	err = transferFundsCoSigned(testContext, alice, transferValue, david, charlie)
 	require.Nil(t, err)
 
 	// 14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
@@ -812,9 +813,250 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		pending: nil,
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
-	err = transferFundsCoSigned(testContext, alice, transferValue, delta, charlie)
+	err = transferFundsCoSigned(testContext, alice, transferValue, david, charlie)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	// 14.1 alice sends unguarded transaction -> should work
-	err = transferFunds(testContext, alice, transferValue, delta)
+	err = transferFunds(testContext, alice, transferValue, david)
 	require.Nil(t, err)
+}
+
+// 1. create & mint 4 addresses: alice, bob, charlie and david
+// 2. alice sets bob as guardian and the account becomes guarded
+// 3. test that charlie can send a relayed transaction v1 on the behalf of alice to david
+//   3.1 cosigned transaction should work
+//   3.2 single signed transaction should not work
+func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
+	testContext := prepareTestContextForGuardedAccounts(t)
+	defer testContext.Close()
+
+	// step 1 -  mint addresses
+	for _, address := range allAddresses {
+		mintAddress(t, testContext, address, initialMint)
+	}
+	expectedStatus := createUnGuardedAccountStatus()
+	for _, address := range allAddresses {
+		testGuardianStatus(t, testContext, address, expectedStatus)
+	}
+
+	currentEpoch := uint32(0)
+
+	// step 2 - alice sets bob as guardian
+	step2Epoch := currentEpoch
+	returnCode, err := setGuardian(testContext, alice, bob, uuid)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	currentEpoch += vm.EpochGuardianDelay
+	setNewEpochOnContext(testContext, currentEpoch)
+	returnCode, err = guardAccount(testContext, alice)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	expectedStatus = guardAccountStatus{
+		isGuarded: true,
+		active: &guardianInfo{
+			address: bob,
+			uuid:    uuid,
+			epoch:   step2Epoch + vm.EpochGuardianDelay,
+		},
+		pending: nil,
+	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
+
+	aliceCurrentBalance := getBalance(testContext, alice)
+
+	// step 3 - charlie sends a relayed transaction v1 on the behalf of alice
+	// 3.1 cosigned transaction should work
+	userTx := vm.CreateTransaction(
+		getNonce(testContext, alice),
+		transferValue,
+		alice,
+		david,
+		gasPrice,
+		transferGas+guardianSigVerificationGas,
+		make([]byte, 0))
+
+	userTx.GuardianAddr = bob
+	userTx.Options = userTx.Options | transaction.MaskGuardedTransaction
+	userTx.Version = txWithOptionVersion
+
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
+	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	// balance tests:
+	//  alice: aliceCurrentBalance - transferValue (no fee for relayed transaction)
+	//  bob: initialMint
+	//  charlie: initialMint - rtxGasLimit * gasPrice
+	//  david: initialMint + transferValue
+	aliceExpectedBalance := big.NewInt(0).Sub(aliceCurrentBalance, transferValue)
+	assert.Equal(t, aliceExpectedBalance, getBalance(testContext, alice))
+	bobExpectedBalance := big.NewInt(0).Set(initialMint)
+	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
+	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
+	davidExpectedBalance := big.NewInt(0).Add(initialMint, transferValue)
+	assert.Equal(t, davidExpectedBalance, getBalance(testContext, david))
+
+	aliceCurrentBalance = getBalance(testContext, alice)
+	charlieCurrentBalance := getBalance(testContext, charlie)
+	davidCurrentBalance := getBalance(testContext, david)
+	testContext.CleanIntermediateTransactions(t)
+
+	// 3.1 single signed transaction should not work
+	userTx = vm.CreateTransaction(
+		getNonce(testContext, alice),
+		transferValue,
+		alice,
+		david,
+		gasPrice,
+		transferGas+guardianSigVerificationGas,
+		make([]byte, 0))
+
+	userTx.Version = txWithOptionVersion
+
+	rtxData = integrationTests.PrepareRelayedTxDataV1(userTx)
+	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediateTxs))
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	// expectedReturnMessage is hardcoded for backwards compatibility reasons
+	expectedReturnMessage := "transaction is not executable and gas will not be consumed, not allowed to bypass guardian"
+	require.Equal(t, expectedReturnMessage, string(scr.ReturnMessage))
+	// balance tests:
+	//  alice: aliceCurrentBalance (no fee for the failed relayed transaction)
+	//  bob: initialMint
+	//  charlie: charlieCurrentBalance - rtxGasLimit * gasPrice
+	//  david: davidCurrentBalance
+	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
+	bobExpectedBalance = big.NewInt(0).Set(initialMint)
+	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
+	charlieExpectedBalance = big.NewInt(0).Sub(charlieCurrentBalance, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
+	assert.Equal(t, davidCurrentBalance, getBalance(testContext, david))
+}
+
+// 1. create & mint 4 addresses: alice, bob, charlie and david
+// 2. alice sets bob as guardian and the account becomes guarded
+// 3. test that charlie can not send a relayed transaction v2 on the behalf of alice to david
+//   3.1 cosigned transaction should not work
+//   3.2 single signed transaction should not work
+func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
+	testContext := prepareTestContextForGuardedAccounts(t)
+	defer testContext.Close()
+
+	// step 1 -  mint addresses
+	for _, address := range allAddresses {
+		mintAddress(t, testContext, address, initialMint)
+	}
+	expectedStatus := createUnGuardedAccountStatus()
+	for _, address := range allAddresses {
+		testGuardianStatus(t, testContext, address, expectedStatus)
+	}
+
+	currentEpoch := uint32(0)
+
+	// step 2 - alice sets bob as guardian
+	step2Epoch := currentEpoch
+	returnCode, err := setGuardian(testContext, alice, bob, uuid)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	currentEpoch += vm.EpochGuardianDelay
+	setNewEpochOnContext(testContext, currentEpoch)
+	returnCode, err = guardAccount(testContext, alice)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	expectedStatus = guardAccountStatus{
+		isGuarded: true,
+		active: &guardianInfo{
+			address: bob,
+			uuid:    uuid,
+			epoch:   step2Epoch + vm.EpochGuardianDelay,
+		},
+		pending: nil,
+	}
+	testGuardianStatus(t, testContext, alice, expectedStatus)
+
+	aliceCurrentBalance := getBalance(testContext, alice)
+	testContext.CleanIntermediateTransactions(t)
+
+	// step 3 - charlie sends a relayed transaction v1 on the behalf of alice
+	// 3.1 cosigned transaction should work
+	userTx := vm.CreateTransaction(
+		getNonce(testContext, alice),
+		transferValue,
+		alice,
+		david,
+		gasPrice,
+		transferGas+guardianSigVerificationGas,
+		make([]byte, 0))
+
+	userTx.GuardianAddr = bob
+	userTx.Options = userTx.Options | transaction.MaskGuardedTransaction
+	userTx.Version = txWithOptionVersion
+
+	rtxData := integrationTests.PrepareRelayedTxDataV2(userTx)
+	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediateTxs))
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	// expectedReturnMessage is hardcoded for backwards compatibility reasons
+	expectedReturnMessage := "transaction is not executable and gas will not be consumed, not allowed to bypass guardian"
+	require.Equal(t, expectedReturnMessage, string(scr.ReturnMessage))
+	// balance tests:
+	//  alice: aliceCurrentBalance (no fee for relayed transaction V2)
+	//  bob: initialMint
+	//  charlie: initialMint - rtxGasLimit * gasPrice
+	//  david: initialMint
+	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
+	bobExpectedBalance := big.NewInt(0).Set(initialMint)
+	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
+	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
+	assert.Equal(t, initialMint, getBalance(testContext, david))
+
+	charlieCurrentBalance := getBalance(testContext, charlie)
+	testContext.CleanIntermediateTransactions(t)
+
+	// 3.1 single signed transaction should not work
+	userTx = vm.CreateTransaction(
+		getNonce(testContext, alice),
+		transferValue,
+		alice,
+		david,
+		gasPrice,
+		transferGas+guardianSigVerificationGas,
+		make([]byte, 0))
+
+	userTx.Version = txWithOptionVersion
+
+	rtxData = integrationTests.PrepareRelayedTxDataV2(userTx)
+	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	intermediateTxs = testContext.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediateTxs))
+	scr = intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	require.Equal(t, expectedReturnMessage, string(scr.ReturnMessage))
+	// balance tests:
+	//  alice: aliceCurrentBalance (no fee for the failed relayed transaction)
+	//  bob: initialMint
+	//  charlie: charlieCurrentBalance - rtxGasLimit * gasPrice
+	//  david: davidCurrentBalance
+	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
+	bobExpectedBalance = big.NewInt(0).Set(initialMint)
+	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
+	charlieExpectedBalance = big.NewInt(0).Sub(charlieCurrentBalance, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
+	assert.Equal(t, initialMint, getBalance(testContext, david))
 }
