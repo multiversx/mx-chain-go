@@ -883,15 +883,6 @@ func dumpTrieContents(tr common.Trie, values [][]byte) {
 	}
 }
 
-func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	numNodes := tr.GetNumNodes()
-	assert.Equal(t, common.NumNodesDTO{}, numNodes)
-}
-
 func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	t.Parallel()
 
@@ -919,21 +910,6 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	assert.Equal(t, uint64(3), stats.NumLeafNodes)
 	assert.Equal(t, uint64(6), stats.TotalNumNodes)
 	assert.Equal(t, uint32(3), stats.MaxTrieDepth)
-}
-
-func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-	_ = tr.Update([]byte("eod"), []byte("reindeer"))
-	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
-
-	numNodes := tr.GetNumNodes()
-	assert.Equal(t, 5, numNodes.MaxLevel)
-	assert.Equal(t, 3, numNodes.Leaves)
-	assert.Equal(t, 2, numNodes.Extensions)
-	assert.Equal(t, 2, numNodes.Branches)
 }
 
 func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {

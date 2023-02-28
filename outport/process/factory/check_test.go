@@ -17,7 +17,7 @@ import (
 func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 	return ArgOutportDataProviderFactory{
 		HasDrivers:             false,
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		AddressConverter:       testscommon.NewPubkeyConverterMock(32),
 		AccountsDB:             &state.AccountsStub{},
 		Marshaller:             &testscommon.MarshalizerMock{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
