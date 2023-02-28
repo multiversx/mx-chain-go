@@ -251,10 +251,12 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+
 		storer := &storage.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key):
+				case bytes.Equal(epoch10Key, key):
 					return nil, errors.New("first get error")
 				default:
 					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
@@ -304,11 +306,15 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+		epoch9Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(9))...)
+		epoch8Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(8))...)
+
 		numPutCalls := uint32(0)
 		storer := &storage.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key):
+				case bytes.Equal(epoch10Key, key):
 					return nil, errors.New("first get error")
 				default:
 					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
@@ -317,13 +323,13 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			},
 			PutCalled: func(key, data []byte) error {
 				switch {
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...), key):
+				case bytes.Equal(epoch10Key, key):
 					numPutCalls++
 					return nil
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(9))...), key):
+				case bytes.Equal(epoch9Key, key):
 					numPutCalls++
 					return nil
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(8))...), key):
+				case bytes.Equal(epoch8Key, key):
 					numPutCalls++
 					return nil
 				default:
