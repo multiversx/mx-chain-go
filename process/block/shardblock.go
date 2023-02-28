@@ -813,6 +813,16 @@ func (sp *shardProcessor) CreateBlock(
 		if err != nil {
 			return nil, nil, err
 		}
+
+		epoch := sp.epochStartTrigger.MetaEpoch()
+		if initialHdr.GetEpoch() != epoch {
+			log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
+				"epoch from header", initialHdr.GetEpoch(), "epoch from epoch start trigger", epoch)
+			err = shardHdr.SetEpoch(epoch)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
