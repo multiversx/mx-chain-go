@@ -33,7 +33,6 @@ import (
 )
 
 const txWithOptionVersion = 2
-const gasPrice = uint64(10)
 const guardianSigVerificationGas = uint64(50000)
 const guardAccountGas = uint64(250000)
 const unGuardAccountGas = uint64(250000)
