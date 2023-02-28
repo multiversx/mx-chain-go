@@ -38,6 +38,17 @@ const unGuardAccountGas = uint64(250000)
 const setGuardianGas = uint64(250000)
 const transferGas = uint64(1000)
 
+var (
+	alice         = []byte("alice-12345678901234567890123456")
+	bob           = []byte("bob-1234567890123456789012345678")
+	charlie       = []byte("charlie-123456789012345678901234")
+	delta         = []byte("delta-12345678901234567890123456")
+	allAddresses  = [][]byte{alice, bob, charlie, delta}
+	uuid          = []byte("uuid")
+	transferValue = big.NewInt(2000000)
+	initialMint   = big.NewInt(1000000000000000000)
+)
+
 type guardianInfo struct {
 	address []byte
 	uuid    []byte
@@ -332,36 +343,30 @@ func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *tes
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
-	uuid := []byte("uuid")
-	initialMint := big.NewInt(1000000000000000000)
-	userAddress := []byte("user-123456789012345678901234567")
-	guardianAddress := []byte("guardian-12345678901234567890123")
-	mintAddress(t, testContext, userAddress, initialMint)
+	// alice is the user, bob is the guardian
+	mintAddress(t, testContext, alice, initialMint)
 
 	expectedStatus := createUnGuardedAccountStatus()
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	returnCode, err := setGuardianCoSigned(testContext, userAddress, guardianAddress, guardianAddress, uuid)
+	returnCode, err := setGuardianCoSigned(testContext, alice, bob, bob, uuid)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Equal(t, vmcommon.UserError, returnCode)
 
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 }
 
 func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
-	uuid := []byte("uuid")
-	initialMint := big.NewInt(1000000000000000000)
-	userAddress := []byte("user-123456789012345678901234567")
-	guardianAddress := []byte("guardian-12345678901234567890123")
-	mintAddress(t, testContext, userAddress, initialMint)
+	// alice is the user, bob is the guardian
+	mintAddress(t, testContext, alice, initialMint)
 
 	expectedStatus := createUnGuardedAccountStatus()
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	returnCode, err := setGuardian(testContext, userAddress, guardianAddress, uuid)
+	returnCode, err := setGuardian(testContext, alice, bob, uuid)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, returnCode)
 	currentEpoch := uint32(0)
@@ -370,15 +375,15 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 		isGuarded: false,
 		active:    nil,
 		pending: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch + vm.EpochGuardianDelay,
 		},
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// can not activate guardian now
-	returnCode, err = guardAccount(testContext, userAddress)
+	returnCode, err = guardAccount(testContext, alice)
 	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Equal(t, vmcommon.UserError, returnCode)
 
@@ -388,60 +393,54 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	expectedStatus = guardAccountStatus{
 		isGuarded: false,
 		active: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch,
 		},
 		pending: nil,
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// can activate guardian now
-	returnCode, err = guardAccount(testContext, userAddress)
+	returnCode, err = guardAccount(testContext, alice)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, returnCode)
 
 	expectedStatus = guardAccountStatus{
 		isGuarded: true,
 		active: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch,
 		},
 		pending: nil,
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 }
 
 func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
-	uuid := []byte("uuid")
-	transferValue := int64(2000000)
-	initialMint := big.NewInt(1000000000000000000)
-	userAddress := []byte("user-123456789012345678901234567")
-	receiverAddress := []byte("recv-123456789012345678901234567")
-	guardianAddress := []byte("guardian-12345678901234567890123")
-	wrongGuardianAddress := []byte("wrong-guardian-12345678901234523")
-	mintAddress(t, testContext, userAddress, initialMint)
+	// alice is the user, bob is the guardian, charlie is the receiver, delta is the wrong guardian
+	mintAddress(t, testContext, alice, initialMint)
 
 	expectedStatus := createUnGuardedAccountStatus()
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
 	// userAddress can send funds while not protected
-	err := transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
+	err := transferFunds(testContext, alice, transferValue, charlie)
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(transferValue), getBalance(testContext, receiverAddress))
+	require.Equal(t, transferValue, getBalance(testContext, charlie))
 
 	// userAddress can not send funds while not protected with a guardian address
-	err = transferFundsCoSigned(testContext, userAddress, big.NewInt(transferValue), receiverAddress, guardianAddress)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, bob)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "guarded transaction not expected")
-	require.Equal(t, big.NewInt(transferValue), getBalance(testContext, receiverAddress))
+	require.Equal(t, transferValue, getBalance(testContext, charlie))
 
 	// userAddress can send funds while it just added a guardian
-	returnCode, err := setGuardian(testContext, userAddress, guardianAddress, uuid)
+	returnCode, err := setGuardian(testContext, alice, bob, uuid)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	currentEpoch := uint32(0)
@@ -450,22 +449,22 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 		isGuarded: false,
 		active:    nil,
 		pending: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch + vm.EpochGuardianDelay,
 		},
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	err = transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
+	err = transferFunds(testContext, alice, transferValue, charlie)
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(transferValue*2), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*2), getBalance(testContext, charlie))
 
 	// userAddress can not send funds while not protected with a guardian address
-	err = transferFundsCoSigned(testContext, userAddress, big.NewInt(transferValue), receiverAddress, guardianAddress)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, bob)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "guarded transaction not expected")
-	require.Equal(t, big.NewInt(transferValue*2), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*2), getBalance(testContext, charlie))
 
 	// delay epoch pasts, the pending guardian is now active (but not activated), userAddress can send funds
 	currentEpoch = vm.EpochGuardianDelay
@@ -474,55 +473,55 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	expectedStatus = guardAccountStatus{
 		isGuarded: false,
 		active: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch,
 		},
 		pending: nil,
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	err = transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
+	err = transferFunds(testContext, alice, transferValue, charlie)
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(transferValue*3), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*3), getBalance(testContext, charlie))
 
 	// userAddress can not send funds while protected without setting the guardian address
-	returnCode, err = guardAccount(testContext, userAddress)
+	returnCode, err = guardAccount(testContext, alice)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, returnCode)
 
 	expectedStatus = guardAccountStatus{
 		isGuarded: true,
 		active: &guardianInfo{
-			address: guardianAddress,
+			address: bob,
 			uuid:    uuid,
 			epoch:   currentEpoch,
 		},
 		pending: nil,
 	}
-	testGuardianStatus(t, testContext, userAddress, expectedStatus)
+	testGuardianStatus(t, testContext, alice, expectedStatus)
 
-	err = transferFunds(testContext, userAddress, big.NewInt(transferValue), receiverAddress)
+	err = transferFunds(testContext, alice, transferValue, charlie)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "not allowed to bypass guardian")
-	require.Equal(t, big.NewInt(transferValue*3), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*3), getBalance(testContext, charlie))
 
 	// userAddress can send funds while protected with the guardian address
-	err = transferFundsCoSigned(testContext, userAddress, big.NewInt(transferValue), receiverAddress, guardianAddress)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, bob)
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(transferValue*4), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*4), getBalance(testContext, charlie))
 
-	// userAddress can not send funds while protected with a wrong guardian address
-	err = transferFundsCoSigned(testContext, userAddress, big.NewInt(transferValue), receiverAddress, wrongGuardianAddress)
+	// userAddress can not send funds while protected with a wrong guardian address (delta)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, delta)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "mismatch between transaction guardian and configured account guardian")
-	require.Equal(t, big.NewInt(transferValue*4), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*4), getBalance(testContext, charlie))
 
 	// userAddress can not send funds while protected with an empty guardian address
-	err = transferFundsCoSigned(testContext, userAddress, big.NewInt(transferValue), receiverAddress, nil)
+	err = transferFundsCoSigned(testContext, alice, transferValue, charlie, nil)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 	require.Contains(t, err.Error(), "mismatch between transaction guardian and configured account guardian")
-	require.Equal(t, big.NewInt(transferValue*4), getBalance(testContext, receiverAddress))
+	require.Equal(t, big.NewInt(transferValue.Int64()*4), getBalance(testContext, charlie))
 }
 
 // Scenario 1 description:
@@ -546,16 +545,6 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 func TestGuardAccount_Scenario1(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
-
-	uuid := []byte("uuid")
-	transferValue := big.NewInt(2000000)
-	initialMint := big.NewInt(1000000000000000000)
-
-	alice := []byte("alice-12345678901234567890123456")
-	bob := []byte("bob-1234567890123456789012345678")
-	charlie := []byte("charlie-123456789012345678901234")
-	delta := []byte("delta-12345678901234567890123456")
-	allAddresses := [][]byte{alice, bob, charlie, delta}
 
 	// step 1 -  mint addresses
 	for _, address := range allAddresses {
