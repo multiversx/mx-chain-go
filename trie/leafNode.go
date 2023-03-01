@@ -413,13 +413,6 @@ func (ln *leafNode) getChildren(_ common.DBWriteCacher) ([]node, error) {
 	return nil, nil
 }
 
-func (ln *leafNode) getNumNodes() common.NumNodesDTO {
-	return common.NumNodesDTO{
-		Leaves:   1,
-		MaxLevel: 1,
-	}
-}
-
 func (ln *leafNode) isValid() bool {
 	return len(ln.Value) > 0
 }
