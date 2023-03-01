@@ -10,15 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
-// NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
-// trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
-type NumNodesDTO struct {
-	Leaves     int
-	Extensions int
-	Branches   int
-	MaxLevel   int
-}
-
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
 type TrieIteratorChannels struct {
 	LeavesChan chan core.KeyValueHolder
@@ -40,7 +31,6 @@ type Trie interface {
 	GetOldRoot() []byte
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
-	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
@@ -333,6 +323,7 @@ type EnableEpochsHandler interface {
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool
+	IsRuntimeCodeSizeFixEnabled() bool
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool

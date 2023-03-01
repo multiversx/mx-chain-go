@@ -86,6 +86,7 @@ type epochFlagsHolder struct {
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
+	runtimeCodeSizeFixFlag                      *atomic.Flag
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
@@ -175,6 +176,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
+		runtimeCodeSizeFixFlag:                      &atomic.Flag{},
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
@@ -638,6 +640,11 @@ func (holder *epochFlagsHolder) IsFixOldTokenLiquidityEnabled() bool {
 // IsRuntimeMemStoreLimitEnabled returns true if runtimeMemStoreLimitFlag is enabled
 func (holder *epochFlagsHolder) IsRuntimeMemStoreLimitEnabled() bool {
 	return holder.runtimeMemStoreLimitFlag.IsSet()
+}
+
+// IsRuntimeCodeSizeFixEnabled returns true if runtimeCodeSizeFixFlag is enabled
+func (holder *epochFlagsHolder) IsRuntimeCodeSizeFixEnabled() bool {
+	return holder.runtimeCodeSizeFixFlag.IsSet()
 }
 
 // IsMaxBlockchainHookCountersFlagEnabled returns true if maxBlockchainHookCountersFlagEnabled is enabled
