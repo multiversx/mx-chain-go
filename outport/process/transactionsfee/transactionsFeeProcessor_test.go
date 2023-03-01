@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -297,4 +298,52 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFee())
 	require.Equal(t, uint64(550000000), initialTx.GetGasUsed())
 	require.Equal(t, "6103405000000000", initialTx.GetInitialPaidFee().String())
+}
+
+func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
+	t.Parallel()
+
+	_ = logger.SetLogLevel("*:TRACE")
+
+	txHash := []byte("relayedTx")
+	scrWithRefund := []byte("scrWithRefund")
+
+	refundValueBig, _ := big.NewInt(0).SetString("226498540000000", 10)
+
+	scr := outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
+		Nonce:          3,
+		SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq3dswlnnlkfd3gqrcv3dhzgnvh8ryf27g5rfsecnn2s"),
+		RcvAddr:        []byte("erd1k7j6ewjsla4zsgv8v6f6fe3dvrkgv3d0d9jerczw45hzedhyed8sh2u34u"),
+		PrevTxHash:     []byte("f639cb7a0231191e04ec19dcb1359bd93a03fe8dc4a28a80d00835c5d1c988f8"),
+		OriginalTxHash: txHash,
+		Value:          refundValueBig,
+		Data:           []byte("@ok"),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			"wrong":               outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{}, 0, big.NewInt(0)),
+			string(scrWithRefund): scr,
+		},
+	}
+
+	arg := prepareMockArg()
+
+	wasCalled := false
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	txsFeeProc.log = &testscommon.LoggerStub{
+		TraceCalled: func(message string, args ...interface{}) {
+			wasCalled = true
+			require.Equal(t, "transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", message)
+		},
+	}
+
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0), scr.GetFee())
+	require.Equal(t, uint64(0), scr.GetGasUsed())
+	require.True(t, wasCalled)
 }
