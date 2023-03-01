@@ -40,6 +40,7 @@ func NewShardStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider core.NodeTypeProviderHandler,
+	snapshotsEnabled bool,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -53,6 +54,7 @@ func NewShardStorageHandler(
 			CurrentEpoch:                  currentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              snapshotsEnabled,
 		},
 	)
 	if err != nil {
@@ -85,7 +87,7 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 }
 
 // SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
-func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool) error {
+func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool, syncedMiniBlocks map[string]*block.MiniBlock) error {
 	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
 		return err
@@ -102,6 +104,9 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	}
 
 	ssh.saveMiniblocksFromComponents(components)
+
+	log.Debug("saving synced miniblocks", "num miniblocks", len(syncedMiniBlocks))
+	ssh.saveMiniblocks(syncedMiniBlocks)
 
 	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, notarizedShardHeader, withScheduled)
 	if err != nil {

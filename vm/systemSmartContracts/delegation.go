@@ -1764,7 +1764,8 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	zeroValueByteSlice := make([]byte, 0)
-	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes())
+	unDelegateFundKey := delegator.UnStakedFunds[len(delegator.UnStakedFunds)-1]
+	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes(), unDelegateFundKey)
 
 	return vmcommon.Ok
 }
@@ -2102,6 +2103,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	totalUnBonded := big.NewInt(0)
 	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
+	withdrawFundKeys := make([][]byte, 0)
 	for fundIndex, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
 		if err != nil {
@@ -2124,6 +2126,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
+
+		withdrawFundKeys = append(withdrawFundKeys, fundKey)
 		d.eei.SetStorage(fundKey, nil)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
@@ -2153,7 +2157,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
+	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted, withdrawFundKeys)
 
 	return vmcommon.Ok
 }

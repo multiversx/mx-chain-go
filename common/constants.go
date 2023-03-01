@@ -198,6 +198,9 @@ const MetricConsensusRoundState = "erd_consensus_round_state"
 // MetricCrossCheckBlockHeight is the metric that store cross block height
 const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 
+// MetricCrossCheckBlockHeightMeta is the metric that store metachain cross block height
+const MetricCrossCheckBlockHeightMeta = "erd_cross_check_block_height_meta"
+
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
@@ -369,8 +372,8 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
-const ElrondAPICost = "ElrondAPICost"
+// BaseOpsAPICost represents the field name of the SC API (EEI) gas costs
+const BaseOpsAPICost = "BaseOpsAPICost"
 
 // MaxPerTransaction represents the field name of max counts per transaction in block chain hook
 const MaxPerTransaction = "MaxPerTransaction"

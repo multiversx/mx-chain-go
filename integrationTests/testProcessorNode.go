@@ -40,7 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -1358,7 +1358,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	if tpn.ValidatorStatisticsProcessor == nil {
-		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+				return []byte("validator statistics root hash"), nil
+			},
+		}
 	}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
@@ -1970,7 +1974,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
-			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -2861,6 +2864,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 		PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 		HeartbeatTimeBetweenSendsInSec:                   2,
+		HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 		HeartbeatTimeThresholdBetweenSends:               0.1,
 		HeartbeatExpiryTimespanInSec:                     300,

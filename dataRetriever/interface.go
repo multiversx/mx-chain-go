@@ -42,6 +42,12 @@ type HeaderResolver interface {
 	SetEpochHandler(epochHandler EpochHandler) error
 }
 
+// HeaderRequester defines what a block header requester should do
+type HeaderRequester interface {
+	Requester
+	SetEpochHandler(epochHandler EpochHandler) error
+}
+
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
 	Send(buff []byte, peer core.PeerID) error
@@ -147,16 +153,6 @@ type TopicHandler interface {
 type TopicMessageHandler interface {
 	MessageHandler
 	TopicHandler
-}
-
-// Messenger defines which methods a p2p messenger should implement
-type Messenger interface {
-	MessageHandler
-	TopicHandler
-	UnregisterMessageProcessor(topic string, identifier string) error
-	UnregisterAllMessageProcessors() error
-	UnjoinAllTopics() error
-	ConnectedPeers() []core.PeerID
 }
 
 // IntRandomizer interface provides functionality over generating integer numbers

@@ -42,7 +42,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
-	"github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,7 +139,6 @@ func createMockEpochStartBootstrapArgs(
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     5,
-				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
@@ -212,8 +211,8 @@ func createMockEpochStartBootstrapArgs(
 		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return notarizedShardHeader, nil, nil
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return notarizedShardHeader, nil, nil, nil
 					},
 					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 						return notarizedShardHeader.GetRootHash()
@@ -992,6 +991,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		},
 	}
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1011,6 +1011,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1037,6 +1038,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 	}
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1166,8 +1168,8 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return nil, nil, expectedErr
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return nil, nil, nil, expectedErr
 					},
 				}, nil
 			},
@@ -2022,8 +2024,8 @@ func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyn
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return nil, nil, expectedErr
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return nil, nil, nil, expectedErr
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return notarizedShardHeader.GetRootHash()
@@ -2110,8 +2112,8 @@ func TestEpochStartBootstrap_updateDataForScheduled(t *testing.T) {
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil, nil
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return expectedSyncData.rootHashToSync
@@ -2216,8 +2218,8 @@ func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
-				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil
+				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+					return expectedSyncData.ownShardHdr, expectedSyncData.additionalHeaders, nil, nil
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return expectedSyncData.rootHashToSync
