@@ -580,7 +580,7 @@
         MaxDeviationTimeInMilliseconds = 25
 
 [WebServerAntiflood]
-    WebServerAntifloodEnabled = true
+    WebServerAntifloodEnabled = false
     # SimultaneousRequests represents the number of concurrent requests accepted by the web server
     # this is a global throttler that acts on all http connections regardless of the originating source
     SimultaneousRequests = 100
