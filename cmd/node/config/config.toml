@@ -707,6 +707,9 @@
         "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
     ]
     MaxNumAddressesInTransferRole = 100
+    DNSV2Addresses =[
+        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
+    ]
 
 [Hardfork]
     EnableTrigger = true

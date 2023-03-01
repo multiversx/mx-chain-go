@@ -123,6 +123,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, errDecode
 	}
 
+	dnsV2AddressesStrings := args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses
+	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
+	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -132,6 +138,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.CoreComponents.EnableEpochsHandler(),
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		convertedDNSV2Addresses,
 	)
 	if err != nil {
 		return nil, err
@@ -332,6 +339,12 @@ func createScQueryElement(
 		return nil, errDecode
 	}
 
+	dnsV2AddressesStrings := args.generalConfig.BuiltInFunctions.DNSV2Addresses
+	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
+	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
@@ -341,6 +354,7 @@ func createScQueryElement(
 		args.coreComponents.EnableEpochsHandler(),
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		convertedDNSV2Addresses,
 	)
 	if err != nil {
 		return nil, err
@@ -474,10 +488,17 @@ func createBuiltinFuncs(
 	enableEpochsHandler vmcommon.EnableEpochsHandler,
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
+	dnsV2Addresses [][]byte,
 ) (vmcommon.BuiltInFunctionFactory, error) {
+	mapDNSV2Addresses := make(map[string]struct{})
+	for _, address := range dnsV2Addresses {
+		mapDNSV2Addresses[string(address)] = struct{}{}
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasScheduleNotifier,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         mapDNSV2Addresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  accnts,
 		ShardCoordinator:          shardCoordinator,

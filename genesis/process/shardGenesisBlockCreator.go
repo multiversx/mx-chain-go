@@ -390,6 +390,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               arg.GasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		EnableUserNameChange:      false,
 		Marshalizer:               arg.Core.InternalMarshalizer(),
 		Accounts:                  arg.Accounts,
