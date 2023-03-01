@@ -13,6 +13,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+const loggerName = "outport/process/transactionsfee"
+
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
 	Marshaller         marshal.Marshalizer
@@ -40,7 +42,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		txFeeCalculator:  arg.TxFeeCalculator,
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
-		log:              logger.GetOrCreate("outport/process/transactionsfee"),
+		log:              logger.GetOrCreate(loggerName),
 	}, nil
 }
 
