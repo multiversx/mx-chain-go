@@ -286,6 +286,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              false,
 		},
 	)
 	assert.NoError(t, err)
