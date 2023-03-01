@@ -890,15 +890,6 @@ func dumpTrieContents(tr common.Trie, values [][]byte) {
 	}
 }
 
-func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	numNodes := tr.GetNumNodes()
-	assert.Equal(t, common.NumNodesDTO{}, numNodes)
-}
-
 func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	t.Parallel()
 
@@ -926,21 +917,6 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	assert.Equal(t, uint64(3), stats.NumLeafNodes)
 	assert.Equal(t, uint64(6), stats.TotalNumNodes)
 	assert.Equal(t, uint32(3), stats.MaxTrieDepth)
-}
-
-func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-	_ = tr.Update([]byte("eod"), []byte("reindeer"))
-	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
-
-	numNodes := tr.GetNumNodes()
-	assert.Equal(t, 5, numNodes.MaxLevel)
-	assert.Equal(t, 3, numNodes.Leaves)
-	assert.Equal(t, 2, numNodes.Extensions)
-	assert.Equal(t, 2, numNodes.Branches)
 }
 
 func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
@@ -979,7 +955,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
-	numFunctions := 20
+	numFunctions := 19
 
 	initialRootHash, _ := tr.RootHash()
 
@@ -1051,14 +1027,11 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
 			case 16:
-				numNodes := tr.GetNumNodes()
-				assert.Equal(t, 4, numNodes.MaxLevel)
-			case 17:
 				sm := tr.GetStorageManager()
 				assert.NotNil(t, sm)
-			case 18:
+			case 17:
 				_ = tr.GetOldRoot()
-			case 19:
+			case 18:
 				trieStatsHandler := tr.(common.TrieStats)
 				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
 				assert.Nil(t, err)
