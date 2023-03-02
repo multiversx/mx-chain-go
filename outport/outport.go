@@ -63,7 +63,8 @@ func (o *outport) SaveBlock(args *outportcore.ArgsSaveBlockData) {
 		return
 	}
 
-	return
+	log.Warn("THE TASK WAS DONE ---- NODE CAN BE CLOSED", "HERE", "HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+	time.Sleep(100 * time.Hour)
 
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
