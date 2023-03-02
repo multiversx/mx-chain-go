@@ -2,6 +2,7 @@ package peersRating
 
 import (
 	"encoding/json"
+	"math/big"
 	"testing"
 	"time"
 
@@ -44,6 +45,10 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	resolverNode := createNodeWithPeersRatingHandler(shardID, numOfShards, peersRatingCfg)
 	maliciousNode := createNodeWithPeersRatingHandler(shardID, numOfShards, peersRatingCfg)
 	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, peersRatingCfg)
+
+	println("resolverNode", resolverNode.Messenger.ID().Pretty())
+	println("requesterNode", requesterNode.Messenger.ID().Pretty())
+	println("maliciousNode", maliciousNode.Messenger.ID().Pretty())
 
 	defer func() {
 		_ = resolverNode.Messenger.Close()
@@ -220,6 +225,8 @@ func getHeader() (*block.Header, []byte) {
 		MiniBlockHeaders: nil,
 		ChainID:          integrationTests.ChainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(100),
+		DeveloperFees:    big.NewInt(10),
 	}
 	hdrBuff, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	hdrHash := integrationTests.TestHasher.Compute(string(hdrBuff))
