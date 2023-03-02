@@ -625,6 +625,8 @@ github.com/multiversx/mx-chain-p2p-go v1.0.11 h1:lzGLvE/liPmNtJxbmEAWKWP9iy2XB6D
 github.com/multiversx/mx-chain-p2p-go v1.0.11/go.mod h1:j9Ueo2ptCnL7TQvQg6KS/KWAoJEJpjkPgE5ZTaqEAn4=
 github.com/multiversx/mx-chain-scenario-go v1.1.0 h1:egksOnqdlzNhpgm7YHf/T4Hy6RvZ5u4gunNZ41vP+kY=
 github.com/multiversx/mx-chain-scenario-go v1.1.0/go.mod h1:sVS6cEaF5k4IFEbHabhbgsve/Fk9qz3wIUIB0MpRMdI=
+github.com/multiversx/mx-chain-scenario-go v1.1.1 h1:yzE5XZdtJ8YKveS4nCini0YLh0AHHmBUB7gdWNKN5eg=
+github.com/multiversx/mx-chain-scenario-go v1.1.1/go.mod h1:sVS6cEaF5k4IFEbHabhbgsve/Fk9qz3wIUIB0MpRMdI=
 github.com/multiversx/mx-chain-storage-go v1.0.7 h1:UqLo/OLTD3IHiE/TB/SEdNRV1GG2f1R6vIP5ehHwCNw=
 github.com/multiversx/mx-chain-storage-go v1.0.7/go.mod h1:gtKoV32Cg2Uy8deHzF8Ud0qAl0zv92FvWgPSYIP0Zmg=
 github.com/multiversx/mx-chain-vm-common-go v1.3.33-0.20230123162357-c6f6931a3dec/go.mod h1:sZ2COLCxvf2GxAAJHGmGqWybObLtFuk2tZUyGqnMXE8=
@@ -634,6 +636,8 @@ github.com/multiversx/mx-chain-vm-common-go v1.3.37-0.20230222085047-fe49b9a8df7
 github.com/multiversx/mx-chain-vm-common-go v1.3.37-0.20230222085047-fe49b9a8df75/go.mod h1:sZ2COLCxvf2GxAAJHGmGqWybObLtFuk2tZUyGqnMXE8=
 github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230228080708-6c005f039f7e h1:BeVGCjHxk60Gy7cv4nNU8UZ0EcsC1JAlwFWJWERONiY=
 github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230228080708-6c005f039f7e/go.mod h1:nygu/fhAl+ywfyvBKCqljamyjdVwpntYG90GLDbqyPk=
+github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230302165325-47fe3c0c6b90 h1:wK2DBICLYv5K2edUbdfxbiH1eXITNXll5fNsHhGrXf8=
+github.com/multiversx/mx-chain-vm-go v1.5.3-0.20230302165325-47fe3c0c6b90/go.mod h1:n4PMmBX14dKEAAKu9rDAcOqUP2ds0GzexEYs1ggZX2E=
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.51-0.20230201121932-cbca1be832a0 h1:5PXFKTTCBJ0ouEDHobauvPk1Q8CA+tBqjw5oFXExbFg=
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.51-0.20230201121932-cbca1be832a0/go.mod h1:e3uYdgoKzs3puaznbmSjDcRisJc5Do4tpg7VqyYwoek=
 github.com/multiversx/mx-chain-vm-v1_3-go v1.3.51-0.20230120173525-f2b1a228e080 h1:dYS5t95odNUqOVyEackaQqdBQa3OhH3cVC1JX4DoHfo=
