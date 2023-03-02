@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 const loggerName = "outport/process/transactionsfee"
@@ -21,19 +22,28 @@ type ArgTransactionsFeeProcessor struct {
 	TransactionsStorer storage.Storer
 	ShardCoordinator   sharding.Coordinator
 	TxFeeCalculator    FeesProcessorHandler
+	PubKeyConverter    core.PubkeyConverter
 }
 
 type transactionsFeeProcessor struct {
 	txGetter         transactionGetter
 	txFeeCalculator  FeesProcessorHandler
 	shardCoordinator sharding.Coordinator
+	dataFieldParser  dataFieldParser
 	log              logger.Logger
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
 func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactionsFeeProcessor, error) {
 	err := checkArg(arg)
+	if err != nil {
+		return nil, err
+	}
 
+	parser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: arg.PubKeyConverter.Len(),
+		Marshalizer:   arg.Marshaller,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +53,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
 		log:              logger.GetOrCreate(loggerName),
+		dataFieldParser:  parser,
 	}, nil
 }
 
@@ -58,6 +69,9 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	}
 	if check.IfNil(arg.Marshaller) {
 		return ErrNilMarshaller
+	}
+	if check.IfNil(arg.PubKeyConverter) {
+		return core.ErrNilPubkeyConverter
 	}
 
 	return nil
@@ -92,7 +106,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		txWithResult.SetFee(fee)
 		txWithResult.SetInitialPaidFee(initialPaidFee)
 
-		if isRelayedTx(txWithResult) {
+		if isRelayedTx(txWithResult) || tep.isESDTOperationWithSCCall(txWithResult) {
 			txWithResult.SetGasUsed(txWithResult.GetGasLimit())
 			txWithResult.SetFee(initialPaidFee)
 		}
