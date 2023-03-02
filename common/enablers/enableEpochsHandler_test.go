@@ -91,7 +91,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		RuntimeCodeSizeFixEnableEpoch:                     77,
-		ChangeUserNameEnableEpoch:                         78,
+		ChangeUsernameEnableEpoch:                         78,
 	}
 }
 

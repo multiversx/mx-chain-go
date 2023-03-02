@@ -490,7 +490,7 @@ func createBuiltinFuncs(
 	maxNumAddressesInTransferRole uint32,
 	dnsV2Addresses [][]byte,
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	mapDNSV2Addresses := make(map[string]struct{})
+	mapDNSV2Addresses := make(map[string]struct{}, len(dnsV2Addresses))
 	for _, address := range dnsV2Addresses {
 		mapDNSV2Addresses[string(address)] = struct{}{}
 	}
