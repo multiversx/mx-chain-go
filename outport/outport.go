@@ -1,7 +1,9 @@
 package outport
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,6 +47,24 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 
 // SaveBlock will save block for every driver
 func (o *outport) SaveBlock(args *outportcore.ArgsSaveBlockData) {
+	if args.Header.GetNonce() != 13500777 {
+		return
+	}
+
+	argsBytes, err := json.MarshalIndent(args, " ", " ")
+	if err != nil {
+		log.Error("cannot marshal args save block", "err", err)
+		return
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("argsSaveBlock-%d.json", args.Header.GetNonce()), argsBytes, 0644)
+	if err != nil {
+		log.Error("cannot write file", "err", err)
+		return
+	}
+
+	return
+
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -109,6 +129,7 @@ func (o *outport) shouldTerminate() bool {
 
 // RevertIndexedBlock will revert block for every driver
 func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
+	return
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -140,6 +161,7 @@ func (o *outport) revertIndexedBlockBlocking(header data.HeaderHandler, body dat
 
 // SaveRoundsInfo will save rounds information for every driver
 func (o *outport) SaveRoundsInfo(roundsInfo []*outportcore.RoundInfo) {
+	return
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -171,6 +193,7 @@ func (o *outport) saveRoundsInfoBlocking(roundsInfo []*outportcore.RoundInfo, dr
 
 // SaveValidatorsPubKeys will save validators public keys for every driver
 func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
+	return
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -202,6 +225,7 @@ func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys map[uint32][][
 
 // SaveValidatorsRating will save validators rating for every driver
 func (o *outport) SaveValidatorsRating(indexID string, infoRating []*outportcore.ValidatorRatingInfo) {
+	return
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -233,6 +257,8 @@ func (o *outport) saveValidatorsRatingBlocking(indexID string, infoRating []*out
 
 // SaveAccounts will save accounts  for every driver
 func (o *outport) SaveAccounts(blockTimestamp uint64, acc map[string]*outportcore.AlteredAccount, shardID uint32) {
+	return
+
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -264,6 +290,8 @@ func (o *outport) saveAccountsBlocking(blockTimestamp uint64, acc map[string]*ou
 
 // FinalizedBlock will call all the drivers that a block is finalized
 func (o *outport) FinalizedBlock(headerHash []byte) {
+	return
+
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
