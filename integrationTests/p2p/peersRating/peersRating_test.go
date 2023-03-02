@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -62,7 +63,22 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	require.Nil(t, maliciousNode.ConnectTo(requesterNode))
 	time.Sleep(time.Second)
 
-	hdr, hdrHash := getHeader()
+	hdr, hdrHash, hdrBuff := getHeader()
+
+	// Broadcasts should not be considered for peers rating
+	topic := factory.ShardBlocksTopic + resolverNode.ShardCoordinator.CommunicationIdentifier(requesterNode.ShardCoordinator.SelfId())
+	resolverNode.Messenger.Broadcast(topic, hdrBuff)
+	time.Sleep(time.Second)
+	maliciousNode.Messenger.Broadcast(topic, hdrBuff)
+	time.Sleep(time.Second)
+	// check that broadcasts were successful
+	_, err := requesterNode.DataPool.Headers().GetHeaderByHash(hdrHash)
+	assert.Nil(t, err)
+	_, err = maliciousNode.DataPool.Headers().GetHeaderByHash(hdrHash)
+	assert.Nil(t, err)
+	// clean the above broadcasts consequences as only resolverNode should have the header
+	requesterNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
+	maliciousNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
 
 	numOfRequests := 10
 	// Add header to the resolver node's cache
@@ -75,13 +91,13 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	require.True(t, exists)
 	initialResolverExpectedRating := numOfRequests * (decreaseFactor + increaseFactor)
 	assert.Equal(t, int32(initialResolverExpectedRating), initialResolverRating.Rating)
-	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid)
+	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid, 3)
 	// malicious node should have only received numOfRequests
 	initialMaliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
 	initialMaliciousExpectedRating := numOfRequests * decreaseFactor
 	assert.Equal(t, int32(initialMaliciousExpectedRating), initialMaliciousRating.Rating)
-	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0)
+	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0, 3)
 
 	// Reach max limits
 	numOfRequests = 120
@@ -92,13 +108,13 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	initialResolverRating, exists = peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
 	assert.Equal(t, int32(100), initialResolverRating.Rating)
-	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid)
+	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid, 1)
 
 	// Malicious should have reached min limit and timestamps still update
 	initialMaliciousRating, exists = peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
 	assert.Equal(t, int32(-100), initialMaliciousRating.Rating)
-	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0)
+	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0, 1)
 
 	// Add header to the malicious node's cache and remove it from the resolver's cache
 	maliciousNode.DataPool.Headers().AddHeader(hdrHash, hdr)
@@ -112,13 +128,13 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	require.True(t, exists)
 	finalResolverExpectedRating := 100 + decreaseFactor*numOfRequests
 	assert.Equal(t, int32(finalResolverExpectedRating), resolverRating.Rating)
-	testTimestampsForNotRespondingNode(t, resolverRating.TimestampLastResponseFromPid, resolverRating.TimestampLastRequestToPid, initialResolverRating.TimestampLastResponseFromPid)
+	testTimestampsForNotRespondingNode(t, resolverRating.TimestampLastResponseFromPid, resolverRating.TimestampLastRequestToPid, initialResolverRating.TimestampLastResponseFromPid, 1)
 	// malicious node should have the min rating + numOfRequests that received and responded to
 	maliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
 	finalMaliciousExpectedRating := -100 + numOfRequests*increaseFactor + (numOfRequests-1)*decreaseFactor
 	assert.Equal(t, int32(finalMaliciousExpectedRating), maliciousRating.Rating)
-	testTimestampsForRespondingNode(t, maliciousRating.TimestampLastResponseFromPid, maliciousRating.TimestampLastRequestToPid)
+	testTimestampsForRespondingNode(t, maliciousRating.TimestampLastResponseFromPid, maliciousRating.TimestampLastRequestToPid, 1)
 }
 
 func TestPeersRatingAndCachersCleanup(t *testing.T) {
@@ -149,7 +165,7 @@ func TestPeersRatingAndCachersCleanup(t *testing.T) {
 	require.Nil(t, maliciousNode.ConnectTo(requesterNode))
 	time.Sleep(time.Second)
 
-	hdr, hdrHash := getHeader()
+	hdr, hdrHash, _ := getHeader()
 
 	numOfRequests := 10
 	// Add header to the resolver node's cache
@@ -162,13 +178,13 @@ func TestPeersRatingAndCachersCleanup(t *testing.T) {
 	require.True(t, exists)
 	initialResolverExpectedRating := numOfRequests * (decreaseFactor + increaseFactor)
 	assert.Equal(t, int32(initialResolverExpectedRating), initialResolverRating.Rating)
-	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid)
+	testTimestampsForRespondingNode(t, initialResolverRating.TimestampLastResponseFromPid, initialResolverRating.TimestampLastRequestToPid, 1)
 	// malicious node should have only received numOfRequests
 	initialMaliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
 	initialMaliciousExpectedRating := numOfRequests * decreaseFactor
 	assert.Equal(t, int32(initialMaliciousExpectedRating), initialMaliciousRating.Rating)
-	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0)
+	testTimestampsForNotRespondingNode(t, initialMaliciousRating.TimestampLastResponseFromPid, initialMaliciousRating.TimestampLastRequestToPid, 0, 1)
 
 	maliciousNode.Close()
 
@@ -208,7 +224,7 @@ func createNodeWithPeersRatingHandler(shardID uint32, numShards uint32, cfg conf
 	})
 }
 
-func getHeader() (*block.Header, []byte) {
+func getHeader() (*block.Header, []byte, []byte) {
 	hdr := &block.Header{
 		Nonce:            0,
 		PubKeysBitmap:    []byte{255, 0},
@@ -230,7 +246,7 @@ func getHeader() (*block.Header, []byte) {
 	}
 	hdrBuff, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	hdrHash := integrationTests.TestHasher.Compute(string(hdrBuff))
-	return hdr, hdrHash
+	return hdr, hdrHash, hdrBuff
 }
 
 func getRatingsMapFromMetric(t *testing.T, node *integrationTests.TestProcessorNode) map[string]*ratingInfo {
@@ -256,18 +272,18 @@ func requestHeader(requesterNode *integrationTests.TestProcessorNode, numOfReque
 	}
 }
 
-func testTimestampsForRespondingNode(t *testing.T, timestampLastResponse int64, timestampLastRequest int64) {
+func testTimestampsForRespondingNode(t *testing.T, timestampLastResponse int64, timestampLastRequest int64, allowedSecondsDelay int64) {
 	expectedMaxTimestamp := time.Now().Unix()
-	expectedMinTimestamp := time.Now().Unix() - 1
+	expectedMinTimestamp := time.Now().Unix() - allowedSecondsDelay
 	assert.LessOrEqual(t, timestampLastRequest, expectedMaxTimestamp)
 	assert.GreaterOrEqual(t, timestampLastRequest, expectedMinTimestamp)
 	assert.LessOrEqual(t, timestampLastResponse, expectedMaxTimestamp)
 	assert.GreaterOrEqual(t, timestampLastResponse, expectedMinTimestamp)
 }
 
-func testTimestampsForNotRespondingNode(t *testing.T, timestampLastResponse int64, timestampLastRequest int64, expectedTimestampLastResponse int64) {
+func testTimestampsForNotRespondingNode(t *testing.T, timestampLastResponse int64, timestampLastRequest int64, expectedTimestampLastResponse int64, allowedSecondsDelay int64) {
 	expectedMaxTimestamp := time.Now().Unix()
-	expectedMinTimestamp := time.Now().Unix() - 1
+	expectedMinTimestamp := time.Now().Unix() - allowedSecondsDelay
 	assert.LessOrEqual(t, timestampLastRequest, expectedMaxTimestamp)
 	assert.GreaterOrEqual(t, timestampLastRequest, expectedMinTimestamp)
 	assert.Equal(t, expectedTimestampLastResponse, timestampLastResponse)
