@@ -28,6 +28,7 @@ type DataComponentsFactoryArgs struct {
 	Crypto                        factory.CryptoComponentsHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	SnapshotsEnabled              bool
 }
 
 type dataComponentsFactory struct {
@@ -39,6 +40,7 @@ type dataComponentsFactory struct {
 	crypto                        factory.CryptoComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
+	snapshotsEnabled              bool
 }
 
 // dataComponents struct holds the data components
@@ -89,6 +91,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		statusCore:                    args.StatusCore,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
+		snapshotsEnabled:              args.SnapshotsEnabled,
 		crypto:                        args.Crypto,
 	}, nil
 }
@@ -178,6 +181,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
+			SnapshotsEnabled:              dcf.snapshotsEnabled,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
 		})
 	if err != nil {
