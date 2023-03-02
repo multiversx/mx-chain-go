@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,6 +58,11 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 			Preferences: config.PreferencesConfig{
 				Identity:        defaultIdentity,
 				NodeDisplayName: defaultName,
+			},
+		},
+		P2PKeyConverter: &p2pmocks.P2PKeyConverterStub{
+			ConvertPublicKeyToPeerIDCalled: func(pk crypto.PublicKey) (core.PeerID, error) {
+				return pid, nil
 			},
 		},
 	}
@@ -144,6 +150,16 @@ func TestNewManagedPeersHolder(t *testing.T) {
 
 		assert.True(t, errors.Is(err, keysManagement.ErrInvalidKey))
 		assert.True(t, strings.Contains(err.Error(), providedInvalidKey))
+		assert.True(t, check.IfNil(holder))
+	})
+	t.Run("nil p2p key converter should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsManagedPeersHolder()
+		args.P2PKeyConverter = nil
+		holder, err := keysManagement.NewManagedPeersHolder(args)
+
+		assert.True(t, errors.Is(err, keysManagement.ErrNilP2PKeyConverter))
 		assert.True(t, check.IfNil(holder))
 	})
 	t.Run("valid arguments should work", func(t *testing.T) {

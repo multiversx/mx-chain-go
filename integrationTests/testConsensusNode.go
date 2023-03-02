@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	syncFork "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -254,6 +255,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		IsMainMachine:                    true,
 		MaxRoundsWithoutReceivedMessages: 10,
 		PrefsConfig:                      config.Preferences{},
+		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 

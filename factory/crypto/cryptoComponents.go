@@ -215,6 +215,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		IsMainMachine:                    isMainMachine,
 		MaxRoundsWithoutReceivedMessages: redundancyLevel,
 		PrefsConfig:                      ccf.prefsConfig,
+		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
 	}
 	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {
@@ -230,7 +231,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
-	currentPid, err := p2pFactory.ConvertPublicKeyToPeerID(p2pCryptoParamsInstance.p2pPublicKey)
+	currentPid, err := argsManagedPeersHolder.P2PKeyConverter.ConvertPublicKeyToPeerID(p2pCryptoParamsInstance.p2pPublicKey)
 	if err != nil {
 		return nil, err
 	}
