@@ -66,7 +66,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, marshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -1067,6 +1067,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					context.Background(),
 					initialRootHash,
 					keyBuilder.NewKeyBuilder(),
+					parsers.NewMainTrieLeafParser(),
 				)
 				assert.Nil(t, err)
 			case 13:
@@ -1110,7 +1111,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, 5)
+	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	numGoRoutines := 1000
 	wgStart := sync.WaitGroup{}
 	wgStart.Add(numGoRoutines)
