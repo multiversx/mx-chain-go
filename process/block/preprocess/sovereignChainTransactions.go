@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
@@ -32,7 +31,7 @@ func NewSovereignChainTransactionPreprocessor(
 
 	sct.scheduledTXContinueFunc = sct.shouldContinueProcessingScheduledTx
 	sct.shouldSkipMiniBlockFunc = sct.shouldSkipMiniBlock
-	sct.isVerifyTransactionFailedFunc = sct.isVerifyTransactionFailed
+	sct.isTransactionEligibleForExecutionFunc = sct.isTransactionEligibleForExecution
 
 	return sct, nil
 }
@@ -166,61 +165,59 @@ func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
 }
 
 func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.MiniBlock) bool {
-	shouldSkipMiniBlock := miniBlock.SenderShardID != sct.shardCoordinator.SelfId() ||
-		!sct.isMiniBlockCorrect(miniBlock.Type)
-
-	return shouldSkipMiniBlock
+	return !sct.isMiniBlockCorrect(miniBlock.Type)
 }
 
-func (sct *sovereignChainTransactions) isVerifyTransactionFailed(tx data.TransactionHandler, senderAccount state.UserAccountHandler, err error) bool {
-	if err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction) {
-		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", err)
-		return true
+func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) bool {
+	if isCriticalError(err) {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", err)
+		return false
 	}
 
+	senderAccount, _, err := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
 	if check.IfNil(senderAccount) {
-		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrNilUserAccount)
-		return true
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrNilUserAccount)
+		return false
 	}
 
-	sct.mutSenderInfo.Lock()
-	defer sct.mutSenderInfo.Unlock()
-
-	sndAddr := string(tx.GetSndAddr())
-	si, ok := sct.senderInfo[sndAddr]
-	if !ok {
-		si = &senderInfo{
+	accntInfo, found := sct.accntsTracker.getAccountInfo(tx.GetSndAddr())
+	if !found {
+		accntInfo = accountInfo{
 			nonce:   senderAccount.GetNonce(),
 			balance: big.NewInt(0).Set(senderAccount.GetBalance()),
 		}
 	}
 
-	if si.nonce < tx.GetNonce() {
-		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrHigherNonceInTransaction,
-			"account nonce", si.nonce,
+	if accntInfo.nonce < tx.GetNonce() {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
+			"account nonce", accntInfo.nonce,
 			"tx nonce", tx.GetNonce())
-		return true
+		return false
 	}
 
 	txFee := sct.economicsFee.ComputeTxFee(tx)
-	if si.balance.Cmp(txFee) < 0 {
-		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrInsufficientFee,
-			"account balance", si.balance.String(),
+	if accntInfo.balance.Cmp(txFee) < 0 {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFee,
+			"account balance", accntInfo.balance.String(),
 			"fee needed", txFee.String())
-		return true
+		return false
 	}
 
 	cost := big.NewInt(0).Add(txFee, tx.GetValue())
-	if si.balance.Cmp(cost) < 0 {
-		log.Debug("sovereignChainTransactions.isVerifyTransactionFailed", "error", process.ErrInsufficientFunds,
-			"account balance", si.balance.String(),
+	if accntInfo.balance.Cmp(cost) < 0 {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFunds,
+			"account balance", accntInfo.balance.String(),
 			"cost", cost.String())
-		return true
+		return false
 	}
 
-	si.nonce++
-	si.balance = big.NewInt(0).Sub(si.balance, cost)
-	sct.senderInfo[sndAddr] = si
+	accntInfo.nonce++
+	accntInfo.balance.Sub(accntInfo.balance, cost)
+	sct.accntsTracker.setAccountInfo(tx.GetSndAddr(), accntInfo)
 
-	return false
+	return true
+}
+
+func isCriticalError(err error) bool {
+	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
 }

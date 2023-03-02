@@ -190,12 +190,15 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 			IsScheduledMiniBlocksFlagEnabledField: true,
 		}
 		args.TxProcessor = &testscommon.TxProcessorMock{
-			VerifyTransactionCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, error) {
+			VerifyTransactionCalled: func(tx *transaction.Transaction) error {
+				return nil
+			},
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
 				senderAccount := &state.UserAccountStub{
 					Nonce:   tx.Nonce,
 					Balance: big.NewInt(10),
 				}
-				return senderAccount, nil
+				return senderAccount, nil, nil
 			},
 		}
 
@@ -424,10 +427,10 @@ func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testin
 	})
 }
 
-func TestTxsPreprocessor_IsVerifyTransactionFailedShouldWork(t *testing.T) {
+func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("isVerifyTransactionFailed should return true when error is not nil and is not related to higher nonce in transaction", func(t *testing.T) {
+	t.Run("isTransactionEligibleForExecution should return false when error is not nil and is not related to higher nonce in transaction", func(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()
@@ -435,128 +438,149 @@ func TestTxsPreprocessor_IsVerifyTransactionFailedShouldWork(t *testing.T) {
 		tp, _ := NewTransactionPreprocessor(args)
 		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
 
-		value := sctp.isVerifyTransactionFailed(nil, nil, errors.New("error"))
-
-		assert.True(t, value)
-	})
-
-	t.Run("isVerifyTransactionFailed should return true when sender account is nil", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		value := sctp.isVerifyTransactionFailed(nil, nil, nil)
-
-		assert.True(t, value)
-	})
-
-	t.Run("isVerifyTransactionFailed should return true when transaction has a higher nonce", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		tx := &transaction.Transaction{
-			SndAddr: []byte("X"),
-			Nonce:   1,
-		}
-		senderAccount := &state.UserAccountStub{
-			Nonce:   0,
-			Balance: big.NewInt(10),
-		}
-		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
-
-		assert.True(t, value)
-	})
-
-	t.Run("isVerifyTransactionFailed should return true when account has insufficient balance for fees", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
-			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-				return big.NewInt(1)
-			},
-		}
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		tx := &transaction.Transaction{
-			SndAddr: []byte("X"),
-			Nonce:   1,
-		}
-		senderAccount := &state.UserAccountStub{
-			Nonce:   1,
-			Balance: big.NewInt(0),
-		}
-		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
-
-		assert.True(t, value)
-	})
-
-	t.Run("isVerifyTransactionFailed should return true when account has insufficient funds", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
-			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-				return big.NewInt(1)
-			},
-		}
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		tx := &transaction.Transaction{
-			SndAddr: []byte("X"),
-			Nonce:   1,
-			Value:   big.NewInt(2),
-		}
-		senderAccount := &state.UserAccountStub{
-			Nonce:   1,
-			Balance: big.NewInt(2),
-		}
-		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
-
-		assert.True(t, value)
-	})
-
-	t.Run("isVerifyTransactionFailed should return false", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
-			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-				return big.NewInt(1)
-			},
-		}
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		tx := &transaction.Transaction{
-			SndAddr: []byte("X"),
-			Nonce:   1,
-			Value:   big.NewInt(2),
-		}
-		senderAccount := &state.UserAccountStub{
-			Nonce:   1,
-			Balance: big.NewInt(10),
-		}
-		value := sctp.isVerifyTransactionFailed(tx, senderAccount, nil)
+		value := sctp.isTransactionEligibleForExecution(nil, errors.New("error"))
 
 		assert.False(t, value)
+	})
 
-		sctp.mutSenderInfo.RLock()
-		nonce := sctp.senderInfo[string(tx.GetSndAddr())].nonce
-		balance := sctp.senderInfo[string(tx.GetSndAddr())].balance
-		sctp.mutSenderInfo.RUnlock()
+	t.Run("isTransactionEligibleForExecution should return false when sender account is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		value := sctp.isTransactionEligibleForExecution(nil, nil)
+
+		assert.False(t, value)
+	})
+
+	t.Run("isTransactionEligibleForExecution should return false when transaction has a higher nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   0,
+					Balance: big.NewInt(10),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+		}
+		value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		assert.False(t, value)
+	})
+
+	t.Run("isTransactionEligibleForExecution should return false when account has insufficient balance for fees", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   1,
+					Balance: big.NewInt(0),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+		}
+		value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		assert.False(t, value)
+	})
+
+	t.Run("isTransactionEligibleForExecution should return false when account has insufficient funds", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   1,
+					Balance: big.NewInt(2),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+			Value:   big.NewInt(2),
+		}
+		value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		assert.False(t, value)
+	})
+
+	t.Run("isTransactionEligibleForExecution should return true", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.EconomicsFee = &mock.FeeHandlerStub{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(1)
+			},
+		}
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   1,
+					Balance: big.NewInt(10),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   1,
+			Value:   big.NewInt(2),
+		}
+		value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		assert.True(t, value)
+
+		accntInfo, found := sctp.accntsTracker.getAccountInfo(tx.GetSndAddr())
+		require.True(t, found)
+
+		nonce := accntInfo.nonce
+		balance := accntInfo.balance
 
 		assert.Equal(t, uint64(2), nonce)
 		assert.Equal(t, big.NewInt(7), balance)
@@ -566,15 +590,15 @@ func TestTxsPreprocessor_IsVerifyTransactionFailedShouldWork(t *testing.T) {
 			Nonce:   2,
 			Value:   big.NewInt(5),
 		}
+		value = sctp.isTransactionEligibleForExecution(tx2, nil)
 
-		value = sctp.isVerifyTransactionFailed(tx2, senderAccount, nil)
+		assert.True(t, value)
 
-		assert.False(t, value)
+		accntInfo, found = sctp.accntsTracker.getAccountInfo(tx2.GetSndAddr())
+		require.True(t, found)
 
-		sctp.mutSenderInfo.RLock()
-		nonce = sctp.senderInfo[string(tx2.GetSndAddr())].nonce
-		balance = sctp.senderInfo[string(tx2.GetSndAddr())].balance
-		sctp.mutSenderInfo.RUnlock()
+		nonce = accntInfo.nonce
+		balance = accntInfo.balance
 
 		assert.Equal(t, uint64(3), nonce)
 		assert.Equal(t, big.NewInt(1), balance)

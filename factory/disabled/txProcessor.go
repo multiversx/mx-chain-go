@@ -16,8 +16,13 @@ func (txProc *TxProcessor) ProcessTransaction(_ *transaction.Transaction) (vmcom
 }
 
 // VerifyTransaction does nothing as it is disabled
-func (txProc *TxProcessor) VerifyTransaction(_ *transaction.Transaction) (state.UserAccountHandler, error) {
-	return nil, nil
+func (txProc *TxProcessor) VerifyTransaction(_ *transaction.Transaction) error {
+	return nil
+}
+
+// GetSenderAndReceiverAccounts does nothing as it is disabled
+func (txProc *TxProcessor) GetSenderAndReceiverAccounts(_ *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	return nil, nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

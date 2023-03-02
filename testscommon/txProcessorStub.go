@@ -8,8 +8,9 @@ import (
 
 // TxProcessorStub -
 type TxProcessorStub struct {
-	ProcessTransactionCalled func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled  func(tx *transaction.Transaction) (state.UserAccountHandler, error)
+	ProcessTransactionCalled           func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled            func(tx *transaction.Transaction) error
+	GetSenderAndReceiverAccountsCalled func(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 }
 
 // ProcessTransaction -
@@ -22,12 +23,21 @@ func (tps *TxProcessorStub) ProcessTransaction(transaction *transaction.Transact
 }
 
 // VerifyTransaction -
-func (tps *TxProcessorStub) VerifyTransaction(tx *transaction.Transaction) (state.UserAccountHandler, error) {
+func (tps *TxProcessorStub) VerifyTransaction(tx *transaction.Transaction) error {
 	if tps.VerifyTransactionCalled != nil {
 		return tps.VerifyTransactionCalled(tx)
 	}
 
-	return nil, nil
+	return nil
+}
+
+// GetSenderAndReceiverAccounts -
+func (tps *TxProcessorStub) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	if tps.GetSenderAndReceiverAccountsCalled != nil {
+		return tps.GetSenderAndReceiverAccountsCalled(tx)
+	}
+
+	return nil, nil, nil
 }
 
 // IsInterfaceNil -

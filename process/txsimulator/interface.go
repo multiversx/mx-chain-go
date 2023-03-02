@@ -9,6 +9,7 @@ import (
 // TransactionProcessor defines the operations needed to be done by a transaction processor
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransaction(transaction *transaction.Transaction) (state.UserAccountHandler, error)
+	VerifyTransaction(transaction *transaction.Transaction) error
+	GetSenderAndReceiverAccounts(transaction *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }

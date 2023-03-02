@@ -11,10 +11,11 @@ import (
 
 // TxProcessorMock -
 type TxProcessorMock struct {
-	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled          func(tx *transaction.Transaction) (state.UserAccountHandler, error)
-	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
-	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
+	ProcessTransactionCalled           func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled            func(tx *transaction.Transaction) error
+	GetSenderAndReceiverAccountsCalled func(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
+	SetBalancesToTrieCalled            func(accBalance map[string]*big.Int) (rootHash []byte, err error)
+	ProcessSmartContractResultCalled   func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
 
 // ProcessTransaction -
@@ -27,12 +28,21 @@ func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transact
 }
 
 // VerifyTransaction -
-func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) (state.UserAccountHandler, error) {
+func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) error {
 	if etm.VerifyTransactionCalled != nil {
 		return etm.VerifyTransactionCalled(tx)
 	}
 
-	return nil, nil
+	return nil
+}
+
+// GetSenderAndReceiverAccounts -
+func (etm *TxProcessorMock) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	if etm.GetSenderAndReceiverAccountsCalled != nil {
+		return etm.GetSenderAndReceiverAccountsCalled(tx)
+	}
+
+	return nil, nil, nil
 }
 
 // SetBalancesToTrie -
