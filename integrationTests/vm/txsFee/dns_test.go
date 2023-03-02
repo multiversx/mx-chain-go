@@ -11,11 +11,15 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +42,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, rcvAddr, 0, senderBalance)
 
-	userName := utils.GenerateUserNameForMyDNSContract()
+	userName := utils.GenerateUserNameForDefaultDNSContract()
 	txData := []byte("register@" + hex.EncodeToString(userName))
 	// create username for sender
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
@@ -56,7 +60,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	// create username for receiver
-	rcvUserName := utils.GenerateUserNameForMyDNSContract()
+	rcvUserName := utils.GenerateUserNameForDefaultDNSContract()
 	txData = []byte("register@" + hex.EncodeToString(rcvUserName))
 	tx = vm.CreateTransaction(0, big.NewInt(0), rcvAddr, scAddress, gasPrice, gasLimit, txData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -100,4 +104,172 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
+}
+
+func getNonce(testContext *vm.VMTestContext, address []byte) uint64 {
+	accnt, _ := testContext.Accounts.LoadAccount(address)
+	return accnt.GetNonce()
+}
+
+// relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
+// from shard 1 that will try to set the username but fails.
+func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) {
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContextForDNSContract.Close()
+
+	// TODO remove this
+	logger.SetLogLevel("process:TRACE,vm:TRACE")
+
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContextForRelayerAndUser.Close()
+
+	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
+	fmt.Println(scAddress)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextForDNSContract)
+	require.Equal(t, uint32(1), testContextForDNSContract.ShardCoordinator.ComputeId(scAddress))
+
+	relayerAddress := []byte("relayer-901234567890123456789112")
+	require.Equal(t, uint32(2), testContextForRelayerAndUser.ShardCoordinator.ComputeId(relayerAddress))
+	userAddress := []byte("user-678901234567890123456789112")
+	require.Equal(t, uint32(2), testContextForRelayerAndUser.ShardCoordinator.ComputeId(userAddress))
+
+	initialBalance := big.NewInt(10000000)
+	_, _ = vm.CreateAccount(testContextForRelayerAndUser.Accounts, relayerAddress, 0, initialBalance)
+
+	firstUsername := utils.GenerateUserNameForDNSContract(scAddress)
+	args := argsProcessRegister{
+		relayerAddress:               relayerAddress,
+		userAddress:                  userAddress,
+		scAddress:                    scAddress,
+		testContextForRelayerAndUser: testContextForRelayerAndUser,
+		testContextForDNSContract:    testContextForDNSContract,
+		username:                     firstUsername,
+	}
+	scrs, retCode, err := processRegisterThroughRelayedTxs(t, args)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 3, len(scrs))
+
+	// check username
+	acc, _ := testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
+	account, _ := acc.(state.UserAccountHandler)
+	require.Equal(t, firstUsername, account.GetUserName())
+
+	// TODO refactor
+	for _, scr := range scrs {
+		log.Info("SCR: " + spew.Sdump(scr))
+	}
+
+	secondUsername := utils.GenerateUserNameForDNSContract(scAddress)
+	args.username = secondUsername
+
+	scrs, retCode, err = processRegisterThroughRelayedTxs(t, args)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	// TODO refactor
+	for _, scr := range scrs {
+		log.Info("SCR: " + spew.Sdump(scr))
+	}
+}
+
+type argsProcessRegister struct {
+	relayerAddress               []byte
+	userAddress                  []byte
+	scAddress                    []byte
+	testContextForRelayerAndUser *vm.VMTestContext
+	testContextForDNSContract    *vm.VMTestContext
+	username                     []byte
+}
+
+func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) ([]*smartContractResult.SmartContractResult, vmcommon.ReturnCode, error) {
+	overallReturnCode := vmcommon.Ok
+	scrs := make([]*smartContractResult.SmartContractResult, 0)
+
+	// generate de user transaction
+	gasPrice := uint64(10)
+	userTxData := []byte("register@" + hex.EncodeToString(args.username))
+	userTxGasLimit := uint64(200000)
+	userTx := vm.CreateTransaction(
+		getNonce(args.testContextForRelayerAndUser, args.userAddress),
+		big.NewInt(0),
+		args.userAddress,
+		args.scAddress,
+		gasPrice,
+		userTxGasLimit,
+		userTxData,
+	)
+
+	// generate the relayed transaction
+	relayedTxData := utils.PrepareRelayerTxData(userTx) // v1 will suffice
+	relayedTxGasLimit := userTxGasLimit + 1 + uint64(len(relayedTxData))
+	relayedTx := vm.CreateTransaction(
+		getNonce(args.testContextForRelayerAndUser, args.relayerAddress),
+		big.NewInt(0),
+		args.relayerAddress,
+		args.userAddress,
+		gasPrice,
+		relayedTxGasLimit,
+		relayedTxData,
+	)
+	// start executing relayed transaction
+	retCode, err := args.testContextForRelayerAndUser.TxProcessor.ProcessTransaction(relayedTx)
+	if retCode != vmcommon.Ok {
+		overallReturnCode = retCode
+	}
+	if err != nil {
+		return scrs, overallReturnCode, err
+	}
+
+	// record the SCR and clean all intermediate results
+	intermediateTxs := args.testContextForRelayerAndUser.GetIntermediateTransactions(tb)
+	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
+	require.Equal(tb, 1, len(intermediateTxs))
+	scrRegister := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	scrs = append(scrs, scrRegister)
+
+	// execute the scr on the shard that contains the dns contract
+	retCode, err = args.testContextForDNSContract.ScProcessor.ProcessSmartContractResult(scrRegister)
+	if retCode != vmcommon.Ok {
+		overallReturnCode = retCode
+	}
+	if err != nil {
+		return scrs, overallReturnCode, err
+	}
+
+	// record the SCR and clean all intermediate results
+	intermediateTxs = args.testContextForDNSContract.GetIntermediateTransactions(tb)
+	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
+	require.Equal(tb, 1, len(intermediateTxs))
+	scrSCProcess := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	scrs = append(scrs, scrSCProcess)
+
+	// execute the scr on the initial shard that contains the user address
+	retCode, err = args.testContextForRelayerAndUser.ScProcessor.ProcessSmartContractResult(scrSCProcess)
+	if retCode != vmcommon.Ok {
+		overallReturnCode = retCode
+	}
+	if err != nil {
+		return scrs, overallReturnCode, err
+	}
+
+	// record the SCR and clean all intermediate results
+	intermediateTxs = args.testContextForRelayerAndUser.GetIntermediateTransactions(tb)
+	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
+	require.Equal(tb, 1, len(intermediateTxs))
+	scrFinished := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	scrs = append(scrs, scrFinished)
+
+	// commit & cleanup
+	_, err = args.testContextForRelayerAndUser.Accounts.Commit()
+	require.Nil(tb, err)
+	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
+
+	_, err = args.testContextForDNSContract.Accounts.Commit()
+	require.Nil(tb, err)
+	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
+
+	return scrs, overallReturnCode, nil
 }
