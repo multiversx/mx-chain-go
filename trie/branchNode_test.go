@@ -1339,15 +1339,6 @@ func TestBranchNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextKey)
 }
 
-func TestBranchNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-	numNodes := bn.getNumNodes()
-
-	assert.Equal(t, common.NumNodesDTO{}, numNodes)
-}
-
 func TestBranchNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 

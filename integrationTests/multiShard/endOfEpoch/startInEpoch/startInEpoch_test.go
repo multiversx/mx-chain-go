@@ -133,6 +133,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	for _, node := range nodes {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
+		_ = dataRetriever.SetEpochHandlerToHdrRequester(node.RequestersContainer, epochHandler)
 	}
 
 	generalConfig := getGeneralConfig()
@@ -180,6 +181,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
+		assert.NoError(t, errRemoveDir)
+
+		errRemoveDir = os.RemoveAll("Static")
 		assert.NoError(t, errRemoveDir)
 	}()
 
@@ -282,6 +286,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              false,
 		},
 	)
 	assert.NoError(t, err)

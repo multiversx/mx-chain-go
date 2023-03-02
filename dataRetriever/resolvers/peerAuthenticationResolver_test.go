@@ -181,8 +181,8 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	})
 	t.Run("parseReceivedMessage returns error due to marshaller error", func(t *testing.T) {
 		t.Parallel()
