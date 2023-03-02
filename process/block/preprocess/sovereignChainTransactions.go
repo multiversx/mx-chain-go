@@ -170,13 +170,13 @@ func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.Mini
 
 func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) bool {
 	if isCriticalError(err) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", err)
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err)
 		return false
 	}
 
-	senderAccount, _, err := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
+	senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
 	if check.IfNil(senderAccount) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrNilUserAccount)
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
 		return false
 	}
 
