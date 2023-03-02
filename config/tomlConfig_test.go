@@ -684,8 +684,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
-    # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
-    ChangeUsernameEnableEpoch = 64
+    # ChangeUserNameEnableEpoch represents the epoch when change username is enabled
+    ChangeUserNameEnableEpoch = 64
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
