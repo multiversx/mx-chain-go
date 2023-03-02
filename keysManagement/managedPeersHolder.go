@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -29,6 +29,7 @@ type managedPeersHolder struct {
 	maxRoundsWithoutReceivedMessages int
 	defaultName                      string
 	defaultIdentity                  string
+	p2pKeyConverter                  p2p.P2PKeyConverter
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
@@ -38,6 +39,7 @@ type ArgsManagedPeersHolder struct {
 	IsMainMachine                    bool
 	MaxRoundsWithoutReceivedMessages int
 	PrefsConfig                      config.Preferences
+	P2PKeyConverter                  p2p.P2PKeyConverter
 }
 
 // NewManagedPeersHolder creates a new instance of a managed peers holder
@@ -61,6 +63,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
 		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
 		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
+		p2pKeyConverter:                  args.P2PKeyConverter,
 	}
 
 	return holder, nil
@@ -76,6 +79,9 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	if args.MaxRoundsWithoutReceivedMessages < minRoundsWithoutReceivedMessages {
 		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
 			ErrInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
+	}
+	if check.IfNil(args.P2PKeyConverter) {
+		return fmt.Errorf("%w for args.P2PKeyConverter", ErrNilP2PKeyConverter)
 	}
 
 	return nil
@@ -125,7 +131,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 		return err
 	}
 
-	pid, err := factory.ConvertPublicKeyToPeerID(p2pPublicKey)
+	pid, err := holder.p2pKeyConverter.ConvertPublicKeyToPeerID(p2pPublicKey)
 	if err != nil {
 		return err
 	}

@@ -48,6 +48,7 @@ type StorageServiceFactory struct {
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
+	snapshotsEnabled              bool
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -62,6 +63,7 @@ type StorageServiceFactoryArgs struct {
 	ManagedPeersHolder            storage.ManagedPeersHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	SnapshotsEnabled              bool
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -94,6 +96,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
+		snapshotsEnabled:              args.SnapshotsEnabled,
 	}, nil
 }
 
@@ -378,7 +381,7 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
-	if !psf.generalConfig.StateTriesConfig.SnapshotsEnabled {
+	if !psf.snapshotsEnabled {
 		return psf.createTriePersister(storageConfig)
 	}
 

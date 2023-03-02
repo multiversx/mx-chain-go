@@ -25,3 +25,6 @@ var ErrNilPrivateKey = errors.New("nil private key")
 
 // ErrEmptyPeerID signals that an empty peer ID was provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrNilP2PKeyConverter signals that a nil p2p key converter has been provided
+var ErrNilP2PKeyConverter = errors.New("nil p2p key converter")

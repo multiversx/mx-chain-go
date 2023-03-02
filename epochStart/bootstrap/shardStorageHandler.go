@@ -40,6 +40,7 @@ func NewShardStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider core.NodeTypeProviderHandler,
+	snapshotsEnabled bool,
 	managedPeersHolder common.ManagedPeersHolder,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
@@ -54,6 +55,7 @@ func NewShardStorageHandler(
 			CurrentEpoch:                  currentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              snapshotsEnabled,
 			ManagedPeersHolder:            managedPeersHolder,
 		},
 	)
