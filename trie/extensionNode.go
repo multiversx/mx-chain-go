@@ -220,7 +220,7 @@ func (en *extensionNode) commitCheckpoint(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -262,7 +262,7 @@ func (en *extensionNode) commitSnapshot(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -650,18 +650,6 @@ func (en *extensionNode) getChildren(db common.DBWriteCacher) ([]node, error) {
 	nextNodes = append(nextNodes, en.child)
 
 	return nextNodes, nil
-}
-
-func (en *extensionNode) getNumNodes() common.NumNodesDTO {
-	if check.IfNil(en) {
-		return common.NumNodesDTO{}
-	}
-
-	childNumNodes := en.child.getNumNodes()
-	childNumNodes.Extensions++
-	childNumNodes.MaxLevel++
-
-	return childNumNodes
 }
 
 func (en *extensionNode) isValid() bool {
