@@ -47,10 +47,6 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	maliciousNode := createNodeWithPeersRatingHandler(shardID, numOfShards, peersRatingCfg)
 	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, peersRatingCfg)
 
-	println("resolverNode", resolverNode.Messenger.ID().Pretty())
-	println("requesterNode", requesterNode.Messenger.ID().Pretty())
-	println("maliciousNode", maliciousNode.Messenger.ID().Pretty())
-
 	defer func() {
 		_ = resolverNode.Messenger.Close()
 		_ = maliciousNode.Messenger.Close()
