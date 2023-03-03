@@ -30,6 +30,7 @@ type StateComponentsFactoryArgs struct {
 	StorageService           dataRetriever.StorageService
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
+	SnapshotsEnabled         bool
 	ChainHandler             chainData.ChainHandler
 }
 
@@ -41,6 +42,7 @@ type stateComponentsFactory struct {
 	storageService           dataRetriever.StorageService
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
+	snapshotsEnabled         bool
 	chainHandler             chainData.ChainHandler
 }
 
@@ -94,12 +96,14 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		processingMode:           args.ProcessingMode,
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		chainHandler:             args.ChainHandler,
+		snapshotsEnabled:         args.SnapshotsEnabled,
 	}, nil
 }
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
+		scf.snapshotsEnabled,
 		scf.config,
 		scf.core,
 		scf.storageService,
