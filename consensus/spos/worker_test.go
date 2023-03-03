@@ -507,6 +507,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
@@ -599,6 +600,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -710,6 +712,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 
 	time.Sleep(delay)
@@ -746,6 +749,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(
@@ -778,6 +782,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -814,6 +819,7 @@ func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(
@@ -848,6 +854,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -884,6 +891,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(
@@ -918,6 +926,7 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -963,6 +972,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(
@@ -998,6 +1008,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	msg := &mock.P2PMessageMock{
@@ -1032,6 +1043,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -1083,6 +1095,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -1138,6 +1151,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
@@ -1208,6 +1222,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	msg := &mock.P2PMessageMock{
@@ -1241,6 +1256,7 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Equal(t, spos.ErrMessageFromItself, err)
@@ -1265,6 +1281,7 @@ func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Equal(t, spos.ErrRoundCanceled, err)
@@ -1287,6 +1304,7 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
@@ -1312,6 +1330,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	err := wrk.CheckSignature(cnsMsg)
@@ -1339,6 +1358,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
@@ -1371,6 +1391,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1401,6 +1422,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
@@ -1433,6 +1455,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1463,6 +1486,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
@@ -1495,6 +1519,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
@@ -1539,6 +1564,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	wrk.ExecuteMessageChannel() <- cnsMsg
@@ -1674,6 +1700,7 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1733,6 +1760,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
@@ -1776,6 +1804,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 			nil,
 			currentPid,
 			nil,
+			hdrHash,
 		)
 		buff, err := wrk.Marshalizer().Marshal(cnsMsg)
 		require.Nil(t, err)

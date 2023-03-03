@@ -197,6 +197,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		sr.CurrentPid(),
 		nil,
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -233,6 +234,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		sr.CurrentPid(),
 		nil,
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -266,6 +268,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		nil,
 		sr.CurrentPid(),
+		nil,
 		nil,
 	)
 
@@ -383,7 +386,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
-	sr.Data = cnsDta.BlockHeaderHash
+	sr.Data = cnsDta.HeaderHash
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
@@ -394,7 +397,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 
 	log.Debug("step 1: block body and header have been received",
 		"nonce", sr.Header.GetNonce(),
-		"hash", cnsDta.BlockHeaderHash)
+		"hash", cnsDta.HeaderHash)
 
 	sw.Start("processReceivedBlock")
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
@@ -482,7 +485,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
-	sr.Data = cnsDta.BlockHeaderHash
+	sr.Data = cnsDta.HeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	if sr.isInvalidHeaderOrData() {
@@ -491,7 +494,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),
-		"hash", cnsDta.BlockHeaderHash)
+		"hash", cnsDta.HeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(

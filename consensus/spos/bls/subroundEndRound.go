@@ -94,7 +94,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 
@@ -181,7 +181,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 
@@ -244,11 +244,11 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	}
 
 	singleSigner := sr.SingleSigner()
-	err = singleSigner.Verify(pubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
+	err = singleSigner.Verify(pubKey, cnsMsg.HeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
-			"blockHeaderHash", cnsMsg.BlockHeaderHash,
+			"headerHash", cnsMsg.HeaderHash,
 			"error", err.Error(),
 		)
 		sr.applyBlacklistOnNode(msg.Peer())
@@ -543,6 +543,8 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
+	processedHeaderHash := sr.getMessageToVerifySigFunc()
+
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -558,6 +560,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetLeaderSignature(),
 		sr.CurrentPid(),
 		nil,
+		processedHeaderHash,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -573,6 +576,8 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+	processedHeaderHash := sr.getMessageToVerifySigFunc()
+
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -588,6 +593,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sr.CurrentPid(),
 		invalidSigners,
+		processedHeaderHash,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)

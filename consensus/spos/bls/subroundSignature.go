@@ -81,7 +81,8 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(sr.getMessageToSignFunc(), uint16(selfIndex), sr.Header.GetEpoch())
+	processedHeaderHash := sr.getMessageToSignFunc()
+	signatureShare, err := sr.SignatureHandler().CreateSignatureShare(processedHeaderHash, uint16(selfIndex), sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
 		return false
@@ -106,6 +107,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			sr.CurrentPid(),
 			nil,
+			processedHeaderHash,
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -157,7 +159,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 

@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -19,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -816,8 +816,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 
 	cnsData := consensus.Message{
 		// apply the data which is mocked in consensus state so the checks will pass
-		BlockHeaderHash: []byte("X"),
-		PubKey:          []byte("A"),
+		HeaderHash: []byte("X"),
+		PubKey:     []byte("A"),
 	}
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 	assert.True(t, res)
@@ -840,8 +840,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinal
 	container.SetHeaderSigVerifier(headerSigVerifier)
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	cnsData := consensus.Message{
-		BlockHeaderHash: []byte("X"),
-		PubKey:          []byte("A"),
+		HeaderHash: []byte("X"),
+		PubKey:     []byte("A"),
 	}
 	sr.Header = &block.Header{}
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
@@ -1207,8 +1207,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr.ConsensusState.Data = nil
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1223,8 +1223,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("other node"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("other node"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1240,8 +1240,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr.SetSelfPubKey("A")
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1256,8 +1256,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("Y"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("Y"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1272,9 +1272,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			RoundIndex:      1,
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
+			RoundIndex: 1,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1288,9 +1288,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte{},
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte{},
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1312,9 +1312,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("invalid data"),
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte("invalid data"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1329,9 +1329,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("invalidSignersData"),
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte("invalidSignersData"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
