@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -378,7 +379,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 			Epoch: expectedEpoch,
 		},
 	)
-	msg := &mock.P2PMessageMock{DataField: buff}
+	msg := &p2pmocks.P2PMessageMock{DataField: buff}
 	_ = hdrRes.ProcessReceivedMessage(msg, "")
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)

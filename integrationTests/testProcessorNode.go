@@ -1335,7 +1335,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:          tpn.PeersRatingHandler,
 		SizeCheckDelta:              0,
 	}
 
