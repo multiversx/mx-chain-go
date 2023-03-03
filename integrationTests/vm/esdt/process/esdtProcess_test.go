@@ -1308,7 +1308,8 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 
 	// deploy parent contract
 	callerScCode := wasm.GetSCCode("../../wasm/testdata/community/parent.wasm")
-	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	callerScAddress, err := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	require.Nil(t, err)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
@@ -1320,8 +1321,8 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
-	_, err := nodes[0].AccntState.GetExistingAccount(callerScAddress)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(callerScAddress)
 	require.Nil(t, err)
 
 	// deploy child contract by calling deployChildContract endpoint
