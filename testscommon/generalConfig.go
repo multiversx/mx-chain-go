@@ -123,7 +123,6 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
-			SnapshotsEnabled:            false,
 			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,

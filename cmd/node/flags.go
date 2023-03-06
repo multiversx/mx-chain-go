@@ -365,6 +365,12 @@ var (
 		Value: "./config/p2pKey.pem",
 	}
 
+	// snapshotsEnabled is used to enable snapshots, if it is not set it defaults to true, it will be set to false if it is set specifically
+	snapshotsEnabled = cli.BoolTFlag{
+		Name:  "snapshots-enabled",
+		Usage: "Boolean option for enabling state snapshots. If it is not set it defaults to true, it will be set to false if it is set specifically as --snapshots-enabled=false",
+	}
+
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
@@ -425,6 +431,7 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		snapshotsEnabled,
 		dbDirectory,
 		logsDirectory,
 		operationMode,
@@ -455,6 +462,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 
 	return flagsConfig
@@ -627,12 +635,12 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
-	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.FlagsConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
 	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"FlagsConfig.SnapshotsEnabled", configs.FlagsConfig.SnapshotsEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }

@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-p2p-go/libp2p"
 	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
@@ -45,9 +43,9 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
 }
 
-// ConvertPublicKeyToPeerID will convert a public key to core.PeerID
-func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
-	return p2pCrypto.ConvertPublicKeyToPeerID(pk)
+// NewP2PKeyConverter returns a new instance of p2pKeyConverter
+func NewP2PKeyConverter() p2p.P2PKeyConverter {
+	return p2pCrypto.NewP2PKeyConverter()
 }
 
 // NewMessageVerifier will return a new instance of messages verifier
