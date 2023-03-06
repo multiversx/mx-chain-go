@@ -113,6 +113,7 @@ type EnableEpochsHandlerStub struct {
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
+	IsRuntimeCodeSizeFixEnabledField                             bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
@@ -979,6 +980,14 @@ func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRuntimeMemStoreLimitEnabledField
+}
+
+// IsRuntimeCodeSizeFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsRuntimeCodeSizeFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRuntimeCodeSizeFixEnabledField
 }
 
 // IsMaxBlockchainHookCountersFlagEnabled -

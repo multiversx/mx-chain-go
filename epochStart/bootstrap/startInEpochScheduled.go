@@ -237,7 +237,7 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 	header data.HeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 ) error {
-	scheduledTxHashes, err := ses.getScheduledTransactionHashes(prevHeader)
+	scheduledTxHashes, prevHeaderMiniblocks, err := ses.getScheduledTransactionHashes(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -270,6 +270,14 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 			MiniBlocks:      scheduledMiniBlocks,
 		}
 		ses.saveScheduledInfo(header.GetPrevHash(), scheduledInfo)
+	}
+
+	if miniBlocks == nil {
+		miniBlocks = make(map[string]*block.MiniBlock)
+	}
+
+	for hash, mb := range prevHeaderMiniblocks {
+		miniBlocks[hash] = mb
 	}
 
 	return nil
@@ -430,11 +438,11 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledMiniBlockHeaders(hea
 	return schMiniBlockHeaders
 }
 
-func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(header data.HeaderHandler) (map[string]uint32, error) {
+func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(header data.HeaderHandler) (map[string]uint32, map[string]*block.MiniBlock, error) {
 	miniBlockHeaders := ses.getScheduledMiniBlockHeaders(header)
 	miniBlocks, err := ses.getRequiredMiniBlocksByMbHeader(miniBlockHeaders)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	scheduledTxsForShard := make(map[string]uint32)
@@ -447,7 +455,7 @@ func (ses *startInEpochWithScheduledDataSyncer) getScheduledTransactionHashes(he
 		createScheduledTxsForShardMap(pi, miniBlock, miniBlockHash, scheduledTxsForShard)
 	}
 
-	return scheduledTxsForShard, nil
+	return scheduledTxsForShard, miniBlocks, nil
 }
 
 func getMiniBlockAndProcessedIndexes(
