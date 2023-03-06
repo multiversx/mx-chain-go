@@ -176,7 +176,12 @@ func (ln *leafNode) commitCheckpoint(
 		return err
 	}
 
-	stats.AddLeafNode(depthLevel, uint64(nodeSize))
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	stats.AddLeafNode(depthLevel, uint64(nodeSize), version)
 
 	return nil
 }
@@ -209,7 +214,12 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(depthLevel, uint64(nodeSize))
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	stats.AddLeafNode(depthLevel, uint64(nodeSize), version)
 
 	return nil
 }
@@ -554,7 +564,12 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 		return err
 	}
 
-	ts.AddLeafNode(depthLevel, uint64(len(val)))
+	version, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	ts.AddLeafNode(depthLevel, uint64(len(val)), version)
 	return nil
 }
 

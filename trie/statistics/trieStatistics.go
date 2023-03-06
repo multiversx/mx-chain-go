@@ -15,6 +15,8 @@ type trieStatistics struct {
 	branchNodes    *nodesStatistics
 	extensionNodes *nodesStatistics
 	leafNodes      *nodesStatistics
+
+	migrationStats map[core.TrieNodeVersion]uint64
 }
 
 type nodesStatistics struct {
@@ -40,6 +42,7 @@ func NewTrieStatistics() *trieStatistics {
 			nodesSize: 0,
 			numNodes:  0,
 		},
+		migrationStats: make(map[core.TrieNodeVersion]uint64),
 	}
 }
 
@@ -54,8 +57,9 @@ func (ts *trieStatistics) AddExtensionNode(level int, size uint64) {
 }
 
 // AddLeafNode will add the given level and size to the leaf nodes statistics
-func (ts *trieStatistics) AddLeafNode(level int, size uint64) {
+func (ts *trieStatistics) AddLeafNode(level int, size uint64, version core.TrieNodeVersion) {
 	ts.collectNodeStatistics(level, size, ts.leafNodes)
+	ts.migrationStats[version]++
 }
 
 // AddAccountInfo will add the address and rootHash to  the collected statistics
@@ -79,17 +83,18 @@ func (ts *trieStatistics) GetTrieStats() *TrieStatsDTO {
 	totalNumNodes := ts.branchNodes.numNodes + ts.extensionNodes.numNodes + ts.leafNodes.numNodes
 
 	return &TrieStatsDTO{
-		Address:            ts.address,
-		RootHash:           ts.rootHash,
-		TotalNodesSize:     totalNodesSize,
-		TotalNumNodes:      totalNumNodes,
-		MaxTrieDepth:       ts.maxTrieDepth,
-		BranchNodesSize:    ts.branchNodes.nodesSize,
-		NumBranchNodes:     ts.branchNodes.numNodes,
-		ExtensionNodesSize: ts.extensionNodes.nodesSize,
-		NumExtensionNodes:  ts.extensionNodes.numNodes,
-		LeafNodesSize:      ts.leafNodes.nodesSize,
-		NumLeafNodes:       ts.leafNodes.numNodes,
+		Address:              ts.address,
+		RootHash:             ts.rootHash,
+		TotalNodesSize:       totalNodesSize,
+		TotalNumNodes:        totalNumNodes,
+		MaxTrieDepth:         ts.maxTrieDepth,
+		BranchNodesSize:      ts.branchNodes.nodesSize,
+		NumBranchNodes:       ts.branchNodes.numNodes,
+		ExtensionNodesSize:   ts.extensionNodes.nodesSize,
+		NumExtensionNodes:    ts.extensionNodes.numNodes,
+		LeafNodesSize:        ts.leafNodes.nodesSize,
+		NumLeafNodes:         ts.leafNodes.numNodes,
+		LeavesMigrationStats: ts.migrationStats,
 	}
 }
 
@@ -101,12 +106,13 @@ type TrieStatsDTO struct {
 	TotalNumNodes  uint64
 	MaxTrieDepth   uint32
 
-	BranchNodesSize    uint64
-	NumBranchNodes     uint64
-	ExtensionNodesSize uint64
-	NumExtensionNodes  uint64
-	LeafNodesSize      uint64
-	NumLeafNodes       uint64
+	BranchNodesSize      uint64
+	NumBranchNodes       uint64
+	ExtensionNodesSize   uint64
+	NumExtensionNodes    uint64
+	LeafNodesSize        uint64
+	NumLeafNodes         uint64
+	LeavesMigrationStats map[core.TrieNodeVersion]uint64
 }
 
 // ToString returns the collected statistics as a string array
@@ -123,5 +129,28 @@ func (tsd *TrieStatsDTO) ToString() []string {
 	stats = append(stats, fmt.Sprintf("num branches %v,", tsd.NumBranchNodes))
 	stats = append(stats, fmt.Sprintf("num extensions %v,", tsd.NumExtensionNodes))
 	stats = append(stats, fmt.Sprintf("num leaves %v", tsd.NumLeafNodes))
+	stats = append(stats, getMigrationStatsString(tsd.LeavesMigrationStats)...)
 	return stats
+}
+
+func getMigrationStatsString(migrationStats map[core.TrieNodeVersion]uint64) []string {
+	stats := make([]string, 0)
+	for version, numNodes := range migrationStats {
+		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", getStringForVersion(version), numNodes))
+	}
+
+	return stats
+}
+
+// TODO move this to core
+func getStringForVersion(version core.TrieNodeVersion) string {
+	switch version {
+	case core.NotSpecified:
+		return "not specified"
+	case core.AutoBalanceEnabled:
+		return "auto balanced"
+	default:
+		log.Warn("unknown trie node version", "version", version)
+		return "unknown"
+	}
 }

@@ -24,6 +24,7 @@ type trieStatisticsCollector struct {
 	totalSizeBranches   uint64
 	triesBySize         []*TrieStatsDTO
 	triesByDepth        []*TrieStatsDTO
+	migrationStats      map[core.TrieNodeVersion]uint64
 }
 
 // NewTrieStatisticsCollector creates a new instance of trieStatisticsCollector
@@ -40,6 +41,7 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 		totalSizeBranches:   0,
 		triesBySize:         make([]*TrieStatsDTO, numTriesToPrint),
 		triesByDepth:        make([]*TrieStatsDTO, numTriesToPrint),
+		migrationStats:      make(map[core.TrieNodeVersion]uint64),
 	}
 }
 
@@ -60,6 +62,9 @@ func (tsc *trieStatisticsCollector) Add(trieStats *TrieStatsDTO) {
 	tsc.totalSizeBranches += trieStats.BranchNodesSize
 	tsc.totalSizeExtensions += trieStats.ExtensionNodesSize
 	tsc.totalSizeLeaves += trieStats.LeafNodesSize
+	for version, numNodes := range trieStats.LeavesMigrationStats {
+		tsc.migrationStats[version] += numNodes
+	}
 
 	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
 	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
@@ -80,6 +85,7 @@ func (tsc *trieStatisticsCollector) Print() {
 		"total size branches", core.ConvertBytes(tsc.totalSizeBranches),
 		"total size extensions", core.ConvertBytes(tsc.totalSizeExtensions),
 		"total size leaves", core.ConvertBytes(tsc.totalSizeLeaves),
+		"migration stats", getMigrationStatsString(tsc.migrationStats),
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
 	)

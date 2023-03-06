@@ -167,7 +167,7 @@ type SnapshotStatisticsHandler interface {
 type TrieStatisticsHandler interface {
 	AddBranchNode(level int, size uint64)
 	AddExtensionNode(level int, size uint64)
-	AddLeafNode(level int, size uint64)
+	AddLeafNode(level int, size uint64, version core.TrieNodeVersion)
 	AddAccountInfo(address string, rootHash []byte)
 	GetTrieStats() *statistics.TrieStatsDTO
 }
