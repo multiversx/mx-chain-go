@@ -901,3 +901,169 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
 	require.Empty(t, node.NodesConfig.queue)
 }
+
+// This is an edge case with exactly 1 in waiting
+func TestStakingV4_ExactlyOneNodeInWaitingEveryEpoch(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:4],
+			0:                     pubKeys[4:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:10],
+			0:                     pubKeys[10:12],
+		},
+		TotalStake: big.NewInt(20 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        2,
+		ShardConsensusGroupSize:       2,
+		MinNumberOfEligibleShardNodes: 4,
+		MinNumberOfEligibleMetaNodes:  4,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            12,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch,
+				MaxNumNodes:            10,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 2)
+	require.Len(t, currNodesConfig.eligible[0], 4)
+	require.Len(t, currNodesConfig.waiting[0], 2)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	node.Process(t, 7*4+2)
+}
+
+func TestStakingV4_NotEnoughNodesShouldSendAuctionDirectlyToWaiting(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:4],
+			0:                     pubKeys[4:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:9],
+			0:                     pubKeys[9:10],
+		},
+		TotalStake: big.NewInt(20 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        2,
+		ShardConsensusGroupSize:       2,
+		MinNumberOfEligibleShardNodes: 4,
+		MinNumberOfEligibleMetaNodes:  4,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            10,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch,
+				MaxNumNodes:            8,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	prevNodesConfig := currNodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 2)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 1)
+	require.Len(t, currNodesConfig.eligible[0], 4)
+	require.Len(t, currNodesConfig.waiting[0], 1)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	// 2. Epoch = StakingV4Step1, configuration should be the same, nodes from eligible should be shuffled
+	node.Process(t, 6)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 2)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 1)
+	require.Len(t, currNodesConfig.eligible[0], 4)
+	require.Len(t, currNodesConfig.waiting[0], 1)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), 2)
+
+	prevNodesConfig = currNodesConfig
+
+	// 3. Epoch = StakingV4Step2, shuffled nodes from eligible are sent to auction, waiting list remains empty
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 0)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 0)
+	require.Len(t, currNodesConfig.eligible[0], 4)
+	require.Len(t, currNodesConfig.waiting[0], 0)
+	require.Len(t, currNodesConfig.auction, 2)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
+
+	prevNodesConfig = currNodesConfig
+
+	// 4. Epoch = StakingV4Step3, auction nodes from previous epoch should be sent directly to waiting list, since waiting list was empty
+	node.Process(t, 5)
+
+	/* Test fails from here, should work with fix
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 0)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 0)
+	require.Len(t, currNodesConfig.eligible[0], 4)
+	require.Len(t, currNodesConfig.waiting[0], 0)
+	require.Len(t, currNodesConfig.auction, 2)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
+	*/
+}

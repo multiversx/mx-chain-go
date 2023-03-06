@@ -2883,22 +2883,6 @@ func (d *delegation) executeStakeAndUpdateStatus(
 	return vmcommon.Ok
 }
 
-func (d *delegation) getConfigStatusAndGlobalFund() (*DelegationConfig, *DelegationContractStatus, *GlobalFundData, error) {
-	dConfig, err := d.getDelegationContractConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	globalFund, err := d.getGlobalFundData()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	dStatus, err := d.getDelegationStatus()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return dConfig, dStatus, globalFund, nil
-}
-
 func (d *delegation) executeOnValidatorSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
 	validatorCall := function
 	for _, key := range args {
