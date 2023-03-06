@@ -110,8 +110,8 @@ func TestTrieNodeResolver_ProcessReceivedAntiflooderCanProcessMessageErrShouldEr
 
 	err := tnRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 	assert.True(t, errors.Is(err, expectedErr))
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
@@ -122,8 +122,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T
 
 	err := tnRes.ProcessReceivedMessage(nil, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrNilMessage, err)
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
@@ -139,8 +139,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T)
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
@@ -156,8 +156,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 //TODO in this PR: add more unit tests
@@ -198,8 +198,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	assert.Nil(t, err)
 	assert.True(t, getSerializedNodesWasCalled)
 	assert.True(t, sendWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerFailShouldRetNilAndErr(t *testing.T) {
@@ -225,8 +225,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndMarshalizerF
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, errExpected, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T) {
@@ -245,8 +245,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Equal(t, expectedErr, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeErrorsShouldNotSend(t *testing.T) {
@@ -281,8 +281,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodesErrorsShouldNotSendSubtrie(t *testing.T) {
@@ -334,8 +334,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
 }
@@ -390,8 +390,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 1, len(receivedNodes))
 	assert.Equal(t, nodes[0], receivedNodes[0])
 }
@@ -451,8 +451,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.Equal(t, 4, len(receivedNodes))
 	for _, n := range nodes {
 		assert.True(t, buffInSlice(n, receivedNodes))
@@ -517,8 +517,8 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 
 	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	require.True(t, sendWasCalled)
 }
 
