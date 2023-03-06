@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -181,6 +182,11 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 		txFromStorage, err := tep.txGetter.GetTxByHash(scr.OriginalTxHash)
 		if err != nil {
 			tep.log.Trace("transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", "hash", scr.OriginalTxHash, "error", err.Error())
+			continue
+		}
+
+		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
+		if !isForInitialTxSender {
 			continue
 		}
 
