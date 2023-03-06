@@ -651,7 +651,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV2.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
 	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
