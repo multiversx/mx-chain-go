@@ -133,6 +133,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	for _, node := range nodes {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
+		_ = dataRetriever.SetEpochHandlerToHdrRequester(node.RequestersContainer, epochHandler)
 	}
 
 	generalConfig := getGeneralConfig()
