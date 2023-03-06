@@ -138,7 +138,7 @@ func (ln *leafNode) commitCheckpoint(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -183,7 +183,7 @@ func (ln *leafNode) commitSnapshot(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -411,13 +411,6 @@ func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 
 func (ln *leafNode) getChildren(_ common.DBWriteCacher) ([]node, error) {
 	return nil, nil
-}
-
-func (ln *leafNode) getNumNodes() common.NumNodesDTO {
-	return common.NumNodesDTO{
-		Leaves:   1,
-		MaxLevel: 1,
-	}
 }
 
 func (ln *leafNode) isValid() bool {

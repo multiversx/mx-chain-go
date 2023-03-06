@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
+var _ dataRetriever.HeaderRequester = (*headerRequester)(nil)
+
 // ArgHeaderRequester is the argument structure used to create a new header requester instance
 type ArgHeaderRequester struct {
 	ArgBaseRequester
@@ -63,6 +65,11 @@ func (requester *headerRequester) RequestDataFromEpoch(identifier []byte) error 
 		},
 		[][]byte{identifier},
 	)
+}
+
+// SetEpochHandler does nothing and returns nil
+func (requester *headerRequester) SetEpochHandler(_ dataRetriever.EpochHandler) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
