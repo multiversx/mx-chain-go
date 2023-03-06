@@ -14,6 +14,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+var _ dataRetriever.HeaderRequester = (*headerRequester)(nil)
+
 var log = logger.GetOrCreate("dataretriever/storagerequesters")
 
 // ArgHeaderRequester is the argument structure used to create new headerRequester instance
