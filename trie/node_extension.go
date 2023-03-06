@@ -25,10 +25,10 @@ func shouldTestNode(n node, key []byte) bool {
 	return false
 }
 
-func snapshotGetTestPoint(key []byte) error {
+func snapshotGetTestPoint(key []byte, faultyChance int) error {
 	rand.Seed(time.Now().UnixNano())
 	checkVal := rand.Intn(math.MaxInt)
-	if checkVal%faultyChance/10 == 0 {
+	if checkVal%faultyChance == 0 {
 		log.Debug("deliberately not returning hash", "hash", key)
 		return fmt.Errorf("snapshot get error")
 	}
