@@ -149,7 +149,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 	}
 
-	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
+	argsTransactionCounter := ArgsTransactionCounter{
+		AppStatusHandler: mp.appStatusHandler,
+		Hasher:           mp.hasher,
+		Marshalizer:      mp.marshalizer,
+		ShardID:          core.MetachainShardId,
+	}
+	mp.txCounter, err = NewTransactionCounter(argsTransactionCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +692,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.GetMiniBlockHeaderHandlers()))
 	}
 
-	mp.restoreBlockBody(bodyHandler)
+	mp.restoreBlockBody(headerHandler, bodyHandler)
 
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -1287,14 +1293,17 @@ func (mp *metaProcessor) CommitBlock(
 		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
-	go mp.headersCounter.displayLogInfo(
-		header,
-		body,
-		headerHash,
-		numShardHeadersFromPool,
-		mp.blockTracker,
-		uint64(mp.roundHandler.TimeDuration().Seconds()),
-	)
+	go func() {
+		mp.txCounter.headerExecuted(header)
+		mp.headersCounter.displayLogInfo(
+			mp.txCounter,
+			header,
+			body,
+			headerHash,
+			numShardHeadersFromPool,
+			mp.blockTracker,
+		)
+	}()
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
