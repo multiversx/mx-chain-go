@@ -241,7 +241,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
 		return d.getAllNodeStates(args)
-	case vm.GetContractConfig:
+	case "getContractConfig":
 		return d.getContractConfig(args)
 	case "unStakeAtEndOfEpoch":
 		return d.unStakeAtEndOfEpoch(args)
