@@ -7,5 +7,5 @@ import (
 )
 
 func TestESDTMultiTransferToVaultSameShard(t *testing.T) {
-	multitransfer.EsdtMultiTransferToVault(t, false, "../../testdata/vaultV2.wasm")
+	multitransfer.EsdtMultiTransferToVault(t, false, "../../testdata/vault.wasm")
 }

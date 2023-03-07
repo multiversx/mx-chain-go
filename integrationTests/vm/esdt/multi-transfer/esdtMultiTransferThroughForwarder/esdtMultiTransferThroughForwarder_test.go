@@ -28,8 +28,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	owner := senderNode.OwnAccount
 	forwarder := net.DeployPayableSC(owner, "../../testdata/forwarder.wasm")
-	vault := net.DeployNonpayableSC(owner, "../../testdata/vaultV2.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
+	vault := net.DeployNonpayableSC(owner, "../../testdata/vault.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vault.wasm")
 
 	ESDTMultiTransferThroughForwarder_RunStepsAndAsserts(
 		t,
@@ -228,7 +228,7 @@ func TestESDTMultiTransferWithWrongArgumentsSFT(t *testing.T) {
 	senderNode := net.NodesSharded[0][0]
 	owner := senderNode.OwnAccount
 	forwarder := net.DeployNonpayableSC(owner, "../../testdata/execute.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vault.wasm")
 
 	ESDTMultiTransferWithWrongArgumentsSFT_RunStepsAndAsserts(t, net, senderNode, senderNode.OwnAccount, forwarder, vaultOtherShard)
 }

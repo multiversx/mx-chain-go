@@ -436,7 +436,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// deploy the smart contract
 
-	vaultScCode := wasm.GetSCCode("../testdata/vaultV2.wasm")
+	vaultScCode := wasm.GetSCCode("../testdata/vault.wasm")
 	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -812,7 +812,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV2.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -930,7 +930,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV2.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
