@@ -10,13 +10,15 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"unicode/utf8"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -177,11 +179,6 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) 
 	account, _ = acc.(state.UserAccountHandler)
 	require.Equal(t, firstUsername, account.GetUserName())
 	checkBalances(t, args, initialBalance)
-
-	// TODO refactor
-	for _, scr := range scrs {
-		log.Info("SCR: " + spew.Sdump(scr))
-	}
 }
 
 type argsProcessRegister struct {
@@ -224,95 +221,109 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 	)
 	// start executing relayed transaction
 	retCode, err := args.testContextForRelayerAndUser.TxProcessor.ProcessTransaction(relayedTx)
-	if retCode != vmcommon.Ok || err != nil {
+	if err != nil {
 		return scrs, retCode, err
 	}
 
-	log.Warn("relayer", "balance", getBalance(args.testContextForRelayerAndUser, args.relayerAddress).String())
-	log.Warn("relayer", "tx", args.gasPrice*relayedTxGasLimit)
-
-	// record the SCR and clean all intermediate results
 	intermediateTxs := args.testContextForRelayerAndUser.GetIntermediateTransactions(tb)
 	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
-	require.Equal(tb, 1, len(intermediateTxs))
-	scrRegister := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	scrs = append(scrs, scrRegister)
+	if len(intermediateTxs) == 0 {
+		return scrs, retCode, err // execution finished
+	}
+	testContexts := []*vm.VMTestContext{args.testContextForRelayerAndUser, args.testContextForDNSContract}
 
-	log.Warn("scrRegister", "tx", args.gasPrice*scrRegister.GasLimit)
+	globalReturnCode := vmcommon.Ok
 
-	// execute the scr on the shard that contains the dns contract
-	retCode, err = args.testContextForDNSContract.ScProcessor.ProcessSmartContractResult(scrRegister)
-	if retCode != vmcommon.Ok || err != nil {
-		return scrs, retCode, err
+	for {
+		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+		scrs = append(scrs, scr)
+
+		context := chooseVMTestContexts(scr, testContexts)
+		require.NotNil(tb, context)
+
+		// execute the smart contract result
+		log.Info("executing scr", "on shard", context.ShardCoordinator.SelfId(), "scr", scrToString(scr))
+
+		retCode, err = context.ScProcessor.ProcessSmartContractResult(scr)
+		if err != nil {
+			return scrs, retCode, err
+		}
+		if retCode != vmcommon.Ok {
+			globalReturnCode = retCode
+		}
+
+		intermediateTxs = context.GetIntermediateTransactions(tb)
+		context.CleanIntermediateTransactions(tb)
+		if len(intermediateTxs) == 0 {
+			return scrs, globalReturnCode, err // execution finished
+		}
+	}
+}
+
+func chooseVMTestContexts(scr *smartContractResult.SmartContractResult, contexts []*vm.VMTestContext) *vm.VMTestContext {
+	for _, context := range contexts {
+		if context.ShardCoordinator.ComputeId(scr.RcvAddr) == context.ShardCoordinator.SelfId() {
+			return context
+		}
 	}
 
-	// record the SCR and clean all intermediate results
-	intermediateTxs = args.testContextForDNSContract.GetIntermediateTransactions(tb)
-	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
-	require.Equal(tb, 1, len(intermediateTxs))
-	scrSCProcess := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	scrs = append(scrs, scrSCProcess)
+	return nil
+}
 
-	log.Warn("scrSCProcess", "tx", args.gasPrice*scrSCProcess.GasLimit)
-
-	// execute the scr on the initial shard that contains the user address (builtin function call)
-	retCode, err = args.testContextForRelayerAndUser.ScProcessor.ProcessSmartContractResult(scrSCProcess)
-	if retCode != vmcommon.Ok || err != nil {
-		return scrs, retCode, err
+func scrToString(scr *smartContractResult.SmartContractResult) string {
+	data := string(scr.Data)
+	if !isASCII(data) {
+		data = hex.EncodeToString(scr.Data)
 	}
 
-	// record the SCR and clean all intermediate results
-	intermediateTxs = args.testContextForRelayerAndUser.GetIntermediateTransactions(tb)
-	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
-	require.Equal(tb, 1, len(intermediateTxs))
-	scrFinishedBuiltinCall := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	scrs = append(scrs, scrFinishedBuiltinCall)
+	return fmt.Sprintf("nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
+		scr.Nonce, scr.Value.String(),
+		integrationTests.TestAddressPubkeyConverter.Encode(scr.RcvAddr),
+		integrationTests.TestAddressPubkeyConverter.Encode(scr.SndAddr),
+		scr.GasLimit, scr.GasPrice, data,
+	)
+}
 
-	// execute the finished scr on the shard that contains the dns contract
-	retCode, err = args.testContextForDNSContract.ScProcessor.ProcessSmartContractResult(scrFinishedBuiltinCall)
-	if retCode != vmcommon.Ok || err != nil {
-		return scrs, retCode, err
+func isASCII(data string) bool {
+	for i := 0; i < len(data); i++ {
+		if data[i] >= utf8.RuneSelf {
+			return false
+		}
+
+		if data[i] >= logger.ASCIISpace {
+			continue
+		}
+
+		if data[i] == logger.ASCIITab || data[i] == logger.ASCIILineFeed || data[i] == logger.ASCIINewLine {
+			continue
+		}
+
+		return false
 	}
 
-	// record the SCR and clean all intermediate results
-	intermediateTxs = args.testContextForDNSContract.GetIntermediateTransactions(tb)
-	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
-	require.Equal(tb, 1, len(intermediateTxs))
-	scrSCFinished := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	scrs = append(scrs, scrSCFinished)
-
-	// execute the scr on the initial shard that contains the user address (refund)
-	retCode, err = args.testContextForRelayerAndUser.ScProcessor.ProcessSmartContractResult(scrSCFinished)
-	if retCode != vmcommon.Ok || err != nil {
-		return scrs, retCode, err
-	}
-
-	// record the SCR and clean all intermediate results
-	intermediateTxs = args.testContextForRelayerAndUser.GetIntermediateTransactions(tb)
-	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
-	require.Equal(tb, 0, len(intermediateTxs))
-
-	log.Warn("relayer", "balance", getBalance(args.testContextForRelayerAndUser, args.relayerAddress).String())
-
-	// commit & cleanup
-	_, err = args.testContextForRelayerAndUser.Accounts.Commit()
-	require.Nil(tb, err)
-	args.testContextForRelayerAndUser.CleanIntermediateTransactions(tb)
-
-	_, err = args.testContextForDNSContract.Accounts.Commit()
-	require.Nil(tb, err)
-	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
-
-	return scrs, vmcommon.Ok, nil
+	return true
 }
 
 func checkBalances(tb testing.TB, args argsProcessRegister, initialBalance *big.Int) {
 	entireBalance := big.NewInt(0)
-	entireBalance.Add(entireBalance, getBalance(args.testContextForRelayerAndUser, args.relayerAddress))
-	entireBalance.Add(entireBalance, getBalance(args.testContextForRelayerAndUser, args.userAddress))
-	entireBalance.Add(entireBalance, getBalance(args.testContextForDNSContract, args.scAddress))
-	entireBalance.Add(entireBalance, args.testContextForRelayerAndUser.TxFeeHandler.GetAccumulatedFees())
-	entireBalance.Add(entireBalance, args.testContextForDNSContract.TxFeeHandler.GetAccumulatedFees())
+	relayerBalance := getBalance(args.testContextForRelayerAndUser, args.relayerAddress)
+	userBalance := getBalance(args.testContextForRelayerAndUser, args.userAddress)
+	scBalance := getBalance(args.testContextForDNSContract, args.scAddress)
+	accumulatedFees := big.NewInt(0).Set(args.testContextForRelayerAndUser.TxFeeHandler.GetAccumulatedFees())
+	accumulatedFees.Add(accumulatedFees, args.testContextForDNSContract.TxFeeHandler.GetAccumulatedFees())
+
+	entireBalance.Add(entireBalance, relayerBalance)
+	entireBalance.Add(entireBalance, userBalance)
+	entireBalance.Add(entireBalance, scBalance)
+	entireBalance.Add(entireBalance, accumulatedFees)
+
+	log.Info("checkBalances",
+		"relayerBalance", relayerBalance.String(),
+		"userBalance", userBalance.String(),
+		"scBalance", scBalance.String(),
+		"accumulated fees", accumulatedFees.String(),
+		"total", entireBalance.String(),
+	)
 
 	assert.Equal(tb, initialBalance, entireBalance)
 }
