@@ -102,15 +102,6 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
-	nodes := resolverTrie.GetNumNodes()
-	log.Info("trie nodes",
-		"total", nodes.Branches+nodes.Extensions+nodes.Leaves,
-		"branches", nodes.Branches,
-		"extensions", nodes.Extensions,
-		"leaves", nodes.Leaves,
-		"max level", nodes.MaxLevel,
-	)
-
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
 
@@ -231,15 +222,6 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
-
-	nodes := resolverTrie.GetNumNodes()
-	log.Info("trie nodes",
-		"total", nodes.Branches+nodes.Extensions+nodes.Leaves,
-		"branches", nodes.Branches,
-		"extensions", nodes.Extensions,
-		"leaves", nodes.Leaves,
-		"max level", nodes.MaxLevel,
-	)
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()

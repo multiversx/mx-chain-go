@@ -41,6 +41,7 @@ type baseRequestersContainerFactory struct {
 	shardIDForTries          uint32
 	chainID                  string
 	workingDir               string
+	snapshotsEnabled         bool
 }
 
 func (brcf *baseRequestersContainerFactory) checkParams() error {
@@ -264,7 +265,7 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:    brcf.generalConfig.StateTriesConfig.SnapshotsEnabled,
+		SnapshotsEnabled:    brcf.snapshotsEnabled,
 		IdleProvider:        disabled.NewProcessStatusHandler(),
 		EnableEpochsHandler: handler,
 	}

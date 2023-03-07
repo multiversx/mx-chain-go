@@ -146,7 +146,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("canProcessMessage due to antiflood handler error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -158,13 +157,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	})
 	t.Run("parseReceivedMessage returns error due to marshalizer error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -192,7 +190,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data not found in cache and fetchValidatorInfoByteSlice fails when getting data from storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -213,7 +210,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in cache but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		marshMock := marshallerMock.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
@@ -238,7 +234,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in storage but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		marshMock := marshallerMock.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
@@ -342,7 +337,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("unmarshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -389,7 +383,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("pack data in chuncks returns error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -508,9 +501,9 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 					_ = marshMock.Unmarshal(vi, b.Data[i])
 
 					// remove this info from the provided map
-					buff, err := testMarshaller.Marshal(vi)
+					validatorInfoBuff, err := testMarshaller.Marshal(vi)
 					require.Nil(t, err)
-					hash := testHasher.Compute(string(buff))
+					hash := testHasher.Compute(string(validatorInfoBuff))
 					delete(providedDataMap, string(hash))
 				}
 

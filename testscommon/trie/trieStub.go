@@ -13,26 +13,25 @@ var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                       func(key []byte) ([]byte, uint32, error)
-	UpdateCalled                    func(key, value []byte) error
-	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion) error
-	DeleteCalled                    func(key []byte) error
-	RootCalled                      func() ([]byte, error)
-	CommitCalled                    func() error
-	RecreateCalled                  func(root []byte) (common.Trie, error)
-	RecreateFromEpochCalled         func(options common.RootHashHolder) (common.Trie, error)
-	GetObsoleteHashesCalled         func() [][]byte
-	AppendToOldHashesCalled         func([][]byte)
-	GetSerializedNodesCalled        func([]byte, uint64) ([][]byte, uint64, error)
-	GetAllHashesCalled              func() ([][]byte, error)
-	GetAllLeavesOnChannelCalled     func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
-	GetProofCalled                  func(key []byte) ([][]byte, []byte, error)
-	VerifyProofCalled               func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
-	GetStorageManagerCalled         func() common.StorageManager
-	GetSerializedNodeCalled         func(bytes []byte) ([]byte, error)
-	GetNumNodesCalled               func() common.NumNodesDTO
-	GetOldRootCalled                func() []byte
-	CloseCalled                     func() error
+	GetCalled                   func(key []byte) ([]byte, uint32, error)
+	UpdateCalled                func(key, value []byte) error
+	UpdateWithVersionCalled     func(key, value []byte, version core.TrieNodeVersion) error
+	DeleteCalled                func(key []byte) error
+	RootCalled                  func() ([]byte, error)
+	CommitCalled                func() error
+	RecreateCalled              func(root []byte) (common.Trie, error)
+	RecreateFromEpochCalled     func(options common.RootHashHolder) (common.Trie, error)
+	GetObsoleteHashesCalled     func() [][]byte
+	AppendToOldHashesCalled     func([][]byte)
+	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetAllHashesCalled          func() ([][]byte, error)
+	GetAllLeavesOnChannelCalled func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
+	GetProofCalled              func(key []byte) ([][]byte, []byte, error)
+	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled     func() common.StorageManager
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetOldRootCalled            func() []byte
+	CloseCalled                 func() error
 	CollectLeavesForMigrationCalled func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
 }
 
@@ -205,15 +204,6 @@ func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
 	}
 
 	return nil, nil
-}
-
-// GetNumNodes -
-func (ts *TrieStub) GetNumNodes() common.NumNodesDTO {
-	if ts.GetNumNodesCalled != nil {
-		return ts.GetNumNodesCalled()
-	}
-
-	return common.NumNodesDTO{}
 }
 
 // GetOldRoot -

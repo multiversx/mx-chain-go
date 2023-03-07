@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 // FeesProcessorHandler defines the interface for the transaction fees processor
@@ -17,4 +18,8 @@ type FeesProcessorHandler interface {
 
 type transactionGetter interface {
 	GetTxByHash(txHash []byte) (*transaction.Transaction, error)
+}
+
+type dataFieldParser interface {
+	Parse(dataField []byte, sender, receiver []byte, numOfShards uint32) *datafield.ResponseParseData
 }
