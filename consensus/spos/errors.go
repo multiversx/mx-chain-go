@@ -226,9 +226,6 @@ var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 // ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
 var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
 
-// ErrWrongTypeAssertion signals that a wrong type assertion has been triggered
-var ErrWrongTypeAssertion = errors.New("wrong type assertion")
-
 // ErrNilMessageSigningHandler signals that the provided message signing handler is nil
 var ErrNilMessageSigningHandler = errors.New("nil message signing handler")
 
@@ -249,3 +246,6 @@ var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")
 
 // ErrNilSignatureHandler signals that provided signature handler is nil
 var ErrNilSignatureHandler = errors.New("nil signature handler")
+
+// ErrNilEnableEpochHandler signals that a nil enable epoch handler has been provided
+var ErrNilEnableEpochHandler = errors.New("nil enable epoch handler")

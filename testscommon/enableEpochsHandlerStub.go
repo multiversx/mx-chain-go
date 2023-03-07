@@ -117,6 +117,7 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsConsensusModelV2EnabledField                               bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1012,6 +1013,14 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsConsensusModelV2Enabled -
+func (stub *EnableEpochsHandlerStub) IsConsensusModelV2Enabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsConsensusModelV2EnabledField
 }
 
 // IsInterfaceNil -

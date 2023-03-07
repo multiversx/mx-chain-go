@@ -23,7 +23,6 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
-	appStatusHandler core.AppStatusHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -31,13 +30,10 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(appStatusHandler) {
-		return nil, spos.ErrNilAppStatusHandler
-	}
 
 	srSignature := subroundSignature{
 		Subround:         baseSubround,
-		appStatusHandler: appStatusHandler,
+		appStatusHandler: baseSubround.AppStatusHandler(),
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -107,7 +103,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			nil,
 			sr.CurrentPid(),
 			nil,
-			processedHeaderHash,
+			sr.getProcessedHeaderHash(),
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -128,11 +124,22 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	}
 
 	if isSelfLeader {
-		sr.AddProcessedHeadersHashes(processedHeaderHash, selfIndex)
+		if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+			sr.AddProcessedHeadersHashes(processedHeaderHash, selfIndex)
+		}
+
 		go sr.waitAllSignatures()
 	}
 
 	return true
+}
+
+func (sr *subroundSignature) getProcessedHeaderHash() []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		return sr.getMessageToSignFunc()
+	}
+
+	return nil
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
@@ -200,7 +207,10 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
+	}
+
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
 }

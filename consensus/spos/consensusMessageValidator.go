@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -26,6 +27,7 @@ type consensusMessageValidator struct {
 
 	mutPkConsensusMessages sync.RWMutex
 	mapPkConsensusMessages map[string]map[consensus.MessageType]uint32
+	enableEpochHandler     common.EnableEpochsHandler
 }
 
 // ArgsConsensusMessageValidator holds the consensus message validator arguments
@@ -37,6 +39,7 @@ type ArgsConsensusMessageValidator struct {
 	PublicKeySize        int
 	HeaderHashSize       int
 	ChainID              []byte
+	EnableEpochHandler   common.EnableEpochsHandler
 }
 
 // NewConsensusMessageValidator creates a new consensusMessageValidator object
@@ -54,6 +57,7 @@ func NewConsensusMessageValidator(args ArgsConsensusMessageValidator) (*consensu
 		publicKeySize:        args.PublicKeySize,
 		chainID:              args.ChainID,
 		headerHashSize:       args.HeaderHashSize,
+		enableEpochHandler:   args.EnableEpochHandler,
 	}
 
 	cmv.publicKeyBitmapSize = cmv.getPublicKeyBitmapSize()
@@ -83,6 +87,9 @@ func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) erro
 	}
 	if args.SignatureSize == 0 {
 		return ErrInvalidSignatureSize
+	}
+	if check.IfNil(args.EnableEpochHandler) {
+		return ErrNilEnableEpochHandler
 	}
 
 	return nil
@@ -213,6 +220,10 @@ func (cmv *consensusMessageValidator) isHeaderHashSizeValid(cnsMsg *consensus.Me
 }
 
 func (cmv *consensusMessageValidator) isProcessedHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	if !cmv.enableEpochHandler.IsConsensusModelV2Enabled() {
+		return true
+	}
+
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	isMessageWithBlockBody := cmv.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := cmv.consensusService.IsMessageWithBlockHeader(msgType)

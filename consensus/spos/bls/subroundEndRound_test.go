@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/stretchr/testify/assert"
@@ -43,6 +44,7 @@ func initSubroundEndRoundWithContainer(
 		chainID,
 		currentPid,
 		appStatusHandler,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -50,7 +52,6 @@ func initSubroundEndRoundWithContainer(
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		appStatusHandler,
 	)
 
 	return srEndRound
@@ -68,7 +69,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -96,6 +96,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockchain(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -103,7 +104,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -131,6 +131,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -138,7 +139,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -166,6 +166,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
@@ -174,7 +175,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -202,6 +202,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -209,7 +210,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -237,6 +237,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -244,7 +245,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -272,6 +272,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -279,7 +280,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -307,6 +307,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -314,7 +315,6 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))

@@ -114,6 +114,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		AppStatusHandler:         appStatusHandler,
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
+		EnableEpochHandler:       &testscommon.EnableEpochsHandlerStub{},
 	}
 
 	return workerArgs
@@ -149,7 +150,7 @@ func initRoundHandlerMock() *mock.RoundHandlerMock {
 	}
 }
 
-func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilConsensusServiceShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -160,7 +161,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilConsensusService, err)
 }
 
-func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilBlockChainShouldFail(t *testing.T) {
 	t.Parallel()
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	workerArgs.BlockChain = nil
@@ -170,7 +171,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
-func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -181,7 +182,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
-func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -192,7 +193,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
-func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilBroadcastMessengerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -203,7 +204,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
 }
 
-func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -214,7 +215,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
-func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilForkDetectorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -225,7 +226,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilForkDetector, err)
 }
 
-func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -236,7 +237,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
-func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -247,7 +248,7 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
-func TestWorker_NewWorkerRoundHandlerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -258,7 +259,7 @@ func TestWorker_NewWorkerRoundHandlerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
-func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -269,7 +270,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
-func TestWorker_NewWorkerPeerSignatureHandlerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilPeerSignatureHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -280,7 +281,7 @@ func TestWorker_NewWorkerPeerSignatureHandlerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
-func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -291,7 +292,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilHeaderSigVerifierShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -302,7 +303,7 @@ func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilHeaderSigVerifier, err)
 }
 
-func TestWorker_NewWorkerHeaderIntegrityVerifierShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilHeaderIntegrityVerifierShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -346,7 +347,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
 }
 
-func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilPoolAdderShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
@@ -357,7 +358,18 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilPoolAdder, err)
 }
 
-func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilAppStatusHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.AppStatusHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestWorker_NewWorkerNilNodeRedundancyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(statusHandlerMock.NewAppStatusHandlerMock())
@@ -366,6 +378,28 @@ func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
+}
+
+func TestWorker_NewWorkerNilPeerBlacklistHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(statusHandlerMock.NewAppStatusHandlerMock())
+	workerArgs.PeerBlacklistHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
+}
+
+func TestWorker_NewWorkerNilEnableEpochHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(statusHandlerMock.NewAppStatusHandlerMock())
+	workerArgs.EnableEpochHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -1717,15 +1751,6 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
 
 	_ = wrk.Close()
-}
-
-func TestWorker_AppStatusHandlerNilShouldErr(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs(nil)
-	_, err := spos.NewWorker(workerArgs)
-
-	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
 }
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {

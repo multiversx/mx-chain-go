@@ -32,7 +32,6 @@ func NewSubroundEndRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	displayStatistics func(),
-	appStatusHandler core.AppStatusHandler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -45,7 +44,7 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		displayStatistics,
-		appStatusHandler,
+		baseSubround.AppStatusHandler(),
 		sync.Mutex{},
 		nil,
 	}
@@ -259,7 +258,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 }
 
 func (sr *subroundEndRound) getHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
-	if true {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
 		return cnsMsg.ProcessedHeaderHash
 	}
 
@@ -552,17 +551,15 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) generateBitmap() []byte {
-	if true {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
 		processedHeaderHash := sr.getMessageToVerifySigFunc()
-		sr.GenerateBitmapForHash(SrSignature, processedHeaderHash)
+		return sr.GenerateBitmapForHash(SrSignature, processedHeaderHash)
 	}
 
 	return sr.GenerateBitmap(SrSignature)
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
-	processedHeaderHash := sr.getMessageToVerifySigFunc()
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -578,7 +575,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetLeaderSignature(),
 		sr.CurrentPid(),
 		nil,
-		processedHeaderHash,
+		sr.getProcessedHeaderHash(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -594,8 +591,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
-	processedHeaderHash := sr.getMessageToVerifySigFunc()
-
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -611,7 +606,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sr.CurrentPid(),
 		invalidSigners,
-		processedHeaderHash,
+		sr.getProcessedHeaderHash(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -621,6 +616,14 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 	}
 
 	log.Debug("step 3: invalid signers info has been sent")
+}
+
+func (sr *subroundEndRound) getProcessedHeaderHash() []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		return sr.getMessageToVerifySigFunc()
+	}
+
+	return nil
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {

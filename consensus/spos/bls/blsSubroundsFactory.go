@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -19,11 +20,12 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	chainID          []byte
-	currentPid       core.PeerID
-	consensusModel   consensus.ConsensusModel
+	appStatusHandler   core.AppStatusHandler
+	outportHandler     outport.OutportHandler
+	chainID            []byte
+	currentPid         core.PeerID
+	consensusModel     consensus.ConsensusModel
+	enableEpochHandler common.EnableEpochsHandler
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -35,6 +37,7 @@ func NewSubroundsFactory(
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
 	consensusModel consensus.ConsensusModel,
+	enableEpochHandler common.EnableEpochsHandler,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -42,19 +45,21 @@ func NewSubroundsFactory(
 		worker,
 		chainID,
 		appStatusHandler,
+		enableEpochHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	fct := factory{
-		consensusCore:    consensusDataContainer,
-		consensusState:   consensusState,
-		worker:           worker,
-		appStatusHandler: appStatusHandler,
-		chainID:          chainID,
-		currentPid:       currentPid,
-		consensusModel:   consensusModel,
+		consensusCore:      consensusDataContainer,
+		consensusState:     consensusState,
+		worker:             worker,
+		appStatusHandler:   appStatusHandler,
+		chainID:            chainID,
+		currentPid:         currentPid,
+		consensusModel:     consensusModel,
+		enableEpochHandler: enableEpochHandler,
 	}
 
 	return &fct, nil
@@ -66,6 +71,7 @@ func checkNewFactoryParams(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
+	enableEpochHandler common.EnableEpochsHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -82,6 +88,9 @@ func checkNewFactoryParams(
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
+	}
+	if check.IfNil(enableEpochHandler) {
+		return spos.ErrNilEnableEpochHandler
 	}
 
 	return nil
@@ -140,6 +149,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.enableEpochHandler,
 	)
 	if err != nil {
 		return err
@@ -212,6 +222,7 @@ func (fct *factory) generateBlockSubroundV1() (*subroundBlock, error) {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.enableEpochHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -271,6 +282,7 @@ func (fct *factory) generateSignatureSubroundV1() (*subroundSignature, error) {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.enableEpochHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -279,7 +291,6 @@ func (fct *factory) generateSignatureSubroundV1() (*subroundSignature, error) {
 	subroundSignatureInstance, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
-		fct.appStatusHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -334,6 +345,7 @@ func (fct *factory) generateEndRoundSubroundV1() (*subroundEndRound, error) {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.enableEpochHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -344,7 +356,6 @@ func (fct *factory) generateEndRoundSubroundV1() (*subroundEndRound, error) {
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
-		fct.appStatusHandler,
 	)
 	if err != nil {
 		return nil, err

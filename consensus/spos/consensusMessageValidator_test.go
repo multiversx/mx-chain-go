@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +39,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 		PublicKeySize:        PublicKeySize,
 		HeaderHashSize:       hasher.Size(),
 		ChainID:              chainID,
+		EnableEpochHandler:   &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -123,6 +125,16 @@ func TestNewConsensusMessageValidator(t *testing.T) {
 
 		assert.Nil(t, validator)
 		assert.Equal(t, spos.ErrInvalidSignatureSize, err)
+	})
+	t.Run("nil EnableEpochHandler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultConsensusMessageValidatorArgs()
+		args.EnableEpochHandler = nil
+		validator, err := spos.NewConsensusMessageValidator(args)
+
+		assert.Nil(t, validator)
+		assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -551,6 +563,9 @@ func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: true,
+	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: []byte("hash")}
@@ -570,10 +585,33 @@ func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestIsProcessedHeaderHashSizeValid_ShouldNotFail(t *testing.T) {
+func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsNotEnabled(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: false,
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: nil}
+	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+
+	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
+	_, _ = rand.Read(processedHeaderHash)
+	cnsMsg = &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: processedHeaderHash}
+	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+}
+
+func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsEnabled(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: true,
+	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: nil}
