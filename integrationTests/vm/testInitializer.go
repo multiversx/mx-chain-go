@@ -52,7 +52,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -544,7 +543,6 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Counter:               counter,
 	}
 
-	hasher := &hashingMocks.HasherMock{}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -557,7 +555,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EnableEpochsHandler: enableEpochsHandler,
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
-		Hasher:              hasher,
+		Hasher:              integrationtests.TestHasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

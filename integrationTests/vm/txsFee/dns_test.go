@@ -12,7 +12,9 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -23,6 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const returnOkData = "@6f6b"
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -143,7 +147,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) 
 	userAddress := []byte("user-678901234567890123456789112")
 	require.Equal(t, uint32(2), testContextForRelayerAndUser.ShardCoordinator.ComputeId(userAddress))
 
-	initialBalance := big.NewInt(10000000)
+	initialBalance := big.NewInt(10000000000)
 	_, _ = vm.CreateAccount(testContextForRelayerAndUser.Accounts, relayerAddress, 0, initialBalance)
 
 	firstUsername := utils.GenerateUserNameForDNSContract(scAddress)
@@ -207,6 +211,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 		userTxData,
 	)
 
+	log.Info("user tx", "tx", txToString(userTx))
+
 	// generate the relayed transaction
 	relayedTxData := utils.PrepareRelayerTxData(userTx) // v1 will suffice
 	relayedTxGasLimit := userTxGasLimit + 1 + uint64(len(relayedTxData))
@@ -219,6 +225,9 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 		relayedTxGasLimit,
 		relayedTxData,
 	)
+
+	log.Info("executing relayed tx", "tx", txToString(relayedTx))
+
 	// start executing relayed transaction
 	retCode, err := args.testContextForRelayerAndUser.TxProcessor.ProcessTransaction(relayedTx)
 	if err != nil {
@@ -251,6 +260,9 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 		if retCode != vmcommon.Ok {
 			globalReturnCode = retCode
 		}
+		if string(scr.Data) == returnOkData {
+			return scrs, globalReturnCode, err // execution finished
+		}
 
 		intermediateTxs = context.GetIntermediateTransactions(tb)
 		context.CleanIntermediateTransactions(tb)
@@ -276,11 +288,31 @@ func scrToString(scr *smartContractResult.SmartContractResult) string {
 		data = hex.EncodeToString(scr.Data)
 	}
 
-	return fmt.Sprintf("nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
+	hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, scr)
+
+	return fmt.Sprintf("hash: %s, nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
+		hex.EncodeToString(hash),
 		scr.Nonce, scr.Value.String(),
 		integrationTests.TestAddressPubkeyConverter.Encode(scr.RcvAddr),
 		integrationTests.TestAddressPubkeyConverter.Encode(scr.SndAddr),
 		scr.GasLimit, scr.GasPrice, data,
+	)
+}
+
+func txToString(tx *transaction.Transaction) string {
+	data := string(tx.Data)
+	if !isASCII(data) {
+		data = hex.EncodeToString(tx.Data)
+	}
+
+	hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
+
+	return fmt.Sprintf("hash: %s, nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
+		hex.EncodeToString(hash),
+		tx.Nonce, tx.Value.String(),
+		integrationTests.TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		integrationTests.TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		tx.GasLimit, tx.GasPrice, data,
 	)
 }
 
