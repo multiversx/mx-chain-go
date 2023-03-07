@@ -283,6 +283,11 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
+	// Here check that if allNodes(waitingList/newWaiting) < allNodes(shuffledOutMap) then select nodes from auction
+	// Compute numNodesToFillWaiting = allNodes(shuffledOutMap) - allNodes(waitingList)
+	// Easy case If: numNodesToFillWaiting > allNodes(auction) => move all auction list to waiting
+	// Else: select best nodes from auction to fill waiting list
+
 	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
