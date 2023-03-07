@@ -79,6 +79,7 @@ func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
 }
 
+// DirtyData -
 type DirtyData struct {
 	Value      []byte
 	OldVersion core.TrieNodeVersion

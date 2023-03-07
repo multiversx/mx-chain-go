@@ -550,6 +550,9 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	//TODO in order to avoid recomputing the root hash after every transaction for the same data trie,
+	// benchmark if it is better to cache the account and compute the rootHash only when the state is committed.
+	// For this to work, LoadAccount should check that cache first, and only after load from the trie.
 	rootHash, err := accountHandler.DataTrie().RootHash()
 	if err != nil {
 		return err

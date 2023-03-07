@@ -40,6 +40,13 @@ func emptyTrie() common.Trie {
 	return tr
 }
 
+func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) common.Trie {
+	storage, marshaller, hasher, _, maxTrieLevelInMem := getDefaultTrieParameters()
+
+	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler, maxTrieLevelInMem)
+	return tr
+}
+
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
@@ -80,11 +87,15 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 
 func initTrie() common.Trie {
 	tr := emptyTrie()
+	addDefaultDataToTrie(tr)
+
+	return tr
+}
+
+func addDefaultDataToTrie(tr common.Trie) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-
-	return tr
 }
 
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
@@ -1054,7 +1065,11 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		t.Parallel()
 
 		numLoadsCalled := 0
-		tr := emptyTrie()
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
 		dtr := tr.(dataTrie)
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
@@ -1076,7 +1091,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		t.Parallel()
 
 		addLeafToMigrationQueueCalled := 0
-		dtr := emptyTrie().(dataTrie)
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
 		key := []byte("dog")
 		value := []byte("reindeer")
 		_ = dtr.UpdateWithVersion(key, value, core.NotSpecified)
@@ -1102,7 +1122,14 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 	t.Run("not enough gas to load the whole trie", func(t *testing.T) {
 		t.Parallel()
 
-		dtr := initTrie().(dataTrie)
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
+
+		dtr := tr.(dataTrie)
 		numLoads := 0
 		numAddLeafToMigrationQueueCalled := 0
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1130,7 +1157,13 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 	t.Run("not enough gas to migrate the whole trie", func(t *testing.T) {
 		t.Parallel()
 
-		dtr := initTrie().(dataTrie)
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
+		dtr := tr.(dataTrie)
 		numLoads := 0
 		numAddLeafToMigrationQueueCalled := 0
 		dtm := &trieMock.DataTrieMigratorStub{
@@ -1178,12 +1211,41 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
 	})
 
+	t.Run("migrate from non existent version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := initTrie().(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		err := dtr.CollectLeavesForMigration(core.TrieNodeVersion(100), core.AutoBalanceEnabled, dtm)
+		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
+		assert.Equal(t, 0, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
+
 	t.Run("migrate collapsed trie", func(t *testing.T) {
 		t.Parallel()
 
 		numLoadsCalled := 0
 		numAddLeafToMigrationQueueCalled := 0
-		tr := initTrie()
+
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
 		_ = tr.Commit()
 		rootHash, _ := tr.RootHash()
 		collapsedTrie, _ := tr.Recreate(rootHash)
@@ -1210,7 +1272,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		numLoadsCalled := 0
 		numAddLeafToMigrationQueueCalled := 0
-		dtr := emptyTrie().(dataTrie)
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
@@ -1236,7 +1303,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		numLoadsCalled := 0
 		numAddLeafToMigrationQueueCalled := 0
-		dtr := emptyTrie().(dataTrie)
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)

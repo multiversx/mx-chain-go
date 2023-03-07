@@ -246,6 +246,7 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 
 	index := 0
 	for key, dataEntry := range tdaw.dirtyData {
+		// TODO cache old value if it was previously retrieved from the trie
 		oldVal := tdaw.getOldValue([]byte(key), dataEntry)
 		oldValues[index] = oldVal
 
@@ -318,42 +319,34 @@ func (tdaw *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirt
 }
 
 func (tdaw *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr dataTrie) error {
-	shouldInsertInTrie, err := tdaw.deleteFromTrieIfNilVal(dataEntry.value, oldVal, key, dtr)
-	if err != nil {
-		return err
-	}
-	if !shouldInsertInTrie {
-		return nil
+	if len(dataEntry.value) == 0 {
+		return tdaw.deleteFromTrie(oldVal, key, dtr)
 	}
 
-	newKey := tdaw.getKeyForVersion(key, dataEntry.newVersion)
-	value, err := tdaw.getValueForVersion(key, dataEntry.value, dataEntry.newVersion)
+	version := dataEntry.newVersion
+	newKey := tdaw.getKeyForVersion(key, version)
+	value, err := tdaw.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
 		return err
 	}
-	version := dataEntry.newVersion
 
 	return dtr.UpdateWithVersion(newKey, value, version)
 }
 
-func (tdaw *trackableDataTrie) deleteFromTrieIfNilVal(val []byte, oldVal core.TrieData, key []byte, dtr dataTrie) (bool, error) {
-	if len(val) != 0 {
-		return true, nil
-	}
-
+func (tdaw *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr dataTrie) error {
 	if len(oldVal.Value) == 0 {
-		return false, nil
+		return nil
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
-		return false, dtr.Delete(tdaw.hasher.Compute(string(key)))
+		return dtr.Delete(tdaw.hasher.Compute(string(key)))
 	}
 
 	if oldVal.Version == core.NotSpecified {
-		return false, dtr.Delete(key)
+		return dtr.Delete(key)
 	}
 
-	return false, nil
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

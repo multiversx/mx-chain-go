@@ -35,11 +35,12 @@ const rootDepthLevel = 0
 type patriciaMerkleTrie struct {
 	root node
 
-	trieStorage         common.StorageManager
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	enableEpochsHandler common.EnableEpochsHandler
-	mutOperation        sync.RWMutex
+	trieStorage             common.StorageManager
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	enableEpochsHandler     common.EnableEpochsHandler
+	trieNodeVersionVerifier core.TrieNodeVersionVerifier
+	mutOperation            sync.RWMutex
 
 	oldHashes            [][]byte
 	oldRoot              []byte
@@ -72,15 +73,21 @@ func NewTrie(
 	}
 	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
+	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &patriciaMerkleTrie{
-		trieStorage:          trieStorage,
-		marshalizer:          msh,
-		hasher:               hsh,
-		oldHashes:            make([][]byte, 0),
-		oldRoot:              make([]byte, 0),
-		maxTrieLevelInMemory: maxTrieLevelInMemory,
-		chanClose:            make(chan struct{}),
-		enableEpochsHandler:  enableEpochsHandler,
+		trieStorage:             trieStorage,
+		marshalizer:             msh,
+		hasher:                  hsh,
+		oldHashes:               make([][]byte, 0),
+		oldRoot:                 make([]byte, 0),
+		maxTrieLevelInMemory:    maxTrieLevelInMemory,
+		chanClose:               make(chan struct{}),
+		enableEpochsHandler:     enableEpochsHandler,
+		trieNodeVersionVerifier: tnvv,
 	}, nil
 }
 
@@ -711,17 +718,30 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(
 		return errors.ErrNilTrieMigrator
 	}
 
-	if newVersion > core.MaxValidTrieNodeVersion || oldVersion > core.MaxValidTrieNodeVersion {
-		return fmt.Errorf("%w: newVersion %v,  oldVersion %v", errors.ErrInvalidTrieNodeVersion, newVersion, oldVersion)
+	err := tr.checkIfMigrationPossible(newVersion, oldVersion)
+	if err != nil {
+		return err
+	}
+
+	_, err = tr.root.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, tr.trieStorage, keyBuilder.NewKeyBuilder())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) checkIfMigrationPossible(newVersion core.TrieNodeVersion, oldVersion core.TrieNodeVersion) error {
+	if !tr.trieNodeVersionVerifier.IsValidVersion(newVersion) {
+		return fmt.Errorf("%w: newVersion %v", errors.ErrInvalidTrieNodeVersion, newVersion)
+	}
+
+	if !tr.trieNodeVersionVerifier.IsValidVersion(oldVersion) {
+		return fmt.Errorf("%w: oldVersion %v", errors.ErrInvalidTrieNodeVersion, oldVersion)
 	}
 
 	if newVersion == core.NotSpecified && oldVersion == core.AutoBalanceEnabled {
 		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.AutoBalanceEnabled, core.NotSpecified)
-	}
-
-	_, err := tr.root.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, tr.trieStorage, keyBuilder.NewKeyBuilder())
-	if err != nil {
-		return err
 	}
 
 	return nil
