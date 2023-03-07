@@ -28,8 +28,8 @@ func TestESDTMultiTransferThroughForwarder(t *testing.T) {
 
 	owner := senderNode.OwnAccount
 	forwarder := net.DeployPayableSC(owner, "../../testdata/forwarder.wasm")
-	vault := net.DeployNonpayableSC(owner, "../../testdata/vault.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vault.wasm")
+	vault := net.DeployNonpayableSC(owner, "../../testdata/vaultV2.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
 
 	ESDTMultiTransferThroughForwarder_RunStepsAndAsserts(
 		t,
