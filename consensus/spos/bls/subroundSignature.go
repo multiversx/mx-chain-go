@@ -128,6 +128,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	}
 
 	if isSelfLeader {
+		sr.AddProcessedHeadersHashes(processedHeaderHash, selfIndex)
 		go sr.waitAllSignatures()
 	}
 
@@ -199,6 +200,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
+	sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
 }

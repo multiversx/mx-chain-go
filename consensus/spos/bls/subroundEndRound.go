@@ -244,17 +244,26 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 	}
 
 	singleSigner := sr.SingleSigner()
-	err = singleSigner.Verify(pubKey, cnsMsg.HeaderHash, cnsMsg.SignatureShare)
+	headerHash := sr.getHeaderHashToVerifySig(cnsMsg)
+	err = singleSigner.Verify(pubKey, headerHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
-			"headerHash", cnsMsg.HeaderHash,
+			"headerHash", headerHash,
 			"error", err.Error(),
 		)
 		sr.applyBlacklistOnNode(msg.Peer())
 	}
 
 	return nil
+}
+
+func (sr *subroundEndRound) getHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
+	if true {
+		return cnsMsg.ProcessedHeaderHash
+	}
+
+	return cnsMsg.HeaderHash
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
@@ -289,7 +298,7 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.generateBitmap()
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.checkSignaturesValidity", "error", err.Error())
@@ -523,7 +532,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
 	}
 
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.generateBitmap()
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		return nil, nil, err
@@ -540,6 +549,15 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	}
 
 	return bitmap, sig, nil
+}
+
+func (sr *subroundEndRound) generateBitmap() []byte {
+	if true {
+		processedHeaderHash := sr.getMessageToVerifySigFunc()
+		sr.GenerateBitmapForHash(SrSignature, processedHeaderHash)
+	}
+
+	return sr.GenerateBitmap(SrSignature)
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
