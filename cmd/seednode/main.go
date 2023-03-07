@@ -271,7 +271,7 @@ func createNode(
 		P2pKeyGenerator:       p2pKeyGen,
 	}
 
-	return p2pFactory.NewNetworkMessenger(arg)
+	return p2pFactory.NewNetMessengerNoBroadcast(arg)
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {

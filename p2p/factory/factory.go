@@ -14,11 +14,6 @@ import (
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger = libp2p.ArgsNetworkMessenger
 
-// NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
-func NewNetworkMessenger(args ArgsNetworkMessenger) (p2p.Messenger, error) {
-	return libp2p.NewNetworkMessenger(args)
-}
-
 // LocalSyncTimer uses the local system to provide the current time
 type LocalSyncTimer = libp2p.LocalSyncTimer
 

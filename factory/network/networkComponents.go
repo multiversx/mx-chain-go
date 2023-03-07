@@ -143,7 +143,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		P2pSingleSigner:       ncf.cryptoComponents.P2pSingleSigner(),
 		P2pKeyGenerator:       ncf.cryptoComponents.P2pKeyGen(),
 	}
-	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetMessengerNoBroadcast(arg)
 	if err != nil {
 		return nil, err
 	}

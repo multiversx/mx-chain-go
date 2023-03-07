@@ -163,7 +163,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		P2pKeyGenerator:       &mock.KeyGenMock{},
 	}
 
-	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetMessengerNoBroadcast(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
@@ -190,7 +190,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetMessengerNoBroadcast(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
@@ -217,7 +217,7 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		arg.NodeOperationMode = p2p.FullArchiveMode
 	}
 
-	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
+	libP2PMes, err := p2pFactory.NewNetMessengerNoBroadcast(arg)
 	log.LogIfError(err)
 
 	return libP2PMes
