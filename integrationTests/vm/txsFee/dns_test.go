@@ -176,6 +176,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) 
 	acc, _ = testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
 	account, _ = acc.(state.UserAccountHandler)
 	require.Equal(t, firstUsername, account.GetUserName())
+	checkBalances(t, args, initialBalance)
 
 	// TODO refactor
 	for _, scr := range scrs {
@@ -194,7 +195,6 @@ type argsProcessRegister struct {
 }
 
 func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) ([]*smartContractResult.SmartContractResult, vmcommon.ReturnCode, error) {
-	overallReturnCode := vmcommon.Ok
 	scrs := make([]*smartContractResult.SmartContractResult, 0)
 
 	// generate the user transaction
@@ -224,11 +224,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 	)
 	// start executing relayed transaction
 	retCode, err := args.testContextForRelayerAndUser.TxProcessor.ProcessTransaction(relayedTx)
-	if retCode != vmcommon.Ok {
-		overallReturnCode = retCode
-	}
-	if err != nil {
-		return scrs, overallReturnCode, err
+	if retCode != vmcommon.Ok || err != nil {
+		return scrs, retCode, err
 	}
 
 	log.Warn("relayer", "balance", getBalance(args.testContextForRelayerAndUser, args.relayerAddress).String())
@@ -245,11 +242,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// execute the scr on the shard that contains the dns contract
 	retCode, err = args.testContextForDNSContract.ScProcessor.ProcessSmartContractResult(scrRegister)
-	if retCode != vmcommon.Ok {
-		overallReturnCode = retCode
-	}
-	if err != nil {
-		return scrs, overallReturnCode, err
+	if retCode != vmcommon.Ok || err != nil {
+		return scrs, retCode, err
 	}
 
 	// record the SCR and clean all intermediate results
@@ -263,11 +257,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// execute the scr on the initial shard that contains the user address (builtin function call)
 	retCode, err = args.testContextForRelayerAndUser.ScProcessor.ProcessSmartContractResult(scrSCProcess)
-	if retCode != vmcommon.Ok {
-		overallReturnCode = retCode
-	}
-	if err != nil {
-		return scrs, overallReturnCode, err
+	if retCode != vmcommon.Ok || err != nil {
+		return scrs, retCode, err
 	}
 
 	// record the SCR and clean all intermediate results
@@ -279,11 +270,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// execute the finished scr on the shard that contains the dns contract
 	retCode, err = args.testContextForDNSContract.ScProcessor.ProcessSmartContractResult(scrFinishedBuiltinCall)
-	if retCode != vmcommon.Ok {
-		overallReturnCode = retCode
-	}
-	if err != nil {
-		return scrs, overallReturnCode, err
+	if retCode != vmcommon.Ok || err != nil {
+		return scrs, retCode, err
 	}
 
 	// record the SCR and clean all intermediate results
@@ -295,11 +283,8 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// execute the scr on the initial shard that contains the user address (refund)
 	retCode, err = args.testContextForRelayerAndUser.ScProcessor.ProcessSmartContractResult(scrSCFinished)
-	if retCode != vmcommon.Ok {
-		overallReturnCode = retCode
-	}
-	if err != nil {
-		return scrs, overallReturnCode, err
+	if retCode != vmcommon.Ok || err != nil {
+		return scrs, retCode, err
 	}
 
 	// record the SCR and clean all intermediate results
@@ -318,7 +303,7 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 	require.Nil(tb, err)
 	args.testContextForDNSContract.CleanIntermediateTransactions(tb)
 
-	return scrs, overallReturnCode, nil
+	return scrs, vmcommon.Ok, nil
 }
 
 func checkBalances(tb testing.TB, args argsProcessRegister, initialBalance *big.Int) {
