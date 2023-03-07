@@ -283,6 +283,24 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
+	numShuffled := getNumPubKeys(shuffledOutMap)
+	numNewWaiting := getNumPubKeys(newWaiting)
+	numSelectedAuction := uint32(len(arg.auction))
+	totalNewWaiting := numNewWaiting + numSelectedAuction
+
+	shouldFillWaitingList := false
+	if numShuffled >= totalNewWaiting {
+		numNeededNodesToFillWaiting := numShuffled - totalNewWaiting
+		log.Warn("not enough nodes in waiting for next epoch after shuffling current validators into auction",
+			"numShuffled", numShuffled,
+			"numNewWaiting", numNewWaiting,
+			"numSelectedAuction", numSelectedAuction,
+			"numNeededNodesToFillWaiting", numNeededNodesToFillWaiting)
+
+		if arg.flagStakingV4Step2 {
+			shouldFillWaitingList = true
+		}
+	}
 	// Here check that if allNodes(waitingList/newWaiting) < allNodes(shuffledOutMap) then select nodes from auction
 	// Compute numNodesToFillWaiting = allNodes(shuffledOutMap) - allNodes(waitingList)
 	// Easy case If: numNodesToFillWaiting > allNodes(auction) => move all auction list to waiting
@@ -298,13 +316,24 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	if arg.flagStakingV4Step3 {
+	if arg.flagStakingV4Step3 && !shouldFillWaitingList {
 		// Distribute selected validators from AUCTION -> WAITING
 		err = distributeValidators(newWaiting, arg.auction, arg.randomness, false)
 		if err != nil {
 			log.Warn("distributeValidators auction list failed", "error", err)
 		}
 	}
+
+	if arg.flagStakingV4Step2 && shouldFillWaitingList {
+
+		log.Warn("distributing shuffled out nodes to waiting list instead of auction")
+		// Distribute validators from SHUFFLED OUT -> WAITING
+		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
+		if err != nil {
+			log.Warn("distributeValidators shuffledOut failed", "error", err)
+		}
+	}
+
 	if !arg.flagStakingV4Step2 {
 		// Distribute validators from SHUFFLED OUT -> WAITING
 		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
