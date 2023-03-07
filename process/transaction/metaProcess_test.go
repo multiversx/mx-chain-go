@@ -5,35 +5,33 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	txproc "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		Accounts:         &stateMock.AccountsStub{},
-		PubkeyConv:       createMockPubkeyConverter(),
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:     createFreeTxFeeHandler(),
-		ESDTEnableEpoch:  0,
-		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Accounts:            &stateMock.AccountsStub{},
+		PubkeyConv:          createMockPubkeyConverter(),
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		ScProcessor:         &testscommon.SCProcessorMock{},
+		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:        createFreeTxFeeHandler(),
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 	}
 	return args
 }
@@ -361,7 +359,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+		},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -421,21 +421,25 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
+	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsBuiltInFunctionOnMetaFlagEnabledField: false,
+		IsESDTFlagEnabledField:                  true,
+	}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	txProc.SetValueFlagMetaBuiltIn(false)
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
-
-	txProc.SetValueFlagMetaBuiltIn(true)
 
 	builtInCalled := false
 	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		builtInCalled = true
 		return 0, nil
 	}
+
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)

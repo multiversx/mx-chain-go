@@ -1,10 +1,10 @@
 package node
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func (n *Node) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
@@ -65,10 +65,12 @@ func (n *Node) getOptionalEpochByHash(hash []byte) (core.OptionalUint32, error) 
 func (n *Node) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.OptionalUint32) (data.HeaderHandler, error) {
 	shardId := n.processComponents.ShardCoordinator().SelfId()
 	unitType := dataRetriever.GetHeadersDataUnit(shardId)
-	storer := n.dataComponents.StorageService().GetStorer(unitType)
+	storer, err := n.dataComponents.StorageService().GetStorer(unitType)
+	if err != nil {
+		return nil, err
+	}
 
 	var headerBuffer []byte
-	var err error
 
 	if epoch.HasValue {
 		headerBuffer, err = storer.GetFromEpoch(headerHash, epoch.Value)

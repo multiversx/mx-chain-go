@@ -3,16 +3,16 @@ package genesis
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TODO: create a structure or use this function also in process/peer/process.go
 func getValidatorDataFromLeaves(
-	leavesChannel chan core.KeyValueHolder,
+	leavesChannels *common.TrieIteratorChannels,
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32][]*state.ValidatorInfo, error) {
@@ -23,7 +23,7 @@ func getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	for pa := range leavesChannel {
+	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := unmarshalPeer(pa.Value(), marshalizer)
 		if err != nil {
 			return nil, err
@@ -32,6 +32,11 @@ func getValidatorDataFromLeaves(
 		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := peerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+	}
+
+	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	return validators, nil

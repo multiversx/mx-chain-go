@@ -3,10 +3,11 @@ package sender
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender/disabled"
 )
 
 // ArgSender represents the arguments for the sender
@@ -81,12 +82,13 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	})
 	if err != nil {
 		return nil, err
@@ -132,12 +134,13 @@ func checkSenderArgs(args ArgSender) error {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		versionNumber:        args.VersionNumber,
-		nodeDisplayName:      args.NodeDisplayName,
-		identity:             args.Identity,
-		peerSubType:          args.PeerSubType,
-		currentBlockProvider: args.CurrentBlockProvider,
-		peerTypeProvider:     args.PeerTypeProvider,
+		versionNumber:              args.VersionNumber,
+		nodeDisplayName:            args.NodeDisplayName,
+		identity:                   args.Identity,
+		peerSubType:                args.PeerSubType,
+		currentBlockProvider:       args.CurrentBlockProvider,
+		peerTypeProvider:           args.PeerTypeProvider,
+		trieSyncStatisticsProvider: disabled.NewTrieSyncStatisticsProvider(),
 	}
 	return checkHeartbeatSenderArgs(hbsArgs)
 }

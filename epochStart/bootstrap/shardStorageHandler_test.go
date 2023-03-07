@@ -6,26 +6,29 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochStartMocks "github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks/epochStart"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,7 +59,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		ShardHeader:         &block.Header{Nonce: 1},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 }
 
@@ -81,8 +84,66 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		ShardHeader:        &block.Header{Nonce: 1},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+}
+
+func TestShardStorageHandler_SaveDataToStorageMissingStorer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 1))
+	t.Run("missing BlockHeaderUnit", testShardWithMissingStorer(dataRetriever.BlockHeaderUnit, 1))
+	t.Run("missing ShardHdrNonceHashDataUnit", testShardWithMissingStorer(dataRetriever.ShardHdrNonceHashDataUnit, 1))
+	t.Run("missing MetaBlockUnit", testShardWithMissingStorer(dataRetriever.MetaBlockUnit, 1)) // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 2)) // saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	t.Run("missing MetaBlockUnit", testShardWithMissingStorer(dataRetriever.MetaBlockUnit, 2)) // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	t.Run("missing BootstrapUnit", testShardWithMissingStorer(dataRetriever.BootstrapUnit, 3)) // saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+}
+
+func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber int) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			_ = os.RemoveAll("./Epoch_0")
+		}()
+
+		counter := 0
+		args := createDefaultShardStorageArgs()
+		shardStorage, _ := NewShardStorageHandler(args.generalConfig, args.prefsConfig, args.shardCoordinator, args.pathManagerHandler, args.marshalizer, args.hasher, 1, args.uint64Converter, args.nodeTypeProvider)
+		shardStorage.storageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				counter++
+				if counter < atCallNumber {
+					return &storageStubs.StorerStub{}, nil
+				}
+
+				if unitType == missingUnit ||
+					strings.Contains(unitType.String(), missingUnit.String()) {
+					return nil, fmt.Errorf("%w for %s", storage.ErrKeyNotFound, missingUnit.String())
+				}
+
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+		components := &ComponentsNeededForBootstrap{
+			EpochStartMetaBlock: &block.MetaBlock{
+				Epoch: 1,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Nonce: 1},
+					},
+				},
+			},
+			PreviousEpochStart: &block.MetaBlock{Epoch: 1},
+			ShardHeader:        &block.Header{Nonce: 1},
+		}
+
+		err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
+		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
+	}
 }
 
 func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
@@ -116,7 +177,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		NodesConfig:        &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
 
-	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false)
+	err := shardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
 	assert.Nil(t, err)
 }
 
@@ -1084,7 +1145,7 @@ func createPendingAndProcessedMiniBlocksScenario() scenarioData {
 	expectedPendingMbsWithScheduled := []bootstrapStorage.PendingMiniBlocksInfo{
 		{ShardID: 0, MiniBlocksHashes: [][]byte{crossMbHeaders[1].Hash, crossMbHeaders[2].Hash, crossMbHeaders[3].Hash, crossMbHeaders[4].Hash, crossMbHeaders[0].Hash}},
 	}
-	expectedProcessedMbsWithScheduled := []bootstrapStorage.MiniBlocksInMeta{}
+	expectedProcessedMbsWithScheduled := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
 	headers := map[string]data.HeaderHandler{
 		lastFinishedMetaBlockHash: &block.MetaBlock{

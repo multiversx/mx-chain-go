@@ -8,7 +8,7 @@ import (
 
 // RequiredDataPool represents a structure that can hold a list of required data.
 // Any time one of the expected hash value is received, the associated bit
-// in the receivedBitmap property is set to 1. All of the data is
+// in the receivedBitmap property is set to 1. All the data is
 // considered received when the ones count of the received bitmap
 // is equal to the expected data length
 type RequiredDataPool struct {

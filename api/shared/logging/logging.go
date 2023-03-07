@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("api/shared/logging")
+
 const thresholdMinAPICallDurationToLog = 200 * time.Millisecond
 
 // LogAPIActionDurationIfNeeded will log the duration of an action triggered by an API call if it's above a threshold

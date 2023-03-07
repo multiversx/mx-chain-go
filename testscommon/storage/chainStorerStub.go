@@ -1,14 +1,14 @@
 package storage
 
 import (
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ChainStorerStub -
 type ChainStorerStub struct {
 	AddStorerCalled     func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled     func(unitType dataRetriever.UnitType) storage.Storer
+	GetStorerCalled     func(unitType dataRetriever.UnitType) (storage.Storer, error)
 	HasCalled           func(unitType dataRetriever.UnitType, key []byte) error
 	GetCalled           func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
 	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte) error
@@ -34,11 +34,11 @@ func (stub *ChainStorerStub) AddStorer(key dataRetriever.UnitType, s storage.Sto
 }
 
 // GetStorer -
-func (stub *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
+func (stub *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) (storage.Storer, error) {
 	if stub.GetStorerCalled != nil {
 		return stub.GetStorerCalled(unitType)
 	}
-	return nil
+	return nil, storage.ErrKeyNotFound
 }
 
 // Has -

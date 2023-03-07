@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/factory"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,7 +100,7 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 	}()
 
 	//the network has 8 peers (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//nodes 2, 4, 6 decide to flood the network but they will keep their messages/sec under the threshold
+	//nodes 2, 4, 6 decide to flood the network, but they will keep their messages/sec under the threshold
 	topic := "test_topic"
 	idxGoodPeers := []int{0, 1, 3, 5, 7}
 	idxBadPeers := []int{2, 4, 6}

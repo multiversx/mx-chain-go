@@ -3,8 +3,8 @@ package testscommon
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
 
 // HeaderHandlerStub -
@@ -26,6 +26,7 @@ type HeaderHandlerStub struct {
 	IsStartOfEpochBlockCalled              func() bool
 	HasScheduledMiniBlocksCalled           func() bool
 	GetNonceCalled                         func() uint64
+	CheckFieldsForNilCalled                func() error
 }
 
 // GetAccumulatedFees -
@@ -295,7 +296,7 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 }
 
 // SetEpochStartMetaHash -
-func (h *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
 	return nil
 }
 
@@ -357,6 +358,15 @@ func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 // MapMiniBlockHashesToShards -
 func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 	panic("implement me")
+}
+
+// CheckFieldsForNil -
+func (hhs *HeaderHandlerStub) CheckFieldsForNil() error {
+	if hhs.CheckFieldsForNilCalled != nil {
+		return hhs.CheckFieldsForNilCalled()
+	}
+
+	return nil
 }
 
 // HasScheduledMiniBlocks -

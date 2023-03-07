@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -157,7 +157,7 @@ func (chr *chronology) startRound(ctx context.Context) {
 	chr.subroundId = sr.Next()
 }
 
-// updateRound updates rounds and subrounds depending of the current time and the finished tasks
+// updateRound updates rounds and subrounds depending on the current time and the finished tasks
 func (chr *chronology) updateRound() {
 	oldRoundIndex := chr.roundHandler.Index()
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
@@ -172,7 +172,7 @@ func (chr *chronology) updateRound() {
 	}
 }
 
-// initRound is called when a new round begins and it does the necessary initialization
+// initRound is called when a new round begins, and it does the necessary initialization
 func (chr *chronology) initRound() {
 	chr.subroundId = srBeforeStartRound
 

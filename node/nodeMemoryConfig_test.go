@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/require"
 )
@@ -44,6 +44,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.UnsignedTransactionDataPool.SizeInBytes * uint64(numShardsIncludingMeta*(numShardsIncludingMeta-1)) / 2
 	// One cache for each pair (meta, shard)
 	plannedMemory += nodeConfig.RewardTransactionDataPool.SizeInBytes * uint64(numShards)
+	plannedMemory += nodeConfig.ValidatorInfoPool.SizeInBytes
 
 	require.LessOrEqual(t, int(plannedMemory), 3000*core.MegabyteSize)
 }

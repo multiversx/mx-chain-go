@@ -1,15 +1,15 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // BlockChainHookStub -
 type BlockChainHookStub struct {
 	AccountExtistsCalled          func(address []byte) (bool, error)
 	NewAddressCalled              func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetStorageDataCalled          func(accountsAddress []byte, index []byte) ([]byte, error)
+	GetStorageDataCalled          func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
 	GetUserAccountCalled          func(address []byte) (vmcommon.UserAccountHandler, error)
 	GetShardOfAddressCalled       func(address []byte) uint32
 	IsSmartContractCalled         func(address []byte) bool
@@ -61,11 +61,11 @@ func (b *BlockChainHookStub) GetCode(account vmcommon.UserAccountHandler) []byte
 }
 
 // GetStorageData -
-func (b *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+func (b *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
 	if b.GetStorageDataCalled != nil {
 		return b.GetStorageDataCalled(accountAddress, index)
 	}
-	return nil, nil
+	return nil, 0, nil
 }
 
 // GetUserAccount -

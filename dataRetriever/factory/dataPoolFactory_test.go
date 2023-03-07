@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -136,6 +136,13 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	fmt.Println(err)
 	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
 	require.True(t, strings.Contains(err.Error(), "the cache for the heartbeat messages"))
+
+	args = getGoodArgs()
+	args.Config.ValidatorInfoPool.Capacity = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
+	require.True(t, strings.Contains(err.Error(), "the cache for the validator info results"))
 }
 
 func getGoodArgs() ArgsDataPool {

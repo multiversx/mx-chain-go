@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	esdtCommon "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	esdtCommon "github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -380,6 +380,6 @@ func checkDataFromAccountAndKey(
 	expectedData []byte,
 ) {
 	userAcc := esdtCommon.GetUserAccountWithAddress(t, address, nodes)
-	val, _ := userAcc.DataTrieTracker().RetrieveValue(key)
+	val, _, _ := userAcc.RetrieveValue(key)
 	assert.Equal(t, expectedData, val)
 }

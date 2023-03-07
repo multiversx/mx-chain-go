@@ -3,8 +3,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -110,7 +110,7 @@ type EpochNotifier interface {
 
 // BlockchainHook is the interface for VM blockchain callbacks
 type BlockchainHook interface {
-	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error)
 	CurrentNonce() uint64
 	CurrentRound() uint64
 	CurrentEpoch() uint32

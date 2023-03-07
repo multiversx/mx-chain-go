@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // GetAppVersion will return application version
@@ -80,7 +80,7 @@ func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricCountAcceptedBlocks)
 }
 
-// CheckSoftwareVersion will check if node is the latest version and will return latest stable version
+// CheckSoftwareVersion will check if node is the latest version and will return the latest stable version
 func (psh *PresenterStatusHandler) CheckSoftwareVersion() (bool, string) {
 	latestStableVersion := psh.getFromCacheAsString(common.MetricLatestTagSoftwareVersion)
 	appVersion := psh.getFromCacheAsString(common.MetricAppVersion)

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/outport/mock"
-	"github.com/ElrondNetwork/elrond-go/outport/notifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
+	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/multiversx/mx-chain-go/outport/notifier"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ import (
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
 		HttpClient:      &mock.HTTPClientStub{},
-		Marshalizer:     &testscommon.MarshalizerMock{},
+		Marshaller:      &testscommon.MarshalizerMock{},
 		Hasher:          &hashingMocks.HasherMock{},
 		PubKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
@@ -29,9 +29,57 @@ func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 func TestNewEventNotifier(t *testing.T) {
 	t.Parallel()
 
-	en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
-	require.Nil(t, err)
-	require.NotNil(t, en)
+	t.Run("nil http client", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.HttpClient = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilHTTPClientWrapper, err)
+	})
+
+	t.Run("nil marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.Marshaller = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilMarshaller, err)
+	})
+
+	t.Run("nil hasher", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.Hasher = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilHasher, err)
+	})
+
+	t.Run("nil pub key converter", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.PubKeyConverter = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilPubKeyConverter, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		en, err := notifier.NewEventNotifier(createMockEventNotifierArgs())
+		require.Nil(t, err)
+		require.NotNil(t, en)
+	})
 }
 
 func TestSaveBlock(t *testing.T) {
@@ -39,9 +87,23 @@ func TestSaveBlock(t *testing.T) {
 
 	args := createMockEventNotifierArgs()
 
+	txHash1 := "txHash1"
+	scrHash1 := "scrHash1"
+
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
+			saveBlockData := payload.(outportSenderData.ArgsSaveBlock)
+
+			require.Equal(t, hex.EncodeToString([]byte(txHash1)), saveBlockData.TransactionsPool.Logs[0].TxHash)
+			for txHash := range saveBlockData.TransactionsPool.Txs {
+				require.Equal(t, hex.EncodeToString([]byte(txHash1)), txHash)
+			}
+
+			for scrHash := range saveBlockData.TransactionsPool.Scrs {
+				require.Equal(t, hex.EncodeToString([]byte(scrHash1)), scrHash)
+			}
+
 			wasCalled = true
 			return nil
 		},
@@ -49,16 +111,20 @@ func TestSaveBlock(t *testing.T) {
 
 	en, _ := notifier.NewEventNotifier(args)
 
-	saveBlockData := &indexer.ArgsSaveBlockData{
+	saveBlockData := &outport.ArgsSaveBlockData{
 		HeaderHash: []byte{},
-		TransactionsPool: &indexer.Pool{
-			Txs: map[string]data.TransactionHandler{
-				"txhash1": nil,
+		TransactionsPool: &outport.Pool{
+			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				txHash1: nil,
 			},
-			Scrs: map[string]data.TransactionHandler{
-				"scrHash1": nil,
+			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+				scrHash1: nil,
 			},
-			Logs: []*data.LogData{},
+			Logs: []*data.LogData{
+				{
+					TxHash: txHash1,
+				},
+			},
 		},
 	}
 
@@ -75,7 +141,7 @@ func TestRevertIndexedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -101,7 +167,7 @@ func TestFinalizedBlock(t *testing.T) {
 
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload, response interface{}) error {
+		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
 		},
@@ -114,63 +180,6 @@ func TestFinalizedBlock(t *testing.T) {
 	require.Nil(t, err)
 
 	require.True(t, wasCalled)
-}
-
-func TestGetLogEventsFromTransactionsPool(t *testing.T) {
-	t.Parallel()
-
-	txHash1 := "txHash1"
-	txHash2 := "txHash2"
-
-	events := []*transaction.Event{
-		{
-			Address:    []byte("addr1"),
-			Identifier: []byte("identifier1"),
-		},
-		{
-			Address:    []byte("addr2"),
-			Identifier: []byte("identifier2"),
-		},
-		{
-			Address:    []byte("addr3"),
-			Identifier: []byte("identifier3"),
-		},
-	}
-
-	logs := []*data.LogData{
-		{
-			LogHandler: &transaction.Log{
-				Events: []*transaction.Event{
-					events[0],
-					events[1],
-				},
-			},
-			TxHash: txHash1,
-		},
-		{
-			LogHandler: &transaction.Log{
-				Events: []*transaction.Event{
-					events[2],
-				},
-			},
-			TxHash: txHash2,
-		},
-	}
-
-	args := createMockEventNotifierArgs()
-	en, _ := notifier.NewEventNotifier(args)
-
-	receivedEvents := en.GetLogEventsFromTransactionsPool(logs)
-
-	for i, event := range receivedEvents {
-		require.Equal(t, hex.EncodeToString(events[i].Address), event.Address)
-		require.Equal(t, string(events[i].Identifier), event.Identifier)
-	}
-
-	require.Equal(t, len(events), len(receivedEvents))
-	require.Equal(t, hex.EncodeToString([]byte(txHash1)), receivedEvents[0].TxHash)
-	require.Equal(t, hex.EncodeToString([]byte(txHash1)), receivedEvents[1].TxHash)
-	require.Equal(t, hex.EncodeToString([]byte(txHash2)), receivedEvents[2].TxHash)
 }
 
 func TestMockFunctions(t *testing.T) {
@@ -196,7 +205,7 @@ func TestMockFunctions(t *testing.T) {
 	err = en.SaveValidatorsPubKeys(nil, 0)
 	require.Nil(t, err)
 
-	err = en.SaveAccounts(0, nil)
+	err = en.SaveAccounts(0, nil, 0)
 	require.Nil(t, err)
 
 	err = en.Close()

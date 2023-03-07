@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +54,7 @@ func TestBootstrapDataProvider_LoadForPath_KeyNotFound(t *testing.T) {
 	bdp, _ := NewBootstrapDataProvider(&mock.MarshalizerMock{})
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(_ string) (persister storage.Persister, e error) {
-			persister, e = memorydb.NewlruDB(20)
+			persister, e = database.NewlruDB(20)
 			return
 		},
 	}
@@ -70,7 +70,7 @@ func TestBootstrapDataProvider_LoadForPath_ShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	bdp, _ := NewBootstrapDataProvider(marshalizer)
-	persisterToUse := memorydb.New()
+	persisterToUse := database.NewMemDB()
 
 	expectedRound := int64(37)
 	roundNum := bootstrapStorage.RoundNum{Num: expectedRound}

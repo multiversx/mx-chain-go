@@ -5,14 +5,14 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // NodeStub -
@@ -39,6 +39,7 @@ type NodeStub struct {
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetAllESDTTokensCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetNFTTokenIDsRegisteredByAddressCalled        func(address string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
@@ -85,6 +86,15 @@ func (ns *NodeStub) GetUsername(address string, options api.AccountQueryOptions)
 	}
 
 	return "", api.BlockInfo{}, nil
+}
+
+// GetCodeHash -
+func (ns *NodeStub) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	if ns.GetCodeHashCalled != nil {
+		return ns.GetCodeHashCalled(address, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetKeyValuePairs -

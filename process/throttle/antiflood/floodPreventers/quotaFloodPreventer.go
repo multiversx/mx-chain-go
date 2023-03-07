@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ArgQuotaFloodPreventer defines the arguments for a quota flood preventer
@@ -119,7 +119,7 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 // IncreaseLoad tries to increment the counter values held at "pid" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
-// Otherwise we might yield a slightly higher number of false valid increments
+// Otherwise, we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota but does not increment its values
 func (qfp *quotaFloodPreventer) IncreaseLoad(pid core.PeerID, size uint64) error {
 	qfp.mutOperation.Lock()

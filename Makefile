@@ -59,24 +59,20 @@ test-agario-join-reward:
 test-miniblocks-sc-v:
 	go test -count=1 -v ./integrationTests/multiShard/block/executingMiniblocksSc_test.go
 
-test-arwen:
-	go test -count=1 -v ./integrationTests/vm/arwen/...
+test-wasm:
+	go test -count=1 -v ./integrationTests/vm/wasm/...
 
-test-coverage: arwen
+test-coverage:
 	@echo "Running unit tests"
 	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -short -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
 
-benchmark-arwen:
-	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithFibbonacciAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
-	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
-	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
-
-#TODO: this is no longer required should be removed in a subsequent PR
-arwen:
-	@echo "Building the Arwen binary has been deprecated."
+benchmark-wasm:
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithFibbonacciAndExecute' -test.run='noruns' ./integrationTests/vm/wasm
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/wasm
+	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/wasm
 
 cli-docs:
 	cd ./cmd && bash ./CLI.md.sh

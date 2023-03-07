@@ -4,26 +4,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -109,9 +112,11 @@ func NewShardProcessorEmptyWith3shards(
 		StatusField:               &statusHandlerMock.AppStatusHandlerStub{},
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
+		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
-		Storage:    &mock.ChainStorerMock{},
+		Storage:    &storageStubs.ChainStorerStub{},
 		DataPool:   tdp,
 		BlockChain: blockChain,
 	}
@@ -121,40 +126,43 @@ func NewShardProcessorEmptyWith3shards(
 		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Outport: &testscommon.OutportStub{},
+		Outport: &outport.OutportStub{},
+	}
+	statusCoreComponents := &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			CoreComponents:      coreComponents,
-			DataComponents:      dataComponents,
-			BootstrapComponents: boostrapComponents,
-			StatusComponents:    statusComponents,
-			AccountsDB:          accountsDb,
-			ForkDetector:        &mock.ForkDetectorMock{},
-			NodesCoordinator:    nodesCoordinator,
-			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			BlockChainHook:      &testscommon.BlockChainHookStub{},
-			TxCoordinator:       &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-			HeaderValidator:     hdrValidator,
+			CoreComponents:       coreComponents,
+			DataComponents:       dataComponents,
+			BootstrapComponents:  boostrapComponents,
+			StatusComponents:     statusComponents,
+			StatusCoreComponents: statusCoreComponents,
+			AccountsDB:           accountsDb,
+			ForkDetector:         &mock.ForkDetectorMock{},
+			NodesCoordinator:     nodesCoordinator,
+			FeeHandler:           &mock.FeeAccumulatorStub{},
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			BlockChainHook:       &testscommon.BlockChainHookStub{},
+			TxCoordinator:        &testscommon.TransactionCoordinatorMock{},
+			EpochStartTrigger:    &mock.EpochStartTriggerStub{},
+			HeaderValidator:      hdrValidator,
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
 			},
-			BlockTracker:                   mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			Version:                        "softwareVersion",
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EpochNotifier:                  &epochNotifier.EpochNotifierStub{},
-			RoundNotifier:                  &mock.RoundNotifierStub{},
-			GasHandler:                     &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 2,
-			ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
-			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Version:                      "softwareVersion",
+			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+			GasHandler:                   &mock.GasHandlerMock{},
+			OutportDataProvider:          &outport.OutportDataProviderStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -206,6 +214,10 @@ func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	return mp.requestMissingFinalityAttestingShardHeaders()
+}
+
+func (mp *metaProcessor) SaveMetricCrossCheckBlockHeight() {
+	mp.saveMetricCrossCheckBlockHeight()
 }
 
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
@@ -428,9 +440,8 @@ func (bp *baseProcessor) UpdateState(
 	rootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
-	statePruningQueue core.Queue,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts, statePruningQueue)
+	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
 }
 
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
@@ -535,4 +546,13 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 
 func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
 	return checkConstructionStateAndIndexesCorrectness(mbh)
+}
+
+func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	return mp.getAllMarshalledTxs(body)
+}
+
+// SetNonceOfFirstCommittedBlock -
+func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
+	bp.setNonceOfFirstCommittedBlock(nonce)
 }

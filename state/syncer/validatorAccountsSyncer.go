@@ -3,11 +3,11 @@ package syncer
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 var _ epochStart.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
@@ -34,20 +34,23 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:                    args.Hasher,
-		marshalizer:               args.Marshalizer,
-		dataTries:                 make(map[string]struct{}),
-		trieStorageManager:        args.TrieStorageManager,
-		requestHandler:            args.RequestHandler,
-		timeoutHandler:            timeoutHandler,
-		shardId:                   core.MetachainShardId,
-		cacher:                    args.Cacher,
-		rootHash:                  nil,
-		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		name:                      "peer accounts",
-		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
-		trieSyncerVersion:         args.TrieSyncerVersion,
-		checkNodesOnDisk:          args.CheckNodesOnDisk,
+		hasher:                            args.Hasher,
+		marshalizer:                       args.Marshalizer,
+		dataTries:                         make(map[string]struct{}),
+		trieStorageManager:                args.TrieStorageManager,
+		requestHandler:                    args.RequestHandler,
+		timeoutHandler:                    timeoutHandler,
+		shardId:                           core.MetachainShardId,
+		cacher:                            args.Cacher,
+		rootHash:                          nil,
+		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
+		name:                              "peer accounts",
+		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:                 args.TrieSyncerVersion,
+		checkNodesOnDisk:                  args.CheckNodesOnDisk,
+		storageMarker:                     args.StorageMarker,
+		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		appStatusHandler:                  args.AppStatusHandler,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -70,15 +73,19 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	tss := statistics.NewTrieSyncStatistics()
-	go v.printStatistics(tss, ctx)
+	go v.printStatisticsAndUpdateMetrics(ctx)
 
-	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
 	if err != nil {
 		return err
 	}
 
-	mainTrie.MarkStorerAsSyncedAndActive()
+	v.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (v *validatorAccountsSyncer) IsInterfaceNil() bool {
+	return v == nil
 }

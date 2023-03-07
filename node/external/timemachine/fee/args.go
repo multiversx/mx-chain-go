@@ -1,18 +1,17 @@
 package fee
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 )
 
 // ArgsNewFeeComputer holds the arguments for constructing a feeComputer
 type ArgsNewFeeComputer struct {
-	BuiltInFunctionsCostHandler    economics.BuiltInFunctionsCostHandler
-	EconomicsConfig                config.EconomicsConfig
-	PenalizedTooMuchGasEnableEpoch uint32
-	GasPriceModifierEnableEpoch    uint32
+	BuiltInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
+	EconomicsConfig             config.EconomicsConfig
+	EnableEpochsConfig          config.EnableEpochs
 }
 
 func (args *ArgsNewFeeComputer) check() error {

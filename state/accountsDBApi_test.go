@@ -8,15 +8,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -462,20 +462,20 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
-			GetAllLeavesCalled: func(_ chan core.KeyValueHolder, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
 				require.Fail(t, "should have not called inner method")
 				return nil
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(nil, nil, []byte{})
+		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
 
-		providedChan := make(chan core.KeyValueHolder)
+		providedChan := &common.TrieIteratorChannels{LeavesChan: make(chan core.KeyValueHolder)}
 		recreateTrieCalled := false
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash []byte) error {

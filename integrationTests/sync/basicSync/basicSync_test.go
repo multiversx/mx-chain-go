@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,19 +27,21 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
 	connectableNodes := make([]integrationTests.Connectable, 0)
 	for i := 0; i < numNodesPerShard; i++ {
-		nodes[i] = integrationTests.NewTestSyncNode(
-			maxShards,
-			shardId,
-			shardId,
-		)
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+		})
 		connectableNodes = append(connectableNodes, nodes[i])
 	}
 
-	metachainNode := integrationTests.NewTestSyncNode(
-		maxShards,
-		core.MetachainShardId,
-		shardId,
-	)
+	metachainNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: shardId,
+		WithSync:             true,
+	})
 	idxProposerMeta := numNodesPerShard
 	nodes[idxProposerMeta] = metachainNode
 	connectableNodes = append(connectableNodes, metachainNode)
@@ -96,11 +98,12 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard)
 	connectableNodes := make([]integrationTests.Connectable, 0)
 	for i := 0; i < numNodesPerShard; i++ {
-		nodes[i] = integrationTests.NewTestSyncNode(
-			maxShards,
-			shardId,
-			shardId,
-		)
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+		})
 		connectableNodes = append(connectableNodes, nodes[i])
 	}
 

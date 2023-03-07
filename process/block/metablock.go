@@ -8,27 +8,26 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
-// metaProcessor implements metaProcessor interface and actually it tries to execute block
+// metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
 	scToProtocol                 process.SmartContractToProtocolHandler
@@ -43,10 +42,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	rewardsV2EnableEpoch         uint32
-	userStatePruningQueue        core.Queue
-	peerStatePruningQueue        core.Queue
-	processStatusHandler         common.ProcessStatusHandler
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -89,54 +84,55 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilReceiptsRepository
 	}
 
-	pruningQueueSize := arguments.Config.StateTriesConfig.PeerStatePruningQueueSize
-	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
-	if pruningDelay < defaultPruningDelay {
-		log.Warn("using default pruning delay", "pruning queue size", pruningQueueSize)
-		pruningDelay = defaultPruningDelay
+	processDebugger, err := createDisabledProcessDebugger()
+	if err != nil {
+		return nil, err
 	}
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:                     arguments.AccountsDB,
-		blockSizeThrottler:             arguments.BlockSizeThrottler,
-		forkDetector:                   arguments.ForkDetector,
-		hasher:                         arguments.CoreComponents.Hasher(),
-		marshalizer:                    arguments.CoreComponents.InternalMarshalizer(),
-		store:                          arguments.DataComponents.StorageService(),
-		shardCoordinator:               arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:                     arguments.FeeHandler,
-		nodesCoordinator:               arguments.NodesCoordinator,
-		uint64Converter:                arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                 arguments.RequestHandler,
-		appStatusHandler:               arguments.CoreComponents.StatusHandler(),
-		blockChainHook:                 arguments.BlockChainHook,
-		txCoordinator:                  arguments.TxCoordinator,
-		epochStartTrigger:              arguments.EpochStartTrigger,
-		headerValidator:                arguments.HeaderValidator,
-		roundHandler:                   arguments.CoreComponents.RoundHandler(),
-		bootStorer:                     arguments.BootStorer,
-		blockTracker:                   arguments.BlockTracker,
-		dataPool:                       arguments.DataComponents.Datapool(),
-		blockChain:                     arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:         arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		outportHandler:                 arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                   genesisHdr.GetNonce(),
-		versionedHeaderFactory:         arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:        arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                    arguments.HistoryRepository,
-		epochNotifier:                  arguments.EpochNotifier,
-		roundNotifier:                  arguments.RoundNotifier,
-		vmContainerFactory:             arguments.VMContainersFactory,
-		vmContainer:                    arguments.VmContainer,
-		processDataTriesOnCommitEpoch:  arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:            arguments.GasHandler,
-		economicsData:                  arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:   arguments.ScheduledTxsExecutionHandler,
-		scheduledMiniBlocksEnableEpoch: arguments.ScheduledMiniBlocksEnableEpoch,
-		pruningDelay:                   pruningDelay,
-		processedMiniBlocksTracker:     arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:             arguments.ReceiptsRepository,
+		accountsDB:                    arguments.AccountsDB,
+		blockSizeThrottler:            arguments.BlockSizeThrottler,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.CoreComponents.Hasher(),
+		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
+		store:                         arguments.DataComponents.StorageService(),
+		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                    arguments.FeeHandler,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                arguments.RequestHandler,
+		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
+		epochStartTrigger:             arguments.EpochStartTrigger,
+		headerValidator:               arguments.HeaderValidator,
+		roundHandler:                  arguments.CoreComponents.RoundHandler(),
+		bootStorer:                    arguments.BootStorer,
+		blockTracker:                  arguments.BlockTracker,
+		dataPool:                      arguments.DataComponents.Datapool(),
+		blockChain:                    arguments.DataComponents.Blockchain(),
+		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		outportHandler:                arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                  genesisHdr.GetNonce(),
+		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                   arguments.HistoryRepository,
+		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
+		enableRoundsHandler:           arguments.EnableRoundsHandler,
+		vmContainerFactory:            arguments.VMContainersFactory,
+		vmContainer:                   arguments.VmContainer,
+		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:           arguments.GasHandler,
+		economicsData:                 arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                  pruningDelay,
+		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:            arguments.ReceiptsRepository,
+		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
+		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 	}
 
 	mp := metaProcessor{
@@ -150,11 +146,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
-		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
-		processStatusHandler:         arguments.CoreComponents.ProcessStatusHandler(),
 	}
-
-	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
 
 	mp.txCounter, err = NewTransactionCounter(mp.hasher, mp.marshalizer)
 	if err != nil {
@@ -174,16 +166,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
-	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
-	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
-
-	mp.epochNotifier.RegisterNotifyHandler(&mp)
 
 	return &mp, nil
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
-	return headerHandler.GetEpoch() >= mp.rewardsV2EnableEpoch
+	return headerHandler.GetEpoch() >= mp.enableEpochsHandler.StakingV2EnableEpoch()
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -213,7 +201,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.roundNotifier.CheckRound(headerHandler.GetRound())
+	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -588,7 +576,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !mp.flagScheduledMiniBlocks.IsSet() {
+	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return headerHandler.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, mp.shardCoordinator.SelfId())
@@ -619,75 +607,22 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
-
-	pool := &indexer.Pool{
-		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
-		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
-		Rewards: rewardsTxs,
-		Logs:    mp.txCoordinator.GetAllCurrentLogs(),
-	}
-
-	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
-	)
-	if err != nil {
-		log.Debug("indexBlock: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
-	}
-
-	epoch := metaBlock.GetEpoch()
-	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
-	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
-	if err != nil {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"error", err.Error())
-		return
-	}
-
-	if shardCoordinatorShardID != nodesCoordinatorShardID {
-		log.Debug("indexBlock",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardCoordinatorShardID,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
-	}
-
-	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
-	if err != nil {
-		log.Debug("indexBlock: GetValidatorsIndexes",
-			"hash", headerHash,
-			"epoch", metaBlock.GetEpoch(),
-			"error", err.Error())
-		return
-	}
-
-	gasProvidedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
-	gasPenalizedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
-	gasRefundedInHeader := mp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
-	maxGasInHeader := mp.baseProcessor.economicsData.MaxGasLimitPerBlock(mp.shardCoordinator.SelfId())
-
-	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:     headerHash,
-		Body:           body,
-		Header:         metaBlock,
-		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasProvided:    gasProvidedInHeader,
-			GasRefunded:    gasRefundedInHeader,
-			GasPenalized:   gasPenalizedInHeader,
-			MaxGasPerBlock: maxGasInHeader,
-		},
+	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash:             headerHash,
+		Header:                 metaBlock,
+		Body:                   body,
+		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		TransactionsPool:       pool,
+		PreviousHeader:         lastMetaBlock,
+	})
+	if err != nil {
+		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		return
 	}
-	mp.outportHandler.SaveBlock(args)
+	mp.outportHandler.SaveBlock(argSaveBlock)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
-	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
 		return
@@ -731,7 +666,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		headersPool.AddHeader(hdrHash, shardHeader)
 
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
-		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
+		storer, errNotCritical := mp.store.GetStorer(hdrNonceHashDataUnit)
+		if errNotCritical != nil {
+			log.Debug("storage unit not found", "unit", hdrNonceHashDataUnit, "error", errNotCritical.Error())
+			continue
+		}
+
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		errNotCritical = storer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
@@ -985,7 +925,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	if mp.flagScheduledMiniBlocks.IsSet() {
+	if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
@@ -1270,6 +1210,8 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
+	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
+	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
@@ -1327,6 +1269,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
+	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1492,7 +1435,6 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		lastMetaBlock.GetRootHash(),
 		prevMetaBlock.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
-		mp.userStatePruningQueue,
 	)
 
 	mp.updateStateStorage(
@@ -1500,7 +1442,6 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevMetaBlock.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
-		mp.peerStatePruningQueue,
 	)
 
 	mp.setFinalizedHeaderHashInIndexer(lastMetaBlock.GetPrevHash())
@@ -1593,8 +1534,8 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
-		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
+		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -1678,6 +1619,9 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		}
 
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
+
+		shardedCrossChecksKey := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		mp.appStatusHandler.SetUInt64Value(shardedCrossChecksKey, heightValue)
 	}
 
 	mp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
@@ -1818,7 +1762,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
-	if !mp.flagScheduledMiniBlocks.IsSet() {
+	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 		return miniBlockHeaderHandlers
 	}
 
@@ -2056,7 +2000,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
-			if mp.flagScheduledMiniBlocks.IsSet() {
+			if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
 					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
@@ -2120,10 +2064,28 @@ func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHa
 
 	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
+	log.Debug("computeAccumulatedFeesInEpoch - meta block fees",
+		"meta nonce", metaHdr.GetNonce(),
+		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
+		"devFees", metaHdr.GetDeveloperFees().String(),
+		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String())
+
 	for _, shardData := range metaHdr.GetShardInfoHandlers() {
+		log.Debug("computeAccumulatedFeesInEpoch - adding shard data fees",
+			"shardHeader hash", shardData.GetHeaderHash(),
+			"shardHeader nonce", shardData.GetNonce(),
+			"shardHeader accumulated fees", shardData.GetAccumulatedFees().String(),
+			"shardHeader dev fees", shardData.GetDeveloperFees().String(),
+			"shardHeader leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(shardData.GetAccumulatedFees(), shardData.GetDeveloperFees()), mp.economicsData.LeaderPercentage()).String(),
+		)
+
 		currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, shardData.GetAccumulatedFees())
 		currentDevFeesInEpoch.Add(currentDevFeesInEpoch, shardData.GetDeveloperFees())
 	}
+
+	log.Debug("computeAccumulatedFeesInEpoch - fees in epoch",
+		"accumulatedFeesInEpoch", currentlyAccumulatedFeesInEpoch.String(),
+		"devFeesInEpoch", currentDevFeesInEpoch.String())
 
 	return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 }
@@ -2304,7 +2266,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.roundNotifier.CheckRound(round)
+	mp.enableRoundsHandler.CheckRound(round)
 
 	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
@@ -2395,7 +2357,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	var mrsTxs map[string][][]byte
 	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.epochRewardsCreator.CreateMarshalizedData(body)
+		mrsTxs = mp.getAllMarshalledTxs(body)
 	} else {
 		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
 	}
@@ -2420,6 +2382,25 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {
+	allMarshalledTxs := make(map[string][][]byte)
+
+	marshalledRewardsTxs := mp.epochRewardsCreator.CreateMarshalledData(body)
+	marshalledValidatorInfoTxs := mp.validatorInfoCreator.CreateMarshalledData(body)
+
+	for topic, marshalledTxs := range marshalledRewardsTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num rewards txs", len(marshalledTxs))
+	}
+
+	for topic, marshalledTxs := range marshalledValidatorInfoTxs {
+		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
+		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num validator info txs", len(marshalledTxs))
+	}
+
+	return allMarshalledTxs
 }
 
 func getTxCount(shardInfo []data.ShardDataHandler) uint32 {

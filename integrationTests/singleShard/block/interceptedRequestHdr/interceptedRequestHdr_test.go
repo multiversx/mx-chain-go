@@ -3,18 +3,19 @@ package interceptedRequestHdr
 import (
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,15 +30,23 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -60,8 +69,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
@@ -85,15 +98,23 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	marshalizer := integrationTests.TestMarshalizer
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	var nrOfShards uint32 = 1
+	var numOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nRequester := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
+	nResolver := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            numOfShards,
+		NodeShardId:          shardID,
+		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+	})
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -117,8 +138,12 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	//resolver has the headers
 	nResolver.DataPool.Headers().AddHeader(hdrHash1, hdr1)
 
-	_ = nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit).Put(hdrHash2, hdrBuff2)
-	_ = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Put(uint64Converter.ToByteSlice(1), hdrHash2)
+	storer, err := nResolver.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(hdrHash2, hdrBuff2)
+	storer, err = nResolver.Storage.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(uint64Converter.ToByteSlice(1), hdrHash2)
 
 	chanDone1, chanDone2 := wireUpHandler(nRequester, hdr1, hdr2)
 
@@ -151,6 +176,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	hdr2 := &block.Header{
@@ -169,6 +196,8 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
 		SoftwareVersion:  []byte("version"),
+		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	return hdr1, hdr2

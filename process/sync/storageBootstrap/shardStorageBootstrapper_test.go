@@ -5,21 +5,21 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageMock "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -81,7 +81,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					return nil
 				},
 			},
-			BlockProcessor: &mock.BlockProcessorMock{},
+			BlockProcessor: &testscommon.BlockProcessorStub{},
 			ChainHandler: &testscommon.ChainHandlerStub{
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
 					return nil
@@ -106,9 +106,9 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 			},
 			Marshalizer: &testscommon.MarshalizerMock{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return blockStorerMock
+			Store: &storageMock.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return blockStorerMock, nil
 				},
 			},
 			Uint64Converter:     testscommon.NewNonceHashConverterMock(),
@@ -173,8 +173,8 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 			return []byte("")
 		},
 	}
-	baseArgs.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+	baseArgs.Store = &storageMock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageMock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					if bForceError {
@@ -202,7 +202,7 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 					numKeysNotFound++
 					return nil, errors.New("error")
 				},
-			}
+			}, nil
 		},
 	}
 

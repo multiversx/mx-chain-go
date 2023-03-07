@@ -3,9 +3,10 @@ package pruning_test
 import (
 	"testing"
 
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,13 +14,13 @@ func TestNewFullHistoryTriePruningStorer(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgs()
-	fhArgs := &pruning.FullHistoryStorerArgs{
+	fhArgs := pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 10,
 	}
 	fhps, err := pruning.NewFullHistoryTriePruningStorer(fhArgs)
 	assert.Nil(t, err)
-	assert.NotNil(t, fhps)
+	assert.False(t, check.IfNil(fhps))
 }
 
 func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T) {
@@ -29,7 +30,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -52,7 +53,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -75,7 +76,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}
@@ -98,7 +99,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 		t.Parallel()
 
 		args := getDefaultArgs()
-		fhArgs := &pruning.FullHistoryStorerArgs{
+		fhArgs := pruning.FullHistoryStorerArgs{
 			StorerArgs:               args,
 			NumOfOldActivePersisters: 10,
 		}

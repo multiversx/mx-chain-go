@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/floodPreventers"
+	"github.com/multiversx/mx-chain-go/statusHandler/p2pQuota"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("p2p/antiflood/factory")
@@ -64,13 +64,13 @@ func initP2PAntiFloodComponents(
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
 ) (*AntiFloodComponents, error) {
-	cache := timecache.NewTimeCache(defaultSpan)
-	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
+	timeCache := cache.NewTimeCache(defaultSpan)
+	p2pPeerBlackList, err := cache.NewPeerTimeCache(timeCache)
 	if err != nil {
 		return nil, err
 	}
 
-	publicKeysCache := timecache.NewTimeCache(defaultSpan)
+	publicKeysCache := cache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		ctx,
@@ -207,7 +207,7 @@ func createFloodPreventer(
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
-	blackListCache, err := storageUnit.NewCache(cacheConfig)
+	blackListCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	antifloodCache, err := storageUnit.NewCache(cacheConfig)
+	antifloodCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

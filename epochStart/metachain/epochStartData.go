@@ -4,46 +4,47 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 var _ process.EpochStartDataCreator = (*epochStartData)(nil)
 
 type epochStartData struct {
-	marshalizer                          marshal.Marshalizer
-	hasher                               hashing.Hasher
-	store                                dataRetriever.StorageService
-	dataPool                             dataRetriever.PoolsHolder
-	blockTracker                         process.BlockTracker
-	shardCoordinator                     sharding.Coordinator
-	epochStartTrigger                    process.EpochStartTriggerHandler
-	requestHandler                       epochStart.RequestHandler
-	genesisEpoch                         uint32
-	miniBlockPartialExecutionEnableEpoch uint32
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	store               dataRetriever.StorageService
+	dataPool            dataRetriever.PoolsHolder
+	blockTracker        process.BlockTracker
+	shardCoordinator    sharding.Coordinator
+	epochStartTrigger   process.EpochStartTriggerHandler
+	requestHandler      epochStart.RequestHandler
+	genesisEpoch        uint32
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
 type ArgsNewEpochStartData struct {
-	Marshalizer                          marshal.Marshalizer
-	Hasher                               hashing.Hasher
-	Store                                dataRetriever.StorageService
-	DataPool                             dataRetriever.PoolsHolder
-	BlockTracker                         process.BlockTracker
-	ShardCoordinator                     sharding.Coordinator
-	EpochStartTrigger                    process.EpochStartTriggerHandler
-	RequestHandler                       epochStart.RequestHandler
-	GenesisEpoch                         uint32
-	MiniBlockPartialExecutionEnableEpoch uint32
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	Store               dataRetriever.StorageService
+	DataPool            dataRetriever.PoolsHolder
+	BlockTracker        process.BlockTracker
+	ShardCoordinator    sharding.Coordinator
+	EpochStartTrigger   process.EpochStartTriggerHandler
+	RequestHandler      epochStart.RequestHandler
+	GenesisEpoch        uint32
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -69,18 +70,21 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	e := &epochStartData{
-		marshalizer:                          args.Marshalizer,
-		hasher:                               args.Hasher,
-		store:                                args.Store,
-		dataPool:                             args.DataPool,
-		blockTracker:                         args.BlockTracker,
-		shardCoordinator:                     args.ShardCoordinator,
-		epochStartTrigger:                    args.EpochStartTrigger,
-		requestHandler:                       args.RequestHandler,
-		genesisEpoch:                         args.GenesisEpoch,
-		miniBlockPartialExecutionEnableEpoch: args.MiniBlockPartialExecutionEnableEpoch,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		store:               args.Store,
+		dataPool:            args.DataPool,
+		blockTracker:        args.BlockTracker,
+		shardCoordinator:    args.ShardCoordinator,
+		epochStartTrigger:   args.EpochStartTrigger,
+		requestHandler:      args.RequestHandler,
+		genesisEpoch:        args.GenesisEpoch,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	return e, nil
@@ -477,7 +481,7 @@ func (e *epochStartData) updateIndexesOfProcessedTxs(
 }
 
 func (e *epochStartData) setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniBlockHeader, indexOfFirstTxProcessed int32, indexOfLastTxProcessed int32) {
-	if e.epochStartTrigger.Epoch() < e.miniBlockPartialExecutionEnableEpoch {
+	if e.epochStartTrigger.Epoch() < e.enableEpochsHandler.MiniBlockPartialExecutionEnableEpoch() {
 		return
 	}
 	err := mbHeader.SetIndexOfFirstTxProcessed(indexOfFirstTxProcessed)

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -229,11 +229,16 @@ func TestBlockChain_GetStorer(t *testing.T) {
 	b.AddStorer(3, peerBlockUnit)
 	b.AddStorer(4, headerUnit)
 
-	assert.True(t, txUnit == b.GetStorer(0))
-	assert.True(t, txBlockUnit == b.GetStorer(1))
-	assert.True(t, stateBlockUnit == b.GetStorer(2))
-	assert.True(t, peerBlockUnit == b.GetStorer(3))
-	assert.True(t, headerUnit == b.GetStorer(4))
+	storer, _ := b.GetStorer(0)
+	assert.True(t, txUnit == storer)
+	storer, _ = b.GetStorer(1)
+	assert.True(t, txBlockUnit == storer)
+	storer, _ = b.GetStorer(2)
+	assert.True(t, stateBlockUnit == storer)
+	storer, _ = b.GetStorer(3)
+	assert.True(t, peerBlockUnit == storer)
+	storer, _ = b.GetStorer(4)
+	assert.True(t, headerUnit == storer)
 }
 
 func TestBlockChain_GetAllStorers(t *testing.T) {

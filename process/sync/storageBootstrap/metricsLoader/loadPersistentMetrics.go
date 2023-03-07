@@ -1,14 +1,14 @@
 package metricsLoader
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/metrics"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/metrics"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/statusHandler/persister"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("sync/storageBootstrap/metricsLoader")
@@ -51,7 +51,12 @@ func getTotalTxsAndHdrs(metrics map[string]uint64) (uint64, uint64) {
 func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter, marshalizer marshal.Marshalizer, nonce uint64,
 ) (map[string]uint64, map[string]string) {
 	nonceBytes := uint64ByteSliceConverter.ToByteSlice(nonce)
-	storer := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	storer, err := store.GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		log.Debug("cannot get storer for persistent metrics", "error", err)
+		return nil, nil
+	}
+
 	statusMetricsDbBytes, err := storer.Get(nonceBytes)
 	if err != nil {
 		log.Debug("cannot load persistent metrics from storage", "error", err)
@@ -105,6 +110,7 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	stringMap[common.MetricTotalFees] = persister.GetString(metricsMap[common.MetricTotalFees])
 	stringMap[common.MetricDevRewardsInEpoch] = persister.GetString(metricsMap[common.MetricDevRewardsInEpoch])
 	stringMap[common.MetricInflation] = persister.GetString(metricsMap[common.MetricInflation])
+	uint64Map[common.MetricAccountsSnapshotNumNodes] = persister.GetUint64(metricsMap[common.MetricAccountsSnapshotNumNodes])
 
 	return uint64Map, stringMap
 }

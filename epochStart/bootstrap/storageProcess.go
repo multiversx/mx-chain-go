@@ -5,26 +5,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	storageResolversContainers "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageResolversContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -72,6 +72,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer sesb.closeTrieComponents()
+	defer sesb.closeBootstrapHeartbeatSender()
 
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
 		return sesb.bootstrapFromLocalStorage()
@@ -206,7 +207,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
@@ -399,18 +400,19 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           sesb.dataPool,
-		Marshalizer:        sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     sesb.requestHandler,
-		ChanceComputer:     sesb.rater,
-		GenesisNodesConfig: sesb.genesisNodesConfig,
-		NodeShuffler:       sesb.nodeShuffler,
-		Hasher:             sesb.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
-		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:   sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:      sesb.prefsConfig.FullArchive,
+		DataPool:            sesb.dataPool,
+		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:      sesb.requestHandler,
+		ChanceComputer:      sesb.rater,
+		GenesisNodesConfig:  sesb.genesisNodesConfig,
+		NodeShuffler:        sesb.nodeShuffler,
+		Hasher:              sesb.coreComponentsHolder.Hasher(),
+		PubKey:              pubKey,
+		ShardIdAsObserver:   shardId,
+		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:       sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -448,7 +450,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 // applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
 // header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
 // on the available resolver and should be called only from this storage-base bootstrap instance.
-// This method also copies the MiniBlockHeaders slice pointer. Otherwise the node will end up stating
+// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
 // "start of epoch metablock mismatch"
 func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()

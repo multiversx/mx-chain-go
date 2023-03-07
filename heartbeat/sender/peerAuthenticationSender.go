@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/heartbeat"
 )
 
 // argPeerAuthenticationSender represents the arguments for the peer authentication sender
@@ -37,7 +37,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		return nil, err
 	}
 
-	sender := &peerAuthenticationSender{
+	senderInstance := &peerAuthenticationSender{
 		baseSender:               createBaseSender(args.argBaseSender),
 		nodesCoordinator:         args.nodesCoordinator,
 		peerSignatureHandler:     args.peerSignatureHandler,
@@ -46,7 +46,7 @@ func newPeerAuthenticationSender(args argPeerAuthenticationSender) (*peerAuthent
 		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
 	}
 
-	return sender, nil
+	return senderInstance, nil
 }
 
 func checkPeerAuthenticationSenderArgs(args argPeerAuthenticationSender) error {

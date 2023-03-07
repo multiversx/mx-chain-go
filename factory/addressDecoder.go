@@ -1,12 +1,13 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
-func decodeAddresses(pkConverter core.PubkeyConverter, stringAddresses []string) ([][]byte, error) {
+// DecodeAddresses will decode the provided string addresses
+func DecodeAddresses(pkConverter core.PubkeyConverter, stringAddresses []string) ([][]byte, error) {
 	if check.IfNil(pkConverter) {
 		return nil, errors.ErrNilPubKeyConverter
 	}

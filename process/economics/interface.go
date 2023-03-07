@@ -1,11 +1,11 @@
 package economics
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-// BuiltInFunctionsCostHandler is able to calculated the cost of a built in function call
+// BuiltInFunctionsCostHandler is able to calculate the cost of a built-in function call
 type BuiltInFunctionsCostHandler interface {
 	ComputeBuiltInCost(tx data.TransactionWithFeeHandler) uint64
 	IsBuiltInFuncCall(tx data.TransactionWithFeeHandler) bool

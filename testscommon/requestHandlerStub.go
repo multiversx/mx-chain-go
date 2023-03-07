@@ -20,6 +20,8 @@ type RequestHandlerStub struct {
 	RequestTrieNodeCalled                    func(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifierCalled           func(requestHash []byte, chunkIndex uint32) []byte
 	RequestPeerAuthenticationsByHashesCalled func(destShardID uint32, hashes [][]byte)
+	RequestValidatorInfoCalled               func(hash []byte)
+	RequestValidatorsInfoCalled              func(hashes [][]byte)
 }
 
 // SetNumPeersToQuery -
@@ -157,6 +159,20 @@ func (rhs *RequestHandlerStub) RequestTrieNode(requestHash []byte, topic string,
 func (rhs *RequestHandlerStub) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
 	if rhs.RequestPeerAuthenticationsByHashesCalled != nil {
 		rhs.RequestPeerAuthenticationsByHashesCalled(destShardID, hashes)
+	}
+}
+
+// RequestValidatorInfo -
+func (rhs *RequestHandlerStub) RequestValidatorInfo(hash []byte) {
+	if rhs.RequestValidatorInfoCalled != nil {
+		rhs.RequestValidatorInfoCalled(hash)
+	}
+}
+
+// RequestValidatorsInfo -
+func (rhs *RequestHandlerStub) RequestValidatorsInfo(hashes [][]byte) {
+	if rhs.RequestValidatorsInfoCalled != nil {
+		rhs.RequestValidatorsInfoCalled(hashes)
 	}
 }
 

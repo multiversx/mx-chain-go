@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,7 +124,9 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	nodes[1].BlockChain.SetCurrentBlockHeaderHash(metaHeaderHash)
-	_ = nodes[1].Storage.GetStorer(dataRetriever.MetaBlockUnit).Put(metaHeaderHash, metaHeaderBytes)
+	storer, err := nodes[1].Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	assert.Nil(t, err)
+	_ = storer.Put(metaHeaderHash, metaHeaderBytes)
 	for i := 0; i < numMetaNodes; i++ {
 		nodes[i+1].DataPool.Headers().AddHeader(metaHeaderHash, metaHdr)
 		_ = nodes[i+1].BlockChain.SetCurrentBlockHeaderAndRootHash(metaHdr, metaHdr.GetRootHash())

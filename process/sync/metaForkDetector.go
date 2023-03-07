@@ -3,11 +3,11 @@ package sync
 import (
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.ForkDetector = (*metaForkDetector)(nil)
@@ -101,4 +101,9 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 }
 
 func (mfd *metaForkDetector) computeFinalCheckpoint() {
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mfd *metaForkDetector) IsInterfaceNil() bool {
+	return mfd == nil
 }

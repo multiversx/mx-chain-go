@@ -17,29 +17,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	dataTx "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,8 +71,8 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	val2 := []byte("456")
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
-	_ = account.DataTrieTracker().SaveKeyValue(key1, val1)
-	_ = account.DataTrieTracker().SaveKeyValue(key2, val2)
+	_ = account.SaveKeyValue(key1, val1)
+	_ = account.SaveKeyValue(key2, val2)
 
 	err := adb.SaveAccount(account)
 	require.Nil(t, err)
@@ -84,11 +85,11 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	recoveredAccount := acc.(state.UserAccountHandler)
 
 	// verify data
-	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue(key1)
+	dataRecovered, _, err := recoveredAccount.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, val1, dataRecovered)
 
-	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue(key2)
+	dataRecovered, _, err = recoveredAccount.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, val2, dataRecovered)
 }
@@ -140,7 +141,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
-	// test when the account does not exists
+	// test when the account does not exist
 	t.Parallel()
 
 	adr, _, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
@@ -230,7 +231,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(stateMock)
@@ -261,7 +262,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, balance2, newState2.(state.UserAccountHandler).GetBalance())
 	require.NotNil(t, newState2.(state.UserAccountHandler).GetRootHash())
-	valRecovered, err := newState2.(state.UserAccountHandler).DataTrieTracker().RetrieveValue(key)
+	valRecovered, _, err := newState2.(state.UserAccountHandler).RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -288,7 +289,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	tr2, err := tr1.Recreate(h1)
 	require.Nil(t, err)
 
-	valRecov, err := tr2.Get(key)
+	valRecov, _, err := tr2.Get(key)
 	require.Nil(t, err)
 	require.Equal(t, value, valRecov)
 }
@@ -319,7 +320,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(stateMock)
@@ -349,7 +350,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	newState2 := acc2.(state.UserAccountHandler)
 	require.Equal(t, balance2, newState2.GetBalance())
 	require.NotNil(t, newState2.GetRootHash())
-	valRecovered, err := newState2.DataTrieTracker().RetrieveValue(key)
+	valRecovered, _, err := newState2.RetrieveValue(key)
 	require.Nil(t, err)
 	require.Equal(t, val, valRecovered)
 }
@@ -674,7 +675,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	// Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	require.Nil(t, err)
-	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	require.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -690,7 +691,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 
 	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -753,7 +754,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	// Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	require.Nil(t, err)
-	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	require.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -769,7 +770,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -800,7 +801,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = stateMock.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, newVal)
 	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	rootHash, err = adb.RootHash()
@@ -1045,11 +1046,15 @@ func createAccounts(
 	balance int,
 	persist storage.Persister,
 ) (*state.AccountsDB, [][]byte, common.Trie) {
-	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
-	store, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
+	store, _ := storageunit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1065,6 +1070,8 @@ func createAccounts(
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1181,22 +1188,22 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.SaveKeyValue(key1, value1)
+	_ = state1.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 	rootHash, err := adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = state1.SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(state1)
 	_, err = adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value2)
+	_ = state1.SaveKeyValue(key2, value2)
 	_ = adb.SaveAccount(state1)
 	err = adb.RevertToSnapshot(0)
 	require.Nil(t, err)
@@ -1206,7 +1213,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
 
-	retrievedVal, _ := state1.DataTrieTracker().RetrieveValue(key1)
+	retrievedVal, _, _ := state1.RetrieveValue(key1)
 	require.Equal(t, value1, retrievedVal)
 }
 
@@ -1226,21 +1233,21 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.SaveKeyValue(key1, value1)
+	_ = state1.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 
 	acc2, _ := adb.LoadAccount(address2)
 	stateMock := acc2.(state.UserAccountHandler)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value1)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = stateMock.SaveKeyValue(key1, value1)
+	_ = stateMock.SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(stateMock)
 
 	oldRootHash, _ := adb.Commit()
 
 	acc2, _ = adb.LoadAccount(address2)
 	stateMock = acc2.(state.UserAccountHandler)
-	_ = stateMock.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = stateMock.SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
@@ -1255,22 +1262,22 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	collapseTrie(state1, t)
 	collapseTrie(stateMock, t)
 
-	val, err := state1.DataTrieTracker().RetrieveValue(key1)
+	val, _, err := state1.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 
-	val, err = stateMock.DataTrieTracker().RetrieveValue(key2)
+	val, _, err = stateMock.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 }
 
 func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 	stateRootHash := state.GetRootHash()
-	stateTrie := state.DataTrieTracker().DataTrie()
+	stateTrie := state.DataTrie().(common.Trie)
 	stateNewTrie, _ := stateTrie.Recreate(stateRootHash)
 	require.NotNil(t, stateNewTrie)
 
-	state.DataTrieTracker().SetDataTrie(stateNewTrie)
+	state.SetDataTrie(stateNewTrie)
 }
 
 func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
@@ -1525,7 +1532,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.True(t, errors.Is(err, trie.ErrKeyNotFound))
 }
 
-func TestStatePruningIsBuffered(t *testing.T) {
+func TestStatePruningIsNotBuffered(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1541,7 +1548,6 @@ func TestStatePruningIsBuffered(t *testing.T) {
 	)
 
 	shardNode := nodes[0]
-
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
 		idxProposers[i] = i * nodesPerShard
@@ -1556,10 +1562,7 @@ func TestStatePruningIsBuffered(t *testing.T) {
 		}
 	}()
 
-	sendValue := big.NewInt(5)
-	receiverAddress := []byte("12345678901234567890123456789012")
 	initialVal := big.NewInt(10000000000)
-
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -1571,41 +1574,128 @@ func TestStatePruningIsBuffered(t *testing.T) {
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
-	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
-	stateTrie := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
-
-	delayRounds := 10
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	numRounds := 10
-	for i := 0; i < numRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+	delayRounds := 5
+	for j := 0; j < 8; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
 
-		tr, err := stateTrie.Recreate(rootHash)
-		require.Nil(t, err)
-		require.NotNil(t, tr)
-	}
-
-	numDelayRounds := 10
-	for i := 0; i < numDelayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		for i := 0; i < delayRounds; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		}
-		time.Sleep(integrationTests.StepDelay)
+		checkTrieCanBeRecreated(t, shardNode)
+	}
+}
+
+func TestStatePruningIsNotBufferedOnConsecutiveBlocks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
-	tr, err := stateTrie.Recreate(rootHash)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	shardNode := nodes[0]
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	for j := 0; j < 30; j++ {
+		// alter the shardNode's state by placing the value0 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value0"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+
+		// alter the shardNode's state by placing the value1 variable inside it's data trie
+		alterState(t, shardNode, nodes, []byte("key"), []byte("value1"))
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkTrieCanBeRecreated(t, shardNode)
+	}
+}
+
+func alterState(tb testing.TB, node *integrationTests.TestProcessorNode, nodes []*integrationTests.TestProcessorNode, key []byte, value []byte) {
+	shardID := node.ShardCoordinator.SelfId()
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardID {
+			continue
+		}
+
+		account, err := n.AccntState.LoadAccount(node.OwnAccount.Address)
+		assert.Nil(tb, err)
+
+		userAccount := account.(state.UserAccountHandler)
+		err = userAccount.SaveKeyValue(key, value)
+		assert.Nil(tb, err)
+
+		err = n.AccntState.SaveAccount(userAccount)
+		assert.Nil(tb, err)
+
+		_, err = n.AccntState.Commit()
+		assert.Nil(tb, err)
+	}
+}
+
+func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessorNode) {
+	if node.ShardCoordinator.SelfId() == core.MetachainShardId {
+		return
+	}
+
+	stateTrie := node.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	roothash := node.BlockChain.GetCurrentBlockRootHash()
+	tr, err := stateTrie.Recreate(roothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
+	tr, err = stateTrie.Recreate(finalRoothash)
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
+
+	currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+	prevHeaderHash := currentBlockHeader.GetPrevHash()
+	hdrBytes, err := node.Storage.Get(dataRetriever.BlockHeaderUnit, prevHeaderHash)
+	require.Nil(tb, err)
+	hdr := &block.Header{}
+	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
+	require.Nil(tb, err)
+
+	tr, err = stateTrie.Recreate(hdr.GetRootHash())
+	require.Nil(tb, err)
+	require.NotNil(tb, tr)
 }
 
 func TestSnapshotOnEpochChange(t *testing.T) {
@@ -1946,7 +2036,7 @@ func checkCodeConsistency(
 		tr := shardNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 
 		if codeMap[code] != 0 {
-			val, err := tr.Get(codeHash)
+			val, _, err := tr.Get(codeHash)
 			require.Nil(t, err)
 			require.NotNil(t, val)
 
@@ -2063,7 +2153,7 @@ func generateAccounts(
 		codeMap[string(code)]++
 
 		for j := 0; j < dataTrieSize; j++ {
-			_ = account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
+			_ = account.(state.UserAccountHandler).SaveKeyValue(getDataTrieEntry())
 		}
 
 		_ = shardNode.AccntState.SaveAccount(account)
@@ -2131,7 +2221,7 @@ func TestProofAndVerifyProofDataTrie(t *testing.T) {
 		key := []byte("key" + index)
 		value := []byte("value" + index)
 
-		err := account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+		err := account.(state.UserAccountHandler).SaveKeyValue(key, value)
 		assert.Nil(t, err)
 	}
 
@@ -2329,7 +2419,7 @@ func addValuesInAccountDataTrie(index uint32, numKeys uint32, adb *state.Account
 	accState := acc.(state.UserAccountHandler)
 	for i := 0; i < int(numKeys); i++ {
 		k, v := createDummyKeyValue(i)
-		_ = accState.DataTrieTracker().SaveKeyValue(k, v)
+		_ = accState.SaveKeyValue(k, v)
 	}
 	_ = adb.SaveAccount(accState)
 }
@@ -2339,7 +2429,7 @@ func removeValuesFromAccountDataTrie(index uint32, numKeys uint32, adb *state.Ac
 	accState := acc.(state.UserAccountHandler)
 	for i := 0; i < int(numKeys); i++ {
 		k, _ := createDummyKeyValue(i)
-		_ = accState.DataTrieTracker().SaveKeyValue(k, nil)
+		_ = accState.SaveKeyValue(k, nil)
 	}
 	_ = adb.SaveAccount(accState)
 }
@@ -2358,7 +2448,7 @@ func checkAccountsDataTrie(t *testing.T, index uint32, startingKey uint32, adb *
 	accState := acc.(state.UserAccountHandler)
 	for i := int(startingKey); i < numKeys; i++ {
 		k, v := createDummyKeyValue(i)
-		actualValue, errKey := accState.RetrieveValueFromDataTrieTracker(k)
+		actualValue, _, errKey := accState.RetrieveValue(k)
 		require.Nil(t, errKey)
 		require.Equal(t, v, actualValue)
 	}
@@ -2392,7 +2482,11 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		SnapshotsGoroutineNum: 1,
 	}
 	evictionWaitListSize := uint(100)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: evictionWaitListSize,
+		HashesSize:     evictionWaitListSize * 100,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	args := getNewTrieStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -2408,6 +2502,8 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

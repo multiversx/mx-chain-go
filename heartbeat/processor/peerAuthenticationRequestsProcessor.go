@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("heartbeat/processor")
@@ -48,7 +48,6 @@ type peerAuthenticationRequestsProcessor struct {
 	epoch                   uint32
 	minPeersThreshold       float32
 	delayBetweenRequests    time.Duration
-	maxTimeout              time.Duration
 	maxMissingKeysInRequest uint32
 	randomizer              dataRetriever.IntRandomizer
 	cancel                  func()
@@ -69,7 +68,6 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 		epoch:                   args.Epoch,
 		minPeersThreshold:       args.MinPeersThreshold,
 		delayBetweenRequests:    args.DelayBetweenRequests,
-		maxTimeout:              args.MaxTimeout,
 		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
 		randomizer:              args.Randomizer,
 	}

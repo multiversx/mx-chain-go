@@ -12,33 +12,34 @@ import (
 	syncGo "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/disabled"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/dataValidators"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	procTx "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -83,9 +84,9 @@ type Node struct {
 	bootstrapComponents   mainFactory.BootstrapComponentsHolder
 	consensusComponents   mainFactory.ConsensusComponentsHolder
 	coreComponents        mainFactory.CoreComponentsHolder
+	statusCoreComponents  mainFactory.StatusCoreComponentsHolder
 	cryptoComponents      mainFactory.CryptoComponentsHolder
 	dataComponents        mainFactory.DataComponentsHolder
-	heartbeatComponents   mainFactory.HeartbeatComponentsHolder
 	heartbeatV2Components mainFactory.HeartbeatV2ComponentsHolder
 	networkComponents     mainFactory.NetworkComponentsHolder
 	processComponents     mainFactory.ProcessComponentsHolder
@@ -122,11 +123,6 @@ func NewNode(opts ...Option) (*Node, error) {
 	}
 
 	return node, nil
-}
-
-// GetAppStatusHandler will return the current status handler
-func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -185,6 +181,17 @@ func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (str
 	return string(username), blockInfo, nil
 }
 
+// GetCodeHash gets the code hash for a specific address
+func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	codeHash := userAccount.GetCodeHash()
+	return codeHash, blockInfo, nil
+}
+
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
@@ -206,13 +213,16 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
 			continue
@@ -231,6 +241,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
 			tokens = append(tokens, tokenName)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -274,14 +289,17 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
 		value, errVal := leaf.ValueWithoutSuffix(suffix)
 		if errVal != nil {
@@ -290,6 +308,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		}
 
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -311,7 +334,7 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 		return "", api.BlockInfo{}, err
 	}
 
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
+	valueBytes, _, err := userAccount.RetrieveValue(keyBytes)
 	if err != nil {
 		return "", api.BlockInfo{}, fmt.Errorf("fetching value error: %w", err)
 	}
@@ -321,7 +344,8 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -331,8 +355,13 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 	}
 
-	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
-	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
+	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -368,13 +397,16 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		tokenIdentifier := string(leaf.Key())
 		if !strings.Contains(tokenIdentifier, "-") {
 			continue
@@ -388,6 +420,11 @@ func (n *Node) getTokensIDsWithFilter(
 		if f.filter(tokenIdentifier, esdtToken) {
 			tokens = append(tokens, tokenIdentifier)
 		}
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -472,7 +509,13 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	systemAccount, blockInfo, err := n.loadSystemAccountWithOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -482,7 +525,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return allESDTs, api.BlockInfo{}, nil
 	}
 
-	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
 	rootHash, err := userAccount.DataTrie().RootHash()
@@ -490,13 +533,16 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return nil, api.BlockInfo{}, err
 	}
 
-	chLeaves := make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity)
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    make(chan error, 1),
+	}
+	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
-	for leaf := range chLeaves {
+	for leaf := range chLeaves.LeavesChan {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
 		}
@@ -512,8 +558,8 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
-		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestination(userAccountVmCommon, esdtTokenKey, nonce)
+		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
 			continue
@@ -525,6 +571,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		allESDTs[tokenName] = esdtToken
+	}
+
+	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
@@ -826,38 +877,16 @@ func (n *Node) GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	dataMap := make(map[string]heartbeatData.PubKeyHeartbeat)
-
-	if !check.IfNil(n.heartbeatComponents) {
-		v1Monitor := n.heartbeatComponents.Monitor()
-		if !check.IfNil(v1Monitor) {
-			n.addHeartbeatDataToMap(v1Monitor.GetHeartbeats(), dataMap)
-		}
+	if check.IfNil(n.heartbeatV2Components) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	if !check.IfNil(n.heartbeatV2Components) {
-		v2Monitor := n.heartbeatV2Components.Monitor()
-		if !check.IfNil(v2Monitor) {
-			n.addHeartbeatDataToMap(v2Monitor.GetHeartbeats(), dataMap)
-		}
+	monitor := n.heartbeatV2Components.Monitor()
+	if check.IfNil(monitor) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
 
-	dataSlice := make([]heartbeatData.PubKeyHeartbeat, 0)
-	for _, hb := range dataMap {
-		dataSlice = append(dataSlice, hb)
-	}
-
-	sort.Slice(dataSlice, func(i, j int) bool {
-		return strings.Compare(dataSlice[i].PublicKey, dataSlice[j].PublicKey) < 0
-	})
-
-	return dataSlice
-}
-
-func (n *Node) addHeartbeatDataToMap(data []heartbeatData.PubKeyHeartbeat, dataMap map[string]heartbeatData.PubKeyHeartbeat) {
-	for _, hb := range data {
-		dataMap[hb.PublicKey] = hb
-	}
+	return monitor.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
@@ -971,10 +1000,9 @@ func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, er
 }
 
 func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
-	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
-	if check.IfNil(storer) {
-		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", ErrNilStorer)
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier BlockHeaderUnit", err)
 	}
 
 	identifier := core.EpochStartIdentifier(epoch)
@@ -992,10 +1020,9 @@ func (n *Node) getShardFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAP
 }
 
 func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI, error) {
-	storer := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
-	// TODO: remove this check when integrating the changes into rcv1.4.0, since GetStorer will return an error as well
-	if check.IfNil(storer) {
-		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", ErrNilStorer)
+	storer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, fmt.Errorf("%w for identifier MetaBlockUnit", err)
 	}
 
 	identifier := core.EpochStartIdentifier(epoch)
@@ -1042,6 +1069,11 @@ func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
 	return n.coreComponents
 }
 
+// GetStatusCoreComponents returns the status core components
+func (n *Node) GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder {
+	return n.statusCoreComponents
+}
+
 // GetCryptoComponents returns the crypto components
 func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
 	return n.cryptoComponents
@@ -1060,11 +1092,6 @@ func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
 // GetDataComponents returns the data components
 func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
 	return n.dataComponents
-}
-
-// GetHeartbeatComponents returns the heartbeat components
-func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
-	return n.heartbeatComponents
 }
 
 // GetHeartbeatV2Components returns the heartbeatV2 components
@@ -1252,7 +1279,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, fmt.Errorf("empty dataTrie rootHash")
 	}
 
-	retrievedVal, err := userAccount.RetrieveValueFromDataTrieTracker(key)
+	retrievedVal, _, err := userAccount.RetrieveValue(key)
 	if err != nil {
 		return nil, nil, err
 	}

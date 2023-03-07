@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -30,6 +30,7 @@ const uniqueMiniblockSuffix = "mb"
 const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
+const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -550,6 +551,91 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	}
 
 	rrh.addRequestedItems([][]byte{key}, uniqueMetaHeadersSuffix)
+}
+
+// RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
+	if !rrh.testIfRequestIsNeeded(hash, uniqueValidatorInfoSuffix) {
+		return
+	}
+
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"hash", hash,
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.whiteList.Add([][]byte{hash})
+
+	err = resolver.RequestDataFromHash(hash, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"hash", hash,
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems([][]byte{hash}, uniqueValidatorInfoSuffix)
+}
+
+// RequestValidatorsInfo asks for the validators` info associated with the specified hashes from connected peers
+func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
+	log.Debug("requesting validator info messages from network",
+		"topic", common.ValidatorInfoTopic,
+		"num hashes", len(unrequestedHashes),
+		"epoch", rrh.epoch,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(common.ValidatorInfoTopic)
+	if err != nil {
+		log.Error("RequestValidatorInfo.MetaChainResolver",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	validatorInfoResolver, ok := resolver.(HashSliceResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating a validator info resolver")
+		return
+	}
+
+	rrh.whiteList.Add(unrequestedHashes)
+
+	err = validatorInfoResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
+	if err != nil {
+		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+			"error", err.Error(),
+			"topic", common.ValidatorInfoTopic,
+			"num hashes", len(unrequestedHashes),
+			"epoch", rrh.epoch,
+		)
+		return
+	}
+
+	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
