@@ -64,7 +64,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetector := newRefundDetector()
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -101,6 +101,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
 	atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+
+	if withResults {
+		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+	}
 
 	return tx, nil
 }
@@ -333,7 +337,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
 	}
 	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
+		tx.TxFields[valueField] = getTxValue(wrappedTx)
 	}
 
 	return tx
@@ -669,6 +673,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}
+}
+
+func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
+	txValue := wrappedTx.Tx.GetValue()
+	if txValue != nil {
+		return txValue.String()
+	}
+	return "0"
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type

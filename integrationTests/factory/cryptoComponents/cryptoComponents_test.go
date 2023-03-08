@@ -31,13 +31,21 @@ func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
+	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	require.Nil(t, err)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedCryptoComponents)
 
 	time.Sleep(5 * time.Second)
 
+	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
 	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedStatusCoreComponents.Close()
 	require.Nil(t, err)
 	err = managedCoreComponents.Close()
 	require.Nil(t, err)
