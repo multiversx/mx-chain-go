@@ -161,7 +161,7 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 	t.Run("fix activated", func(t *testing.T) {
 		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
 
-		newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInit.wasm")
+		newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm")
 
 		expectedGasLimit := gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] +
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOpsAPICost][common.AsyncCallStepField] +
