@@ -240,7 +240,7 @@
     AlwaysSaveTokenMetaDataEnableEpoch = 1
 
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
-    RuntimeCodeSizeFixEnableEpoch = 2
+    RuntimeCodeSizeFixEnableEpoch = 6
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
