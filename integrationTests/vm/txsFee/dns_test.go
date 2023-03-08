@@ -174,7 +174,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) 
 	secondUsername := utils.GenerateUserNameForDNSContract(scAddress)
 	args.username = secondUsername
 
-	scrs, retCode, err = processRegisterThroughRelayedTxs(t, args)
+	_, retCode, err = processRegisterThroughRelayedTxs(t, args)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, retCode)
 
