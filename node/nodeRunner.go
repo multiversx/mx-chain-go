@@ -323,7 +323,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -903,6 +903,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	heartbeatV2Args := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
 		Config:               *nr.configs.GeneralConfig,
 		Prefs:                *nr.configs.PreferencesConfig,
+		BaseVersion:          nr.configs.FlagsConfig.BaseVersion,
 		AppVersion:           nr.configs.FlagsConfig.Version,
 		BootstrapComponents:  bootstrapComponents,
 		CoreComponents:       coreComponents,
@@ -1228,6 +1229,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
+		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
 		ChainRunType:           nr.getChainRunTypeFunc(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
@@ -1253,6 +1255,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
+	crypto mainFactory.CryptoComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1268,9 +1271,10 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
 		Core:                          coreComponents,
 		StatusCore:                    statusCoreComponents,
-		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
+		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		SnapshotsEnabled:              configs.FlagsConfig.SnapshotsEnabled,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1319,6 +1323,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		StorageService:           dataComponents.StorageService(),
 		ProcessingMode:           processingMode,
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
+		SnapshotsEnabled:         nr.configs.FlagsConfig.SnapshotsEnabled,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
 
@@ -1491,13 +1496,15 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
 	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
+	allValidatorKeysPemFileName := configs.ConfigurationPathsHolder.AllValidatorKeys
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
+		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
-		KeyLoader:                            &core.KeyLoader{},
+		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,

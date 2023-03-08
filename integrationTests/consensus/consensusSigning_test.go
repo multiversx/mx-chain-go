@@ -30,6 +30,7 @@ func initNodesWithTestSigner(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		1,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -43,10 +44,6 @@ func initNodesWithTestSigner(
 			for i := uint32(0); i < numInvalid; i++ {
 				ii := numNodes - i - 1
 				nodes[shardID][ii].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
-					fmt.Println("invalid sig share from ",
-						getPkEncoded(nodes[shardID][ii].NodeKeys.Pk),
-					)
-
 					var invalidSigShare []byte
 					if i%2 == 0 {
 						// invalid sig share but with valid format
@@ -55,6 +52,7 @@ func initNodesWithTestSigner(
 						// sig share with invalid size
 						invalidSigShare = bytes.Repeat([]byte("a"), 3)
 					}
+					log.Warn("invalid sig share from ", "pk", getPkEncoded(nodes[shardID][ii].NodeKeys.Pk), "sig", invalidSigShare)
 
 					return invalidSigShare, nil
 				}
@@ -120,7 +118,7 @@ func runConsensusWithInvalidSigners(t *testing.T, consensusModel consensus.Conse
 		case <-chDone:
 		case <-time.After(endTime):
 			mutex.Lock()
-			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+			log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
 			assert.Fail(t, "consensus too slow, not working.")
 			mutex.Unlock()
 			return

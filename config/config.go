@@ -127,6 +127,7 @@ type HeartbeatV2Config struct {
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
+	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -289,7 +290,6 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
-	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -586,6 +586,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string
