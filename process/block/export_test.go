@@ -217,6 +217,10 @@ func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	return mp.requestMissingFinalityAttestingShardHeaders()
 }
 
+func (mp *metaProcessor) SaveMetricCrossCheckBlockHeight() {
+	mp.saveMetricCrossCheckBlockHeight()
+}
+
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
 	lastCrossNotarizedHeaders := make(map[uint32][]data.HeaderHandler)
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
@@ -341,10 +345,9 @@ func (sp *shardProcessor) DisplayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
-	statusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
-	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler, blockTracker)
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, blockTracker)
 }
 
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {

@@ -1,4 +1,4 @@
-package mock
+package dataRetriever
 
 import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"

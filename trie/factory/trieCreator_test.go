@@ -182,6 +182,7 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		t.Parallel()
 
 		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
+			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
 				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},

@@ -546,6 +546,11 @@ func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
 	return false
 }
 
+// IsRuntimeCodeSizeFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRuntimeCodeSizeFixEnabled() bool {
+	return false
+}
+
 // IsMaxBlockchainHookCountersFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	return false

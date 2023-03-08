@@ -26,5 +26,6 @@ type FactoryArgs struct {
 	DataPacker               dataRetriever.DataPacker
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
+	SnapshotsEnabled         bool
 	EnableEpochsHandler      common.EnableEpochsHandler
 }

@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -81,6 +82,7 @@ func NewTestConsensusNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	startTime int64,
 	multiSigner cryptoMocks.MultisignerMock,
 ) *TestConsensusNode {
 
@@ -91,7 +93,7 @@ func NewTestConsensusNode(
 		ShardCoordinator: shardCoordinator,
 		MultiSigner:      multiSigner,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
+	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen, startTime)
 
 	return tcn
 }
@@ -113,6 +115,7 @@ func CreateNodesWithTestConsensusNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make(map[uint32][]Connectable, 0)
 
+	startTime := time.Now().Unix()
 	testHasher := createHasher(consensusType)
 	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
 	multiSignerMock := createCustomMultiSignerMock(multiSigner)
@@ -128,6 +131,7 @@ func CreateNodesWithTestConsensusNode(
 				eligibleMap,
 				waitingMap,
 				cp.KeyGen,
+				startTime,
 				multiSignerMock,
 			)
 			nodes[shardID] = append(nodes[shardID], tcn)
@@ -167,6 +171,7 @@ func (tcn *TestConsensusNode) initNode(
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	keyGen crypto.KeyGenerator,
+	startTime int64,
 ) {
 
 	testHasher := createHasher(consensusType)
@@ -178,8 +183,6 @@ func (tcn *TestConsensusNode) initNode(
 	tcn.Messenger = CreateMessengerWithNoDiscovery()
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
-
-	startTime := time.Now().Unix()
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
@@ -397,11 +400,20 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 
 func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
+		Marshalizer: TestMarshalizer,
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			tcn.BlockProcessor.NumCommitBlockCalled++
+			headerHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
+			tcn.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+
 			return nil
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = header.SetAccumulatedFees(big.NewInt(0))
+			_ = header.SetDeveloperFees(big.NewInt(0))
+			_ = header.SetRootHash([]byte("roothash"))
+
 			return header, &dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
@@ -417,13 +429,6 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			}, nil
 		},
 	}
-
-	tcn.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-		tcn.BlockProcessor.NumCommitBlockCalled++
-		_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
-		return nil
-	}
-	tcn.BlockProcessor.Marshalizer = TestMarshalizer
 }
 
 func (tcn *TestConsensusNode) initRequestersFinder() {
