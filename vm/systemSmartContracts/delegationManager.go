@@ -145,7 +145,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 	case "mergeValidatorToDelegationWithWhitelist":
 		return d.mergeValidatorToDelegation(args, d.isAddressWhiteListedForMerge)
 	case "claimMulti":
-		return d.claimMultipleDelegation(args)
+		return d.claimMulti(args)
 	case "reDelegateMulti":
 		return d.reDelegateMulti(args)
 	}
@@ -499,8 +499,8 @@ func (d *delegationManager) getContractConfig(args *vmcommon.ContractCallInput) 
 	return vmcommon.Ok
 }
 
-func (d *delegationManager) claimMultipleDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.executeFuncOnListAddresses(args, "claimRewards")
+func (d *delegationManager) claimMulti(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.executeFuncOnListAddresses(args, claimRewards)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -511,7 +511,7 @@ func (d *delegationManager) claimMultipleDelegation(args *vmcommon.ContractCallI
 }
 
 func (d *delegationManager) reDelegateMulti(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.executeFuncOnListAddresses(args, "reDelegateRewards")
+	returnCode := d.executeFuncOnListAddresses(args, reDelegateRewards)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -528,7 +528,7 @@ func getTotalReDelegatedFromLogs(logs []*vmcommon.LogEntry) *big.Int {
 		if len(reDelegateLog.Topics) < 1 {
 			continue
 		}
-		if !bytes.Equal(reDelegateLog.Identifier, []byte("delegate")) {
+		if !bytes.Equal(reDelegateLog.Identifier, []byte(delegate)) {
 			continue
 		}
 		valueFromFirstTopic := big.NewInt(0).SetBytes(reDelegateLog.Topics[0])
@@ -558,12 +558,14 @@ func (d *delegationManager) executeFuncOnListAddresses(
 
 	mapAddresses := make(map[string]struct{})
 	var vmOutput *vmcommon.VMOutput
+	var found bool
 	for _, address := range args.Arguments {
 		if len(address) != len(args.CallerAddr) {
 			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
 			return vmcommon.UserError
 		}
-		if _, ok := mapAddresses[string(address)]; ok {
+		_, found = mapAddresses[string(address)]
+		if found {
 			d.eei.AddReturnMessage("duplicated input")
 			return vmcommon.UserError
 		}
