@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
@@ -48,7 +47,7 @@ type TrieLeafParser interface {
 
 // TrieStats is used to collect the trie statistics for the given rootHash
 type TrieStats interface {
-	GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error)
+	GetTrieStats(address string, rootHash []byte) (TrieStatisticsHandler, error)
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie
@@ -150,7 +149,7 @@ type SnapshotStatisticsHandler interface {
 	SnapshotFinished()
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
-	AddTrieStats(*statistics.TrieStatsDTO)
+	AddTrieStats(handler TrieStatisticsHandler)
 }
 
 // TrieStatisticsHandler is used to collect different statistics about a single trie
@@ -159,12 +158,25 @@ type TrieStatisticsHandler interface {
 	AddExtensionNode(level int, size uint64)
 	AddLeafNode(level int, size uint64, version core.TrieNodeVersion)
 	AddAccountInfo(address string, rootHash []byte)
-	GetTrieStats() *statistics.TrieStatsDTO
+
+	GetTotalNodesSize() uint64
+	GetTotalNumNodes() uint64
+	GetMaxTrieDepth() uint32
+	GetBranchNodesSize() uint64
+	GetNumBranchNodes() uint64
+	GetExtensionNodesSize() uint64
+	GetNumExtensionNodes() uint64
+	GetLeafNodesSize() uint64
+	GetNumLeafNodes() uint64
+	GetLeavesMigrationStats() map[core.TrieNodeVersion]uint64
+
+	ToString() []string
+	IsInterfaceNil() bool
 }
 
 // TriesStatisticsCollector is used to merge the statistics for multiple tries
 type TriesStatisticsCollector interface {
-	Add(trieStats *statistics.TrieStatsDTO)
+	Add(trieStats TrieStatisticsHandler)
 	Print()
 	GetNumNodes() uint64
 }
