@@ -17,7 +17,7 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
@@ -40,14 +40,14 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(moveBalanceTx)
-	require.Equal(uint64(50_000), moveBalanceTx.GasUsed)
-	require.Equal("50000000000000", moveBalanceTx.Fee)
+	req.Equal(uint64(50_000), moveBalanceTx.GasUsed)
+	req.Equal("50000000000000", moveBalanceTx.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
@@ -78,8 +78,8 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSignalErrorLog)
-	require.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
-	require.Equal("50300000000000", txWithSignalErrorLog.Fee)
+	req.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
+	req.Equal("50300000000000", txWithSignalErrorLog.Fee)
 }
 
 func silentDecodeAddress(address string) []byte {
@@ -90,7 +90,7 @@ func silentDecodeAddress(address string) []byte {
 func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
@@ -123,12 +123,12 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(relayedTxWithWriteLog)
-	require.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
-	require.Equal("66350000000000", relayedTxWithWriteLog.Fee)
+	req.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
+	req.Equal("66350000000000", relayedTxWithWriteLog.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.T) {
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
@@ -170,17 +170,19 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
-	require.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
-	require.Equal("98000000000000", txWithSRefundSCR.Fee)
+	req.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
+	req.Equal("98000000000000", txWithSRefundSCR.Fee)
 }
 
 func TestNFTTransferWithScCall(t *testing.T) {
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
+	req := require.New(t)
+	feeComp, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
+	req.Nil(err)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
@@ -203,6 +205,6 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	tx.InitiallyPaidFee = feeComp.ComputeTransactionFee(tx).String()
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
-	require.Equal(uint64(55_000_000), tx.GasUsed)
-	require.Equal("822250000000000", tx.Fee)
+	req.Equal(uint64(55_000_000), tx.GasUsed)
+	req.Equal("822250000000000", tx.Fee)
 }
