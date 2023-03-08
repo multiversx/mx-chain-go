@@ -4,12 +4,9 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
@@ -19,11 +16,11 @@ import (
 var log = logger.GetOrCreate("node/external/timemachine/fee")
 
 type feeComputer struct {
-	txVersionChecker               process.TxVersionCheckerHandler
+	txVersionChecker            process.TxVersionCheckerHandler
 	builtInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	economicsConfig             config.EconomicsConfig
 	economicsInstances          map[uint32]economicsDataWithComputeFee
-	enableEpochsHandler         common.EnableEpochsHandler
+	enableEpochsConfig          config.EnableEpochs
 	mutex                       sync.RWMutex
 }
 
@@ -34,17 +31,12 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, &timemachine.DisabledEpochNotifier{})
-	if err != nil {
-		return nil, err
-	}
-
 	computer := &feeComputer{
 		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
 		economicsConfig:             args.EconomicsConfig,
 		// TODO: use a LRU cache instead
-		economicsInstances:  make(map[uint32]economicsDataWithComputeFee),
-		enableEpochsHandler: enableEpochsHandler,
+		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
+		enableEpochsConfig: args.EnableEpochsConfig,
 		txVersionChecker:   args.TxVersionChecker,
 	}
 
@@ -130,19 +122,20 @@ func (computer *feeComputer) getOrCreateInstance(epoch uint32) (economicsDataWit
 }
 
 func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDataWithComputeFee, error) {
-	epochSubscriberHandler, ok := computer.enableEpochsHandler.(core.EpochSubscriberHandler)
-	if !ok {
-		return nil, external.ErrEpochSubscriberHandlerWrongTypeAssertion
+	epochNotifier := &timemachine.DisabledEpochNotifier{}
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(computer.enableEpochsConfig, epochNotifier)
+	if err != nil {
+		return nil, err
 	}
 
-	epochSubscriberHandler.EpochConfirmed(epoch, 0)
+	enableEpochsHandler.EpochConfirmed(epoch, 0)
 
 	args := economics.ArgsNewEconomicsData{
 		Economics:                   &computer.economicsConfig,
 		BuiltInFunctionsCostHandler: computer.builtInFunctionsCostHandler,
 		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
-		EnableEpochsHandler:         computer.enableEpochsHandler,
-		TxVersionChecker:               computer.txVersionChecker,
+		EnableEpochsHandler:         enableEpochsHandler,
+		TxVersionChecker:            computer.txVersionChecker,
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

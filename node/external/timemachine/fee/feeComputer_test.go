@@ -3,6 +3,7 @@ package fee
 import (
 	"encoding/hex"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -185,5 +187,38 @@ func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, e
 	}
 
 	fee := computer.ComputeTransactionFee(tx)
-	require.Equal(t, expectedFee, fee.String())
+	assert.Equal(t, expectedFee, fee.String())
+}
+
+func TestFeeComputer_InHighConcurrency(t *testing.T) {
+	arguments := ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		EnableEpochsConfig: config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: 124,
+			GasPriceModifierEnableEpoch:    180,
+		},
+	}
+
+	computer, _ := NewFeeComputer(arguments)
+
+	n := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(n * 2)
+
+	for i := 0; i < n; i++ {
+		go func() {
+			checkComputedFee(t, "50000000000000", computer, 0, 80000, 1000000000, "", nil)
+			wg.Done()
+		}()
+	}
+
+	for i := 0; i < n; i++ {
+		go func() {
+			checkComputedFee(t, "80000000000000", computer, 125, 80000, 1000000000, "", nil)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }
