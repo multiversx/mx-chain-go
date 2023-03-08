@@ -319,7 +319,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	if arg.flagStakingV4Step3 && !distributeShuffledToWaitingInStakingV4 {
+	if arg.flagStakingV4Step3 {
 		log.Debug("distributing selected nodes from auction to waiting",
 			"num auction nodes", len(arg.auction), "num waiting nodes", numNewWaiting)
 
@@ -653,6 +653,16 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 	}
 
 	return nil
+}
+
+func getNumPubKeys(shardValidatorsMap map[uint32][]Validator) uint32 {
+	numPubKeys := uint32(0)
+
+	for _, validatorsInShard := range shardValidatorsMap {
+		numPubKeys += uint32(len(validatorsInShard))
+	}
+
+	return numPubKeys
 }
 
 // moveMaxNumNodesToMap moves the validators in the source list to the corresponding destination list
