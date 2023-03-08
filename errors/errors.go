@@ -542,6 +542,12 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
 
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrEmptyPeerID signals that an empty peer ID has been provided
+var ErrEmptyPeerID = errors.New("empty peer ID")
+
 // ErrUnimplementedConsensusModel signals an unimplemented consensus model
 var ErrUnimplementedConsensusModel = errors.New("unimplemented consensus model")
 

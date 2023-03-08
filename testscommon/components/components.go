@@ -218,9 +218,10 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
 		StatusCore:                    GetStatusCoreComponents(),
-		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
+		Crypto:                        GetCryptoComponents(coreComponents),
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
+		SnapshotsEnabled:              false,
 	}
 }
 
@@ -568,8 +569,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:      "v1.0.0",
-		HistoryRepo:  &dblookupext.HistoryRepositoryStub{},
+		Version:          "v1.0.0",
+		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
+		SnapshotsEnabled: false,
 		ChainRunType: common.ChainRunTypeRegular,
 	}
 }

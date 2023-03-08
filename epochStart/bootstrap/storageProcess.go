@@ -171,6 +171,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
 	sesb.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
+		sesb.flagsConfig.SnapshotsEnabled,
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
@@ -273,6 +274,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
+		SnapshotsEnabled:         sesb.flagsConfig.SnapshotsEnabled,
 	}
 
 	var requestersContainerFactory dataRetriever.RequestersContainerFactory

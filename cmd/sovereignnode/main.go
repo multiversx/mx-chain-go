@@ -66,7 +66,8 @@ func main() {
 	app.Name = "MultiversX Sovereign Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
-	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
+	baseVersion := fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	app.Version = fmt.Sprintf("%s/%s", baseVersion, machineID)
 	app.Usage = "This is the entry point for starting a new MultiversX sovereign node - the app will start after the genesis timestamp"
 	app.Flags = getFlags()
 	app.Authors = []cli.Author{
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		return startNodeRunner(c, log, app.Version)
+		return startNodeRunner(c, log, baseVersion, app.Version)
 	}
 
 	err := app.Run(os.Args)
@@ -87,7 +88,7 @@ func main() {
 	}
 }
 
-func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
+func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
 	flagsConfig := getFlagsConfig(c, log)
 
 	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
@@ -128,11 +129,12 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
+	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
-	nodeRunner, errNodeRunner := node.NewNodeRunner(cfgs)
-	if errNodeRunner != nil {
-		return errNodeRunner
+	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
+	if errRunner != nil {
+		return errRunner
 	}
 
 	sovereignNodeRunner, errSovereignNodeRunner := node.NewSovereignNodeRunner(nodeRunner)
@@ -261,7 +263,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var err error
 	if flagsConfig.SaveLogFile {
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}

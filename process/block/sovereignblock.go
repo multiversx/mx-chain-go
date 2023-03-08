@@ -312,8 +312,8 @@ func (s *sovereignBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, 
 }
 
 // RestoreBlockIntoPools restores block into pools
-func (s *sovereignBlockProcessor) RestoreBlockIntoPools(_ data.HeaderHandler, body data.BodyHandler) error {
-	s.restoreBlockBody(body)
+func (s *sovereignBlockProcessor) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
+	s.restoreBlockBody(header, body)
 	s.blockTracker.RemoveLastNotarizedHeaders()
 	return nil
 }

@@ -123,7 +123,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		baseProcessor: base,
 	}
 
-	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
+	argsTransactionCounter := ArgsTransactionCounter{
+		AppStatusHandler: sp.appStatusHandler,
+		Hasher:           sp.hasher,
+		Marshalizer:      sp.marshalizer,
+		ShardID:          sp.shardCoordinator.SelfId(),
+	}
+	sp.txCounter, err = NewTransactionCounter(argsTransactionCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +624,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	sp.restoreBlockBody(bodyHandler)
+	sp.restoreBlockBody(headerHandler, bodyHandler)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -801,6 +807,16 @@ func (sp *shardProcessor) CreateBlock(
 		err = shardHdr.SetEpochStartMetaHash(sp.epochStartTrigger.EpochStartMetaHdrHash())
 		if err != nil {
 			return nil, nil, err
+		}
+
+		epoch := sp.epochStartTrigger.MetaEpoch()
+		if initialHdr.GetEpoch() != epoch {
+			log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
+				"epoch from header", initialHdr.GetEpoch(), "epoch from epoch start trigger", epoch)
+			err = shardHdr.SetEpoch(epoch)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -1047,16 +1063,18 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
-	go sp.txCounter.displayLogInfo(
-		header,
-		body,
-		headerHash,
-		sp.shardCoordinator.NumberOfShards(),
-		sp.shardCoordinator.SelfId(),
-		sp.dataPool,
-		sp.appStatusHandler,
-		sp.blockTracker,
-	)
+	go func() {
+		sp.txCounter.headerExecuted(header)
+		sp.txCounter.displayLogInfo(
+			header,
+			body,
+			headerHash,
+			sp.shardCoordinator.NumberOfShards(),
+			sp.shardCoordinator.SelfId(),
+			sp.dataPool,
+			sp.blockTracker,
+		)
+	}()
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())
 
