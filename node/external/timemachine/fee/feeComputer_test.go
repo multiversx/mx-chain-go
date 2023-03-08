@@ -198,6 +198,7 @@ func TestFeeComputer_InHighConcurrency(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 
 	computer, _ := NewFeeComputer(arguments)
