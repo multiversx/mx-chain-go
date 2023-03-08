@@ -271,6 +271,7 @@ func GetGeneralConfig() config.Config {
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
 			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			PeerAuthenticationTimeBetweenChecksInSec:         1,
 			HeartbeatPool:                                    getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{

@@ -1499,6 +1499,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -1931,6 +1932,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManagedPeersHolder)
 	}
 
 	return nil
