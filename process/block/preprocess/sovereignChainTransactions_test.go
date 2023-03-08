@@ -360,39 +360,6 @@ func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testin
 		assert.False(t, shouldContinue)
 	})
 
-	t.Run("shouldContinueProcessingScheduledTx should return false when sender's account has not enough initial balance", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-		args.BalanceComputation = &testscommon.BalanceComputationStub{
-			IsAddressSetCalled: func(address []byte) bool {
-				return true
-			},
-			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
-				return false
-			},
-		}
-
-		tp, _ := NewTransactionPreprocessor(args)
-		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
-
-		wrappedTx := &txcache.WrappedTransaction{
-			Tx: &transaction.Transaction{},
-		}
-
-		mapSCTxs := make(map[string]struct{})
-		mbi := &createScheduledMiniBlocksInfo{
-			mapMiniBlocks: make(map[uint32]*block.MiniBlock),
-		}
-
-		mbi.mapMiniBlocks[0] = &block.MiniBlock{}
-
-		tx, mb, shouldContinue := sctp.shouldContinueProcessingScheduledTx(isShardStuckFalse, wrappedTx, mapSCTxs, mbi)
-		assert.Nil(t, tx)
-		assert.Nil(t, mb)
-		assert.False(t, shouldContinue)
-	})
-
 	t.Run("shouldContinueProcessingScheduledTx should return true", func(t *testing.T) {
 		t.Parallel()
 

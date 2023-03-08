@@ -154,13 +154,6 @@ func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
 		return nil, nil, false
 	}
 
-	addressHasEnoughBalance := sct.hasAddressEnoughInitialBalance(tx)
-	if !addressHasEnoughBalance {
-		log.Debug("address has not enough initial balance", "sender", sct.pubkeyConverter.Encode(tx.SndAddr))
-		mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
-		return nil, nil, false
-	}
-
 	return tx, miniBlock, true
 }
 
@@ -189,7 +182,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 	}
 
 	if accntInfo.nonce < tx.GetNonce() {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
 			"account nonce", accntInfo.nonce,
 			"tx nonce", tx.GetNonce())
 		return false
@@ -197,7 +190,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 
 	txFee := sct.economicsFee.ComputeTxFee(tx)
 	if accntInfo.balance.Cmp(txFee) < 0 {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFee,
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFee,
 			"account balance", accntInfo.balance.String(),
 			"fee needed", txFee.String())
 		return false
@@ -205,7 +198,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 
 	cost := big.NewInt(0).Add(txFee, tx.GetValue())
 	if accntInfo.balance.Cmp(cost) < 0 {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFunds,
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFunds,
 			"account balance", accntInfo.balance.String(),
 			"cost", cost.String())
 		return false
