@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
@@ -181,6 +182,8 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	newScCode string,
 ) {
+	logger.SetLogLevel("*:NONE")
+
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
@@ -230,6 +233,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 
 	// step 3. upgrade to the second contract
 
+	logger.SetLogLevel("*:NONE,vm:TRACE")
 	txData := strings.Join([]string{
 		upgradeContractFunction,
 		newScCode,
