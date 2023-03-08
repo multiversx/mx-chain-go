@@ -124,14 +124,75 @@ func getBalance(testContext *vm.VMTestContext, address []byte) *big.Int {
 }
 
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
-// from shard 1 that will try to set the username but fails.
-func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) {
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+// from shard 1.
+func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
+	enableEpochs := config.EnableEpochs{
+		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
+	}
+
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	// TODO remove this
-	// logger.SetLogLevel("process:TRACE,vm:TRACE")
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
+	require.Nil(t, err)
+	defer testContextForRelayerAndUser.Close()
+
+	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
+	fmt.Println(scAddress)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextForDNSContract)
+	require.Equal(t, uint32(1), testContextForDNSContract.ShardCoordinator.ComputeId(scAddress))
+
+	relayerAddress := []byte("relayer-901234567890123456789112")
+	require.Equal(t, uint32(2), testContextForRelayerAndUser.ShardCoordinator.ComputeId(relayerAddress))
+	userAddress := []byte("user-678901234567890123456789112")
+	require.Equal(t, uint32(2), testContextForRelayerAndUser.ShardCoordinator.ComputeId(userAddress))
+
+	initialBalance := big.NewInt(10000000000)
+	_, _ = vm.CreateAccount(testContextForRelayerAndUser.Accounts, relayerAddress, 0, initialBalance)
+
+	firstUsername := utils.GenerateUserNameForDNSContract(scAddress)
+	args := argsProcessRegister{
+		relayerAddress:               relayerAddress,
+		userAddress:                  userAddress,
+		scAddress:                    scAddress,
+		testContextForRelayerAndUser: testContextForRelayerAndUser,
+		testContextForDNSContract:    testContextForDNSContract,
+		username:                     firstUsername,
+		gasPrice:                     10,
+	}
+	scrs, retCode, err := processRegisterThroughRelayedTxs(t, args)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, 4, len(scrs))
+
+	expectedTotalBalance := big.NewInt(0).Set(initialBalance)
+	expectedTotalBalance.Sub(expectedTotalBalance, big.NewInt(10)) // due to a bug, some fees were burnt
+
+	// check username
+	acc, _ := testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
+	account, _ := acc.(state.UserAccountHandler)
+	require.Equal(t, firstUsername, account.GetUserName())
+	checkBalances(t, args, expectedTotalBalance)
+
+	secondUsername := utils.GenerateUserNameForDNSContract(scAddress)
+	args.username = secondUsername
+
+	_, retCode, err = processRegisterThroughRelayedTxs(t, args)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	// check username hasn't changed
+	acc, _ = testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
+	account, _ = acc.(state.UserAccountHandler)
+	require.Equal(t, firstUsername, account.GetUserName())
+	checkBalances(t, args, expectedTotalBalance)
+}
+
+func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testing.T) {
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContextForDNSContract.Close()
 
 	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
