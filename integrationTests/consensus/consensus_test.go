@@ -295,14 +295,6 @@ func TestConsensusBLSFullTestSingleKeysConsensusModelV1(t *testing.T) {
 	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV1)
 }
 
-func TestConsensusBLSFullTestMultiKeysConsensusModelV1(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 5, consensus.ConsensusModelV1)
-}
-
 func TestConsensusBLSFullTestSingleKeysConsensusModelV2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -311,12 +303,12 @@ func TestConsensusBLSFullTestSingleKeysConsensusModelV2(t *testing.T) {
 	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV2)
 }
 
-func TestConsensusBLSFullTestMultiKeysConsensusModelV2(t *testing.T) {
+func TestConsensusBLSFullTestMultiKeysConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 5, consensus.ConsensusModelV2)
+	runFullConsensusTest(t, blsConsensusType, 5, consensus.ConsensusModelV1)
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
