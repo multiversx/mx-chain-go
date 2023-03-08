@@ -136,21 +136,8 @@ func (tsd *TrieStatsDTO) ToString() []string {
 func getMigrationStatsString(migrationStats map[core.TrieNodeVersion]uint64) []string {
 	stats := make([]string, 0)
 	for version, numNodes := range migrationStats {
-		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", getStringForVersion(version), numNodes))
+		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(version), numNodes))
 	}
 
 	return stats
-}
-
-// TODO move this to core
-func getStringForVersion(version core.TrieNodeVersion) string {
-	switch version {
-	case core.NotSpecified:
-		return "not specified"
-	case core.AutoBalanceEnabled:
-		return "auto balanced"
-	default:
-		log.Warn("unknown trie node version", "version", version)
-		return "unknown"
-	}
 }
