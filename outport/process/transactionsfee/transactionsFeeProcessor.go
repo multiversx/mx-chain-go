@@ -10,11 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
-
-var log = logger.GetOrCreate("outport/process/transactionsfee")
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
