@@ -7,6 +7,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -14,13 +15,15 @@ import (
 var log = logger.GetOrCreate("cmd/keygenerator/converter")
 
 type pidPubkeyConverter struct {
-	keyGen crypto.KeyGenerator
+	keyGen          crypto.KeyGenerator
+	p2PKeyConverter p2p.P2PKeyConverter
 }
 
 // NewPidPubkeyConverter creates a new instance of a public key converter that can handle conversions involving core.PeerID string representations
 func NewPidPubkeyConverter() *pidPubkeyConverter {
 	return &pidPubkeyConverter{
-		keyGen: signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		keyGen:          signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		p2PKeyConverter: factory.NewP2PKeyConverter(),
 	}
 }
 
@@ -51,7 +54,7 @@ func (converter *pidPubkeyConverter) encode(pkBytes []byte) (string, error) {
 		return "", err
 	}
 
-	pid, err := factory.ConvertPublicKeyToPeerID(pk)
+	pid, err := converter.p2PKeyConverter.ConvertPublicKeyToPeerID(pk)
 	if err != nil {
 		return "", err
 	}

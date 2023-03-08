@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -15,12 +16,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
 		Marshaller:         testscommon.MarshalizerMock{},
 		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
+		PubKeyConverter:    pubKeyConverter,
 	}
 }
 
@@ -297,4 +301,41 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFee())
 	require.Equal(t, uint64(550000000), initialTx.GetGasUsed())
 	require.Equal(t, "6103405000000000", initialTx.GetInitialPaidFee().String())
+}
+
+func TestPutFeeAndGasUsedESDTWithScCall(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx")
+	tx := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		Nonce:    1011,
+		SndAddr:  silentDecodeAddress("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		RcvAddr:  silentDecodeAddress("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		GasLimit: 55_000_000,
+		GasPrice: 1000000000,
+		Data:     []byte("ESDTNFTTransfer@434f572d636434363364@080c@01@00000000000000000500d3b28828d62052124f07dcd50ed31b0825f60eee1526@616363657074476c6f62616c4f66666572@c3e5"),
+		Value:    big.NewInt(0),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Txs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			string(txHash): tx,
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(820765000000000), tx.GetFee())
+	require.Equal(t, uint64(55_000_000), tx.GetGasUsed())
+	require.Equal(t, "820765000000000", tx.GetInitialPaidFee().String())
+}
+
+func silentDecodeAddress(address string) []byte {
+	decoded, _ := pubKeyConverter.Decode(address)
+	return decoded
 }
