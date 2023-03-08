@@ -1040,6 +1040,7 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	wasCalled := false

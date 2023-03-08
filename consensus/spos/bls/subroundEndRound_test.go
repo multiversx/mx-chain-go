@@ -1567,6 +1567,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -1574,7 +1575,6 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

@@ -99,7 +99,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			}
 		}
 
-		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
+		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), selfIndex, processedHeaderHash, isSelfLeader)
 		if !ok {
 			return false
 		}
@@ -140,7 +140,12 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 	return true
 }
 
-func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForAllSigsAsync bool) bool {
+func (sr *subroundSignature) completeSignatureSubRound(
+	pk string,
+	index int,
+	processedHeaderHash []byte,
+	shouldWaitForAllSigsAsync bool,
+) bool {
 	err := sr.SetJobDone(pk, sr.Current(), true)
 	if err != nil {
 		log.Debug("doSignatureJob.SetSelfJobDone",
@@ -153,7 +158,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 
 	if shouldWaitForAllSigsAsync {
 		if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
-			sr.AddProcessedHeadersHashes(processedHeaderHash, selfIndex)
+			sr.AddProcessedHeadersHashes(processedHeaderHash, index)
 		}
 
 		go sr.waitAllSignatures()
@@ -376,8 +381,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
+		processedHeaderHash := sr.getMessageToSignFunc()
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
+			processedHeaderHash,
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
 			pkBytes,
@@ -397,7 +403,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
+		ok := sr.completeSignatureSubRound(pk, selfIndex, processedHeaderHash, isLeader)
 		if !ok {
 			return false
 		}
