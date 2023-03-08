@@ -202,7 +202,7 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 }
 
 // VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
@@ -216,7 +216,7 @@ func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error 
 }
 
 // GetSenderAndReceiverAccounts gets the accounts for sender and receiver
-func (txProc *txProcessor) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+func (txProc *baseTxProcessor) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
 	if check.IfNil(tx) {
 		return nil, nil, process.ErrNilTransaction
 	}

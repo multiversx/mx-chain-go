@@ -53,6 +53,7 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	numKeysOnEachNode int,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -63,6 +64,7 @@ func initNodesAndTest(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		numKeysOnEachNode,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -120,6 +122,8 @@ func startNodesWithCommitBlock(
 			)
 			nCopy.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+
+			log.Info("BlockProcessor.CommitBlockCalled", "shard", header.GetShardID(), "nonce", header.GetNonce(), "round", header.GetRound())
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -212,7 +216,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 				for i := minRound; i <= maxRound; i++ {
 					if _, ok := nonceForRoundMap[i]; !ok {
 						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+						log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
 						mutex.Unlock()
 						return
 					}
@@ -229,15 +233,21 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
-	consensusSize := uint32(4)
+	consensusSize := uint32(4 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	log.Info("runFullConsensusTest",
+		"numNodes", numNodes,
+		"numKeysOnEachNode", numKeysOnEachNode,
+		"consensusSize", consensusSize,
+	)
+
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
 
 	defer func() {
 		for shardID := range nodes {
@@ -266,6 +276,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, consensusModel con
 		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
 		select {
 		case <-chDone:
+			log.Info("consensus done", "shard", shardID)
 		case <-time.After(endTime):
 			mutex.Lock()
 			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
@@ -276,20 +287,28 @@ func runFullConsensusTest(t *testing.T, consensusType string, consensusModel con
 	}
 }
 
-func TestConsensusBLSFullTestConsensusModelV1(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeysConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, consensus.ConsensusModelV1)
+	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV1)
 }
 
-func TestConsensusBLSFullTestConsensusModelV2(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeysConsensusModelV2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, consensus.ConsensusModelV2)
+	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV2)
+}
+
+func TestConsensusBLSFullTestMultiKeysConsensusModelV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5, consensus.ConsensusModelV1)
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
@@ -298,7 +317,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, con
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	defer func() {
 		for shardID := range nodes {

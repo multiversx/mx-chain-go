@@ -49,10 +49,12 @@ func initConsensusState() *spos.ConsensusState {
 	}
 
 	indexLeader := 1
-	rcns := spos.NewRoundConsensus(
+	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader])
+		eligibleList[indexLeader],
+		&testscommon.KeysHandlerStub{},
+	)
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
@@ -1014,4 +1016,41 @@ func TestSubround_Name(t *testing.T) {
 	}
 
 	assert.Equal(t, "(BLOCK)", sr.Name())
+}
+
+func TestSubround_GetAssociatedPid(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+	ch := make(chan bool, 1)
+	container := mock.InitConsensusCore()
+
+	subround, _ := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		int64(5*roundTimeDuration/100),
+		int64(25*roundTimeDuration/100),
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	wasCalled := false
+	pid := core.PeerID("a pid")
+	providedPkBytes := []byte("pk bytes")
+	keysHandler.GetAssociatedPidCalled = func(pkBytes []byte) core.PeerID {
+		assert.Equal(t, providedPkBytes, pkBytes)
+		wasCalled = true
+		return pid
+	}
+
+	assert.Equal(t, pid, subround.GetAssociatedPid(providedPkBytes))
+	assert.True(t, wasCalled)
 }

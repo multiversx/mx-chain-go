@@ -1,6 +1,7 @@
 package bls_test
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 	"testing"
@@ -326,12 +327,12 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-	signatureHandler := &mock.SignatureHandlerStub{
+	signingHandler := &mock.SigningHandlerStub{
 		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 			return nil, crypto.ErrNilHasher
 		},
 	}
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 
 	sr.Header = &block.Header{}
 
@@ -426,10 +427,10 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			return nil
 		},
 	}
@@ -460,11 +461,11 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			err = errors.New("error broadcast miniblocks")
 			return err
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			return nil
 		},
 	}
@@ -496,10 +497,10 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
-		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte) error {
+		BroadcastMiniBlocksCalled: func(bytes map[uint32][]byte, pkBytes []byte) error {
 			return nil
 		},
-		BroadcastTransactionsCalled: func(bytes map[string][][]byte) error {
+		BroadcastTransactionsCalled: func(bytes map[string][][]byte, pkBytes []byte) error {
 			err = errors.New("error broadcast transactions")
 			return err
 		},
@@ -540,14 +541,14 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 
 	expectedSignature := []byte("signature")
 	container := mock.InitConsensusCore()
-	singleSigner := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+	signingHandler := &mock.SigningHandlerStub{
+		CreateSignatureForPublicKeyCalled: func(publicKeyBytes []byte, msg []byte) ([]byte, error) {
 			var receivedHdr block.Header
 			_ = container.Marshalizer().Unmarshal(&receivedHdr, msg)
 			return expectedSignature, nil
 		},
 	}
-	container.SetSingleSigner(singleSigner)
+	container.SetSigningHandler(signingHandler)
 	bm := &mock.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
@@ -954,13 +955,13 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
 
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
@@ -976,7 +977,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -987,7 +988,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
@@ -1002,7 +1003,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1013,7 +1014,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 				return nil
 			},
 		}
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
@@ -1047,12 +1048,12 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
@@ -1068,12 +1069,12 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SetAggregatedSigCalled: func(_ []byte) error {
 				return expectedErr
 			},
 		}
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
@@ -1107,7 +1108,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1130,7 +1131,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 			},
 		}
 
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 
@@ -1154,7 +1155,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
-		signatureHandler := &mock.SignatureHandlerStub{
+		signingHandler := &mock.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1177,7 +1178,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 			},
 		}
 
-		container.SetSignatureHandler(signatureHandler)
+		container.SetSigningHandler(signingHandler)
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 
@@ -1416,14 +1417,15 @@ func TestVerifyInvalidSigners(t *testing.T) {
 			},
 		}
 
-		singleSignerMock := &mock.SingleSignerMock{}
 		wasCalled := false
-		singleSignerMock.VerifyStub = func(public crypto.PublicKey, msg, sig []byte) error {
-			wasCalled = true
-			return errors.New("expected err")
+		signingHandler := &mock.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				wasCalled = true
+				return errors.New("expected err")
+			},
 		}
 
-		container.SetSingleSigner(singleSignerMock)
+		container.SetSigningHandler(signingHandler)
 		container.SetMessageSigningHandler(messageSigningHandler)
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
@@ -1541,5 +1543,66 @@ func TestGetFullMessagesForInvalidSigners(t *testing.T) {
 		invalidSignersBytes, err := sr.GetFullMessagesForInvalidSigners(invalidSigners)
 		require.Nil(t, err)
 		require.Equal(t, expectedInvalidSigners, invalidSignersBytes)
+	})
+}
+
+func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	keysHandler := &testscommon.KeysHandlerStub{}
+	ch := make(chan bool, 1)
+	consensusState := initConsensusStateWithKeysHandler(keysHandler)
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	srEndRound, _ := bls.NewSubroundEndRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		displayStatistics,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	t.Run("no managed keys from consensus group", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return false
+		}
+
+		assert.Equal(t, 9, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("first managed key in consensus group should return 0", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("A"), pkBytes)
+		}
+
+		assert.Equal(t, 0, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("third managed key in consensus group should return 2", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("C"), pkBytes)
+		}
+
+		assert.Equal(t, 2, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
+	})
+	t.Run("last managed key in consensus group should return 8", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("I"), pkBytes)
+		}
+
+		assert.Equal(t, 8, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 }

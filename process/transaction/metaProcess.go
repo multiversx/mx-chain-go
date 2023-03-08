@@ -137,29 +137,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	return vmcommon.UserError, nil
 }
 
-// VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
-	if check.IfNil(tx) {
-		return process.ErrNilTransaction
-	}
-
-	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		return err
-	}
-
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
-}
-
-// GetSenderAndReceiverAccounts gets the accounts for sender and receiver
-func (txProc *metaTxProcessor) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	if check.IfNil(tx) {
-		return nil, nil, process.ErrNilTransaction
-	}
-
-	return txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-}
-
 func (txProc *metaTxProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc []byte,
