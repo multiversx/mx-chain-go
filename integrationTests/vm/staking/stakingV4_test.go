@@ -986,12 +986,12 @@ func TestStakingV4_NotEnoughNodesShouldSendAuctionDirectlyToWaiting(t *testing.T
 		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
 			{
 				EpochEnable:            0,
-				MaxNumNodes:            10,
+				MaxNumNodes:            12,
 				NodesToShufflePerShard: 1,
 			},
 			{
 				EpochEnable:            stakingV4Step3EnableEpoch,
-				MaxNumNodes:            8,
+				MaxNumNodes:            10,
 				NodesToShufflePerShard: 1,
 			},
 		},
