@@ -305,7 +305,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	}()
 
 	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
@@ -327,7 +327,6 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 					wg.Done()
 				}
 			}
-			return nil
 		},
 	}
 
@@ -389,21 +388,23 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 	return &factoryMock.CryptoComponentsMock{
-		PubKey:            &mock.PublicKeyMock{},
-		P2pPubKey:         &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyStub{},
-		P2pPrivKey:        &mock.PrivateKeyStub{},
-		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SingleSignerMock{},
-		TxSig:             &mock.SingleSignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		P2PKeyGen:         &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		PubKey:                  &mock.PublicKeyMock{},
+		P2pPubKey:               &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyStub{},
+		P2pPrivKey:              &mock.PrivateKeyStub{},
+		PubKeyString:            "pubKey",
+		PrivKeyBytes:            []byte("privKey"),
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SingleSignerMock{},
+		TxSig:                   &mock.SingleSignerMock{},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(                cryptoMocks.NewMultiSigner()),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		P2PKeyGen:               &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		KeysHandlerField:        &testscommon.KeysHandlerStub{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 	}
 }
 

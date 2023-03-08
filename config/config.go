@@ -109,17 +109,17 @@ type SoftwareVersionConfig struct {
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
 	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
-	PeerAuthenticationThresholdBetweenSends          float64
+	PeerAuthenticationTimeThresholdBetweenSends      float64
 	HeartbeatTimeBetweenSendsInSec                   int64
 	HeartbeatTimeBetweenSendsDuringBootstrapInSec    int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
-	HeartbeatThresholdBetweenSends                   float64
+	HeartbeatTimeThresholdBetweenSends               float64
 	HeartbeatExpiryTimespanInSec                     int64
 	MinPeersThreshold                                float32
-	DelayBetweenRequestsInSec                        int64
-	MaxTimeoutInSec                                  int64
+	DelayBetweenPeerAuthenticationRequestsInSec      int64
+	PeerAuthenticationMaxTimeoutForRequestsInSec     int64
 	PeerShardTimeBetweenSendsInSec                   int64
-	PeerShardThresholdBetweenSends                   float64
+	PeerShardTimeThresholdBetweenSends               float64
 	MaxMissingKeysInRequest                          uint32
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
@@ -127,6 +127,7 @@ type HeartbeatV2Config struct {
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
+	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -211,7 +212,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
-	Resolvers             ResolverConfig
+	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
@@ -289,7 +290,6 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
-	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -418,6 +418,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -586,6 +587,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string
@@ -599,8 +601,8 @@ type TrieSyncConfig struct {
 	CheckNodesOnDisk          bool
 }
 
-// ResolverConfig represents the config options to be used when setting up the resolver instances
-type ResolverConfig struct {
+// RequesterConfig represents the config options to be used when setting up the requester instances
+type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32

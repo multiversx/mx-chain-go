@@ -5,11 +5,12 @@ import (
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	consensusMocks "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -69,6 +70,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		TxKeyGen:          &mock.KeyGenMock{},
 		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		SigHandler:        &consensusMocks.SigningHandlerStub{},
 	}
 }
 
@@ -101,7 +103,7 @@ func GetDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &testscommon.ChainHandlerStub{},
 		Storage:           &storage.ChainStorerStub{},
-		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
+		DataPool:          &dataRetrieverTests.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
@@ -112,7 +114,8 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		NodesCoord:               &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		ResContainer:             &dataRetrieverTests.ResolversContainerStub{},
+		ReqFinder:                &dataRetrieverTests.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},

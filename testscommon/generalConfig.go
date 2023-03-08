@@ -123,7 +123,6 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
-			SnapshotsEnabled:            false,
 			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
@@ -260,18 +259,19 @@ func GetGeneralConfig() config.Config {
 		HeartbeatV2: config.HeartbeatV2Config{
 			PeerAuthenticationTimeBetweenSendsInSec:          1,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-			PeerAuthenticationThresholdBetweenSends:          0.1,
+			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
 			HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-			HeartbeatThresholdBetweenSends:                   0.1,
+			HeartbeatTimeThresholdBetweenSends:               0.1,
 			PeerShardTimeBetweenSendsInSec:                   5,
-			PeerShardThresholdBetweenSends:                   0.1,
+			PeerShardTimeThresholdBetweenSends:               0.1,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
 			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			PeerAuthenticationTimeBetweenChecksInSec:         1,
 			HeartbeatPool:                                    getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{
@@ -387,10 +387,10 @@ func GetGeneralConfig() config.Config {
 				MaxDeviationTimeInMilliseconds: 1,
 			},
 		},
-		Resolvers: config.ResolverConfig{
+		Requesters: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
+			NumFullHistoryPeers: 4,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
@@ -427,6 +427,11 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 			MaxNumAddressesInTransferRole: 100,
+			DNSV2Addresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
 		},
 	}
 }

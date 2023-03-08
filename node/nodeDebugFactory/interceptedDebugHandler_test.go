@@ -7,10 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +22,8 @@ func TestCreateInterceptedDebugHandler_NilNodeWrapperShouldErr(t *testing.T) {
 	err := CreateInterceptedDebugHandler(
 		nil,
 		&testscommon.InterceptorsContainerStub{},
-		&mock.ResolversFinderStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
+		&dataRetrieverTests.RequestersContainerStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
 
@@ -33,24 +36,40 @@ func TestCreateInterceptedDebugHandler_NilInterceptorsShouldErr(t *testing.T) {
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		nil,
-		&mock.ResolversFinderStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
+		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
 
 	assert.Equal(t, ErrNilInterceptorContainer, err)
 }
 
-func TestCreateInterceptedDebugHandler_NilReolversShouldErr(t *testing.T) {
+func TestCreateInterceptedDebugHandler_NilResolversShouldErr(t *testing.T) {
 	t.Parallel()
 
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		&testscommon.InterceptorsContainerStub{},
 		nil,
+		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
 
 	assert.Equal(t, ErrNilResolverContainer, err)
+}
+
+func TestCreateInterceptedDebugHandler_NilRequestersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	err := CreateInterceptedDebugHandler(
+		&mock.NodeWrapperStub{},
+		&testscommon.InterceptorsContainerStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
+		nil,
+		config.InterceptorResolverDebugConfig{},
+	)
+
+	assert.Equal(t, ErrNilRequestersContainer, err)
 }
 
 func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T) {
@@ -59,7 +78,8 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		&testscommon.InterceptorsContainerStub{},
-		&mock.ResolversFinderStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
+		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{
 			Enabled:   true,
 			CacheSize: 0,
@@ -75,6 +95,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 
 	interceptorsIterateCalled := false
 	resolversIterateCalled := false
+	requestersIterateCalled := false
 	addQueryHandlerCalled := false
 	expectedErr := errors.New("expected err")
 	err := CreateInterceptedDebugHandler(
@@ -94,10 +115,14 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 				interceptorsIterateCalled = true
 			},
 		},
-		&mock.ResolversFinderStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
-				handler("key", &mock.HeaderResolverStub{})
 				resolversIterateCalled = true
+			},
+		},
+		&dataRetrieverTests.RequestersFinderStub{
+			IterateCalled: func(handler func(key string, resolver dataRetriever.Requester) bool) {
+				requestersIterateCalled = true
 			},
 		},
 		config.InterceptorResolverDebugConfig{
@@ -109,6 +134,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 	assert.False(t, addQueryHandlerCalled)
 	assert.True(t, interceptorsIterateCalled)
 	assert.False(t, resolversIterateCalled)
+	assert.False(t, requestersIterateCalled)
 }
 
 func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.T) {
@@ -116,6 +142,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 
 	interceptorsIterateCalled := false
 	resolversIterateCalled := false
+	requestersIterateCalled := false
 	addQueryHandlerCalled := false
 	expectedErr := errors.New("expected err")
 	err := CreateInterceptedDebugHandler(
@@ -131,14 +158,19 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 				interceptorsIterateCalled = true
 			},
 		},
-		&mock.ResolversFinderStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
-				handler("key", &mock.HeaderResolverStub{
-					SetResolverDebugHandlerCalled: func(handler dataRetriever.ResolverDebugHandler) error {
+				handler("key", &dataRetrieverMocks.HeaderResolverStub{
+					SetDebugHandlerCalled: func(handler dataRetriever.DebugHandler) error {
 						return expectedErr
 					},
 				})
 				resolversIterateCalled = true
+			},
+		},
+		&dataRetrieverTests.RequestersFinderStub{
+			IterateCalled: func(handler func(key string, resolver dataRetriever.Requester) bool) {
+				requestersIterateCalled = true
 			},
 		},
 		config.InterceptorResolverDebugConfig{
@@ -150,6 +182,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 	assert.False(t, addQueryHandlerCalled)
 	assert.True(t, interceptorsIterateCalled)
 	assert.True(t, resolversIterateCalled)
+	assert.False(t, requestersIterateCalled)
 }
 
 func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
@@ -157,6 +190,7 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 
 	interceptorsIterateCalled := false
 	resolversIterateCalled := false
+	requestersIterateCalled := false
 	addQueryHandlerCalled := false
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{
@@ -171,10 +205,16 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 				interceptorsIterateCalled = true
 			},
 		},
-		&mock.ResolversFinderStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
-				handler("key", &mock.HeaderResolverStub{})
+				handler("key", &dataRetrieverMocks.HeaderResolverStub{})
 				resolversIterateCalled = true
+			},
+		},
+		&dataRetrieverTests.RequestersFinderStub{
+			IterateCalled: func(handler func(key string, resolver dataRetriever.Requester) bool) {
+				handler("key", &dataRetrieverTests.HeaderRequesterStub{})
+				requestersIterateCalled = true
 			},
 		},
 		config.InterceptorResolverDebugConfig{
@@ -186,4 +226,5 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 	assert.True(t, addQueryHandlerCalled)
 	assert.True(t, interceptorsIterateCalled)
 	assert.True(t, resolversIterateCalled)
+	assert.True(t, requestersIterateCalled)
 }

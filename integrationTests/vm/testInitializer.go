@@ -508,6 +508,9 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
+		MapDNSV2Addresses: map[string]struct{}{
+			string(dnsAddr): {},
+		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
 		ShardCoordinator:          shardCoordinator,
@@ -590,6 +593,9 @@ func CreateVMAndBlockchainHookMeta(
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
+			string(dnsAddr): {},
+		},
+		MapDNSV2Addresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,

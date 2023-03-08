@@ -83,6 +83,9 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
+// ErrNilRequestersContainer signals that a nil requesters container was provided
+var ErrNilRequestersContainer = errors.New("nil requesters container")
+
 // ErrNilCacher signals that nil cacher was provided
 var ErrNilCacher = errors.New("nil cacher")
 
