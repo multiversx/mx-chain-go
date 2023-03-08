@@ -544,3 +544,9 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrInvalidTrieNodeVersion signals that an invalid trie node version has been provided
+var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
+
+// ErrNilTrieMigrator signals that a nil trie migrator has been provided
+var ErrNilTrieMigrator = errors.New("nil trie migrator")

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -167,12 +167,12 @@ func (jea *journalEntryAccountCreation) IsInterfaceNil() bool {
 // JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
 // so it can be reverted in case of rollback
 type journalEntryDataTrieUpdates struct {
-	trieUpdates []common.TrieData
+	trieUpdates []core.TrieData
 	account     baseAccountHandler
 }
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
-func NewJournalEntryDataTrieUpdates(trieUpdates []common.TrieData, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
+func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}

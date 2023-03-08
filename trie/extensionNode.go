@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&extensionNode{})
@@ -383,7 +384,7 @@ func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []b
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(newData common.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData core.TrieData, db common.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -406,7 +407,7 @@ func (en *extensionNode) insert(newData common.TrieData, db common.DBWriteCacher
 	return en.insertInNewBn(newData, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(newData common.TrieData, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insertInSameEn(newData core.TrieData, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
 	newData.Key = newData.Key[keyMatchLen:]
 	newNode, oldHashes, err := en.child.insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
@@ -425,7 +426,7 @@ func (en *extensionNode) insertInSameEn(newData common.TrieData, keyMatchLen int
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -486,7 +487,7 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	return nil
 }
 
-func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData common.TrieData, newChildPos byte, keyMatchLen int) error {
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData core.TrieData, newChildPos byte, keyMatchLen int) error {
 	newData.Key = newData.Key[keyMatchLen+1:]
 
 	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
@@ -528,10 +529,10 @@ func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node
 
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		newLeafData := common.TrieData{
+		newLeafData := core.TrieData{
 			Key:     concat(en.Key, newNode.Key...),
 			Value:   newNode.Value,
-			Version: common.TrieNodeVersion(newNode.Version),
+			Version: core.TrieNodeVersion(newNode.Version),
 		}
 		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
@@ -800,13 +801,42 @@ func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLeve
 	return nil
 }
 
-func (en *extensionNode) getVersion() (common.TrieNodeVersion, error) {
+func (en *extensionNode) getVersion() (core.TrieNodeVersion, error) {
 	if en.ChildVersion > math.MaxUint8 {
 		log.Warn("invalid trie node version for extension node", "child version", en.ChildVersion, "max version", math.MaxUint8)
-		return common.NotSpecified, ErrInvalidNodeVersion
+		return core.NotSpecified, ErrInvalidNodeVersion
 	}
 
-	return common.TrieNodeVersion(en.ChildVersion), nil
+	return core.TrieNodeVersion(en.ChildVersion), nil
+}
+
+func (en *extensionNode) collectLeavesForMigration(
+	oldVersion core.TrieNodeVersion,
+	newVersion core.TrieNodeVersion,
+	trieMigrator vmcommon.DataTrieMigrator,
+	db common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+) (bool, error) {
+	hasEnoughGasToContinueMigration := trieMigrator.ConsumeStorageLoadGas()
+	if !hasEnoughGasToContinueMigration {
+		return false, nil
+	}
+
+	shouldMigrateNode, err := shouldMigrateCurrentNode(en, oldVersion, newVersion)
+	if err != nil {
+		return false, err
+	}
+	if !shouldMigrateNode {
+		return true, nil
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return false, err
+	}
+
+	keyBuilder.BuildKey(en.Key)
+	return en.child.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, db, keyBuilder.Clone())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -16,12 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&leafNode{})
 
 func newLeafNode(
-	newData common.TrieData,
+	newData core.TrieData,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (*leafNode, error) {
@@ -276,7 +277,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData common.TrieData, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData core.TrieData, _ common.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -311,7 +312,7 @@ func (ln *leafNode) insert(newData common.TrieData, _ common.DBWriteCacher) (nod
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(newData common.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil, [][]byte{}, nil
 	}
@@ -323,7 +324,7 @@ func (ln *leafNode) insertInSameLn(newData common.TrieData, oldHashes [][]byte) 
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
@@ -340,7 +341,7 @@ func (ln *leafNode) insertInNewBn(newData common.TrieData, keyMatchLen int) (nod
 		return nil, err
 	}
 
-	oldLnData := common.TrieData{
+	oldLnData := core.TrieData{
 		Key:     ln.Key[keyMatchLen+1:],
 		Value:   ln.Value,
 		Version: oldLnVersion,
@@ -383,7 +384,7 @@ func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 		return nil, false, err
 	}
 
-	oldLnData := common.TrieData{
+	oldLnData := core.TrieData{
 		Key:     k,
 		Value:   ln.Value,
 		Version: oldLnVersion,
@@ -550,13 +551,53 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 	return nil
 }
 
-func (ln *leafNode) getVersion() (common.TrieNodeVersion, error) {
+func (ln *leafNode) getVersion() (core.TrieNodeVersion, error) {
 	if ln.Version > math.MaxUint8 {
 		log.Warn("invalid trie node version", "version", ln.Version, "max version", math.MaxUint8)
-		return common.NotSpecified, ErrInvalidNodeVersion
+		return core.NotSpecified, ErrInvalidNodeVersion
 	}
 
-	return common.TrieNodeVersion(ln.Version), nil
+	return core.TrieNodeVersion(ln.Version), nil
+}
+
+func (ln *leafNode) collectLeavesForMigration(
+	oldVersion core.TrieNodeVersion,
+	newVersion core.TrieNodeVersion,
+	trieMigrator vmcommon.DataTrieMigrator,
+	_ common.DBWriteCacher,
+	keyBuilder common.KeyBuilder,
+) (bool, error) {
+	shouldContinue := trieMigrator.ConsumeStorageLoadGas()
+	if !shouldContinue {
+		return false, nil
+	}
+
+	shouldMigrateNode, err := shouldMigrateCurrentNode(ln, oldVersion, newVersion)
+	if err != nil {
+		return false, err
+	}
+	if !shouldMigrateNode {
+		return true, nil
+	}
+
+	keyBuilder.BuildKey(ln.Key)
+	key, err := keyBuilder.GetKey()
+	if err != nil {
+		return false, err
+	}
+
+	version, err := ln.getVersion()
+	if err != nil {
+		return false, err
+	}
+
+	leafData := core.TrieData{
+		Key:     key,
+		Value:   ln.Value,
+		Version: version,
+	}
+
+	return trieMigrator.AddLeafToMigrationQueue(leafData, newVersion)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

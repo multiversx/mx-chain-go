@@ -42,7 +42,7 @@ type Trie interface {
 
 // TrieLeafParser is used to parse trie leaves
 type TrieLeafParser interface {
-	ParseLeaf(key []byte, val []byte, version TrieNodeVersion) (core.KeyValueHolder, error)
+	ParseLeaf(key []byte, val []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error)
 	IsInterfaceNil() bool
 }
 

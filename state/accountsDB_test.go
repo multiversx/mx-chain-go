@@ -324,7 +324,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
-		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() (i []byte, err error) {
@@ -851,7 +851,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 				GetCalled: func(_ []byte) ([]byte, uint32, error) {
 					return []byte("doge"), 0, nil
 				},
-				UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
+				UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 					return nil
 				},
 				CommitCalled: func() error {

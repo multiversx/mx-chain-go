@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -55,7 +55,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		suffix := append(key, address...)
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), core.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -73,7 +73,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), common.NotSpecified)
+		keyVal, err := tlp.ParseLeaf(key, append(val, suffix...), core.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -98,7 +98,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData, common.AutoBalanceEnabled)
+		keyVal, err := tlp.ParseLeaf(hasher.Compute(string(key)), serializedLeafData, core.AutoBalanceEnabled)
 		assert.Nil(t, err)
 		assert.Equal(t, key, keyVal.Key())
 		assert.Equal(t, val, keyVal.Value())
@@ -122,7 +122,7 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		tlp, _ := NewDataTrieLeafParser(addrBytes, marshaller, enableEpochsHandler)
 
-		keyVal, err := tlp.ParseLeaf(keyBytes, valWithAppendedData, common.NotSpecified)
+		keyVal, err := tlp.ParseLeaf(keyBytes, valWithAppendedData, core.NotSpecified)
 		assert.Nil(t, err)
 		assert.Equal(t, keyBytes, keyVal.Key())
 		assert.Equal(t, valBytes, keyVal.Value())

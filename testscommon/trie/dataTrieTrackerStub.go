@@ -1,16 +1,20 @@
 package trie
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
-	RetrieveValueCalled func(key []byte) ([]byte, uint32, error)
-	SaveKeyValueCalled  func(key []byte, value []byte) error
-	SetDataTrieCalled   func(tr common.Trie)
-	DataTrieCalled      func() common.Trie
-	SaveDirtyDataCalled func(trie common.Trie) ([]common.TrieData, error)
+	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
+	SaveKeyValueCalled          func(key []byte, value []byte) error
+	SetDataTrieCalled           func(tr common.Trie)
+	DataTrieCalled              func() common.Trie
+	SaveDirtyDataCalled         func(trie common.Trie) ([]core.TrieData, error)
+	SaveTrieDataCalled          func(trieData core.TrieData) error
+	MigrateDataTrieLeavesCalled func(version core.TrieNodeVersion, newVersion core.TrieNodeVersion, migrator vmcommon.DataTrieMigrator) error
 }
 
 // RetrieveValue -
@@ -48,12 +52,21 @@ func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]common.TrieData, error) {
+func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
 	if dtts.SaveDirtyDataCalled != nil {
 		return dtts.SaveDirtyDataCalled(mainTrie)
 	}
 
-	return make([]common.TrieData, 0), nil
+	return make([]core.TrieData, 0), nil
+}
+
+// MigrateDataTrieLeaves -
+func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(version core.TrieNodeVersion, newVersion core.TrieNodeVersion, migrator vmcommon.DataTrieMigrator) error {
+	if dtts.MigrateDataTrieLeavesCalled != nil {
+		return dtts.MigrateDataTrieLeavesCalled(version, newVersion, migrator)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

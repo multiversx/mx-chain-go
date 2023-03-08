@@ -1,6 +1,10 @@
 package disabled
 
-import "github.com/multiversx/mx-chain-go/common"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+)
 
 type disabledTrackableDataTrie struct {
 }
@@ -30,8 +34,13 @@ func (dtdt *disabledTrackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData does nothing for this implementation
-func (dtdt *disabledTrackableDataTrie) SaveDirtyData(_ common.Trie) ([]common.TrieData, error) {
-	return make([]common.TrieData, 0), nil
+func (dtdt *disabledTrackableDataTrie) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
+	return make([]core.TrieData, 0), nil
+}
+
+// MigrateDataTrieLeaves does nothing for this implementation
+func (dtdt *disabledTrackableDataTrie) MigrateDataTrieLeaves(_ core.TrieNodeVersion, _ core.TrieNodeVersion, _ vmcommon.DataTrieMigrator) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

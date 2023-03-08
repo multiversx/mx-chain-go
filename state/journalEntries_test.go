@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -176,8 +176,8 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make([]common.TrieData, 0)
-	trieUpdates = append(trieUpdates, common.TrieData{
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
 		Key:     []byte("a"),
 		Value:   []byte("b"),
 		Version: 0,
@@ -191,7 +191,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make([]common.TrieData, 0)
+	trieUpdates := make([]core.TrieData, 0)
 	args := state.ArgsAccountCreation{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
@@ -207,8 +207,8 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make([]common.TrieData, 0)
-	trieUpdates = append(trieUpdates, common.TrieData{
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
 		Key:     []byte("a"),
 		Value:   []byte("b"),
 		Version: 0,
@@ -230,8 +230,8 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make([]common.TrieData, 0)
-	trieUpdates = append(trieUpdates, common.TrieData{
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
 		Key:     []byte("a"),
 		Value:   []byte("b"),
 		Version: 0,
@@ -239,7 +239,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return expectedErr
 		},
 	}
@@ -257,8 +257,8 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make([]common.TrieData, 0)
-	trieUpdates = append(trieUpdates, common.TrieData{
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
 		Key:     []byte("a"),
 		Value:   []byte("b"),
 		Version: 0,
@@ -266,7 +266,7 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -288,8 +288,8 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	updateWasCalled := false
 	rootWasCalled := false
 
-	trieUpdates := make([]common.TrieData, 0)
-	trieUpdates = append(trieUpdates, common.TrieData{
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
 		Key:     []byte("a"),
 		Value:   []byte("b"),
 		Version: 0,
@@ -297,7 +297,7 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateWithVersionCalled: func(key, value []byte, version common.TrieNodeVersion) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			updateWasCalled = true
 			return nil
 		},

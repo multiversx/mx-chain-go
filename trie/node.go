@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -269,4 +270,25 @@ func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []by
 
 	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
+}
+
+func shouldMigrateCurrentNode(
+	currentNode node,
+	oldVersion core.TrieNodeVersion,
+	newVersion core.TrieNodeVersion,
+) (bool, error) {
+	version, err := currentNode.getVersion()
+	if err != nil {
+		return false, err
+	}
+
+	if version == newVersion {
+		return false, nil
+	}
+
+	if version != oldVersion && version != core.NotSpecified {
+		return false, nil
+	}
+
+	return true, nil
 }

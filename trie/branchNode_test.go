@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -29,11 +30,11 @@ func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	return marsh, hash
 }
 
-func getTrieDataWithDefaultVersion(key string, val string) common.TrieData {
-	return common.TrieData{
+func getTrieDataWithDefaultVersion(key string, val string) core.TrieData {
+	return core.TrieData{
 		Key:     []byte(key),
 		Value:   []byte(val),
-		Version: common.NotSpecified,
+		Version: core.NotSpecified,
 	}
 }
 
@@ -1402,7 +1403,7 @@ func TestBranchNode_getVersion(t *testing.T) {
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
 		version, err := bn.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Nil(t, err)
 	})
 
@@ -1411,12 +1412,12 @@ func TestBranchNode_getVersion(t *testing.T) {
 
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
-		bn.ChildrenVersion[2] = byte(common.NotSpecified)
-		bn.ChildrenVersion[6] = byte(common.NotSpecified)
-		bn.ChildrenVersion[13] = byte(common.NotSpecified)
+		bn.ChildrenVersion[2] = byte(core.NotSpecified)
+		bn.ChildrenVersion[6] = byte(core.NotSpecified)
+		bn.ChildrenVersion[13] = byte(core.NotSpecified)
 
 		version, err := bn.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Nil(t, err)
 	})
 
@@ -1425,12 +1426,12 @@ func TestBranchNode_getVersion(t *testing.T) {
 
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
-		bn.ChildrenVersion[2] = byte(common.NotSpecified)
-		bn.ChildrenVersion[6] = byte(common.AutoBalanceEnabled)
-		bn.ChildrenVersion[13] = byte(common.NotSpecified)
+		bn.ChildrenVersion[2] = byte(core.NotSpecified)
+		bn.ChildrenVersion[6] = byte(core.AutoBalanceEnabled)
+		bn.ChildrenVersion[13] = byte(core.NotSpecified)
 
 		version, err := bn.getVersion()
-		assert.Equal(t, common.NotSpecified, version)
+		assert.Equal(t, core.NotSpecified, version)
 		assert.Nil(t, err)
 	})
 
@@ -1439,12 +1440,12 @@ func TestBranchNode_getVersion(t *testing.T) {
 
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
-		bn.ChildrenVersion[2] = byte(common.AutoBalanceEnabled)
-		bn.ChildrenVersion[6] = byte(common.AutoBalanceEnabled)
-		bn.ChildrenVersion[13] = byte(common.AutoBalanceEnabled)
+		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
+		bn.ChildrenVersion[6] = byte(core.AutoBalanceEnabled)
+		bn.ChildrenVersion[13] = byte(core.AutoBalanceEnabled)
 
 		version, err := bn.getVersion()
-		assert.Equal(t, common.AutoBalanceEnabled, version)
+		assert.Equal(t, core.AutoBalanceEnabled, version)
 		assert.Nil(t, err)
 	})
 }

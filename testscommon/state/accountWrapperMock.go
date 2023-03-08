@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -188,7 +189,7 @@ func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]common.TrieData, error) {
+func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
 	return awm.trackableDataTrie.SaveDirtyData(trie)
 }
 
