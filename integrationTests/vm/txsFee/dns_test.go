@@ -176,12 +176,12 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShard(t *testing.T) 
 
 	scrs, retCode, err = processRegisterThroughRelayedTxs(t, args)
 	require.Nil(t, err)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 
-	// check username hasn't changed
+	// check username has changed
 	acc, _ = testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
 	account, _ = acc.(state.UserAccountHandler)
-	require.Equal(t, firstUsername, account.GetUserName())
+	require.Equal(t, secondUsername, account.GetUserName())
 	checkBalances(t, args, initialBalance)
 }
 
