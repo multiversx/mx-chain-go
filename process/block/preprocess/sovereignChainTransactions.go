@@ -1,13 +1,16 @@
 package preprocess
 
 import (
+	"errors"
+	"math/big"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	"time"
 )
 
 type sovereignChainTransactions struct {
@@ -27,6 +30,8 @@ func NewSovereignChainTransactionPreprocessor(
 	}
 
 	sct.scheduledTXContinueFunc = sct.shouldContinueProcessingScheduledTx
+	sct.shouldSkipMiniBlockFunc = sct.shouldSkipMiniBlock
+	sct.isTransactionEligibleForExecutionFunc = sct.isTransactionEligibleForExecution
 
 	return sct, nil
 }
@@ -149,11 +154,63 @@ func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
 		return nil, nil, false
 	}
 
-	addressHasEnoughBalance := sct.hasAddressEnoughInitialBalance(tx)
-	if !addressHasEnoughBalance {
-		mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
-		return nil, nil, false
+	return tx, miniBlock, true
+}
+
+func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.MiniBlock) bool {
+	return !sct.isMiniBlockCorrect(miniBlock.Type)
+}
+
+func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) bool {
+	if isCriticalError(err) {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err)
+		return false
 	}
 
-	return tx, miniBlock, true
+	senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
+	if check.IfNil(senderAccount) {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
+		return false
+	}
+
+	accntInfo, found := sct.accntsTracker.getAccountInfo(tx.GetSndAddr())
+	if !found {
+		accntInfo = accountInfo{
+			nonce:   senderAccount.GetNonce(),
+			balance: big.NewInt(0).Set(senderAccount.GetBalance()),
+		}
+	}
+
+	if accntInfo.nonce < tx.GetNonce() {
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
+			"account nonce", accntInfo.nonce,
+			"tx nonce", tx.GetNonce())
+		return false
+	}
+
+	txFee := sct.economicsFee.ComputeTxFee(tx)
+	if accntInfo.balance.Cmp(txFee) < 0 {
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFee,
+			"account balance", accntInfo.balance.String(),
+			"fee needed", txFee.String())
+		return false
+	}
+
+	cost := big.NewInt(0).Add(txFee, tx.GetValue())
+	if accntInfo.balance.Cmp(cost) < 0 {
+		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFunds,
+			"account balance", accntInfo.balance.String(),
+			"cost", cost.String())
+		return false
+	}
+
+	accntInfo.nonce++
+	accntInfo.balance.Sub(accntInfo.balance, cost)
+	sct.accntsTracker.setAccountInfo(tx.GetSndAddr(), accntInfo)
+
+	return true
+}
+
+func isCriticalError(err error) bool {
+	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
 }

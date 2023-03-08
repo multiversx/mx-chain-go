@@ -7,6 +7,13 @@ startObservers() {
   iterateOverObservers startSingleObserver
 }
 
+startSovereignObservers() {
+  setTerminalSession "multiversx-nodes"
+  setTerminalLayout "tiled"
+  setWorkdirForNextCommands "$TESTNETDIR/node"
+  iterateOverSovereignObservers startSingleObserver
+}
+
 pauseObservers() {
   iterateOverObservers pauseSingleObserver
 }
@@ -43,6 +50,23 @@ iterateOverObservers() {
       sleep 0.2
     fi
     (( OBSERVER_INDEX++ ))
+  done
+}
+
+iterateOverSovereignObservers() {
+  local callback=$1
+  local OBSERVER_INDEX=0
+
+  # Iterate over Shard Observers
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
+        $callback $SHARD $OBSERVER_INDEX
+        sleep 0.2
+      fi
+      (( OBSERVER_INDEX++ ))
+    done
   done
 }
 

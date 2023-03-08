@@ -66,8 +66,11 @@ type transactions struct {
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	accntsTracker                *accountsTracker
 
-	scheduledTXContinueFunc func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
+	scheduledTXContinueFunc               func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
+	shouldSkipMiniBlockFunc               func(miniBlock *block.MiniBlock) bool
+	isTransactionEligibleForExecutionFunc func(tx *transaction.Transaction, err error) bool
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
@@ -187,9 +190,12 @@ func NewTransactionPreprocessor(
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
+	txs.accntsTracker = newAccountsTracker()
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx
+	txs.shouldSkipMiniBlockFunc = txs.shouldSkipMiniBlock
+	txs.isTransactionEligibleForExecutionFunc = txs.isTransactionEligibleForExecution
 
 	return txs, nil
 }
@@ -373,10 +379,7 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 
 	allTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, miniBlock := range body.MiniBlocks {
-		shouldSkipMiniBlock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() ||
-			!txs.isMiniBlockCorrect(miniBlock.Type) ||
-			miniBlock.IsScheduledMiniBlock()
-		if shouldSkipMiniBlock {
+		if txs.shouldSkipMiniBlockFunc(miniBlock) {
 			continue
 		}
 
@@ -394,6 +397,14 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 	}
 
 	return allTxs, nil
+}
+
+func (txs *transactions) shouldSkipMiniBlock(miniBlock *block.MiniBlock) bool {
+	shouldSkipMiniBlock := miniBlock.SenderShardID != txs.shardCoordinator.SelfId() ||
+		!txs.isMiniBlockCorrect(miniBlock.Type) ||
+		miniBlock.IsScheduledMiniBlock()
+
+	return shouldSkipMiniBlock
 }
 
 func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
@@ -783,6 +794,7 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accountTxsShards.Unlock()
 
+	txs.accntsTracker.init()
 	txs.scheduledTxsExecutionHandler.Init()
 }
 

@@ -31,6 +31,7 @@ if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
   updateNodeConfig
 fi
 
+copySovereignNodeConfig
 
 # Phase 3: start the Seednode
 startSeednode
@@ -39,7 +40,7 @@ echo "Waiting for the Seednode to start ($SEEDNODE_DELAY s)..."
 sleep $SEEDNODE_DELAY
 
 # Phase 4: start the Observer Nodes and Validator Sovereign Nodes
-startObservers
+startSovereignObservers
 startSovereignValidators
 showTerminalSession "multiversx-nodes"
 echo "Waiting for the Nodes to start ($NODE_DELAY s)..."

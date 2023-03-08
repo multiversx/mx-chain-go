@@ -17,6 +17,7 @@ type UserAccountStub struct {
 	UserName            []byte
 	Owner               []byte
 	Address             []byte
+	Nonce               uint64
 	AddToBalanceCalled  func(value *big.Int) error
 	RetrieveValueCalled func(_ []byte) ([]byte, uint32, error)
 }
@@ -94,7 +95,7 @@ func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 
 // GetNonce -
 func (u *UserAccountStub) GetNonce() uint64 {
-	return 0
+	return u.Nonce
 }
 
 // SetCode -
