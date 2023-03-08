@@ -1265,7 +1265,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	mapDNSV2Addresses := make(map[string]struct{}, len(convertedDNSV2Addresses))
+	mapDNSV2Addresses := make(map[string]struct{})
 	for _, address := range convertedDNSV2Addresses {
 		mapDNSV2Addresses[string(address)] = struct{}{}
 	}
