@@ -91,6 +91,7 @@ func (ts *trieStatistics) collectNodeStatistics(level int, size uint64, nodeStat
 	}
 }
 
+// GetTotalNodesSize will return the total size of all nodes
 func (ts *trieStatistics) GetTotalNodesSize() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -102,6 +103,7 @@ func (ts *trieStatistics) getTotalNodesSize() uint64 {
 	return ts.branchNodes.nodesSize + ts.extensionNodes.nodesSize + ts.leafNodes.nodesSize
 }
 
+// GetTotalNumNodes will return the total number of nodes
 func (ts *trieStatistics) GetTotalNumNodes() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -113,6 +115,7 @@ func (ts *trieStatistics) getTotalNumNodes() uint64 {
 	return ts.branchNodes.numNodes + ts.extensionNodes.numNodes + ts.leafNodes.numNodes
 }
 
+// GetMaxTrieDepth will return the maximum trie depth
 func (ts *trieStatistics) GetMaxTrieDepth() uint32 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -120,6 +123,7 @@ func (ts *trieStatistics) GetMaxTrieDepth() uint32 {
 	return ts.maxTrieDepth
 }
 
+// GetBranchNodesSize will return the size of all branch nodes
 func (ts *trieStatistics) GetBranchNodesSize() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -127,6 +131,7 @@ func (ts *trieStatistics) GetBranchNodesSize() uint64 {
 	return ts.branchNodes.nodesSize
 }
 
+// GetNumBranchNodes will return the number of branch nodes
 func (ts *trieStatistics) GetNumBranchNodes() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -134,6 +139,7 @@ func (ts *trieStatistics) GetNumBranchNodes() uint64 {
 	return ts.branchNodes.numNodes
 }
 
+// GetExtensionNodesSize will return the size of all extension nodes
 func (ts *trieStatistics) GetExtensionNodesSize() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -141,6 +147,7 @@ func (ts *trieStatistics) GetExtensionNodesSize() uint64 {
 	return ts.extensionNodes.nodesSize
 }
 
+// GetNumExtensionNodes will return the number of extension nodes
 func (ts *trieStatistics) GetNumExtensionNodes() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -148,6 +155,7 @@ func (ts *trieStatistics) GetNumExtensionNodes() uint64 {
 	return ts.extensionNodes.numNodes
 }
 
+// GetLeafNodesSize will return the size of all leaf nodes
 func (ts *trieStatistics) GetLeafNodesSize() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -155,6 +163,7 @@ func (ts *trieStatistics) GetLeafNodesSize() uint64 {
 	return ts.leafNodes.nodesSize
 }
 
+// GetNumLeafNodes will return the number of leaf nodes
 func (ts *trieStatistics) GetNumLeafNodes() uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
@@ -162,6 +171,7 @@ func (ts *trieStatistics) GetNumLeafNodes() uint64 {
 	return ts.leafNodes.numNodes
 }
 
+// GetLeavesMigrationStats will return the leaves migration statistics
 func (ts *trieStatistics) GetLeavesMigrationStats() map[core.TrieNodeVersion]uint64 {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
