@@ -667,7 +667,6 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
-    SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -932,8 +931,9 @@
     HardforkTimeBetweenSendsInSec                    = 60   # 1min       # time between hardfork messages
     TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec      # time between consecutive connections metrics updates
     TimeToReadDirectConnectionsInSec                 = 15   # 15sec      # time between consecutive peer shard mapper updates with direct connections
+    PeerAuthenticationTimeBetweenChecksInSec         = 6    # 6sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
-        Capacity = 1000
+        Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
