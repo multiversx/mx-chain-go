@@ -518,6 +518,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	delayInSecBeforeAllowingVmQueries := configs.GeneralConfig.WebServerAntiflood.VmQueryDelayAfterStartInSec
 	if delayInSecBeforeAllowingVmQueries == 0 {
+		log.Warn("WebServerAntiflood.VmQueryDelayAfterStartInSec value not set. will use default", "default", defaultDelayBeforeScQueriesStartInSec)
 		delayInSecBeforeAllowingVmQueries = defaultDelayBeforeScQueriesStartInSec
 	}
 	// TODO: remove this and treat better the VM versions switching
