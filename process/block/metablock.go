@@ -185,9 +185,9 @@ func (mp *metaProcessor) ProcessBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
-) error {
+) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
+		return nil, nil, process.ErrNilHaveTimeHandler
 	}
 
 	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
@@ -204,7 +204,7 @@ func (mp *metaProcessor) ProcessBlock(
 			go mp.requestHandler.RequestMetaHeader(headerHandler.GetPrevHash())
 		}
 
-		return err
+		return nil, nil, err
 	}
 
 	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
@@ -219,22 +219,22 @@ func (mp *metaProcessor) ProcessBlock(
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.checkScheduledMiniBlocksValidity(headerHandler)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	headersPool := mp.dataPool.Headers()
@@ -264,7 +264,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.createBlockStarted()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	mp.blockChainHook.SetCurrentHeader(header)
@@ -272,34 +272,34 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("metaProcessor.ProcessBlock first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return process.ErrAccountStateDirty
+		return nil, nil, process.ErrAccountStateDirty
 	}
 
 	err = mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
-		return err
+		return nil, nil, err
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
-		return process.ErrTimeIsOut
+		return nil, nil, process.ErrTimeIsOut
 	}
 
 	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
@@ -330,7 +330,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
@@ -340,22 +340,22 @@ func (mp *metaProcessor) ProcessBlock(
 
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.checkShardHeadersFinality(highestNonceHdrs)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyTotalAccumulatedFeesInEpoch(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header)
@@ -368,35 +368,35 @@ func (mp *metaProcessor) ProcessBlock(
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.Nonce)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyFees(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	return header, body, nil
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(

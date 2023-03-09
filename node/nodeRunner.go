@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -79,6 +80,8 @@ const (
 // nodeRunner holds the node runner configuration and controls running of a node
 type nodeRunner struct {
 	configs *config.Configs
+
+	getConsensusModelFunc func() consensus.ConsensusModel
 }
 
 // NewNodeRunner creates a nodeRunner instance
@@ -87,9 +90,13 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 		return nil, fmt.Errorf("nil configs provided")
 	}
 
-	return &nodeRunner{
+	nr := &nodeRunner{
 		configs: cfgs,
-	}, nil
+	}
+
+	nr.getConsensusModelFunc = nr.getConsensusModel
+
+	return nr, nil
 }
 
 // Start creates and starts the managed components
@@ -860,6 +867,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		ConsensusModel:        nr.getConsensusModelFunc(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1688,4 +1696,8 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func (nr *nodeRunner) getConsensusModel() consensus.ConsensusModel {
+	return consensus.ConsensusModelV1
 }

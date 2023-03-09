@@ -34,12 +34,12 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	return srSignature
@@ -56,7 +56,6 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 	srSignature, err := bls.NewSubroundSignature(
 		nil,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -84,13 +83,13 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -118,12 +117,12 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetHasher(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -151,12 +150,12 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -184,13 +183,13 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -218,12 +217,12 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -251,12 +250,12 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -324,6 +323,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 
@@ -397,6 +397,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 
@@ -608,6 +609,7 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 

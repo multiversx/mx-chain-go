@@ -45,6 +45,7 @@ func initSubroundEndRoundWithContainer(
 		chainID,
 		currentPid,
 		appStatusHandler,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -52,7 +53,6 @@ func initSubroundEndRoundWithContainer(
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		appStatusHandler,
 	)
 
 	return srEndRound
@@ -70,7 +70,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -98,6 +97,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockchain(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -105,7 +105,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -133,6 +132,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -140,7 +140,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -168,6 +167,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
@@ -176,7 +176,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -204,6 +203,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -211,7 +211,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -239,6 +238,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -246,7 +246,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -274,6 +273,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -281,7 +281,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -309,6 +308,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -316,7 +316,6 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -818,8 +817,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 
 	cnsData := consensus.Message{
 		// apply the data which is mocked in consensus state so the checks will pass
-		BlockHeaderHash: []byte("X"),
-		PubKey:          []byte("A"),
+		HeaderHash: []byte("X"),
+		PubKey:     []byte("A"),
 	}
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 	assert.True(t, res)
@@ -842,8 +841,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinal
 	container.SetHeaderSigVerifier(headerSigVerifier)
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	cnsData := consensus.Message{
-		BlockHeaderHash: []byte("X"),
-		PubKey:          []byte("A"),
+		HeaderHash: []byte("X"),
+		PubKey:     []byte("A"),
 	}
 	sr.Header = &block.Header{}
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
@@ -1209,8 +1208,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr.ConsensusState.Data = nil
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1225,8 +1224,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("other node"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("other node"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1242,8 +1241,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr.SetSelfPubKey("A")
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1258,8 +1257,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("Y"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("Y"),
+			PubKey:     []byte("A"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1274,9 +1273,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			RoundIndex:      1,
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
+			RoundIndex: 1,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1290,9 +1289,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte{},
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte{},
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1314,9 +1313,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("invalid data"),
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte("invalid data"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1331,9 +1330,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("invalidSignersData"),
+			HeaderHash:     []byte("X"),
+			PubKey:         []byte("A"),
+			InvalidSigners: []byte("invalidSignersData"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1568,6 +1567,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -1575,7 +1575,6 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
-		&statusHandler.AppStatusHandlerStub{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

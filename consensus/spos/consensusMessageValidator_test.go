@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +39,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 		PublicKeySize:        PublicKeySize,
 		HeaderHashSize:       hasher.Size(),
 		ChainID:              chainID,
+		EnableEpochHandler:   &testscommon.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -123,6 +125,16 @@ func TestNewConsensusMessageValidator(t *testing.T) {
 
 		assert.Nil(t, validator)
 		assert.Equal(t, spos.ErrInvalidSignatureSize, err)
+	})
+	t.Run("nil EnableEpochHandler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultConsensusMessageValidatorArgs()
+		args.EnableEpochHandler = nil
+		validator, err := spos.NewConsensusMessageValidator(args)
+
+		assert.Nil(t, validator)
+		assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -523,18 +535,18 @@ func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *te
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessageType))
 }
 
-func TestIsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
+func TestIsHeaderHashSizeValid_NotValid(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), BlockHeaderHash: []byte("hash")}
-	result := cmv.IsBlockHeaderHashSizeValid(cnsMsg)
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), HeaderHash: []byte("hash")}
+	result := cmv.IsHeaderHashSizeValid(cnsMsg)
 	assert.False(t, result)
 }
 
-func TestIsBlockHeaderHashSizeValid(t *testing.T) {
+func TestIsHeaderHashSizeValid(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
@@ -542,8 +554,74 @@ func TestIsBlockHeaderHashSizeValid(t *testing.T) {
 
 	headerHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(headerHash)
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), BlockHeaderHash: headerHash}
-	result := cmv.IsBlockHeaderHashSizeValid(cnsMsg)
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), HeaderHash: headerHash}
+	result := cmv.IsHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+}
+
+func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: true,
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: []byte("hash")}
+	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.False(t, result)
+
+	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize-1)
+	_, _ = rand.Read(processedHeaderHash)
+	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.False(t, result)
+
+	processedHeaderHash = make([]byte, consensusMessageValidatorArgs.HeaderHashSize+1)
+	_, _ = rand.Read(processedHeaderHash)
+	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.False(t, result)
+}
+
+func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsNotEnabled(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: false,
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: nil}
+	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+
+	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
+	_, _ = rand.Read(processedHeaderHash)
+	cnsMsg = &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: processedHeaderHash}
+	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+}
+
+func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsEnabled(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+		IsConsensusModelV2EnabledField: true,
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: nil}
+	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
+	assert.True(t, result)
+
+	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
+	_, _ = rand.Read(processedHeaderHash)
+	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 }
 
@@ -581,7 +659,7 @@ func TestCheckConsensusMessageValidity_InvalidPublicKeySize(t *testing.T) {
 	_, _ = rand.Read(headerBytes)
 	headerHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(headerHash)
-	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, BlockHeaderHash: headerHash}
+	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, HeaderHash: headerHash}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidPublicKeySize))
 }
@@ -600,7 +678,7 @@ func TestCheckConsensusMessageValidity_InvalidSignatureSize(t *testing.T) {
 	_, _ = rand.Read(pubKey)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey,
+		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
@@ -623,7 +701,7 @@ func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig,
+		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrNodeIsNotInEligibleList))
@@ -645,7 +723,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
@@ -668,7 +746,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
@@ -719,14 +797,20 @@ func createDummyByteSlice(size int) []byte {
 }
 
 func createMockConsensusMessage(args spos.ArgsConsensusMessageValidator, pubKey []byte, msgType consensus.MessageType) *consensus.Message {
-	return &consensus.Message{
-		ChainID:         chainID,
-		MsgType:         int64(msgType),
-		PubKey:          pubKey,
-		Signature:       createDummyByteSlice(SignatureSize),
-		RoundIndex:      args.ConsensusState.RoundIndex,
-		BlockHeaderHash: createDummyByteSlice(args.HeaderHashSize),
+	msg := &consensus.Message{
+		ChainID:    chainID,
+		MsgType:    int64(msgType),
+		PubKey:     pubKey,
+		Signature:  createDummyByteSlice(SignatureSize),
+		RoundIndex: args.ConsensusState.RoundIndex,
+		HeaderHash: createDummyByteSlice(args.HeaderHashSize),
 	}
+
+	if msgType == bls.MtSignature || msgType == bls.MtBlockHeaderFinalInfo || msgType == bls.MtInvalidSigners {
+		msg.ProcessedHeaderHash = createDummyByteSlice(args.HeaderHashSize)
+	}
+
+	return msg
 }
 
 func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
@@ -756,7 +840,7 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
@@ -779,7 +863,7 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.Nil(t, err)

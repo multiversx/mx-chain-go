@@ -167,6 +167,11 @@ func (sr *subroundBlock) DoBlockJob() bool {
 	return sr.doBlockJob(context.Background())
 }
 
+// DoBlockJob method does the job of the subround Block
+func (sr *subroundBlockV2) DoBlockJob() bool {
+	return sr.doBlockJob(context.Background())
+}
+
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
 func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
 	return sr.processReceivedBlock(context.Background(), cnsDta)
@@ -245,6 +250,11 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 // AreSignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
 func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 	return sr.areSignaturesCollected(threshold)
+}
+
+// GetMessageToSign gets the message that should be signed
+func (sr *subroundSignatureV2) GetMessageToSign() []byte {
+	return sr.getMessageToSign()
 }
 
 // subroundEndRound
@@ -331,4 +341,9 @@ func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []by
 
 func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+}
+
+// GetMessageToVerifySig gets the message on which the signature should be verified
+func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
+	return sr.getMessageToVerifySig()
 }

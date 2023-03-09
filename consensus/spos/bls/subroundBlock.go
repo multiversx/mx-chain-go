@@ -209,6 +209,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
 		nil,
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -251,6 +252,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
 		nil,
+		nil,
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -290,6 +292,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		nil,
 		sr.GetAssociatedPid([]byte(leader)),
+		nil,
 		nil,
 	)
 
@@ -412,7 +415,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
-	sr.Data = cnsDta.BlockHeaderHash
+	sr.Data = cnsDta.HeaderHash
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
@@ -423,7 +426,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 
 	log.Debug("step 1: block body and header have been received",
 		"nonce", sr.Header.GetNonce(),
-		"hash", cnsDta.BlockHeaderHash)
+		"hash", cnsDta.HeaderHash)
 
 	sw.Start("processReceivedBlock")
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
@@ -511,7 +514,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
-	sr.Data = cnsDta.BlockHeaderHash
+	sr.Data = cnsDta.HeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	if sr.isInvalidHeaderOrData() {
@@ -520,7 +523,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),
-		"hash", cnsDta.BlockHeaderHash)
+		"hash", cnsDta.HeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -568,7 +571,8 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
-	err := sr.BlockProcessor().ProcessBlock(
+	var err error
+	sr.Header, sr.Body, err = sr.BlockProcessor().ProcessBlock(
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,
@@ -614,13 +618,13 @@ func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err err
 }
 
 func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, metric string) {
-	subRoundDuration := sr.EndTime() - sr.StartTime()
-	if subRoundDuration == 0 {
+	subroundDuration := sr.EndTime() - sr.StartTime()
+	if subroundDuration == 0 {
 		// can not do division by 0
 		return
 	}
 
-	percent := uint64(time.Since(startTime)) * 100 / uint64(subRoundDuration)
+	percent := uint64(time.Since(startTime)) * 100 / uint64(subroundDuration)
 	sr.AppStatusHandler().SetUInt64Value(metric, percent)
 }
 
