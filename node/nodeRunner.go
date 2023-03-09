@@ -68,8 +68,8 @@ import (
 
 const (
 	// TODO: remove this after better handling VM versions switching
-	// delayBeforeScQueriesStart represents the delay before the sc query processor should start to allow external queries
-	delayBeforeScQueriesStart = 2 * time.Minute
+	// defaultDelayBeforeScQueriesStartInSec represents the default delay before the sc query processor should start to allow external queries
+	defaultDelayBeforeScQueriesStartInSec = 120
 
 	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
@@ -516,9 +516,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Info("application is now running")
 
+	delayInSecBeforeAllowingVmQueries := configs.GeneralConfig.WebServerAntiflood.VmQueryDelayAfterStartInSec
+	if delayInSecBeforeAllowingVmQueries == 0 {
+		delayInSecBeforeAllowingVmQueries = defaultDelayBeforeScQueriesStartInSec
+	}
 	// TODO: remove this and treat better the VM versions switching
 	go func(statusHandler core.AppStatusHandler) {
-		time.Sleep(delayBeforeScQueriesStart)
+		time.Sleep(time.Duration(delayInSecBeforeAllowingVmQueries) * time.Second)
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
