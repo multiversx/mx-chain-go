@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // SanityCheckEnableEpochsStakingV4 checks if the enable epoch configs for stakingV4 are set correctly
@@ -64,6 +66,41 @@ func checkMaxNodesChangedCorrectly(prevMaxNodesChange MaxNodesChangeConfig, curr
 	if expectedMaxNumNodes != currMaxNodesChange.MaxNumNodes {
 		return fmt.Errorf("expected MaxNodesChangeEnableEpoch.MaxNumNodes for StakingV4Step3EnableEpoch = %d, but got %d",
 			expectedMaxNumNodes, currMaxNodesChange.MaxNumNodes)
+	}
+
+	return nil
+}
+
+func SanityCheckNodesConfig(
+	nodesSetup update.GenesisNodesSetupHandler,
+	maxNodesChange []MaxNodesChangeConfig,
+) error {
+	if len(maxNodesChange) < 1 {
+		return fmt.Errorf("not enough max num nodes")
+	}
+
+	maxNodesConfig := maxNodesChange[0]
+
+	waitingListSize := maxNodesConfig.MaxNumNodes - nodesSetup.MinNumberOfNodes()
+	if waitingListSize <= 0 {
+		return fmt.Errorf("negative waiting list")
+	}
+
+	if maxNodesConfig.NodesToShufflePerShard == 0 {
+		return fmt.Errorf("0 nodes to shuffle per shard")
+	}
+
+	// todo: same for metachain
+	waitingListSizePerShardSize := uint32(float32(nodesSetup.MinNumberOfShardNodes()) * nodesSetup.GetHysteresis())
+	if waitingListSizePerShardSize%maxNodesConfig.NodesToShufflePerShard != 0 {
+		return fmt.Errorf("unbalanced waiting list")
+	}
+
+	numSlotsWaitingListPerShard := waitingListSizePerShardSize / nodesSetup.NumberOfShards()
+
+	atLeastOneWaitingListSlot := numSlotsWaitingListPerShard >= 1*maxNodesConfig.NodesToShufflePerShard
+	if !atLeastOneWaitingListSlot {
+		return fmt.Errorf("invalid num of waiting list slots")
 	}
 
 	return nil

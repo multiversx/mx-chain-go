@@ -284,6 +284,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	err = config.SanityCheckNodesConfig(
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+	)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating status core components")
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	if err != nil {
