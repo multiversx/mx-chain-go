@@ -59,6 +59,11 @@ type DataTrieHandler interface {
 	IsInterfaceNil() bool
 }
 
+// StorageMarker is used to mark the given storer as synced and active
+type StorageMarker interface {
+	MarkStorerAsSyncedAndActive(storer StorageManager)
+}
+
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Get(key []byte) ([]byte, error)

@@ -110,6 +110,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -3078,9 +3079,9 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		AccountsRepo: &stateMock.AccountsRepositoryStub{},
 		Tries:        &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                         &storageManager.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &storageManager.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &storageManager.StorageManagerStub{},
 		},
 	}
 }
@@ -3118,7 +3119,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &trieMock.TriesHolderStub{},
-			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]common.StorageManager{"0": &storageManager.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

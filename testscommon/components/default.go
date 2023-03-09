@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
@@ -89,9 +90,9 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                         &storageManager.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &storageManager.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &storageManager.StorageManagerStub{},
 		},
 	}
 }

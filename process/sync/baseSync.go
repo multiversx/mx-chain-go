@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -700,7 +701,7 @@ func (boot *baseBootstrap) syncUserAccountsState() error {
 	}
 
 	log.Warn("base sync: started syncUserAccountsState")
-	return boot.accountsDBSyncer.SyncAccounts(rootHash)
+	return boot.accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {

@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ func createMockTrieResolverArguments() ArgTrieResolver {
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
 		TrieDataGetter:           &trieMock.TrieStub{},
-		TrieStorageManager:       &testscommon.StorageManagerStub{},
+		TrieStorageManager:       &storageManager.StorageManagerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess, 1),
 		DelayBeforeGracefulClose: 0,

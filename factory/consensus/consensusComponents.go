@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -509,7 +508,6 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
-		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}

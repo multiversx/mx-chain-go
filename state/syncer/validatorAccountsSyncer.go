@@ -48,7 +48,6 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:                 args.TrieSyncerVersion,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
-		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		appStatusHandler:                  args.AppStatusHandler,
 	}
@@ -61,7 +60,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
-func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
+func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
@@ -80,7 +79,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	v.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }

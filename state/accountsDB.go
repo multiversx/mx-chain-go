@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -1296,7 +1297,7 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, errChan ch
 	}
 
 	for missingNode := range missingNodesChan {
-		err := syncer.SyncAccounts(missingNode)
+		err := syncer.SyncAccounts(missingNode, storageMarker.NewDisabledStorageMarker())
 		if err != nil {
 			log.Error("could not sync missing node",
 				"missing node hash", missingNode,

@@ -61,7 +61,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -670,7 +669,6 @@ func getBaseAccountSyncerArgs(
 		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
-		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),

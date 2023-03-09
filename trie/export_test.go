@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -79,7 +79,7 @@ func WriteInChanNonBlocking(errChan chan error, err error) {
 }
 
 type StorageManagerExtensionStub struct {
-	*testscommon.StorageManagerStub
+	*storageManager.StorageManagerStub
 }
 
 // IsBaseTrieStorageManager -
