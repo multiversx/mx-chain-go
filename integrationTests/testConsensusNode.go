@@ -266,7 +266,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 
 	pubKeyBytes, _ := pubKey.ToByteArray()
-	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
+	pubKeyString := coreComponents.ValidatorPubKeyConverterField.SilentEncode(pubKeyBytes, log)
 	argsKeysHandler := keysManagement.ArgsKeysHandler{
 		ManagedPeersHolder: keysHolder,
 		PrivateKey:         tcn.NodeKeys.Sk,

@@ -52,7 +52,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
-) map[uint32][]*integrationTests.TestConsensusNode {
+) (map[uint32][]*integrationTests.TestConsensusNode, error) {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -98,7 +98,7 @@ func initNodesAndTest(
 		}
 	}
 
-	return nodes
+	return nodes, nil
 }
 
 func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
@@ -223,13 +223,10 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	log.Info("runFullConsensusTest",
-		"numNodes", numNodes,
-		"numKeysOnEachNode", numKeysOnEachNode,
-		"consensusSize", consensusSize,
-	)
-
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	if err != nil {
+		assert.Nil(t, err)
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -291,7 +288,10 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	if err != nil {
+		assert.Nil(t, err)
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -336,10 +336,12 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
+		encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
+
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			shardID,
 			hex.EncodeToString(skBuff),
-			testPubkeyConverter.Encode(pkBuff),
+			encodedNodePkBuff,
 		)
 	}
 }

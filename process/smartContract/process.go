@@ -432,8 +432,8 @@ func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
 	logCounters.Trace("blockchain hook counters",
 		"counters", sc.getBlockchainHookCountersString(),
 		"tx hash", sc.computeTxHashUnsafe(tx),
-		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
-		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"receiver", sc.pubkeyConv.SilentEncode(tx.GetRcvAddr(), log),
+		"sender", sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log),
 		"value", tx.GetValue().String(),
 		"data", tx.GetData(),
 	)
@@ -1800,11 +1800,15 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
+		scAddress := sc.pubkeyConv.SilentEncode(addr, log)
+
+		scGenerated = append(scGenerated, scAddress)
 	}
 
+	encodedSndAddr := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
+
 	log.Debug("SmartContract deployed",
-		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"owner", encodedSndAddr,
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
@@ -2610,12 +2614,14 @@ func (sc *scProcessor) updateSmartContractCode(
 		},
 	}
 
+	encodedOutputAccountAddr := sc.pubkeyConv.SilentEncode(outputAccount.Address, log)
+
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
@@ -2625,7 +2631,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): upgraded", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)

@@ -62,8 +62,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func getAccAdapter(balance *big.Int) *stateMock.AccountsStub {
@@ -795,9 +795,9 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	esdtMetaData := &esdt.MetaData{Creator: []byte("12345678901234567890123456789012")}
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: esdtMetaData}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-
 	suffix := append(esdtKey, acc.AddressBytes()...)
 
 	nftToken := "TCKR-67tgv3"
@@ -806,7 +806,8 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	nftKeyWithBytes := append(nftKey, nftNonce.Bytes()...)
 	nftSuffix := append(nftKeyWithBytes, acc.AddressBytes()...)
 
-	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	nftMetaData := &esdt.MetaData{Nonce: nftNonce.Uint64(), Creator: []byte("12345678901234567890123456789012")}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
 	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
@@ -875,7 +876,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
-	assert.Equal(t, esdtData, tokens[esdtToken])
+	assert.Equal(t, esdtData, tokens["TKKR-7q8w9e-"])
 
 	// check that the NFT was formatted correctly
 	expectedNftFormattedKey := "TCKR-67tgv3-01"
@@ -1620,7 +1621,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
@@ -1675,7 +1676,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
@@ -1718,12 +1719,12 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 			return expectedHash
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -1776,12 +1777,12 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 			return expectedHash
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -1824,12 +1825,12 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 			return expectedHash
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -1915,12 +1916,12 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -1981,12 +1982,12 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return encodedAddressLen
@@ -2045,12 +2046,12 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return encodedAddressLen
@@ -2108,12 +2109,12 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2167,12 +2168,12 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2226,12 +2227,12 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2282,12 +2283,12 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 			return bi
 		},
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2333,12 +2334,12 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		},
 	}
 	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2417,12 +2418,12 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return version
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2514,12 +2515,12 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return version
 	}
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 		LenCalled: func() int {
 			return 3
@@ -2859,7 +2860,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return nil, errExpected
 		},
@@ -3106,7 +3107,7 @@ func TestNode_EncodeDecodeAddressPubkey(t *testing.T) {
 	buff := []byte("abcdefg")
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(32)
+	coreComponents.AddrPubKeyConv = testscommon.NewPubkeyConverterMock(32)
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 	)
@@ -3321,7 +3322,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.ValPubKeyConv = mock.NewPubkeyConverterMock(32)
+	coreComponents.ValPubKeyConv = testscommon.NewPubkeyConverterMock(32)
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
@@ -3368,7 +3369,7 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 	coreComponents.IntMarsh = getMarshalizer()
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
-	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(3)
+	coreComponents.AddrPubKeyConv = testscommon.NewPubkeyConverterMock(3)
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{}
 
@@ -3417,7 +3418,7 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return nil, expectedErr
 		},
