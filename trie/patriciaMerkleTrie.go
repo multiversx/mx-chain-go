@@ -457,14 +457,14 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return nil
 	}
 
@@ -481,7 +481,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
-			writeInChanNonBlocking(leavesChannels.ErrChan, err)
+			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
@@ -490,7 +490,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		tr.mutOperation.Unlock()
 
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 	}()
 
 	return nil

@@ -3,6 +3,7 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"math/big"
 	"strconv"
 	"testing"
@@ -329,13 +330,13 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	rootHash, _ := accState.RootHash()
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChan(),
 	}
 	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	for range leavesChannel.LeavesChan {
 	}
 	require.Nil(t, err)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
@@ -357,7 +358,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 
 	leavesChannel = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChan(),
 	}
 	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
 	assert.Nil(t, err)
@@ -365,7 +366,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
@@ -559,7 +560,7 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChan(),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	require.Nil(t, err)
@@ -569,7 +570,7 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 		numLeaves++
 	}
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 
 	return numLeaves
