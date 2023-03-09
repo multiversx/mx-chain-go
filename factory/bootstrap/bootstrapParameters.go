@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 type bootstrapParams struct {

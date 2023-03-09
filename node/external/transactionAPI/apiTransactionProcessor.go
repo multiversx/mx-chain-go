@@ -7,21 +7,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	rewardTxData "github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/txstatus"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/txstatus"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -41,6 +41,7 @@ type apiTransactionProcessor struct {
 	txUnmarshaller              *txUnmarshaller
 	transactionResultsProcessor *apiTransactionResultsProcessor
 	refundDetector              *refundDetector
+	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -63,6 +64,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetector := newRefundDetector()
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -79,6 +81,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
 		refundDetector:              refundDetector,
+		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 	}, nil
 }
 
@@ -97,6 +100,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
+
+	if withResults {
+		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+	}
 
 	return tx, nil
 }
@@ -218,14 +225,14 @@ func (atp *apiTransactionProcessor) GetLastPoolNonceForSender(sender string) (ui
 }
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
-func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+func (atp *apiTransactionProcessor) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	senderAddr, err := atp.addressPubKeyConverter.Decode(sender)
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", ErrInvalidAddress.Error(), err)
 	}
 
 	senderShard := atp.shardCoordinator.ComputeId(senderAddr)
-	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard)
+	nonceGaps, err := atp.extractNonceGaps(string(senderAddr), senderShard, senderAccountNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +336,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
 	}
 	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = wrappedTx.Tx.GetValue()
+		tx.TxFields[valueField] = getTxValue(wrappedTx)
 	}
 
 	return tx
@@ -363,13 +370,16 @@ func (atp *apiTransactionProcessor) fetchLastNonceForSender(sender string, sende
 	return lastTx.Tx.GetNonce(), nil
 }
 
-func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32) ([]common.NonceGapApiResponse, error) {
+func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard uint32, senderAccountNonce uint64) ([]common.NonceGapApiResponse, error) {
 	wrappedTxs := atp.fetchTxsForSender(sender, senderShard)
 	if len(wrappedTxs) == 0 {
 		return []common.NonceGapApiResponse{}, nil
 	}
 
 	nonceGaps := make([]common.NonceGapApiResponse, 0)
+	firstNonceInPool := wrappedTxs[0].Tx.GetNonce()
+	atp.appendGapFromAccountNonceIfNeeded(senderAccountNonce, firstNonceInPool, senderShard, &nonceGaps)
+
 	for i := 0; i < len(wrappedTxs)-1; i++ {
 		nextNonce := wrappedTxs[i+1].Tx.GetNonce()
 		currentNonce := wrappedTxs[i].Tx.GetNonce()
@@ -386,7 +396,27 @@ func (atp *apiTransactionProcessor) extractNonceGaps(sender string, senderShard 
 	return nonceGaps, nil
 }
 
-func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) *transaction.ApiTransactionResult {
+func (atp *apiTransactionProcessor) appendGapFromAccountNonceIfNeeded(
+	senderAccountNonce uint64,
+	firstNonceInPool uint64,
+	senderShard uint32,
+	nonceGaps *[]common.NonceGapApiResponse,
+) {
+	if atp.shardCoordinator.SelfId() != senderShard {
+		return
+	}
+
+	nonceDif := firstNonceInPool - senderAccountNonce
+	if nonceDif >= 1 {
+		nonceGap := common.NonceGapApiResponse{
+			From: senderAccountNonce,
+			To:   firstNonceInPool - 1,
+		}
+		*nonceGaps = append(*nonceGaps, nonceGap)
+	}
+}
+
+func (atp *apiTransactionProcessor) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
 	txObj, txType, found := atp.getTxObjFromDataPool(hash)
 	if !found {
 		return nil
@@ -642,6 +672,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}
+}
+
+func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
+	txValue := wrappedTx.Tx.GetValue()
+	if txValue != nil {
+		return txValue.String()
+	}
+	return "0"
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type

@@ -1,17 +1,17 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder/disabled"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 )
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
@@ -106,6 +106,7 @@ func (tc *trieCreator) IsInterfaceNil() bool {
 
 // CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
 func CreateTriesComponentsForShardId(
+	snapshotsEnabled bool,
 	generalConfig config.Config,
 	coreComponentsHolder coreComponentsHandler,
 	storageService dataRetriever.StorageService,
@@ -137,7 +138,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
+		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
@@ -167,7 +168,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:     generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled: generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-		SnapshotsEnabled:   generalConfig.StateTriesConfig.SnapshotsEnabled,
+		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)

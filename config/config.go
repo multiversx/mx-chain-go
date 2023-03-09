@@ -1,6 +1,6 @@
 package config
 
-import p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -112,6 +112,7 @@ type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsWhenErrorInSec int64
 	PeerAuthenticationTimeThresholdBetweenSends      float64
 	HeartbeatTimeBetweenSendsInSec                   int64
+	HeartbeatTimeBetweenSendsDuringBootstrapInSec    int64
 	HeartbeatTimeBetweenSendsWhenErrorInSec          int64
 	HeartbeatTimeThresholdBetweenSends               float64
 	HeartbeatExpiryTimespanInSec                     int64
@@ -127,6 +128,7 @@ type HeartbeatV2Config struct {
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
+	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -279,7 +281,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis              uint32
 }
 
-// FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
+// FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface string
 	PprofEnabled     bool
@@ -289,13 +291,10 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
-	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
-	UserStatePruningQueueSize   uint
-	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -393,13 +392,13 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	ArwenVersions                       []ArwenVersionByEpoch
+	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
 }
 
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
+// WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch
+type WasmVMVersionByEpoch struct {
 	StartEpoch uint32
 	Version    string
 }
@@ -588,6 +587,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string

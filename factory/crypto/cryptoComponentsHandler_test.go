@@ -3,10 +3,10 @@ package crypto_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	cryptoComp "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,6 +45,7 @@ func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
 	require.Nil(t, managedCryptoComponents.TxSignKeyGen())
 	require.Nil(t, managedCryptoComponents.MessageSignVerifier())
+	require.Nil(t, managedCryptoComponents.ManagedPeersHolder())
 
 	err = managedCryptoComponents.Create()
 	require.NoError(t, err)
@@ -57,6 +58,7 @@ func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedCryptoComponents.BlockSignKeyGen())
 	require.NotNil(t, managedCryptoComponents.TxSignKeyGen())
 	require.NotNil(t, managedCryptoComponents.MessageSignVerifier())
+	require.NotNil(t, managedCryptoComponents.ManagedPeersHolder())
 }
 
 func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {

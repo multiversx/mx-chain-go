@@ -3,12 +3,12 @@ package rewardTransaction
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ process.RewardTransactionProcessor = (*rewardTxProcessor)(nil)
@@ -110,7 +110,7 @@ func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 	}
 
 	existingReward := big.NewInt(0)
-	fullRewardKey := core.ElrondProtectedKeyPrefix + rewardKey
+	fullRewardKey := core.ProtectedKeyPrefix + rewardKey
 	val, _, err := userAccount.RetrieveValue([]byte(fullRewardKey))
 	if err == nil {
 		existingReward.SetBytes(val)

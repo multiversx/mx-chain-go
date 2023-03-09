@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/status"
-	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
+	"github.com/multiversx/mx-chain-go/heartbeat/processor"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	"github.com/multiversx/mx-chain-go/heartbeat/status"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/update"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -27,6 +27,7 @@ var log = logger.GetOrCreate("factory")
 type ArgHeartbeatV2ComponentsFactory struct {
 	Config               config.Config
 	Prefs                config.Preferences
+	BaseVersion          string
 	AppVersion           string
 	BootstrapComponents  factory.BootstrapComponentsHolder
 	CoreComponents       factory.CoreComponentsHolder
@@ -40,6 +41,7 @@ type ArgHeartbeatV2ComponentsFactory struct {
 type heartbeatV2ComponentsFactory struct {
 	config               config.Config
 	prefs                config.Preferences
+	baseVersion          string
 	version              string
 	bootstrapComponents  factory.BootstrapComponentsHolder
 	coreComponents       factory.CoreComponentsHolder
@@ -69,6 +71,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	return &heartbeatV2ComponentsFactory{
 		config:               args.Config,
 		prefs:                args.Prefs,
+		baseVersion:          args.BaseVersion,
 		version:              args.AppVersion,
 		bootstrapComponents:  args.BootstrapComponents,
 		coreComponents:       args.CoreComponents,
@@ -162,6 +165,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
 		HeartbeatTimeThresholdBetweenSends:          cfg.HeartbeatTimeThresholdBetweenSends,
+		BaseVersionNumber:                           hcf.baseVersion,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,
@@ -175,6 +179,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
 		PeerTypeProvider:                            peerTypeProvider,
+		ManagedPeersHolder:                          hcf.cryptoComponents.ManagedPeersHolder(),
+		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
+		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {

@@ -1,14 +1,21 @@
 package spos_test
 
 import (
+	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func initRoundConsensus() *spos.RoundConsensus {
+	return initRoundConsensusWithKeysHandler(&testscommon.KeysHandlerStub{})
+}
+
+func initRoundConsensusWithKeysHandler(keysHandler consensus.KeysHandler) *spos.RoundConsensus {
 	pubKeys := []string{"1", "2", "3"}
 	eligibleNodes := make(map[string]struct{})
 
@@ -16,10 +23,12 @@ func initRoundConsensus() *spos.RoundConsensus {
 		eligibleNodes[pubKeys[i]] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(
+	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodes,
 		len(eligibleNodes),
-		"2")
+		"2",
+		keysHandler,
+	)
 
 	rcns.SetConsensusGroup(pubKeys)
 
@@ -49,7 +58,7 @@ func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 		eligibleNodes[pubKeys[i]] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key3")
+	rcns, _ := spos.NewRoundConsensus(eligibleNodes, 3, "key3", &testscommon.KeysHandlerStub{})
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key3")
 
@@ -67,7 +76,7 @@ func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 		eligibleNodes[pubKeys[i]] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
+	rcns, _ := spos.NewRoundConsensus(eligibleNodes, 3, "key4", &testscommon.KeysHandlerStub{})
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key4")
 
@@ -85,7 +94,7 @@ func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 		eligibleNodes[pubKeys[i]] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key2")
+	rcns, _ := spos.NewRoundConsensus(eligibleNodes, 3, "key2", &testscommon.KeysHandlerStub{})
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -103,7 +112,7 @@ func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 		eligibleNodes[pubKeys[i]] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
+	rcns, _ := spos.NewRoundConsensus(eligibleNodes, 3, "key4", &testscommon.KeysHandlerStub{})
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -217,7 +226,7 @@ func TestRoundConsensus_SetSelfJobDoneShouldWork(t *testing.T) {
 
 	rcns := *initRoundConsensus()
 
-	_ = rcns.SetSelfJobDone(bls.SrBlock, true)
+	_ = rcns.SetJobDone(rcns.SelfPubKey(), bls.SrBlock, true)
 
 	jobDone, _ := rcns.JobDone("2", bls.SrBlock)
 	assert.True(t, jobDone)
@@ -266,4 +275,56 @@ func TestRoundConsensus_ResetValidationMap(t *testing.T) {
 	jobDone, err := rcns.JobDone("1", bls.SrBlock)
 	assert.Equal(t, false, jobDone)
 	assert.Nil(t, err)
+}
+
+func TestRoundConsensus_IsMultiKeyInConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	roundConsensus := initRoundConsensusWithKeysHandler(keysHandler)
+	t.Run("no consensus key is managed by current node should return false", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return false
+		}
+		assert.False(t, roundConsensus.IsMultiKeyInConsensusGroup())
+	})
+	t.Run("consensus key is managed by current node should return true", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("2"), pkBytes)
+		}
+		assert.True(t, roundConsensus.IsMultiKeyInConsensusGroup())
+	})
+}
+
+func TestRoundConsensus_IsKeyManagedByCurrentNode(t *testing.T) {
+	t.Parallel()
+
+	managedPkBytes := []byte("managed pk bytes")
+	wasCalled := false
+	keysHandler := &testscommon.KeysHandlerStub{
+		IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+			assert.Equal(t, managedPkBytes, pkBytes)
+			wasCalled = true
+			return true
+		},
+	}
+	roundConsensus := initRoundConsensusWithKeysHandler(keysHandler)
+	assert.True(t, roundConsensus.IsKeyManagedByCurrentNode(managedPkBytes))
+	assert.True(t, wasCalled)
+}
+
+func TestRoundConsensus_IncrementRoundsWithoutReceivedMessages(t *testing.T) {
+	t.Parallel()
+
+	managedPkBytes := []byte("managed pk bytes")
+	wasCalled := false
+	keysHandler := &testscommon.KeysHandlerStub{
+		IncrementRoundsWithoutReceivedMessagesCalled: func(pkBytes []byte) {
+			assert.Equal(t, managedPkBytes, pkBytes)
+			wasCalled = true
+		},
+	}
+	roundConsensus := initRoundConsensusWithKeysHandler(keysHandler)
+	roundConsensus.IncrementRoundsWithoutReceivedMessages(managedPkBytes)
+	assert.True(t, wasCalled)
 }

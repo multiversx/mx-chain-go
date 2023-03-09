@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,7 +154,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(
 			newEpochCalled = true
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 
@@ -186,7 +187,7 @@ func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 			newEpochCalled = true
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 
@@ -228,7 +229,7 @@ func TestHeaderRequester_RequestDataFromHashShouldWork(t *testing.T) {
 			newEpochCalled = true
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 
@@ -266,7 +267,7 @@ func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 			newEpochCalled = true
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 
@@ -303,7 +304,7 @@ func TestHeaderRequester_RequestDataFromNonceShouldWork(t *testing.T) {
 			epochsCalled[epoch] = struct{}{}
 		},
 	}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 
@@ -336,7 +337,7 @@ func TestHeaderRequester_RequestDataFromEpochShouldWork(t *testing.T) {
 		},
 	}
 	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{}
-	arg.Messenger = &mock.MessengerStub{
+	arg.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
 

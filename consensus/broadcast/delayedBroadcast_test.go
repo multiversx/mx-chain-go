@@ -8,17 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/alarm"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/alarm"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -166,15 +166,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	mbBroadcastCalled := atomic.Flag{}
 	txBroadcastCalled := atomic.Flag{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -199,15 +199,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	mbBroadcastCalled := atomic.Flag{}
 	txBroadcastCalled := atomic.Flag{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -245,15 +245,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	mbBroadcastCalled := atomic.Flag{}
 	txBroadcastCalled := atomic.Flag{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		_ = mbBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		_ = txBroadcastCalled.SetReturningPrevious()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -290,15 +290,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -412,15 +412,15 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	txBroadcastCalled := atomic.Counter{}
 	headerBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		headerBroadcastCalled.Increment()
 		return nil
 	}
@@ -472,15 +472,15 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	txBroadcastCalled := atomic.Counter{}
 	headerBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		headerBroadcastCalled.Increment()
 		return nil
 	}
@@ -540,15 +540,15 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	txBroadcastCalled := atomic.Counter{}
 	headerBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		headerBroadcastCalled.Increment()
 		return nil
 	}
@@ -609,15 +609,15 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	txBroadcastCalled := atomic.Counter{}
 	headerBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		headerBroadcastCalled.Increment()
 		return nil
 	}
@@ -677,15 +677,15 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	txBroadcastCalled := atomic.Counter{}
 	headerBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		headerBroadcastCalled.Increment()
 		return nil
 	}
@@ -791,15 +791,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -848,15 +848,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -908,15 +908,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -968,15 +968,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -1021,15 +1021,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -1169,15 +1169,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -1232,15 +1232,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -1296,15 +1296,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 
@@ -1360,15 +1360,15 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	mbBroadcastCalled := atomic.Counter{}
 	txBroadcastCalled := atomic.Counter{}
 
-	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+	broadcastMiniBlocks := func(mbData map[uint32][]byte, pk []byte) error {
 		mbBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastTransactions := func(txData map[string][][]byte) error {
+	broadcastTransactions := func(txData map[string][][]byte, pk []byte) error {
 		txBroadcastCalled.Increment()
 		return nil
 	}
-	broadcastHeader := func(header data.HeaderHandler) error {
+	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
 

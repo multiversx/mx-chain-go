@@ -1,16 +1,18 @@
 package notifier_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/mock"
-	"github.com/ElrondNetwork/elrond-go/outport/notifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
+	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/multiversx/mx-chain-go/outport/notifier"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -85,9 +87,23 @@ func TestSaveBlock(t *testing.T) {
 
 	args := createMockEventNotifierArgs()
 
+	txHash1 := "txHash1"
+	scrHash1 := "scrHash1"
+
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
 		PostCalled: func(route string, payload interface{}) error {
+			saveBlockData := payload.(outportSenderData.ArgsSaveBlock)
+
+			require.Equal(t, hex.EncodeToString([]byte(txHash1)), saveBlockData.TransactionsPool.Logs[0].TxHash)
+			for txHash := range saveBlockData.TransactionsPool.Txs {
+				require.Equal(t, hex.EncodeToString([]byte(txHash1)), txHash)
+			}
+
+			for scrHash := range saveBlockData.TransactionsPool.Scrs {
+				require.Equal(t, hex.EncodeToString([]byte(scrHash1)), scrHash)
+			}
+
 			wasCalled = true
 			return nil
 		},
@@ -99,12 +115,16 @@ func TestSaveBlock(t *testing.T) {
 		HeaderHash: []byte{},
 		TransactionsPool: &outport.Pool{
 			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"txhash1": nil,
+				txHash1: nil,
 			},
 			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"scrHash1": nil,
+				scrHash1: nil,
 			},
-			Logs: []*data.LogData{},
+			Logs: []*data.LogData{
+				{
+					TxHash: txHash1,
+				},
+			},
 		},
 	}
 

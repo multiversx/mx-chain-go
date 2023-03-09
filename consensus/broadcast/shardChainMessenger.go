@@ -3,14 +3,14 @@ package broadcast
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 const validatorDelayPerOrder = time.Second
@@ -40,9 +40,9 @@ func NewShardChainMessenger(
 		marshalizer:          args.Marshalizer,
 		hasher:               args.Hasher,
 		messenger:            args.Messenger,
-		privateKey:           args.PrivateKey,
 		shardCoordinator:     args.ShardCoordinator,
 		peerSignatureHandler: args.PeerSignatureHandler,
+		keysHandler:          args.KeysHandler,
 	}
 
 	dbbArgs := &ArgsDelayedBlockBroadcaster{
@@ -120,7 +120,7 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 }
 
 // BroadcastHeader will send on in-shard headers topic the header
-func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkBytes []byte) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
@@ -131,7 +131,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	}
 
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
+	scm.broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader, pkBytes)
 
 	return nil
 }
@@ -141,6 +141,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	pkBytes []byte,
 ) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
@@ -160,6 +161,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		headerHash:     headerHash,
 		miniBlocksData: miniBlocks,
 		transactions:   transactions,
+		pkBytes:        pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetLeaderData(broadcastData)
@@ -167,7 +169,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
-	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, common.ExtraDelayForBroadcastBlockInfo)
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
@@ -177,6 +179,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	idx int,
+	pkBytes []byte,
 ) {
 	if check.IfNil(header) {
 		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
@@ -193,6 +196,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 		headerHash: headerHash,
 		header:     header,
 		order:      uint32(idx),
+		pkBytes:    pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
@@ -208,6 +212,7 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
+	pkBytes []byte,
 ) {
 	if check.IfNil(header) {
 		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", spos.ErrNilHeader)
@@ -229,6 +234,7 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		miniBlocksData: miniBlocks,
 		transactions:   transactions,
 		order:          uint32(idx),
+		pkBytes:        pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)

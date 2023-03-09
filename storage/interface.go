@@ -3,9 +3,9 @@ package storage
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go-storage/types"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // Cacher provides caching services
@@ -199,5 +199,11 @@ type SizedLRUCacheHandler interface {
 type AdaptedSizedLRUCache interface {
 	SizedLRUCacheHandler
 	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
+type ManagedPeersHolder interface {
+	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }

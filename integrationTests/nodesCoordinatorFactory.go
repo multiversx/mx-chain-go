@@ -3,15 +3,15 @@ package integrationTests
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
 // ArgIndexHashedNodesCoordinatorFactory -
@@ -39,8 +39,8 @@ type IndexHashedNodesCoordinatorFactory struct {
 // CreateNodesCoordinator -
 func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) nodesCoordinator.NodesCoordinator {
 
-	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := keys.Pk.ToByteArray()
+	keys := arg.cp.NodesKeys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.MainKey.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           uint32(arg.nodesPerShard),
@@ -93,8 +93,8 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
 	arg ArgIndexHashedNodesCoordinatorFactory,
 ) nodesCoordinator.NodesCoordinator {
-	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := keys.Pk.ToByteArray()
+	keys := arg.cp.NodesKeys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.MainKey.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           uint32(arg.nodesPerShard),

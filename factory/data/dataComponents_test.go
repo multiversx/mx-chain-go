@@ -3,12 +3,13 @@ package data_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,6 +44,56 @@ func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	require.Equal(t, errors.ErrNilCoreComponents, err)
 }
 
+func TestNewDataComponentsFactory_NilCryptoComponentsShouldErr(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetDataArgs(componentsMock.GetCoreComponents(), shardCoordinator)
+	args.Crypto = nil
+
+	dcf, err := dataComp.NewDataComponentsFactory(args)
+	require.Nil(t, dcf)
+	require.Equal(t, errors.ErrNilCryptoComponents, err)
+}
+
+func TestNewDataComponentsFactory_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetDataArgs(componentsMock.GetCoreComponents(), shardCoordinator)
+	args.Crypto = &mock.CryptoComponentsMock{
+		ManagedPeersHolderField: nil,
+	}
+
+	dcf, err := dataComp.NewDataComponentsFactory(args)
+	require.Nil(t, dcf)
+	require.Equal(t, errors.ErrNilManagedPeersHolder, err)
+}
+
+func TestNewDataComponentsFactory_NilPathHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	coreComponents := &mock.CoreComponentsMock{
+		PathHdl: nil,
+	}
+
+	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+
+	dcf, err := dataComp.NewDataComponentsFactory(args)
+	require.Nil(t, dcf)
+	require.Equal(t, errors.ErrNilPathHandler, err)
+}
+
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -50,9 +101,12 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	coreComponents := componentsMock.GetCoreComponents()
+	coreComponents := &mock.CoreComponentsMock{
+		PathHdl:                  &testscommon.PathManagerStub{},
+		EpochNotifierWithConfirm: nil,
+	}
+
 	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
-	args.EpochStartNotifier = nil
 
 	dcf, err := dataComp.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)

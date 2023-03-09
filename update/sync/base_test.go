@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/update"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
 

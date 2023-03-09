@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -27,7 +27,6 @@ type TrieStub struct {
 	VerifyProofCalled           func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() common.StorageManager
 	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
-	GetNumNodesCalled           func() common.NumNodesDTO
 	GetOldRootCalled            func() []byte
 	CloseCalled                 func() error
 }
@@ -183,15 +182,6 @@ func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
 	}
 
 	return nil, nil
-}
-
-// GetNumNodes -
-func (ts *TrieStub) GetNumNodes() common.NumNodesDTO {
-	if ts.GetNumNodesCalled != nil {
-		return ts.GetNumNodesCalled()
-	}
-
-	return common.NumNodesDTO{}
 }
 
 // GetOldRoot -

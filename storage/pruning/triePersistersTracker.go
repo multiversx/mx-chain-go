@@ -3,8 +3,8 @@ package pruning
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type triePersistersTracker struct {

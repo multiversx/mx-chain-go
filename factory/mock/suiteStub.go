@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"encoding/hex"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // SuiteStub -

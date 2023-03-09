@@ -6,19 +6,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -145,7 +145,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("canProcessMessage due to antiflood handler error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -157,13 +156,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	})
 	t.Run("parseReceivedMessage returns error due to marshalizer error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -191,7 +189,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data not found in cache and fetchValidatorInfoByteSlice fails when getting data from storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -212,7 +209,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in cache but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		marshallerMock := testscommon.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
@@ -237,7 +233,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in storage but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		marshallerMock := testscommon.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
@@ -341,7 +336,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("unmarshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &testscommon.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -388,7 +382,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("pack data in chuncks returns error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -507,9 +500,9 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 					_ = marshallerMock.Unmarshal(vi, b.Data[i])
 
 					// remove this info from the provided map
-					buff, err := testMarshaller.Marshal(vi)
+					validatorInfoBuff, err := testMarshaller.Marshal(vi)
 					require.Nil(t, err)
-					hash := testHasher.Compute(string(buff))
+					hash := testHasher.Compute(string(validatorInfoBuff))
 					delete(providedDataMap, string(hash))
 				}
 

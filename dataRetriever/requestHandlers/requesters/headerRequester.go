@@ -1,10 +1,12 @@
 package requesters
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
+
+var _ dataRetriever.HeaderRequester = (*headerRequester)(nil)
 
 // ArgHeaderRequester is the argument structure used to create a new header requester instance
 type ArgHeaderRequester struct {
@@ -63,6 +65,11 @@ func (requester *headerRequester) RequestDataFromEpoch(identifier []byte) error 
 		},
 		[][]byte{identifier},
 	)
+}
+
+// SetEpochHandler does nothing and returns nil
+func (requester *headerRequester) SetEpochHandler(_ dataRetriever.EpochHandler) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

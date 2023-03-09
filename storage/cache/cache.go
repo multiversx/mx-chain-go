@@ -3,13 +3,13 @@ package cache
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-storage/immunitycache"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go-storage/lrucache/capacity"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
-	"github.com/ElrondNetwork/elrond-go-storage/types"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/immunitycache"
+	"github.com/multiversx/mx-chain-storage-go/lrucache"
+	"github.com/multiversx/mx-chain-storage-go/lrucache/capacity"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // ArgTimeCacher is the argument used to create a new timeCacher instance
