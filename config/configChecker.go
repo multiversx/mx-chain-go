@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 // SanityCheckEnableEpochsStakingV4 checks if the enable epoch configs for stakingV4 are set correctly
@@ -72,7 +70,7 @@ func checkMaxNodesChangedCorrectly(prevMaxNodesChange MaxNodesChangeConfig, curr
 }
 
 func SanityCheckNodesConfig(
-	nodesSetup update.GenesisNodesSetupHandler,
+	nodesSetup NodesSetupHandler,
 	maxNodesChange []MaxNodesChangeConfig,
 ) error {
 	if len(maxNodesChange) < 1 {
