@@ -244,6 +244,9 @@
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
     RuntimeCodeSizeFixEnableEpoch = 2
 
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},

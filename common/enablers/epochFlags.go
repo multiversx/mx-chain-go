@@ -91,6 +91,7 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
+	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -181,6 +182,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
+		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 	}
 }
 
@@ -665,4 +667,9 @@ func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 // IsAlwaysSaveTokenMetaDataEnabled returns true if alwaysSaveTokenMetaDataFlag is enabled
 func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled returns true if dynamicGasCostForDataTrieStorageLoadFlag is enabled
+func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	return holder.dynamicGasCostForDataTrieStorageLoadFlag.IsSet()
 }
