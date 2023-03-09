@@ -989,13 +989,6 @@ func TestDeployDNSV2SetDeleteUserNames(t *testing.T) {
 		"saveName@"+hex.EncodeToString(senderAddressBytes)+"@"+hex.EncodeToString([]byte("userName1")),
 	)
 
-	_ = logger.SetLogLevel("*:TRACE")
-	decoded, _ := hex.DecodeString("736574557365726e616d6540373537333635373234653631366436353331")
-	fmt.Println(string(decoded))
-	argParser := parsers.NewCallArgsParser()
-	functionName, args, err := argParser.ParseData("736574557365726e616d6540373537333635373234653631366436353331")
-	log.Debug("some message", "lenArgs", args, "funcs", functionName)
-
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, returnCode, vmcommon.Ok)
