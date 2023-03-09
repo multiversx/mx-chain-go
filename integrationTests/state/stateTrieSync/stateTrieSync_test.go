@@ -3,7 +3,6 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common/errChan"
 	"math/big"
 	"strconv"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
