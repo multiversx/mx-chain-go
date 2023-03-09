@@ -168,7 +168,9 @@ func proposeBlockWithPubKeyBitmap(n *integrationTests.TestProcessorNode, round u
 	if err != nil {
 		log.Error("header.SetPubKeysBitmap", "error", err.Error())
 	}
-	n.BroadcastBlock(body, header)
+
+	pk := n.NodeKeys.MainKey.Pk
+	n.BroadcastBlock(body, header, pk)
 	n.CommitBlock(body, header)
 }
 

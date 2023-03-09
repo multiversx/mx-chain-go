@@ -483,6 +483,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.closeTrieComponents()
 	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
@@ -762,6 +763,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -771,6 +774,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -928,6 +932,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -937,6 +943,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -1109,6 +1116,8 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
 		return nil, err
