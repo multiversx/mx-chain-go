@@ -704,8 +704,8 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-			MinServiceFee: 1,
-			MaxServiceFee: 20,
+			MinServiceFee: 0,
+			MaxServiceFee: 10000,
 		},
 	}
 }

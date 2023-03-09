@@ -31,20 +31,34 @@ const (
 )
 
 var (
-	value2700EGLD, _ = big.NewInt(0).SetString("2700000000000000000000", 10)
-	value2500EGLD, _ = big.NewInt(0).SetString("2500000000000000000000", 10)
-	value200EGLD, _  = big.NewInt(0).SetString("200000000000000000000", 10)
+	value2700EGLD, _   = big.NewInt(0).SetString("2700000000000000000000", 10)
+	value2500EGLD, _   = big.NewInt(0).SetString("2500000000000000000000", 10)
+	value1250EGLD, _   = big.NewInt(0).SetString("1250000000000000000000", 10)
+	value200EGLD, _    = big.NewInt(0).SetString("200000000000000000000", 10)
+	valueUnJailEGLD, _ = big.NewInt(0).SetString("2500000000000000000", 10)
 )
 
 const delegationManagementKey = "delegationManagement"
+const delegationContractsList = "delegationContracts"
 
 func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 	acc, _ := testContext.Accounts.LoadAccount(vmAddr.DelegationManagerSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
 
-	managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
+	managementData := &systemSmartContracts.DelegationManagement{
+		MinDelegationAmount: big.NewInt(1),
+		MinDeposit:          big.NewInt(1),
+		LastAddress:         vmAddr.FirstDelegationSCAddress,
+	}
 	marshaledData, _ := testContext.Marshalizer.Marshal(managementData)
 	_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+
+	list := &systemSmartContracts.DelegationContractList{
+		Addresses: [][]byte{vmAddr.FirstDelegationSCAddress},
+	}
+	marshaledContractList, _ := testContext.Marshalizer.Marshal(list)
+	_ = userAcc.SaveKeyValue([]byte(delegationContractsList), marshaledContractList)
+
 	_ = testContext.Accounts.SaveAccount(userAcc)
 }
 
@@ -272,6 +286,115 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	require.Equal(t, value2500EGLD, scrWithMessage.Value)
 }
 
+func TestValidatorsSC_ToStakeJailUnbondShouldNotWork(t *testing.T) {
+	t.Skip()
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	require.Nil(t, err)
+
+	defer testContextMeta.Close()
+
+	saveNodesConfig(t, testContextMeta, 1, 1, 2)
+	saveDelegationManagerConfig(testContextMeta)
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(4000)
+	sndAddr := []byte("12345678901234567890123456789012")
+	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
+	executeTxAndCheckResultsNot(t, testContextMeta, tx, vmcommon.Ok, nil)
+}
+
+func TestValidatorsSC_ToStakeUnStakeNodesAndUnBondNodesShouldRefund(t *testing.T) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	require.Nil(t, err)
+
+	defer testContextMeta.Close()
+
+	saveNodesConfig(t, testContextMeta, 1, 1, 2)
+	saveDelegationManagerConfig(testContextMeta)
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(4000)
+	sndAddr := []byte("12345678901234567890123456789012")
+
+	tx := vm.CreateTransaction(0, value1250EGLD, sndAddr, vmAddr.DelegationManagerSCAddress, gasPrice, gasLimit, []byte("createNewDelegationContract@00@00"))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	//tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	//
+	//tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	//
+	//tx = vm.CreateTransaction(0, valueUnJailEGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unJail@"+validatorBLSKey))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	//
+	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+	//
+	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
+	//require.Equal(t, 1, len(intermediateTxs))
+	//
+	//scrWithMessage := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	//require.Equal(t, value2500EGLD, scrWithMessage.Value)
+}
+
+func TestValidatorsSC_ToStakeJailUnJail(t *testing.T) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	require.Nil(t, err)
+
+	defer testContextMeta.Close()
+
+	saveNodesConfig(t, testContextMeta, 1, 1, 2)
+	saveDelegationManagerConfig(testContextMeta)
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(4000)
+	sndAddr := []byte("12345678901234567890123456789012")
+
+	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, valueUnJailEGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unJail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+}
+
 func executeTxAndCheckResults(
 	t *testing.T,
 	testContext *vm.VMTestContext,
@@ -282,6 +405,18 @@ func executeTxAndCheckResults(
 	recCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmCodeExpected, recCode)
 	require.Equal(t, expectedErr, err)
+}
+
+func executeTxAndCheckResultsNot(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	tx *transaction.Transaction,
+	notVmCodeExpected vmcommon.ReturnCode,
+	notExpectedErr error,
+) {
+	recCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.NotEqual(t, notVmCodeExpected, recCode)
+	require.NotEqual(t, notExpectedErr, err)
 }
 
 func saveNodesConfig(t *testing.T, testContext *vm.VMTestContext, stakedNodes, minNumNodes, maxNumNodes int64) {
