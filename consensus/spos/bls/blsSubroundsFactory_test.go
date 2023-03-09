@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	return fct
@@ -127,6 +129,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -147,6 +150,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -169,6 +173,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -191,6 +196,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -213,6 +219,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -235,6 +242,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -257,6 +265,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -279,6 +288,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -301,6 +311,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -323,6 +334,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -345,6 +357,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -367,6 +380,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -389,6 +403,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -409,10 +424,55 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		nil,
+		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestFactory_NewFactoryNilEnableEpochHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		consensus.ConsensusModelV1,
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -438,6 +498,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -497,6 +558,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			"invalid",
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateBlockSubround()
@@ -539,6 +601,7 @@ func TestFactory_GenerateSubroundBlock(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			consensus.ConsensusModelV2,
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateBlockSubround()
@@ -587,6 +650,7 @@ func TestFactory_GenerateSubroundSignature(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			"invalid",
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateSignatureSubround()
@@ -629,6 +693,7 @@ func TestFactory_GenerateSubroundSignature(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			consensus.ConsensusModelV2,
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateSignatureSubround()
@@ -677,6 +742,7 @@ func TestFactory_GenerateSubroundEndRound(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			"invalid",
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateEndRoundSubround()
@@ -719,6 +785,7 @@ func TestFactory_GenerateSubroundEndRound(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 			consensus.ConsensusModelV2,
+			&testscommon.EnableEpochsHandlerStub{},
 		)
 
 		err := fct.GenerateEndRoundSubround()

@@ -55,6 +55,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		chainID,
 		currentPid,
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sf)
@@ -79,6 +80,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		chainID,
 		currentPid,
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sf)
@@ -104,6 +106,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -123,6 +126,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		currentPid,
 		consensus.ConsensusModelV1,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sf)

@@ -108,6 +108,7 @@ func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -134,6 +135,7 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilChannel, err)
@@ -161,6 +163,7 @@ func TestSubround_NewSubroundNilExecuteStoredMessagesShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilExecuteStoredMessages, err)
@@ -187,9 +190,66 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilConsensusCore, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NewSubroundNilAppStatusHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	ch := make(chan bool, 1)
+
+	sr, err := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		nil,
+		&testscommon.EnableEpochsHandlerStub{},
+	)
+
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+	assert.Nil(t, sr)
+}
+
+func TestSubround_NewSubroundNilEnableEpochHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	ch := make(chan bool, 1)
+
+	sr, err := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		nil,
+	)
+
+	assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 	assert.Nil(t, sr)
 }
 
@@ -215,6 +275,7 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -243,6 +304,7 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -271,6 +333,7 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -299,6 +362,7 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -327,6 +391,7 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -355,6 +420,7 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -383,6 +449,7 @@ func TestSubround_NilContainerMultiSignerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -411,6 +478,7 @@ func TestSubround_NilContainerRoundHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -439,6 +507,7 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -467,6 +536,7 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -495,6 +565,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -521,6 +592,7 @@ func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
 		nil,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrInvalidChainID, err)
@@ -547,6 +619,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -582,6 +655,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = nil
 	sr.Check = func() bool {
@@ -620,6 +694,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -667,6 +742,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -706,6 +782,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	var mut sync.RWMutex
@@ -764,6 +841,7 @@ func TestSubround_Previous(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -796,6 +874,7 @@ func TestSubround_Current(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -828,6 +907,7 @@ func TestSubround_Next(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -860,6 +940,7 @@ func TestSubround_StartTime(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -892,6 +973,7 @@ func TestSubround_EndTime(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -924,6 +1006,7 @@ func TestSubround_Name(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 	sr.Job = func(_ context.Context) bool {
 		return true
@@ -957,6 +1040,7 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 
 	wasCalled := false

@@ -23,7 +23,6 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
-	appStatusHandler core.AppStatusHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -31,13 +30,10 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(appStatusHandler) {
-		return nil, spos.ErrNilAppStatusHandler
-	}
 
 	srSignature := subroundSignature{
 		Subround:         baseSubround,
-		appStatusHandler: appStatusHandler,
+		appStatusHandler: baseSubround.AppStatusHandler(),
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -84,8 +80,9 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
+		processedHeaderHash := sr.getMessageToSignFunc()
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.getMessageToSignFunc(),
+			processedHeaderHash,
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
 			[]byte(sr.SelfPubKey()),
@@ -102,7 +99,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			}
 		}
 
-		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
+		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), selfIndex, processedHeaderHash, isSelfLeader)
 		if !ok {
 			return false
 		}
@@ -128,6 +125,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 		sr.GetAssociatedPid(pkBytes),
 		nil,
+		sr.getProcessedHeaderHash(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -142,7 +140,12 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 	return true
 }
 
-func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForAllSigsAsync bool) bool {
+func (sr *subroundSignature) completeSignatureSubRound(
+	pk string,
+	index int,
+	processedHeaderHash []byte,
+	shouldWaitForAllSigsAsync bool,
+) bool {
 	err := sr.SetJobDone(pk, sr.Current(), true)
 	if err != nil {
 		log.Debug("doSignatureJob.SetSelfJobDone",
@@ -154,10 +157,22 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 	}
 
 	if shouldWaitForAllSigsAsync {
+		if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+			sr.AddProcessedHeadersHashes(processedHeaderHash, index)
+		}
+
 		go sr.waitAllSignatures()
 	}
 
 	return true
+}
+
+func (sr *subroundSignature) getProcessedHeaderHash() []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		return sr.getMessageToSignFunc()
+	}
+
+	return nil
 }
 
 // receivedSignature method is called when a signature is received through the signature channel.
@@ -185,7 +200,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 
@@ -224,6 +239,10 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
+
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
+	}
 
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
@@ -362,8 +381,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
+		processedHeaderHash := sr.getMessageToSignFunc()
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
+			processedHeaderHash,
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
 			pkBytes,
@@ -383,7 +403,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 
 		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
+		ok := sr.completeSignatureSubRound(pk, selfIndex, processedHeaderHash, isLeader)
 		if !ok {
 			return false
 		}
