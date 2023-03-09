@@ -496,7 +496,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		ConfigSCStorage:       *defaultStorageConfig(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
-		GasSchedule:           createMockGasScheduleNotifier(),
+		GasSchedule:           CreateMockGasScheduleNotifier(),
 		Counter:               &testscommon.BlockChainHookCounterStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -1072,7 +1072,8 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	}, nil
 }
 
-func createMockGasScheduleNotifier() *mock.GasScheduleNotifierMock {
+// CreateMockGasScheduleNotifier will create a mock gas schedule notifier to be used in tests
+func CreateMockGasScheduleNotifier() *mock.GasScheduleNotifierMock {
 	return createMockGasScheduleNotifierWithCustomGasSchedule(func(gasMap wasmConfig.GasScheduleMap) {})
 }
 
@@ -1106,7 +1107,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig con
 		enableEpochsConfig,
 		shardCoordinator,
 		integrationtests.CreateMemUnit(),
-		createMockGasScheduleNotifier(),
+		CreateMockGasScheduleNotifier(),
 	)
 }
 
