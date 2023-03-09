@@ -981,7 +981,7 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 		require.Empty(t, currNodesConfig.shuffledOut)
 		require.Empty(t, currNodesConfig.auction)
 
-		// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+		// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), 2)
@@ -1028,7 +1028,7 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 	require.Empty(t, currNodesConfig.shuffledOut)
 	require.Empty(t, currNodesConfig.auction)
 
-	// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), 2)
@@ -1054,7 +1054,7 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 		require.Empty(t, currNodesConfig.shuffledOut)
 		require.Empty(t, currNodesConfig.auction)
 
-		// Shuffled nodes previous eligible ones are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+		// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), 2)
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), 6)
 		requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), 2)
