@@ -521,6 +521,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		},
 		MapDNSV2Addresses: map[string]struct{}{
 			string(dnsV2Decoded): {},
+			string(dnsAddr):      {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
