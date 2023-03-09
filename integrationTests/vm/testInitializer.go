@@ -68,6 +68,15 @@ import (
 
 var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62, 172, 4, 126, 190, 242, 221, 230, 209, 243, 105, 104, 242, 66, 49, 49}
 
+// DNSV2Address defines the address for the new DNS contract
+const DNSV2Address = "erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4hukxw"
+
+// DNSV2DeployerAddress defines the address of the deployer for the DNS v2 contracts
+const DNSV2DeployerAddress = "erd1uzk2g5rhvg8prk9y50d0q7qsxg7tm7f320q0q4qlpmfu395wjmdqqy0n9q"
+
+// TestAddressPubkeyConverter represents an address public key converter
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+
 // TODO: Merge test utilities from this file with the ones from "wasmvm/utils.go"
 
 var globalEpochNotifier = forking.NewGenericEpochNotifier()
@@ -503,13 +512,15 @@ func CreateVMAndBlockchainHookAndDataPool(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
+	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
 		MapDNSV2Addresses: map[string]struct{}{
-			string(dnsAddr): {},
+			string(dnsV2Decoded): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
@@ -589,6 +600,7 @@ func CreateVMAndBlockchainHookMeta(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
+	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
@@ -596,7 +608,7 @@ func CreateVMAndBlockchainHookMeta(
 			string(dnsAddr): {},
 		},
 		MapDNSV2Addresses: map[string]struct{}{
-			string(dnsAddr): {},
+			string(dnsV2Decoded): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
@@ -1334,6 +1346,21 @@ func TestAccount(
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
 	return senderRecovShardAccount.GetBalance()
+}
+
+// TestAccountUsername -
+func TestAccountUsername(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	senderAddressBytes []byte,
+	username []byte,
+) {
+
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
+	require.False(t, check.IfNil(senderRecovAccount))
+
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
+	require.Equal(t, senderRecovShardAccount.GetUserName(), username)
 }
 
 // ComputeExpectedBalance -
