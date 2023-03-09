@@ -298,7 +298,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	distributeShuffledToWaitingInStakingV4 := false
 	if totalNodes <= maxNumNodes {
 		log.Warn("num of total nodes in waiting is too low after shuffling; will distribute "+
-			"shuffled out nodes directly in waiting and skip sending them to auction",
+			"shuffled out nodes directly to waiting and skip sending them to auction",
 			"numShuffled", numShuffled,
 			"numNewEligible", numNewEligible,
 			"numSelectedAuction", numSelectedAuction,
