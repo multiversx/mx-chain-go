@@ -287,19 +287,18 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
-	assert.True(t, statusIdleSet && statusBusySet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -1923,13 +1922,12 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 	expectedFirstNonce := core.OptionalUint64{
 		HasValue: false,
@@ -1940,7 +1938,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 
 	expectedFirstNonce.HasValue = true
 	expectedFirstNonce.Value = hdr.Nonce

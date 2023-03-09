@@ -64,7 +64,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetector := newRefundDetector()
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -100,7 +100,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
-	atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+
+	if withResults {
+		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+	}
 
 	return tx, nil
 }

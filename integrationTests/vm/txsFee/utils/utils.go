@@ -77,7 +77,9 @@ func DoDeployWithCustomParams(
 	contractHexParams []string,
 ) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
-	senderNonce := uint64(0)
+	account, err := testContext.Accounts.LoadAccount(owner)
+	require.Nil(tb, err)
+	senderNonce := account.GetNonce()
 	gasPrice := uint64(10)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
