@@ -75,10 +75,6 @@ func SanityCheckNodesConfig(
 	minNumNodesWithHysteresis uint32,
 	maxNodesChange []MaxNodesChangeConfig,
 ) error {
-	if len(maxNodesChange) < 1 {
-		return errNotEnoughMaxNodesChanges
-	}
-
 	for _, maxNodesConfig := range maxNodesChange {
 		err := checkMaxNodesConfig(numShards, minNumNodesWithHysteresis, maxNodesConfig)
 		if err != nil {
@@ -96,17 +92,19 @@ func checkMaxNodesConfig(
 ) error {
 	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
 	if nodesToShufflePerShard == 0 {
-		return fmt.Errorf("0 nodes to shuffle per shard")
+		return errZeroNodesToShufflePerShard
 	}
 
 	maxNumNodes := maxNodesConfig.MaxNumNodes
 	if maxNumNodes < minNumNodesWithHysteresis {
-		return fmt.Errorf("MaxNumNodes less than MinNumberOfNodesWithHysteresis")
+		return fmt.Errorf("%w, maxNumNodes: %d, minNumNodesWithHysteresis: %d",
+			errMaxMinNodesInvalid, maxNumNodes, minNumNodesWithHysteresis)
 	}
 
 	waitingListPerShard := (maxNumNodes - minNumNodesWithHysteresis) / (numShards + 1)
 	if nodesToShufflePerShard > waitingListPerShard {
-		return fmt.Errorf("nodes to shuffle per shard > waiting list per shard")
+		return fmt.Errorf("%w, nodesToShufflePerShard: %d, waitingListPerShard: %d",
+			errInvalidNodesToShuffle, nodesToShufflePerShard, waitingListPerShard)
 	}
 
 	return nil

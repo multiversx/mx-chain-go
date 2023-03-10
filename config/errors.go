@@ -11,3 +11,9 @@ var errNoMaxNodesConfigBeforeStakingV4 = errors.New("no previous config change e
 var errMismatchNodesToShuffle = errors.New("previous MaxNodesChangeEnableEpoch.NodesToShufflePerShard != MaxNodesChangeEnableEpoch.NodesToShufflePerShard with EnableEpoch = StakingV4Step3EnableEpoch")
 
 var errNoMaxNodesConfigChangeForStakingV4 = errors.New("no MaxNodesChangeEnableEpoch config found for EpochEnable = StakingV4Step3EnableEpoch")
+
+var errZeroNodesToShufflePerShard = errors.New("zero nodes to shuffle per shard found in config")
+
+var errMaxMinNodesInvalid = errors.New("number of min nodes with hysteresis > number of max nodes")
+
+var errInvalidNodesToShuffle = errors.New("number of nodes to shuffle per shard > waiting list size per shard")
