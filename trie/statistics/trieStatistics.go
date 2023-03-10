@@ -176,7 +176,12 @@ func (ts *trieStatistics) GetLeavesMigrationStats() map[core.TrieNodeVersion]uin
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
 
-	return ts.migrationStats
+	migrationStatsMap := make(map[core.TrieNodeVersion]uint64)
+	for version, numLeaves := range ts.migrationStats {
+		migrationStatsMap[version] = numLeaves
+	}
+
+	return migrationStatsMap
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
