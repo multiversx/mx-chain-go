@@ -184,7 +184,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	newScCode string,
 ) {
-	logger.SetLogLevel("*:NONE")
+	_ = logger.SetLogLevel("*:NONE")
 
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
@@ -237,7 +237,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 
 	// step 3. upgrade to the second contract
 
-	logger.SetLogLevel("*:NONE,vm:TRACE")
+	_ = logger.SetLogLevel("*:NONE,vm:TRACE")
 	txData := strings.Join([]string{
 		upgradeContractFunction,
 		newScCode,
