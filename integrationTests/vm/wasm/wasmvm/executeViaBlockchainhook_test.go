@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"testing"
 
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -75,8 +73,6 @@ func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
 	tx := net.CreateTx(ownerOfParent, parentAddress, big.NewInt(0), txData)
 	tx.GasLimit = testConfig.GasProvided
 
-	// _ = logger.SetLogLevel("*:TRACE")
-	_ = logger.SetLogLevel("vm:TRACE")
 	_ = net.SignAndSendTx(ownerOfParent, tx)
 
 	net.Steps(2)

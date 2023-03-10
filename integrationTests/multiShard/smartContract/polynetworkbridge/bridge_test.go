@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,7 +71,6 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nonce++
 
 	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	_ = logger.SetLogLevel("process/smartcontract:TRACE,arwen:TRACE,gasTrace:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
 	blockChainHook := ownerNode.BlockchainHook
