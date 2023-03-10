@@ -233,10 +233,17 @@ type TestKeyPair struct {
 	Pk crypto.PublicKey
 }
 
-// CryptoParams holds crypto parametres
+// TestNodeKeys will hold the main key along the handled keys of a node
+type TestNodeKeys struct {
+	MainKey     *TestKeyPair
+	HandledKeys []*TestKeyPair
+}
+
+// CryptoParams holds crypto parameters
 type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
-	Keys         map[uint32][]*TestKeyPair
+	P2PKeyGen    crypto.KeyGenerator
+	NodesKeys    map[uint32][]*TestNodeKeys
 	SingleSigner crypto.SingleSigner
 	TxKeyGen     crypto.KeyGenerator
 	TxKeys       map[uint32][]*TestKeyPair
@@ -267,7 +274,7 @@ type ArgTestProcessorNode struct {
 	HardforkPk              crypto.PublicKey
 	GenesisFile             string
 	StateCheckpointModulus  *IntWrapper
-	NodeKeys                *TestKeyPair
+	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
 	MultiSigner             crypto.MultiSigner
@@ -288,7 +295,7 @@ type TestProcessorNode struct {
 	Messenger        p2p.Messenger
 
 	OwnAccount *TestWalletAccount
-	NodeKeys   *TestKeyPair
+	NodeKeys   *TestNodeKeys
 
 	ExportFolder        string
 	DataPool            dataRetriever.PoolsHolder
@@ -469,8 +476,11 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	tpn.NodeKeys = args.NodeKeys
 	if tpn.NodeKeys == nil {
 		kg := &mock.KeyGenMock{}
-		tpn.NodeKeys = &TestKeyPair{}
-		tpn.NodeKeys.Sk, tpn.NodeKeys.Pk = kg.GeneratePair()
+		kp := &TestKeyPair{}
+		kp.Sk, kp.Pk = kg.GeneratePair()
+		tpn.NodeKeys = &TestNodeKeys{
+			MainKey: kp,
+		}
 	}
 
 	tpn.MultiSigner = TestMultiSig
@@ -727,11 +737,14 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.MainKey.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 
 	if args.WithSync {
@@ -908,11 +921,14 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.MainKey.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1252,7 +1268,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 }
 
 func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
-	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
+	pkBytes, _ := tpn.NodeKeys.MainKey.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        pkBytes,
 		Enabled:                   true,
@@ -1995,7 +2011,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
-			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -2286,8 +2301,8 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
-	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.PrivKey = tpn.NodeKeys.MainKey.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.MainKey.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
@@ -2534,14 +2549,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
-func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
+func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler, publicKey crypto.PublicKey) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 
 	time.Sleep(tpn.WaitTime)
 
+	pkBytes, _ := publicKey.ToByteArray()
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
-	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
+	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
@@ -2830,8 +2847,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
-	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.PrivKey = tpn.NodeKeys.MainKey.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.MainKey.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
@@ -2900,6 +2917,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
 		TimeBetweenConnectionsMetricsUpdateInSec:         10,
+		PeerAuthenticationTimeBetweenChecksInSec:         1,
 		HeartbeatPool: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 1000,
@@ -3108,18 +3126,20 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	return &mock.CryptoComponentsStub{
-		PubKey:            &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyMock{},
-		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SignerMock{},
-		TxSig:             &mock.SignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		PubKey:                  &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyMock{},
+		PubKeyString:            "pubKey",
+		PrivKeyBytes:            []byte("privKey"),
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SignerMock{},
+		TxSig:                   &mock.SignerMock{},
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+		KeysHandlerField:        &testscommon.KeysHandlerStub{},
 	}
 }
 
