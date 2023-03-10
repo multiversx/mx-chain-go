@@ -828,7 +828,7 @@ func TestCommunityContract_InShard(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	funderAddress := net.DeployPayableSC(owner, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
@@ -870,7 +870,7 @@ func TestCommunityContract_CrossShard(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	funderAddress := net.DeployPayableSC(ownerOfFunder, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
@@ -935,7 +935,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	logger.ToggleLoggerName(true)
 	// logger.SetLogLevel("*:TRACE")
