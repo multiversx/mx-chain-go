@@ -41,7 +41,9 @@ type Messenger interface {
 	ConnectedPeers() []core.PeerID
 	Verify(payload []byte, pid core.PeerID, signature []byte) error
 	Broadcast(topic string, buff []byte)
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	Sign(payload []byte) ([]byte, error)
+	SignUsingPrivateKey(skBytes []byte, payload []byte) ([]byte, error)
 }
 
 // RequestHandler defines which methods a request handler should implement
