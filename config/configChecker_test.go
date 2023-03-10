@@ -187,7 +187,13 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig().EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
-		err := SanityCheckNodesConfig(numShards, 20, cfg)
+		nodesSetup := &NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0,
+			MinNumberOfMetaNodesField:  5,
+			MinNumberOfShardNodesField: 5,
+		}
+		err := SanityCheckNodesConfig(nodesSetup, cfg)
 		require.Nil(t, err)
 
 		cfg = []MaxNodesChangeConfig{
@@ -212,7 +218,13 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 40,
 			},
 		}
-		err = SanityCheckNodesConfig(numShards, 1920, cfg)
+		nodesSetup = &NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0.2,
+			MinNumberOfMetaNodesField:  400,
+			MinNumberOfShardNodesField: 400,
+		}
+		err = SanityCheckNodesConfig(nodesSetup, cfg)
 		require.Nil(t, err)
 	})
 
@@ -226,7 +238,13 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 0,
 			},
 		}
-		err := SanityCheckNodesConfig(numShards, 1920, cfg)
+		nodesSetup := &NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0.2,
+			MinNumberOfMetaNodesField:  400,
+			MinNumberOfShardNodesField: 400,
+		}
+		err := SanityCheckNodesConfig(nodesSetup, cfg)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), errZeroNodesToShufflePerShard.Error()))
 		require.True(t, strings.Contains(err.Error(), "at EpochEnable = 4"))
@@ -242,7 +260,13 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 80,
 			},
 		}
-		err := SanityCheckNodesConfig(numShards, 1920, cfg)
+		nodesSetup := &NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0.2,
+			MinNumberOfMetaNodesField:  400,
+			MinNumberOfShardNodesField: 400,
+		}
+		err := SanityCheckNodesConfig(nodesSetup, cfg)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), errMaxMinNodesInvalid.Error()))
 		require.True(t, strings.Contains(err.Error(), "maxNumNodes: 1900"))
@@ -259,7 +283,13 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 81,
 			},
 		}
-		err := SanityCheckNodesConfig(numShards, 1920, cfg)
+		nodesSetup := &NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0.2,
+			MinNumberOfMetaNodesField:  400,
+			MinNumberOfShardNodesField: 400,
+		}
+		err := SanityCheckNodesConfig(nodesSetup, cfg)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), errInvalidNodesToShuffle.Error()))
 		require.True(t, strings.Contains(err.Error(), "nodesToShufflePerShard: 81"))

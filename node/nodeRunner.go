@@ -285,8 +285,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	err = config.SanityCheckNodesConfig(
-		managedCoreComponents.GenesisNodesSetup().NumberOfShards(),
-		managedCoreComponents.GenesisNodesSetup().MinNumberOfNodesWithHysteresis(),
+		managedCoreComponents.GenesisNodesSetup(),
 		configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 	)
 	if err != nil {

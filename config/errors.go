@@ -17,3 +17,5 @@ var errZeroNodesToShufflePerShard = errors.New("zero nodes to shuffle per shard 
 var errMaxMinNodesInvalid = errors.New("number of min nodes with hysteresis > number of max nodes")
 
 var errInvalidNodesToShuffle = errors.New("number of nodes to shuffle per shard > waiting list size per shard")
+
+var errInvalidNodesToShuffleWithHysteresis = errors.New("number of nodes to shuffle per shard > forced waiting list size per shard with hysteresis")
