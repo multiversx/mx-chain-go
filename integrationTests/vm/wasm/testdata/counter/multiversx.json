@@ -1,6 +1,0 @@
-{
-    "language": "clang",
-    "source_files": [
-        "/home/camil.bancioiu/Work/Elrond/elrond-go/integrationTests/vm/wasm/testdata/counter/counter.c"
-    ]
-}
