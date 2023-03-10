@@ -106,6 +106,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
 	}
 
+	if withResults {
+		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+	}
+
 	return tx, nil
 }
 
@@ -673,6 +677,14 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}
+}
+
+func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
+	txValue := wrappedTx.Tx.GetValue()
+	if txValue != nil {
+		return txValue.String()
+	}
+	return "0"
 }
 
 func getTxValue(wrappedTx *txcache.WrappedTransaction) string {

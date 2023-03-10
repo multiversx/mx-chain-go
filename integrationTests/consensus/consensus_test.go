@@ -223,10 +223,14 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
+	log.Info("runFullConsensusTest",
+		"numNodes", numNodes,
+		"numKeysOnEachNode", numKeysOnEachNode,
+		"consensusSize", consensusSize,
+	)
+
 	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
-	if err != nil {
-		assert.Nil(t, err)
-	}
+	assert.Nil(t, err)
 
 	defer func() {
 		for shardID := range nodes {
@@ -289,9 +293,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
 	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
-	if err != nil {
-		assert.Nil(t, err)
-	}
+	assert.Nil(t, err)
 
 	defer func() {
 		for shardID := range nodes {

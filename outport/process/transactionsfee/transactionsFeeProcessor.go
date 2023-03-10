@@ -13,6 +13,8 @@ import (
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
+var log = logger.GetOrCreate("outport/process/transactionsfee")
+
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
 	Marshaller         marshal.Marshalizer
