@@ -4168,6 +4168,38 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), "invalid address"))
 	})
+	t.Run("error on loadUserAccountHandlerByAddress but extractApiBlockInfoIfErrAccountNotFoundAtBlock ok", func(t *testing.T) {
+		providedBlockInfo := holders.NewBlockInfo([]byte{0xaa}, 7, []byte{0xbb})
+		accDB := &stateMock.AccountsStub{
+			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return nil, nil, state.NewErrAccountNotFoundAtBlock(providedBlockInfo)
+			},
+			RecreateTrieCalled: func(_ []byte) error {
+				return nil
+			},
+		}
+		stateComponents := getDefaultStateComponents()
+		args := state.ArgsAccountsRepository{
+			FinalStateAccountsWrapper:      accDB,
+			CurrentStateAccountsWrapper:    accDB,
+			HistoricalStateAccountsWrapper: accDB,
+		}
+		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+		n, _ := node.NewNode(
+			node.WithDataComponents(dataComponents),
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+		)
+		guardianData, blockInfo, err := n.GetGuardianData(userAddress, api.AccountQueryOptions{})
+		require.Equal(t, api.GuardianData{}, guardianData)
+		expectedBlockInfo := api.BlockInfo{
+			Nonce:    providedBlockInfo.GetNonce(),
+			Hash:     hex.EncodeToString(providedBlockInfo.GetHash()),
+			RootHash: hex.EncodeToString(providedBlockInfo.GetRootHash()),
+		}
+		require.Equal(t, expectedBlockInfo, blockInfo)
+		require.Nil(t, err)
+	})
 	t.Run("getPendingAndActiveGuardians with error", func(t *testing.T) {
 		expectedError := errors.New("expected error")
 		bootstrapComponents := getDefaultBootstrapComponents()
