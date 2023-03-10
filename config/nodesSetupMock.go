@@ -35,8 +35,8 @@ func (n *NodesSetupMock) MinNumberOfNodes() uint32 {
 
 // MinNumberOfNodesWithHysteresis -
 func (n *NodesSetupMock) MinNumberOfNodesWithHysteresis() uint32 {
-	hystNodesMeta := getMinNumNodesWithHysteresis(n.MinNumberOfMetaNodesField, n.HysteresisField)
-	hystNodesShard := getMinNumNodesWithHysteresis(n.MinNumberOfShardNodesField, n.HysteresisField)
+	hystNodesMeta := getHysteresisNodes(n.MinNumberOfMetaNodesField, n.HysteresisField)
+	hystNodesShard := getHysteresisNodes(n.MinNumberOfShardNodesField, n.HysteresisField)
 	minNumberOfNodes := n.MinNumberOfNodes()
 
 	return minNumberOfNodes + hystNodesMeta + n.NumberOfShardsField*hystNodesShard
