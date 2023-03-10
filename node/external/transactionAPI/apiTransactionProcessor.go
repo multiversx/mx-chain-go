@@ -63,7 +63,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.DataFieldParser,
 	)
 
-	refundDetector := newRefundDetector()
+	refundDetectorInstance := newRefundDetector()
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
@@ -80,7 +80,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txTypeHandler:               args.TxTypeHandler,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
-		refundDetector:              refundDetector,
+		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 	}, nil
 }
@@ -677,14 +677,6 @@ func (atp *apiTransactionProcessor) castObjToTransaction(txObj interface{}, txTy
 
 	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
 	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}
-}
-
-func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
-	txValue := wrappedTx.Tx.GetValue()
-	if txValue != nil {
-		return txValue.String()
-	}
-	return "0"
 }
 
 func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
