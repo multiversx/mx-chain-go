@@ -348,6 +348,10 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+		if ok {
+			return api.GuardianData{}, apiBlockInfo, nil
+		}
 		return api.GuardianData{}, api.BlockInfo{}, err
 	}
 
