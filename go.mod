@@ -19,7 +19,8 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.13
 	github.com/multiversx/mx-chain-scenario-go v1.1.2
-	github.com/multiversx/mx-chain-vm-common-go v1.3.38-0.20230303103051-5461524b1954
+	github.com/multiversx/mx-chain-storage-go v1.0.7
+	github.com/multiversx/mx-chain-vm-common-go v1.3.38-0.20230310093902-f0b443728d03
 	github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230310090215-f567d5333117
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.51-0.20230201121932-cbca1be832a0
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.51-0.20230120173525-f2b1a228e080
@@ -34,6 +35,7 @@ require (
 )
 
 require (
+	github.com/TwiN/go-color v1.1.0 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

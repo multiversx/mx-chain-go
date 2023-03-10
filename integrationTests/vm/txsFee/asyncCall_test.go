@@ -156,6 +156,7 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 
 		enableEpoch := config.EnableEpochs{
 			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -169,6 +170,7 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 
 		enableEpoch := config.EnableEpochs{
 			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -187,20 +189,22 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShard0,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
+		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
-	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
+		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
 
@@ -288,6 +292,7 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 
 		enableEpoch := config.EnableEpochs{
 			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
+			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)
@@ -301,6 +306,7 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 
 		enableEpoch := config.EnableEpochs{
 			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
+			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)
@@ -316,20 +322,22 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShard0,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
+		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
-	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
+		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
 
