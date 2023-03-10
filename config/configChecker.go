@@ -89,11 +89,11 @@ func SanityCheckNodesConfig(
 }
 
 func checkMaxNodesConfig(maxNodesConfig MaxNodesChangeConfig, nodesSetup NodesSetupHandler) error {
-	if maxNodesConfig.NodesToShufflePerShard == 0 {
+	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
+	if nodesToShufflePerShard == 0 {
 		return fmt.Errorf("0 nodes to shuffle per shard")
 	}
 
-	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
 	maxNumNodes := maxNodesConfig.MaxNumNodes
 	minNumNodesWithHysteresis := nodesSetup.MinNumberOfNodesWithHysteresis()
 	if maxNumNodes < minNumNodesWithHysteresis {
@@ -101,31 +101,11 @@ func checkMaxNodesConfig(maxNodesConfig MaxNodesChangeConfig, nodesSetup NodesSe
 	}
 
 	numShards := nodesSetup.NumberOfShards()
-	hysteresis := nodesSetup.GetHysteresis()
-
-	minNumOfShardNodesWithHysteresis := getMinNumNodesWithHysteresis(nodesSetup.MinNumberOfShardNodes(), hysteresis)
-	minNumOfMetaNodesWithHysteresis := getMinNumNodesWithHysteresis(nodesSetup.MinNumberOfMetaNodes(), hysteresis)
-
-	maxWaitingListSizePerShard := (maxNumNodes - minNumOfMetaNodesWithHysteresis) / numShards
-	maxWaitingListSizePerMeta := maxNumNodes - minNumOfShardNodesWithHysteresis*numShards
-
 	waitingListPerShard := (maxNumNodes - minNumNodesWithHysteresis) / (numShards + 1)
-
-	if maxWaitingListSizePerShard <= 0 {
-		return fmt.Errorf("negative waiting list")
-	}
-
-	if maxWaitingListSizePerMeta <= 0 {
-		return fmt.Errorf("negative waiting list")
-	}
 
 	if nodesToShufflePerShard > waitingListPerShard {
 		return fmt.Errorf("nodes to shuffle per shard > waiting list per shard")
 	}
 
 	return nil
-}
-
-func getMinNumNodesWithHysteresis(minNumNodes uint32, hysteresis float32) uint32 {
-	return uint32(float32(minNumNodes) * hysteresis)
 }
