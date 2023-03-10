@@ -53,7 +53,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(owner))
