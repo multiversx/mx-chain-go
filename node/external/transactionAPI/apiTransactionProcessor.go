@@ -63,7 +63,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.DataFieldParser,
 	)
 
-	refundDetector := newRefundDetector()
+	refundDetectorInstance := newRefundDetector()
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
@@ -80,7 +80,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txTypeHandler:               args.TxTypeHandler,
 		txUnmarshaller:              txUnmarshalerAndPreparer,
 		transactionResultsProcessor: txResultsProc,
-		refundDetector:              refundDetector,
+		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 	}, nil
 }
@@ -101,6 +101,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
 	atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+
+	if withResults {
+		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
+	}
 
 	if withResults {
 		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
