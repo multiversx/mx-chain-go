@@ -1,9 +1,6 @@
 package converter
 
 import (
-	"encoding/hex"
-	"runtime/debug"
-
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
@@ -36,12 +33,6 @@ func (converter *pidPubkeyConverter) Decode(_ string) ([]byte, error) {
 func (converter *pidPubkeyConverter) Encode(pkBytes []byte) (string, error) {
 	pidString, err := converter.encode(pkBytes)
 	if err != nil {
-		log.Warn("pidPubkeyConverter.Encode encode",
-			"hex buff", hex.EncodeToString(pkBytes),
-			"error", err,
-			"stack trace", string(debug.Stack()),
-		)
-
 		return "", err
 	}
 
