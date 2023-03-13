@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -51,7 +52,7 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 
 // Add adds the given trie statistics to the statistics collector
 func (tsc *trieStatisticsCollector) Add(trieStats common.TrieStatisticsHandler) {
-	if trieStats == nil {
+	if check.IfNil(trieStats) {
 		log.Warn("programming error, nil trie stats received")
 		return
 	}
@@ -105,14 +106,14 @@ func (tsc *trieStatisticsCollector) Print() {
 func (tsc *trieStatisticsCollector) GetNumNodes() uint64 {
 	tsc.mutex.RLock()
 	defer tsc.mutex.RUnlock()
-	
+
 	return tsc.numNodes
 }
 
 func getOrderedTries(tries []common.TrieStatisticsHandler) string {
 	triesStats := make([]string, 0)
 	for i := 0; i < len(tries); i++ {
-		if tries[i] == nil {
+		if check.IfNil(tries[i]) {
 			continue
 		}
 		triesStats = append(triesStats, strings.Join(tries[i].ToString(), " "))
