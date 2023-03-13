@@ -106,6 +106,61 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 	require.Nil(t, err)
 }
 
+type configNum struct {
+	eligible    map[uint32]int
+	waiting     map[uint32]int
+	leaving     map[uint32]int
+	shuffledOut map[uint32]int
+	queue       int
+	auction     int
+	new         int
+}
+
+func checkConfig(t *testing.T, expectedConfig *configNum, nodesConfig nodesConfig) {
+	checkNumNodes(t, expectedConfig.eligible, nodesConfig.eligible)
+	checkNumNodes(t, expectedConfig.waiting, nodesConfig.waiting)
+	checkNumNodes(t, expectedConfig.leaving, nodesConfig.leaving)
+	checkNumNodes(t, expectedConfig.shuffledOut, nodesConfig.shuffledOut)
+
+	require.Equal(t, expectedConfig.queue, len(nodesConfig.queue))
+	require.Equal(t, expectedConfig.auction, len(nodesConfig.auction))
+	require.Equal(t, expectedConfig.new, len(nodesConfig.new))
+}
+
+func checkNumNodes(t *testing.T, expectedNumNodes map[uint32]int, actualNodes map[uint32][][]byte) {
+	for shardID, numNodesInShard := range expectedNumNodes {
+		require.Equal(t, numNodesInShard, len(actualNodes[shardID]))
+	}
+}
+
+func checkShuffledOutNodes(t *testing.T, currNodesConfig, prevNodesConfig nodesConfig, numShuffledOutNodes int, numRemainingEligible int) {
+	// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numShuffledOutNodes)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), numRemainingEligible)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), numShuffledOutNodes)
+}
+
+func checkStakingV4EpochChangeFlow(
+	t *testing.T,
+	currNodesConfig, prevNodesConfig nodesConfig,
+	numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction int) {
+
+	// Nodes which are now in eligible are from previous waiting list
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numOfShuffledOut)
+
+	// New auction list also contains unselected nodes from previous auction list
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, prevNodesConfig.auction, numOfUnselectedNodesFromAuction)
+
+	// All shuffled out are from previous eligible config
+	requireMapContains(t, prevNodesConfig.eligible, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// All shuffled out are now in auction
+	requireSliceContains(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// Nodes which have been selected from previous auction list are now in waiting
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), prevNodesConfig.auction, numOfSelectedNodesFromAuction)
+}
+
 func TestStakingV4(t *testing.T) {
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
@@ -1099,60 +1154,4 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 		prevNodesConfig = currNodesConfig
 		epoch++
 	}
-}
-
-type configNum struct {
-	eligible    map[uint32]int
-	waiting     map[uint32]int
-	leaving     map[uint32]int
-	shuffledOut map[uint32]int
-	queue       int
-	auction     int
-	new         int
-}
-
-func checkConfig(t *testing.T, expectedConfig *configNum, nodesConfig nodesConfig) {
-	checkNumNodes(t, expectedConfig.eligible, nodesConfig.eligible)
-	checkNumNodes(t, expectedConfig.waiting, nodesConfig.waiting)
-	checkNumNodes(t, expectedConfig.leaving, nodesConfig.leaving)
-	checkNumNodes(t, expectedConfig.shuffledOut, nodesConfig.shuffledOut)
-
-	require.Equal(t, expectedConfig.queue, len(nodesConfig.queue))
-	require.Equal(t, expectedConfig.auction, len(nodesConfig.auction))
-	require.Equal(t, expectedConfig.new, len(nodesConfig.new))
-}
-
-func checkNumNodes(t *testing.T, expectedNumNodes map[uint32]int, actualNodes map[uint32][][]byte) {
-	for shardID, numNodesInShard := range expectedNumNodes {
-		require.Equal(t, numNodesInShard, len(actualNodes[shardID]))
-	}
-}
-
-func checkShuffledOutNodes(t *testing.T, currNodesConfig, prevNodesConfig nodesConfig, numShuffledOutNodes int, numRemainingEligible int) {
-	// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numShuffledOutNodes)
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), numRemainingEligible)
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), numShuffledOutNodes)
-}
-
-func checkStakingV4EpochChangeFlow(
-	t *testing.T,
-	currNodesConfig, prevNodesConfig nodesConfig,
-	numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction int) {
-
-	// Nodes which are now in eligible are from previous waiting list
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numOfShuffledOut)
-
-	// New auction list also contains unselected nodes from previous auction list
-	requireSliceContainsNumOfElements(t, currNodesConfig.auction, prevNodesConfig.auction, numOfUnselectedNodesFromAuction)
-
-	// All shuffled out are from previous eligible config
-	requireMapContains(t, prevNodesConfig.eligible, getAllPubKeys(currNodesConfig.shuffledOut))
-
-	// All shuffled out are now in auction
-	requireSliceContains(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
-
-	// Nodes which have been selected from previous auction list are now in waiting
-	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), prevNodesConfig.auction, numOfSelectedNodesFromAuction)
-
 }
