@@ -15,7 +15,6 @@ import (
 type subroundSignature struct {
 	*spos.Subround
 
-	appStatusHandler     core.AppStatusHandler
 	getMessageToSignFunc func() []byte
 }
 
@@ -32,8 +31,7 @@ func NewSubroundSignature(
 	}
 
 	srSignature := subroundSignature{
-		Subround:         baseSubround,
-		appStatusHandler: baseSubround.AppStatusHandler(),
+		Subround: baseSubround,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -244,7 +242,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
 	}
 
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
 }
 
@@ -255,7 +253,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.IsSubroundFinished(sr.Current()) {
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "signed")
 
 		return true
 	}
@@ -300,7 +298,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "signed")
 
 		return true
 	}

@@ -326,7 +326,7 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 	bitmap := cns.createEmptyBitmap(consensusSize)
 
 	for i := 0; i < consensusSize; i++ {
-		bitmap = cns.setInBitmap(bitmap, i, subroundId)
+		cns.setInBitmap(bitmap, i, subroundId)
 	}
 
 	return bitmap
@@ -341,19 +341,24 @@ func (cns *ConsensusState) createEmptyBitmap(consensusSize int) []byte {
 	return bitmap
 }
 
-func (cns *ConsensusState) setInBitmap(bitmap []byte, index int, subroundID int) []byte {
+func (cns *ConsensusState) setInBitmap(bitmap []byte, index int, subroundID int) {
+	consensusSize := len(cns.ConsensusGroup())
+	isIndexOutOfRange := index < 0 || index > consensusSize-1
+	if isIndexOutOfRange {
+		log.Warn("ConsensusState.setInBitmap: index out of range", "index", index, "consensus size", consensusSize)
+		return
+	}
+
 	pubKey := cns.ConsensusGroup()[index]
 	isJobDone, err := cns.JobDone(pubKey, subroundID)
 	if err != nil {
 		log.Debug("JobDone", "error", err.Error())
-		return bitmap
+		return
 	}
 
 	if isJobDone {
 		bitmap[index/8] |= 1 << (uint16(index) % 8)
 	}
-
-	return bitmap
 }
 
 // GenerateBitmapForHash method generates a bitmap, for a given subround and a processed header hash,
@@ -363,7 +368,7 @@ func (cns *ConsensusState) GenerateBitmapForHash(subroundId int, hash []byte) []
 
 	indexes, _ := cns.GetProcessedHeaderHashIndexes(hash)
 	for _, i := range indexes {
-		bitmap = cns.setInBitmap(bitmap, i, subroundId)
+		cns.setInBitmap(bitmap, i, subroundId)
 	}
 
 	return bitmap

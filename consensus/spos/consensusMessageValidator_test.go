@@ -186,7 +186,10 @@ func TestCheckMessageWithFinalInfoValidity_InvalidAggregateSignatureSize(t *test
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("01"), AggregateSignature: []byte("0")}
+	cnsMsg := &consensus.Message{
+		PubKeysBitmap:      []byte("01"),
+		AggregateSignature: []byte("0"),
+	}
 	err := cmv.CheckMessageWithFinalInfoValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
@@ -199,7 +202,11 @@ func TestCheckMessageWithFinalInfoValidity_InvalidLeaderSignatureSize(t *testing
 
 	sig := make([]byte, SignatureSize)
 	_, _ = rand.Read(sig)
-	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("01"), AggregateSignature: sig, LeaderSignature: []byte("0")}
+	cnsMsg := &consensus.Message{
+		PubKeysBitmap:      []byte("01"),
+		AggregateSignature: sig,
+		LeaderSignature:    []byte("0"),
+	}
 	err := cmv.CheckMessageWithFinalInfoValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
@@ -212,7 +219,11 @@ func TestCheckMessageWithFinalInfoValidity_ShouldWork(t *testing.T) {
 
 	sig := make([]byte, SignatureSize)
 	_, _ = rand.Read(sig)
-	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("01"), AggregateSignature: sig, LeaderSignature: sig}
+	cnsMsg := &consensus.Message{
+		PubKeysBitmap:      []byte("01"),
+		AggregateSignature: sig,
+		LeaderSignature:    sig,
+	}
 	err := cmv.CheckMessageWithFinalInfoValidity(cnsMsg)
 	assert.Nil(t, err)
 }
@@ -405,7 +416,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyAndHead
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBodyAndHeader), SignatureShare: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType:        int64(bls.MtBlockBodyAndHeader),
+		SignatureShare: []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -416,7 +430,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyInvalid
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), SignatureShare: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType:        int64(bls.MtBlockBody),
+		SignatureShare: []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -427,7 +444,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInval
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), SignatureShare: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType:        int64(bls.MtBlockHeader),
+		SignatureShare: []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -438,7 +458,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithSignatureInvalid
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtSignature), Header: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType: int64(bls.MtSignature),
+		Header:  []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -449,7 +472,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithFinalInfoInvalid
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeaderFinalInfo), Header: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType: int64(bls.MtBlockHeaderFinalInfo),
+		Header:  []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -463,7 +489,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), Header: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType: int64(bls.MtInvalidSigners),
+			Header:  []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 	})
@@ -474,7 +503,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), Body: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType: int64(bls.MtInvalidSigners),
+			Body:    []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 	})
@@ -485,7 +517,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), PubKeysBitmap: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType:       int64(bls.MtInvalidSigners),
+			PubKeysBitmap: []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 	})
@@ -496,7 +531,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), AggregateSignature: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType:            int64(bls.MtInvalidSigners),
+			AggregateSignature: []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 	})
@@ -507,7 +545,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), LeaderSignature: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType:         int64(bls.MtInvalidSigners),
+			LeaderSignature: []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 	})
@@ -518,7 +559,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithInvalidSigners(t
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-		cnsMsg := &consensus.Message{MsgType: int64(bls.MtInvalidSigners), InvalidSigners: []byte("1")}
+		cnsMsg := &consensus.Message{
+			MsgType:        int64(bls.MtInvalidSigners),
+			InvalidSigners: []byte("1"),
+		}
 		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 		assert.Nil(t, err)
 	})
@@ -530,7 +574,10 @@ func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *te
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtUnknown), Header: []byte("1")}
+	cnsMsg := &consensus.Message{
+		MsgType: int64(bls.MtUnknown),
+		Header:  []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessageType))
 }
@@ -541,7 +588,10 @@ func TestIsHeaderHashSizeValid_NotValid(t *testing.T) {
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), HeaderHash: []byte("hash")}
+	cnsMsg := &consensus.Message{
+		MsgType:    int64(bls.MtBlockBody),
+		HeaderHash: []byte("hash"),
+	}
 	result := cmv.IsHeaderHashSizeValid(cnsMsg)
 	assert.False(t, result)
 }
@@ -554,7 +604,10 @@ func TestIsHeaderHashSizeValid(t *testing.T) {
 
 	headerHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(headerHash)
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), HeaderHash: headerHash}
+	cnsMsg := &consensus.Message{
+		MsgType:    int64(bls.MtBlockHeader),
+		HeaderHash: headerHash,
+	}
 	result := cmv.IsHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 }
@@ -568,19 +621,28 @@ func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: []byte("hash")}
+	cnsMsg := &consensus.Message{
+		MsgType:             int64(bls.MtBlockBody),
+		ProcessedHeaderHash: []byte("hash"),
+	}
 	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.False(t, result)
 
 	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize-1)
 	_, _ = rand.Read(processedHeaderHash)
-	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	cnsMsg = &consensus.Message{
+		MsgType:             int64(bls.MtSignature),
+		ProcessedHeaderHash: processedHeaderHash,
+	}
 	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.False(t, result)
 
 	processedHeaderHash = make([]byte, consensusMessageValidatorArgs.HeaderHashSize+1)
 	_, _ = rand.Read(processedHeaderHash)
-	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	cnsMsg = &consensus.Message{
+		MsgType:             int64(bls.MtSignature),
+		ProcessedHeaderHash: processedHeaderHash,
+	}
 	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.False(t, result)
 }
@@ -594,13 +656,19 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsNotEn
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: nil}
+	cnsMsg := &consensus.Message{
+		MsgType:             int64(bls.MtSignature),
+		ProcessedHeaderHash: nil,
+	}
 	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 
 	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(processedHeaderHash)
-	cnsMsg = &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: processedHeaderHash}
+	cnsMsg = &consensus.Message{
+		MsgType:             int64(bls.MtBlockBody),
+		ProcessedHeaderHash: processedHeaderHash,
+	}
 	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 }
@@ -614,13 +682,19 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsEnabl
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), ProcessedHeaderHash: nil}
+	cnsMsg := &consensus.Message{
+		MsgType:             int64(bls.MtBlockBody),
+		ProcessedHeaderHash: nil,
+	}
 	result := cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 
 	processedHeaderHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(processedHeaderHash)
-	cnsMsg = &consensus.Message{MsgType: int64(bls.MtSignature), ProcessedHeaderHash: processedHeaderHash}
+	cnsMsg = &consensus.Message{
+		MsgType:             int64(bls.MtSignature),
+		ProcessedHeaderHash: processedHeaderHash,
+	}
 	result = cmv.IsProcessedHeaderHashSizeValid(cnsMsg)
 	assert.True(t, result)
 }
@@ -631,7 +705,11 @@ func TestCheckConsensusMessageValidity_InvalidMessage(t *testing.T) {
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
-	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), SignatureShare: []byte("1")}
+	cnsMsg := &consensus.Message{
+		ChainID:        chainID,
+		MsgType:        int64(bls.MtBlockBodyAndHeader),
+		SignatureShare: []byte("1"),
+	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -644,7 +722,11 @@ func TestCheckConsensusMessageValidity_InvalidHeaderHashSize(t *testing.T) {
 
 	headerBytes := make([]byte, 100)
 	_, _ = rand.Read(headerBytes)
-	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes}
+	cnsMsg := &consensus.Message{
+		ChainID: chainID,
+		MsgType: int64(bls.MtBlockBodyAndHeader),
+		Header:  headerBytes,
+	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderHashSize))
 }
@@ -659,7 +741,12 @@ func TestCheckConsensusMessageValidity_InvalidPublicKeySize(t *testing.T) {
 	_, _ = rand.Read(headerBytes)
 	headerHash := make([]byte, consensusMessageValidatorArgs.HeaderHashSize)
 	_, _ = rand.Read(headerHash)
-	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, HeaderHash: headerHash}
+	cnsMsg := &consensus.Message{
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidPublicKeySize))
 }
@@ -678,7 +765,11 @@ func TestCheckConsensusMessageValidity_InvalidSignatureSize(t *testing.T) {
 	_, _ = rand.Read(pubKey)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
@@ -700,8 +791,12 @@ func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
+		Signature:  sig,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrNodeIsNotInEligibleList))
@@ -722,8 +817,13 @@ func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
+		Signature:  sig,
+		RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
@@ -745,8 +845,13 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
+		Signature:  sig,
+		RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
@@ -839,8 +944,13 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
+		Signature:  sig,
+		RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
@@ -862,8 +972,13 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
-		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, HeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+		ChainID:    chainID,
+		MsgType:    int64(bls.MtBlockBodyAndHeader),
+		Header:     headerBytes,
+		HeaderHash: headerHash,
+		PubKey:     pubKey,
+		Signature:  sig,
+		RoundIndex: 10,
 	}
 	err := cmv.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.Nil(t, err)

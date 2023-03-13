@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.SubroundSignature {
+func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock, enableEpochHandler common.EnableEpochsHandler) bls.SubroundSignature {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -34,7 +35,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		enableEpochHandler,
 	)
 
 	srSignature, _ := bls.NewSubroundSignature(
@@ -47,7 +48,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 
 func initSubroundSignature() bls.SubroundSignature {
 	container := mock.InitConsensusCore()
-	return initSubroundSignatureWithContainer(container)
+	return initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.T) {
@@ -266,7 +267,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 
 	sr.Header = &block.Header{}
 	sr.Data = nil
@@ -379,7 +380,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	container.SetSigningHandler(signingHandler)
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.Header = &block.Header{}
 
 	signature := []byte("signature")
@@ -504,7 +505,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenNotAllS
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -520,7 +521,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenAllSigna
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -536,7 +537,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughBu
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.WaitingAllSignaturesTimeOut = true
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -557,7 +558,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 			return false
 		},
 	})
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -578,7 +579,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 			return true
 		},
 	})
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := *initSubroundSignatureWithContainer(container, &testscommon.EnableEpochsHandlerStub{})
 	sr.WaitingAllSignaturesTimeOut = true
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -614,4 +615,39 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 	)
 
 	assert.False(t, sr.ReceivedSignature(cnsMsg))
+}
+
+func TestSubroundEndRound_GetProcessedHeaderHashInSubroundSignatureShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get processed header hash in subround signature with consensus model V1 should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+			IsConsensusModelV2EnabledField: false,
+		}
+
+		sr := *initSubroundSignatureWithContainer(container, enableEpochHandler)
+
+		sr.Data = []byte("X")
+		hdrHash := sr.GetProcessedHeaderHash()
+		assert.Nil(t, hdrHash)
+	})
+
+	t.Run("get processed header hash in subround signature with consensus model V2 should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+
+		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+			IsConsensusModelV2EnabledField: true,
+		}
+		sr := *initSubroundSignatureWithContainer(container, enableEpochHandler)
+
+		sr.Data = []byte("X")
+		hdrHash := sr.GetProcessedHeaderHash()
+		assert.Equal(t, sr.Data, hdrHash)
+	})
 }

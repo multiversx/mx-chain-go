@@ -21,7 +21,6 @@ type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
 	displayStatistics             func()
-	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
 	getMessageToVerifySigFunc     func() []byte
 }
@@ -44,7 +43,6 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		displayStatistics,
-		baseSubround.AppStatusHandler(),
 		sync.Mutex{},
 		nil,
 	}
@@ -814,8 +812,8 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
+	sr.AppStatusHandler().Increment(common.MetricCountAcceptedBlocks)
+	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
