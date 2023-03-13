@@ -157,8 +157,8 @@ func (n *Node) GetConsensusGroupSize() int {
 func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return big.NewInt(0), adaptedBlockInfo, nil
 		}
 
@@ -172,8 +172,8 @@ func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big
 func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return "", adaptedBlockInfo, nil
 		}
 
@@ -188,8 +188,8 @@ func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (str
 func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return make([]byte, 0), adaptedBlockInfo, nil
 		}
 
@@ -286,8 +286,8 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return make(map[string]string), adaptedBlockInfo, nil
 		}
 
@@ -345,8 +345,8 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return "", adaptedBlockInfo, nil
 		}
 
@@ -366,8 +366,8 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
 	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return &esdt.ESDigitalToken{
 				Value: big.NewInt(0),
 			}, adaptedBlockInfo, nil
@@ -538,8 +538,8 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
 	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return make(map[string]*esdt.ESDigitalToken), adaptedBlockInfo, nil
 		}
 
@@ -870,8 +870,8 @@ func (n *Node) CreateTransaction(
 func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
-		if adaptErr == nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
 			return api.AccountResponse{
 				Address:         address,
 				Balance:         "0",
@@ -901,19 +901,21 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 	}, blockInfo, nil
 }
 
-func adaptBlockInfoIfError(err error) (api.BlockInfo, error) {
+func extractBlockInfoIfNewAccount(err error) (api.BlockInfo, bool) {
 	if err == nil {
-		return api.BlockInfo{}, nil
+		return api.BlockInfo{}, true
 	}
 
 	apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
 	if ok {
-		return apiBlockInfo, nil
+		return apiBlockInfo, true
 	}
+	// we need this check since (in some situations) this error is also returned when a nil account handler is passed (empty account)
 	if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-		return api.BlockInfo{}, nil
+		return api.BlockInfo{}, true
 	}
-	return api.BlockInfo{}, err
+
+	return api.BlockInfo{}, false
 }
 
 // GetCode returns the code for the given code hash

@@ -65,7 +65,7 @@ import (
 type testBlockInfo struct {
 }
 
-func (t testBlockInfo) asApiResult() api.BlockInfo {
+func (t testBlockInfo) apiResult() api.BlockInfo {
 	return api.BlockInfo{
 		Nonce:    37,
 		Hash:     hex.EncodeToString([]byte("hash")),
@@ -73,7 +73,7 @@ func (t testBlockInfo) asApiResult() api.BlockInfo {
 	}
 }
 
-func (t testBlockInfo) asForProcessing() common.BlockInfo {
+func (t testBlockInfo) forProcessing() common.BlockInfo {
 	hash := []byte("hash")
 	rHash := []byte("root")
 	return holders.NewBlockInfo(hash, 37, rHash)
@@ -216,7 +216,7 @@ func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -245,7 +245,7 @@ func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	balance, bInfo, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Empty(t, balance)
 }
 
@@ -318,7 +318,7 @@ func TestNode_GetCodeHashAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -347,7 +347,7 @@ func TestNode_GetCodeHashAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	codeHash, bInfo, err := n.GetCodeHash("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th", api.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Empty(t, codeHash)
 }
 
@@ -389,7 +389,7 @@ func TestNode_GetKeyValuePairsAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -418,7 +418,7 @@ func TestNode_GetKeyValuePairsAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	pairs, bInfo, err := n.GetKeyValuePairs(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Len(t, pairs, 0)
 }
 
@@ -607,7 +607,7 @@ func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -636,7 +636,7 @@ func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	value, bInfo, err := n.GetValueForKey(testscommon.TestAddressAlice, "0a0a", api.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Empty(t, value)
 }
 
@@ -689,7 +689,7 @@ func TestNode_GetESDTDataAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -718,7 +718,7 @@ func TestNode_GetESDTDataAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	esdtTokenData, bInfo, err := n.GetESDTData(testscommon.TestAddressAlice, esdtToken, 0, api.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Equal(t, "0", esdtTokenData.Value.String())
 }
 
@@ -1003,7 +1003,7 @@ func TestNode_GetAllESDTsAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -1032,7 +1032,7 @@ func TestNode_GetAllESDTsAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	tokens, bInfo, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Len(t, tokens, 0)
 }
 
@@ -3195,7 +3195,7 @@ func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	accDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
-			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.asForProcessing())
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
 		RecreateTrieCalled: func(_ []byte) error {
 			return nil
@@ -3224,7 +3224,7 @@ func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
 
 	acc, bInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.Equal(t, dummyBlockInfo.asApiResult(), bInfo)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Equal(t, api.AccountResponse{Address: testscommon.TestAddressAlice, Balance: "0", DeveloperReward: "0"}, acc)
 }
 
