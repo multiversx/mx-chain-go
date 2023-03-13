@@ -47,6 +47,15 @@ type shuffleNodesArg struct {
 	flagStakingV4Step3      bool
 }
 
+type shuffledNodesStakingV4 struct {
+	numShuffled        uint32
+	numNewEligible     uint32
+	numNewWaiting      uint32
+	numSelectedAuction uint32
+	maxNumNodes        uint32
+	flagStakingV4Step2 bool
+}
+
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
 type randHashShuffler struct {
 	// TODO: remove the references to this constant and the distributor
@@ -285,30 +294,6 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
-	numShuffled := getNumPubKeys(shuffledOutMap)
-	numNewEligible := getNumPubKeys(newEligible)
-	numNewWaiting := getNumPubKeys(newWaiting)
-
-	numSelectedAuction := uint32(len(arg.auction))
-	totalNewWaiting := numNewWaiting + numSelectedAuction
-
-	totalNodes := totalNewWaiting + numNewEligible + numShuffled
-	maxNumNodes := arg.maxNumNodes
-
-	distributeShuffledToWaitingInStakingV4 := false
-	if totalNodes <= maxNumNodes {
-		log.Warn("num of total nodes in waiting is too low after shuffling; will distribute "+
-			"shuffled out nodes directly to waiting and skip sending them to auction",
-			"numShuffled", numShuffled,
-			"numNewEligible", numNewEligible,
-			"numSelectedAuction", numSelectedAuction,
-			"totalNewWaiting", totalNewWaiting,
-			"totalNodes", totalNodes,
-			"maxNumNodes", maxNumNodes)
-
-		distributeShuffledToWaitingInStakingV4 = arg.flagStakingV4Step2
-	}
-
 	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
@@ -319,9 +304,18 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
+	shuffledNodesCfg := &shuffledNodesStakingV4{
+		numShuffled:        getNumPubKeys(shuffledOutMap),
+		numNewEligible:     getNumPubKeys(newEligible),
+		numNewWaiting:      getNumPubKeys(newWaiting),
+		numSelectedAuction: uint32(len(arg.auction)),
+		maxNumNodes:        arg.maxNumNodes,
+		flagStakingV4Step2: arg.flagStakingV4Step2,
+	}
+
 	if arg.flagStakingV4Step3 {
 		log.Debug("distributing selected nodes from auction to waiting",
-			"num auction nodes", len(arg.auction), "num waiting nodes", numNewWaiting)
+			"num auction nodes", len(arg.auction), "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute selected validators from AUCTION -> WAITING
 		err = distributeValidators(newWaiting, arg.auction, arg.randomness, false)
@@ -330,9 +324,9 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		}
 	}
 
-	if distributeShuffledToWaitingInStakingV4 {
+	if shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg) {
 		log.Debug("distributing shuffled out nodes to waiting in staking V4",
-			"num shuffled nodes", numShuffled, "num waiting nodes", numNewWaiting)
+			"num shuffled nodes", shuffledNodesCfg.numShuffled, "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute validators from SHUFFLED OUT -> WAITING
 		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
@@ -593,6 +587,34 @@ func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 
 	validatorList[index] = validatorList[len(validatorList)-1]
 	return validatorList[:len(validatorList)-1]
+}
+
+func shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg *shuffledNodesStakingV4) bool {
+	if !shuffledNodesCfg.flagStakingV4Step2 {
+		return false
+	}
+
+	totalNewWaiting := shuffledNodesCfg.numNewWaiting + shuffledNodesCfg.numSelectedAuction
+	totalNodes := totalNewWaiting + shuffledNodesCfg.numNewEligible + shuffledNodesCfg.numShuffled
+
+	log.Debug("checking if should distribute shuffled out nodes to waiting in staking v4",
+		"numShuffled", shuffledNodesCfg.numShuffled,
+		"numNewEligible", shuffledNodesCfg.numNewEligible,
+		"numSelectedAuction", shuffledNodesCfg.numSelectedAuction,
+		"totalNewWaiting", totalNewWaiting,
+		"totalNodes", totalNodes,
+		"maxNumNodes", shuffledNodesCfg.maxNumNodes,
+	)
+
+	distributeShuffledToWaitingInStakingV4 := false
+	if totalNodes <= shuffledNodesCfg.maxNumNodes {
+		log.Warn("num of total nodes in waiting is too low after shuffling; will distribute " +
+			"shuffled out nodes directly to waiting and skip sending them to auction")
+
+		distributeShuffledToWaitingInStakingV4 = true
+	}
+
+	return distributeShuffledToWaitingInStakingV4
 }
 
 func removeValidatorFromListKeepOrder(validatorList []Validator, index int) []Validator {
