@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 var _ NodesShuffler = (*randHashShuffler)(nil)
@@ -47,7 +48,7 @@ type shuffleNodesArg struct {
 	flagStakingV4Step3      bool
 }
 
-type shuffledNodesStakingV4 struct {
+type shuffledNodesConfig struct {
 	numShuffled        uint32
 	numNewEligible     uint32
 	numNewWaiting      uint32
@@ -299,12 +300,12 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		log.Warn("moveNodesToMap failed", "error", err)
 	}
 
-	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness, false)
+	err = checkAndDistributeNewNodes(newWaiting, arg.newNodes, arg.randomness, arg.flagStakingV4Step3)
 	if err != nil {
-		log.Warn("distributeValidators newNodes failed", "error", err)
+		return nil, fmt.Errorf("distributeValidators newNodes failed, error: %w", err)
 	}
 
-	shuffledNodesCfg := &shuffledNodesStakingV4{
+	shuffledNodesCfg := &shuffledNodesConfig{
 		numShuffled:        getNumPubKeys(shuffledOutMap),
 		numNewEligible:     getNumPubKeys(newEligible),
 		numNewWaiting:      getNumPubKeys(newWaiting),
@@ -318,28 +319,20 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 			"num auction nodes", len(arg.auction), "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute selected validators from AUCTION -> WAITING
-		err = distributeValidators(newWaiting, arg.auction, arg.randomness, false)
+		err = distributeValidators(newWaiting, arg.auction, arg.randomness, arg.flagBalanceWaitingLists)
 		if err != nil {
-			log.Warn("distributeValidators auction list failed", "error", err)
+			return nil, fmt.Errorf("distributeValidators auction list failed, error: %w", err)
 		}
 	}
 
-	if shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg) {
-		log.Debug("distributing shuffled out nodes to waiting in staking V4",
+	if shouldDistributeShuffledToWaiting(shuffledNodesCfg) {
+		log.Debug("distributing shuffled out nodes to waiting",
 			"num shuffled nodes", shuffledNodesCfg.numShuffled, "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
 		// Distribute validators from SHUFFLED OUT -> WAITING
 		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
 		if err != nil {
-			log.Warn("distributeValidators shuffledOut failed", "error", err)
-		}
-	}
-
-	if !arg.flagStakingV4Step2 {
-		// Distribute validators from SHUFFLED OUT -> WAITING
-		err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists)
-		if err != nil {
-			log.Warn("distributeValidators shuffledOut failed", "error", err)
+			return nil, fmt.Errorf("distributeValidators shuffled out failed, error: %w", err)
 		}
 	}
 
@@ -589,9 +582,26 @@ func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 	return validatorList[:len(validatorList)-1]
 }
 
-func shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg *shuffledNodesStakingV4) bool {
+func checkAndDistributeNewNodes(
+	waiting map[uint32][]Validator,
+	newNodes []Validator,
+	randomness []byte,
+	flagStakingV4Step3 bool,
+) error {
+	if !flagStakingV4Step3 {
+		return distributeValidators(waiting, newNodes, randomness, false)
+	}
+
+	if len(newNodes) > 0 {
+		return epochStart.ErrReceivedNewListNodeInStakingV4
+	}
+
+	return nil
+}
+
+func shouldDistributeShuffledToWaiting(shuffledNodesCfg *shuffledNodesConfig) bool {
 	if !shuffledNodesCfg.flagStakingV4Step2 {
-		return false
+		return true
 	}
 
 	totalNewWaiting := shuffledNodesCfg.numNewWaiting + shuffledNodesCfg.numSelectedAuction

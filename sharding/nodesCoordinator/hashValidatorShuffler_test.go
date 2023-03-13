@@ -14,6 +14,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2429,6 +2430,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochs:         config.EnableEpochs{StakingV4Step3EnableEpoch: stakingV4Epoch},
 	}
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
@@ -2490,6 +2492,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *test
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		EnableEpochs:         config.EnableEpochs{StakingV4Step3EnableEpoch: stakingV4Epoch},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
@@ -2566,20 +2569,17 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 	t.Parallel()
 
 	numEligiblePerShard := 100
-	numNewNodesPerShard := 100
 	numWaitingPerShard := 30
 	numAuction := 40
 	nbShards := uint32(2)
 
 	eligibleMap := generateValidatorMap(numEligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(numWaitingPerShard, nbShards)
-	newNodes := generateValidatorList(numNewNodesPerShard * (int(nbShards) + 1))
 	auctionList := generateValidatorList(numAuction)
 
 	args := ArgsUpdateNodes{
 		Eligible:          eligibleMap,
 		Waiting:           waitingMap,
-		NewNodes:          newNodes,
 		UnStakeLeaving:    make([]Validator, 0),
 		AdditionalLeaving: make([]Validator, 0),
 		Rand:              generateRandomByteArray(32),
@@ -2591,11 +2591,6 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 	shuffler, _ := createHashShufflerIntraShards()
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
-
-	for _, newNode := range args.NewNodes {
-		found, _ := searchInMap(resUpdateNodeList.Waiting, newNode.PubKey())
-		assert.True(t, found)
-	}
 
 	for _, auctionNode := range args.Auction {
 		found, _ := searchInMap(resUpdateNodeList.Waiting, auctionNode.PubKey())
@@ -2611,9 +2606,14 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
 	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
 
-	previousNumberOfNodes := (numEligiblePerShard+numWaitingPerShard+numNewNodesPerShard)*(int(nbShards)+1) + numAuction
+	previousNumberOfNodes := (numEligiblePerShard+numWaitingPerShard)*(int(nbShards)+1) + numAuction
 	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(allShuffledOut)
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
+
+	args.NewNodes = generateValidatorList(100 * (int(nbShards) + 1))
+	resUpdateNodeList, err = shuffler.UpdateNodeLists(args)
+	require.ErrorIs(t, err, epochStart.ErrReceivedNewListNodeInStakingV4)
+	require.Nil(t, resUpdateNodeList)
 }
 
 func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t *testing.T) {
