@@ -157,13 +157,11 @@ func (n *Node) GetConsensusGroupSize() int {
 func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
-		if ok {
-			return big.NewInt(0), apiBlockInfo, nil
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return big.NewInt(0), adaptedBlockInfo, nil
 		}
-		if err == ErrCannotCastAccountHandlerToUserAccountHandler {
-			return big.NewInt(0), api.BlockInfo{}, nil
-		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -174,6 +172,11 @@ func (n *Node) GetBalance(address string, options api.AccountQueryOptions) (*big
 func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return "", adaptedBlockInfo, nil
+		}
+
 		return "", api.BlockInfo{}, err
 	}
 
@@ -185,6 +188,11 @@ func (n *Node) GetUsername(address string, options api.AccountQueryOptions) (str
 func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return make([]byte, 0), adaptedBlockInfo, nil
+		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -200,6 +208,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
+		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
 		return nil, err
 	}
 
@@ -277,6 +286,11 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return make(map[string]string), adaptedBlockInfo, nil
+		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -331,6 +345,11 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return "", adaptedBlockInfo, nil
+		}
+
 		return "", api.BlockInfo{}, err
 	}
 
@@ -347,6 +366,13 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
 	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return &esdt.ESDigitalToken{
+				Value: big.NewInt(0),
+			}, adaptedBlockInfo, nil
+		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -512,6 +538,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
 	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
+			return make(map[string]*esdt.ESDigitalToken), adaptedBlockInfo, nil
+		}
+
 		return nil, api.BlockInfo{}, err
 	}
 
@@ -839,13 +870,13 @@ func (n *Node) CreateTransaction(
 func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
-		apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
-		if ok {
+		adaptedBlockInfo, adaptErr := adaptBlockInfoIfError(err)
+		if adaptErr == nil {
 			return api.AccountResponse{
 				Address:         address,
 				Balance:         "0",
 				DeveloperReward: "0",
-			}, apiBlockInfo, nil
+			}, adaptedBlockInfo, nil
 		}
 
 		return api.AccountResponse{}, api.BlockInfo{}, err
@@ -868,6 +899,21 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 		DeveloperReward: account.GetDeveloperReward().String(),
 		OwnerAddress:    ownerAddress,
 	}, blockInfo, nil
+}
+
+func adaptBlockInfoIfError(err error) (api.BlockInfo, error) {
+	if err == nil {
+		return api.BlockInfo{}, nil
+	}
+
+	apiBlockInfo, ok := extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+	if ok {
+		return apiBlockInfo, nil
+	}
+	if err == ErrCannotCastAccountHandlerToUserAccountHandler {
+		return api.BlockInfo{}, nil
+	}
+	return api.BlockInfo{}, err
 }
 
 // GetCode returns the code for the given code hash
