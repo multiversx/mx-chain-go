@@ -297,7 +297,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
-		log.Warn("moveNodesToMap failed", "error", err)
+		return nil, fmt.Errorf("moveNodesToMap failed, error: %w", err)
 	}
 
 	err = checkAndDistributeNewNodes(newWaiting, arg.newNodes, arg.randomness, arg.flagStakingV4Step3)
