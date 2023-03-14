@@ -146,7 +146,6 @@ func TestVmSCDeployFactory(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
-// TODO remove this while processor V1 is deprecated
 func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)

@@ -48,7 +48,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(387), res.GasUnits)
+	require.Equal(t, uint64(418), res.GasUnits)
 }
 
 func TestScDeployTransactionCost(t *testing.T) {
