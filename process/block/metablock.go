@@ -617,9 +617,11 @@ func (mp *metaProcessor) indexBlock(
 		HeaderHash:             headerHash,
 		Header:                 metaBlock,
 		Body:                   body,
+		PreviousHeader:         lastMetaBlock,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		PreviousHeader:         lastMetaBlock,
+		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
+		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())

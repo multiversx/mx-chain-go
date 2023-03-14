@@ -17,6 +17,20 @@ var errNilHeaderHandler = errors.New("nil header handler")
 // errNilBodyHandler signal that provided body handler is nil
 var errNilBodyHandler = errors.New("nil body handler")
 
+var errCannotCastBlockBody = errors.New("cannot cast block body")
+
+var errInvalidHeaderType = errors.New("received invalid/unknown header type")
+
+var errCannotCastTransaction = errors.New("cannot cast transaction")
+
+var errCannotCastSCR = errors.New("cannot cast smart contract result")
+
+var errCannotCastReward = errors.New("cannot cast reward transaction")
+
+var errCannotCastReceipt = errors.New("cannot cast receipt transaction")
+
+var errCannotCastEvent = errors.New("cannot cast event")
+
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher provided")
 
