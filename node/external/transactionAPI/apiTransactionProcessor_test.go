@@ -809,6 +809,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
+		},
 		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
 			return string(pkBytes)
 		},

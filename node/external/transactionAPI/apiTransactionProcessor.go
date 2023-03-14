@@ -318,9 +318,13 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
 	}
 
-	tx.TxFields[senderField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+	if requestedFieldsHandler.HasSender {
+		tx.TxFields[senderField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+	}
 
-	tx.TxFields[receiverField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+	if requestedFieldsHandler.HasReceiver {
+		tx.TxFields[receiverField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+	}
 
 	if requestedFieldsHandler.HasGasLimit {
 		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
