@@ -9,13 +9,13 @@ import (
 type OutportDataProviderStub struct {
 	PrepareOutportSaveBlockDataCalled func(
 		arg process.ArgPrepareOutportSaveBlockData,
-	) (*outportcore.ArgsSaveBlockData, error)
+	) (*outportcore.OutportBlock, error)
 }
 
 // PrepareOutportSaveBlockData -
 func (a *OutportDataProviderStub) PrepareOutportSaveBlockData(
 	arg process.ArgPrepareOutportSaveBlockData,
-) (*outportcore.ArgsSaveBlockData, error) {
+) (*outportcore.OutportBlock, error) {
 	if a.PrepareOutportSaveBlockDataCalled != nil {
 		return a.PrepareOutportSaveBlockDataCalled(arg)
 	}
