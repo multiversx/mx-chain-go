@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // MockStatistics -
@@ -25,5 +25,5 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats -
-func (m *MockStatistics) AddTrieStats(_ *statistics.TrieStatsDTO) {
+func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler) {
 }

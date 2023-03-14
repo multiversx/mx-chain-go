@@ -48,7 +48,7 @@ func (ss *snapshotStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats adds the given trie stats to the snapshot statistics
-func (ss *snapshotStatistics) AddTrieStats(trieStats *statistics.TrieStatsDTO) {
+func (ss *snapshotStatistics) AddTrieStats(trieStats common.TrieStatisticsHandler) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 

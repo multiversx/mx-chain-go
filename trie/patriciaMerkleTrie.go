@@ -651,7 +651,7 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 }
 
 // GetTrieStats will collect and return the statistics for the given rootHash
-func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error) {
+func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (common.TrieStatisticsHandler, error) {
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		return nil, err
@@ -664,7 +664,7 @@ func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (*st
 	}
 	ts.AddAccountInfo(address, rootHash)
 
-	return ts.GetTrieStats(), nil
+	return ts, nil
 }
 
 // CollectLeavesForMigration will collect trie leaves that need to be migrated. The leaves are collected in the trieMigrator.

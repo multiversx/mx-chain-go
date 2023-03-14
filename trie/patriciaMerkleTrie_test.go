@@ -973,14 +973,11 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
-	assert.Equal(t, rootHash, stats.RootHash)
-	assert.Equal(t, address, stats.Address)
-
-	assert.Equal(t, uint64(2), stats.NumBranchNodes)
-	assert.Equal(t, uint64(1), stats.NumExtensionNodes)
-	assert.Equal(t, uint64(3), stats.NumLeafNodes)
-	assert.Equal(t, uint64(6), stats.TotalNumNodes)
-	assert.Equal(t, uint32(3), stats.MaxTrieDepth)
+	assert.Equal(t, uint64(2), stats.GetNumBranchNodes())
+	assert.Equal(t, uint64(1), stats.GetNumExtensionNodes())
+	assert.Equal(t, uint64(3), stats.GetNumLeafNodes())
+	assert.Equal(t, uint64(6), stats.GetTotalNumNodes())
+	assert.Equal(t, uint32(3), stats.GetMaxTrieDepth())
 }
 
 func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
