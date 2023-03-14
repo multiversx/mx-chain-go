@@ -318,6 +318,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
 	GetAddressesBulkMaxSize            uint32
+	VmQueryDelayAfterStartInSec        uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
