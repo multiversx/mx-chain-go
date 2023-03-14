@@ -17,9 +17,7 @@ import (
 )
 
 func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this is not relevant as this branch is only vm1.5")
 
 	vmConfig := &config.VirtualMachineConfig{
 		WasmVMVersions: []config.WasmVMVersionByEpoch{

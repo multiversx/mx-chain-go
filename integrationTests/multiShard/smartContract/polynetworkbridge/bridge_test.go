@@ -19,9 +19,7 @@ import (
 )
 
 func TestBridgeSetupAndBurn(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this is not relevant for v1.5 - contracts too old")
 
 	numOfShards := 1
 	nodesPerShard := 1
