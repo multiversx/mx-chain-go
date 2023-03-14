@@ -231,7 +231,7 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
-	err := sp.ProcessBlock(nil, body, haveTime)
+	_, _, err := sp.ProcessBlock(nil, body, haveTime)
 
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
@@ -242,7 +242,7 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
-	err := sp.ProcessBlock(&block.Header{}, nil, haveTime)
+	_, _, err := sp.ProcessBlock(&block.Header{}, nil, haveTime)
 
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
@@ -254,7 +254,7 @@ func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	blk := &block.Body{}
-	err := sp.ProcessBlock(&block.Header{}, blk, nil)
+	_, _, err := sp.ProcessBlock(&block.Header{}, blk, nil)
 
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
@@ -295,7 +295,7 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
-	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
@@ -323,7 +323,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		RevertToSnapshotCalled: revToSnapshot,
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
@@ -376,7 +376,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
@@ -498,7 +498,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err = sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err = sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
 
@@ -518,7 +518,7 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		RootHash:      []byte("root hash"),
 	}
 	body := &block.Body{}
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -538,7 +538,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		RootHash:      []byte("root hash"),
 	}
 	body := &block.Body{}
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(hdr, body, haveTime)
 
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -579,7 +579,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		RootHash:      []byte("root hash"),
 	}
 	body := &block.Body{}
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
@@ -731,7 +731,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err2 := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err2 := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err2)
 	assert.True(t, wasCalled)
 }
@@ -819,7 +819,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
 }
@@ -899,7 +899,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
 }
@@ -980,7 +980,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrCrossShardMBWithoutConfirmationFromMeta, err)
 	assert.False(t, wasCalled)
 }
@@ -1062,7 +1062,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrCrossShardMBWithoutConfirmationFromMeta, err)
 	assert.False(t, wasCalled)
 }
@@ -1126,7 +1126,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	}
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTimeLessThanZero)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTimeLessThanZero)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -1207,7 +1207,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -1268,7 +1268,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
@@ -1653,7 +1653,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	err := sp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(&hdr, body, haveTime)
 
 	meta = &block.MetaBlock{
 		Nonce:        2,
@@ -2132,7 +2132,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	err = sp.SetProcessDebugger(debugger)
 	assert.Nil(t, err)
 
-	err = sp.ProcessBlock(hdr, body, haveTime)
+	_, _, err = sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
@@ -2250,7 +2250,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	err := sp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)

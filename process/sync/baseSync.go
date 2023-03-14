@@ -123,6 +123,7 @@ type baseBootstrap struct {
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processWaitTime              time.Duration
+	processAndCommitFunc         func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -643,8 +644,23 @@ func (boot *baseBootstrap) syncBlock() error {
 		return waitTime - time.Since(startTime)
 	}
 
+	err = boot.processAndCommitFunc(header, body, haveTime)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("block has been synced successfully",
+		"nonce", header.GetNonce(),
+	)
+
+	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+
+	return nil
+}
+
+func (boot *baseBootstrap) processAndCommit(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	startProcessBlockTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
+	_, _, err := boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -673,17 +689,8 @@ func (boot *baseBootstrap) syncBlock() error {
 			"time [s]", elapsedTime,
 		)
 	}
-	if err != nil {
-		return err
-	}
 
-	log.Debug("block has been synced successfully",
-		"nonce", header.GetNonce(),
-	)
-
-	boot.cleanNoncesSyncedWithErrorsBehindFinal()
-
-	return nil
+	return err
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {

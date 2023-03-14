@@ -51,6 +51,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
+	ConsensusModel        consensus.ConsensusModel
 }
 
 type consensusComponentsFactory struct {
@@ -67,6 +68,7 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
+	consensusModel        consensus.ConsensusModel
 }
 
 type consensusComponents struct {
@@ -123,6 +125,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
+		consensusModel:        args.ConsensusModel,
 	}, nil
 }
 
@@ -225,6 +228,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
+		EnableEpochHandler:       ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -291,6 +295,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
+		ccf.consensusModel,
+		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -429,7 +435,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return ccf.createShardBootstrapper()
+		return ccf.createShardStorageAndSyncBootstrapper()
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -439,7 +445,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 	return nil, sharding.ErrShardIdOutOfRange
 }
 
-func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
+func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -461,11 +467,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
-	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
-		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-	}
-
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
+	shardStorageBootstrapper, err := ccf.createShardStorageBootstrapper(argsBaseStorageBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -505,16 +507,23 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 	}
 
+	return ccf.createShardSyncBootstrapper(argsBaseBootstrapper)
+}
+
+func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseStorageBootstrapper storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	return storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
+}
+
+func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 	}
 
-	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	return bootstrap, nil
+	return sync.NewShardBootstrap(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {

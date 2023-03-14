@@ -102,19 +102,34 @@ func (fct *factory) GenerateStartRoundSubround() error {
 	return fct.generateStartRoundSubround()
 }
 
-// GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
-func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+// GenerateBlockSubroundV1 generates the instance of subround Block V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateBlockSubroundV1() error {
+	return fct.generateBlockSubroundV1()
 }
 
-// GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
-func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+// GenerateBlockSubroundV2 generates the instance of subround Block V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateBlockSubroundV2() error {
+	return fct.generateBlockSubroundV2()
 }
 
-// GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
-func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+// GenerateSignatureSubroundV1 generates the instance of subround Signature V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateSignatureSubroundV1() error {
+	return fct.generateSignatureSubroundV1()
+}
+
+// GenerateSignatureSubroundV2 generates the instance of subround Signature V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateSignatureSubroundV2() error {
+	return fct.generateSignatureSubroundV2()
+}
+
+// GenerateEndRoundSubroundV1 generates the instance of subround EndRound V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateEndRoundSubroundV1() error {
+	return fct.generateEndRoundSubroundV1()
+}
+
+// GenerateEndRoundSubroundV2 generates the instance of subround EndRound V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateEndRoundSubroundV2() error {
+	return fct.generateEndRoundSubroundV2()
 }
 
 // AppStatusHandler gets the app status handler object
@@ -164,6 +179,11 @@ func (sr *subroundBlock) BlockChain() data.ChainHandler {
 
 // DoBlockJob method does the job of the subround Block
 func (sr *subroundBlock) DoBlockJob() bool {
+	return sr.doBlockJob(context.Background())
+}
+
+// DoBlockJob method does the job of the subround Block
+func (sr *subroundBlockV2) DoBlockJob() bool {
 	return sr.doBlockJob(context.Background())
 }
 
@@ -245,6 +265,16 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 // AreSignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
 func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 	return sr.areSignaturesCollected(threshold)
+}
+
+// GetProcessedHeaderHash gets the processed header hash
+func (sr *subroundSignature) GetProcessedHeaderHash() []byte {
+	return sr.getProcessedHeaderHash()
+}
+
+// GetMessageToSign gets the message that should be signed
+func (sr *subroundSignatureV2) GetMessageToSign() []byte {
+	return sr.getMessageToSign()
 }
 
 // subroundEndRound
@@ -331,4 +361,24 @@ func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []by
 
 func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+}
+
+// GetHeaderHashToVerifySig gets header hash on which the signature should be verified
+func (sr *subroundEndRound) GetHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
+	return sr.getHeaderHashToVerifySig(cnsMsg)
+}
+
+// GenerateConsensusBitmap generates a bitmap in which each node will be marked with 1 if its job has been done
+func (sr *subroundEndRound) GenerateConsensusBitmap() []byte {
+	return sr.generateBitmap()
+}
+
+// GetProcessedHeaderHash gets the processed header hash
+func (sr *subroundEndRound) GetProcessedHeaderHash() []byte {
+	return sr.getProcessedHeaderHash()
+}
+
+// GetMessageToVerifySig gets the message on which the signature should be verified
+func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
+	return sr.getMessageToVerifySig()
 }

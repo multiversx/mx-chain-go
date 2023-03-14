@@ -615,7 +615,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.Body{}
 
-	err := mp.ProcessBlock(nil, blk, haveTime)
+	_, _, err := mp.ProcessBlock(nil, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
@@ -625,7 +625,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments(createMockComponentHolders())
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(&block.MetaBlock{}, nil, haveTime)
+	_, _, err := mp.ProcessBlock(&block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -636,7 +636,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.Body{}
 
-	err := mp.ProcessBlock(&block.MetaBlock{}, blk, nil)
+	_, _, err := mp.ProcessBlock(&block.MetaBlock{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
@@ -662,7 +662,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
 }
@@ -677,7 +677,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		Nonce: 2,
 	}
 	body := &block.Body{}
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -703,7 +703,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	}
 	body := &block.Body{}
 
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -731,7 +731,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 
 	body := &block.Body{}
 
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
@@ -777,7 +777,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	// should return err
 	mp.SetShardBlockFinality(0)
 	hdr.ShardInfo = make([]block.ShardData, 0)
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 
 	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
@@ -2585,7 +2585,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
@@ -2639,7 +2639,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -2759,7 +2759,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	headerHandler, _ := metaProcessor.CreateNewHeader(round, 1)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
-	_ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, _ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Equal(t, int64(2), checkRoundCt.Get())
 }
 
@@ -2865,7 +2865,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
 	require.Nil(t, err)
 
-	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 }
 
@@ -3037,7 +3037,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
 	busyIdleCalled = make([]string, 0)
-	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
