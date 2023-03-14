@@ -150,7 +150,11 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
-func (sp *shardProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+func (sp *shardProcessor) ProcessBlock(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
 		return nil, nil, process.ErrNilHaveTimeHandler
 	}

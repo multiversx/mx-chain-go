@@ -21,7 +21,6 @@ type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
 	displayStatistics             func()
-	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
 	getMessageToVerifySigFunc     func() []byte
 }
@@ -32,7 +31,6 @@ func NewSubroundEndRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	displayStatistics func(),
-	appStatusHandler core.AppStatusHandler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -45,7 +43,6 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		displayStatistics,
-		appStatusHandler,
 		sync.Mutex{},
 		nil,
 	}
@@ -94,7 +91,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 
@@ -181,7 +178,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.HeaderHash) {
 		return false
 	}
 
@@ -238,17 +235,26 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 		return err
 	}
 
-	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
+	headerHash := sr.getHeaderHashToVerifySig(cnsMsg)
+	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, headerHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
-			"blockHeaderHash", cnsMsg.BlockHeaderHash,
+			"headerHash", headerHash,
 			"error", err.Error(),
 		)
 		sr.applyBlacklistOnNode(msg.Peer())
 	}
 
 	return nil
+}
+
+func (sr *subroundEndRound) getHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		return cnsMsg.ProcessedHeaderHash
+	}
+
+	return cnsMsg.HeaderHash
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
@@ -283,7 +289,7 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.generateBitmap()
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.checkSignaturesValidity", "error", err.Error())
@@ -522,7 +528,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
 	}
 
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.generateBitmap()
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		return nil, nil, err
@@ -539,6 +545,15 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	}
 
 	return bitmap, sig, nil
+}
+
+func (sr *subroundEndRound) generateBitmap() []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		processedHeaderHash := sr.getMessageToVerifySigFunc()
+		return sr.GenerateBitmapForHash(SrSignature, processedHeaderHash)
+	}
+
+	return sr.GenerateBitmap(SrSignature)
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
@@ -563,6 +578,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetLeaderSignature(),
 		sr.GetAssociatedPid([]byte(leader)),
 		nil,
+		sr.getProcessedHeaderHash(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -593,6 +609,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sr.CurrentPid(),
 		invalidSigners,
+		sr.getProcessedHeaderHash(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -602,6 +619,14 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 	}
 
 	log.Debug("step 3: invalid signers info has been sent")
+}
+
+func (sr *subroundEndRound) getProcessedHeaderHash() []byte {
+	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		return sr.getMessageToVerifySigFunc()
+	}
+
+	return nil
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
@@ -787,8 +812,8 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
+	sr.AppStatusHandler().Increment(common.MetricCountAcceptedBlocks)
+	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
