@@ -35,7 +35,7 @@
         { Name = "/epoch-start/:epoch", Open = true },
 
         # /node/bootstrapstatus will return all metrics available during bootstrap
-        { Name = "/bootstrapstatus", Open = true }
+        { Name = "/bootstrapstatus", Open = true },
 
         # /node/peers-rating will return the peers' ratings
         { Name = "/peers-rating", Open = true }
