@@ -547,3 +547,6 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
+var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")

@@ -68,6 +68,7 @@ type networkComponents struct {
 	peerHonestyHandler     consensus.PeerHonestyHandler
 	peersHolder            factory.PreferredPeersHolderHandler
 	peersRatingHandler     p2p.PeersRatingHandler
+	peersRatingMonitor     p2p.PeersRatingMonitor
 	closeFunc              context.CancelFunc
 }
 
@@ -122,13 +123,18 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+	}
+	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
-		TopRatedCache:              topRatedCache,
-		BadRatedCache:              badRatedCache,
-		AppStatusHandler:           ncf.statusHandler,
-		TimeWaitingForReconnection: time.Duration(peersRatingCfg.TimeWaitingForReconnectionInSec) * time.Second,
-		TimeBetweenMetricsUpdate:   time.Duration(peersRatingCfg.TimeBetweenMetricsUpdateInSec) * time.Second,
-		TimeBetweenCachersSweep:    time.Duration(peersRatingCfg.TimeBetweenCachersSweepInSec) * time.Second,
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
 	}
 	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
@@ -227,6 +233,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peerHonestyHandler:     peerHonestyHandler,
 		peersHolder:            ph,
 		peersRatingHandler:     peersRatingHandler,
+		peersRatingMonitor:     peersRatingMonitor,
 		closeFunc:              cancelFunc,
 	}, nil
 }
@@ -260,9 +267,6 @@ func (nc *networkComponents) Close() error {
 	}
 	if !check.IfNil(nc.peerHonestyHandler) {
 		log.LogIfError(nc.peerHonestyHandler.Close())
-	}
-	if !check.IfNil(nc.peersRatingHandler) {
-		log.LogIfError(nc.peersRatingHandler.Close())
 	}
 
 	if nc.netMessenger != nil {
