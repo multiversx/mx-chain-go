@@ -1801,14 +1801,13 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 		}
 
 		scAddress := sc.pubkeyConv.SilentEncode(addr, log)
-
 		scGenerated = append(scGenerated, scAddress)
 	}
 
-	encodedSndAddr := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
+	ownerAddress := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
 
 	log.Debug("SmartContract deployed",
-		"owner", encodedSndAddr,
+		"owner", ownerAddress,
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
