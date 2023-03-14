@@ -37,6 +37,7 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		chainID,
 		currentPid,
 		appStatusHandler,
+		&testscommon.EnableEpochsHandlerStub{},
 	)
 }
 
@@ -505,6 +506,7 @@ func createConsensusMessage(header *block.Header, body *block.Body, leader []byt
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 }
 
@@ -529,6 +531,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	sr.Body = &block.Body{}
@@ -568,6 +571,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -595,7 +599,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr.Nonce = 1
 	hdrStr, _ = mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash = (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
-	cnsMsg.BlockHeaderHash = hdrHash
+	cnsMsg.HeaderHash = hdrHash
 	cnsMsg.Header = hdrStr
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.True(t, r)
@@ -619,6 +623,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
@@ -652,6 +657,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -679,6 +685,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	sr.Header = hdr
@@ -716,6 +723,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 			nil,
 			nil,
 			currentPid,
+			nil,
 			nil,
 		)
 		sr.Header = hdr
@@ -1062,9 +1070,9 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 	container := mock.InitConsensusCore()
 	receivedValue := uint64(0)
 	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
-		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, _ func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, _ func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 			time.Sleep(time.Duration(delay))
-			return hdr, bdy, nil
+			return header, body, nil
 		},
 	})
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{
@@ -1089,6 +1097,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 		nil,
 	)
 	sr.Header = hdr

@@ -181,7 +181,11 @@ func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bo
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
-func (mp *metaProcessor) ProcessBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+func (mp *metaProcessor) ProcessBlock(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
 		return nil, nil, process.ErrNilHaveTimeHandler
 	}
@@ -2203,6 +2207,20 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil
+}
+
+func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
+	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = mp.blockChain.GetGenesisHeader()
+		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
+	}
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	mp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {

@@ -41,6 +41,9 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
+	processedHeadersHashes    map[string][]int
+	mutProcessedHeadersHashes sync.RWMutex
+
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
@@ -72,6 +75,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 
 	cns.initReceivedHeaders()
 	cns.initReceivedMessagesWithSig()
+	cns.initProcessedHeadersHashes()
 
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
@@ -91,6 +95,12 @@ func (cns *ConsensusState) initReceivedMessagesWithSig() {
 	cns.mutReceivedMessagesWithSignature.Lock()
 	cns.receivedMessagesWithSignature = make(map[string]p2p.MessageP2P)
 	cns.mutReceivedMessagesWithSignature.Unlock()
+}
+
+func (cns *ConsensusState) initProcessedHeadersHashes() {
+	cns.mutProcessedHeadersHashes.Lock()
+	cns.processedHeadersHashes = make(map[string][]int)
+	cns.mutProcessedHeadersHashes.Unlock()
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -123,6 +133,22 @@ func (cns *ConsensusState) GetMessageWithSignature(key string) (p2p.MessageP2P, 
 
 	val, ok := cns.receivedMessagesWithSignature[key]
 	return val, ok
+}
+
+// AddProcessedHeadersHashes adds the index of node in the consensus group to the received list of processed headers hashes
+func (cns *ConsensusState) AddProcessedHeadersHashes(hash []byte, index int) {
+	cns.mutProcessedHeadersHashes.Lock()
+	cns.processedHeadersHashes[string(hash)] = append(cns.processedHeadersHashes[string(hash)], index)
+	cns.mutProcessedHeadersHashes.Unlock()
+}
+
+// GetProcessedHeaderHashIndexes gets the indexes of nodes in the consensus group, stored on the given processed header hash
+func (cns *ConsensusState) GetProcessedHeaderHashIndexes(hash []byte) ([]int, bool) {
+	cns.mutProcessedHeadersHashes.RLock()
+	defer cns.mutProcessedHeadersHashes.RUnlock()
+
+	indexes, ok := cns.processedHeadersHashes[string(hash)]
+	return indexes, ok
 }
 
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
@@ -296,26 +322,53 @@ func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, 
 // GenerateBitmap method generates a bitmap, for a given subround, in which each node will be marked with 1
 // if its job has been done
 func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
-	// generate bitmap according to set commitment hashes
-	sizeConsensus := len(cns.ConsensusGroup())
+	consensusSize := len(cns.ConsensusGroup())
+	bitmap := cns.createEmptyBitmap(consensusSize)
 
-	bitmapSize := sizeConsensus / 8
-	if sizeConsensus%8 != 0 {
+	for i := 0; i < consensusSize; i++ {
+		cns.setInBitmap(bitmap, i, subroundId)
+	}
+
+	return bitmap
+}
+
+func (cns *ConsensusState) createEmptyBitmap(consensusSize int) []byte {
+	bitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
 		bitmapSize++
 	}
 	bitmap := make([]byte, bitmapSize)
+	return bitmap
+}
 
-	for i := 0; i < sizeConsensus; i++ {
-		pubKey := cns.ConsensusGroup()[i]
-		isJobDone, err := cns.JobDone(pubKey, subroundId)
-		if err != nil {
-			log.Debug("JobDone", "error", err.Error())
-			continue
-		}
+func (cns *ConsensusState) setInBitmap(bitmap []byte, index int, subroundID int) {
+	consensusSize := len(cns.ConsensusGroup())
+	isIndexOutOfRange := index < 0 || index > consensusSize-1
+	if isIndexOutOfRange {
+		log.Warn("ConsensusState.setInBitmap: index out of range", "index", index, "consensus size", consensusSize)
+		return
+	}
 
-		if isJobDone {
-			bitmap[i/8] |= 1 << (uint16(i) % 8)
-		}
+	pubKey := cns.ConsensusGroup()[index]
+	isJobDone, err := cns.JobDone(pubKey, subroundID)
+	if err != nil {
+		log.Debug("JobDone", "error", err.Error())
+		return
+	}
+
+	if isJobDone {
+		bitmap[index/8] |= 1 << (uint16(index) % 8)
+	}
+}
+
+// GenerateBitmapForHash method generates a bitmap, for a given subround and a processed header hash,
+// in which each node will be marked with 1 if its job has been done
+func (cns *ConsensusState) GenerateBitmapForHash(subroundId int, hash []byte) []byte {
+	bitmap := cns.createEmptyBitmap(len(cns.ConsensusGroup()))
+
+	indexes, _ := cns.GetProcessedHeaderHashIndexes(hash)
+	for _, i := range indexes {
+		cns.setInBitmap(bitmap, i, subroundId)
 	}
 
 	return bitmap
