@@ -76,7 +76,7 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 }
 
 // PutFeeAndGasUsed will compute and set in transactions pool fee and gas used
-func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
+func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.TransactionPool) error {
 	tep.prepareInvalidTxs(pool)
 
 	txsWithResultsMap := prepareTransactionsAndScrs(pool)
@@ -85,12 +85,12 @@ func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) er
 	return tep.prepareScrsNoTx(txsWithResultsMap)
 }
 
-func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
-	for _, invalidTx := range pool.Invalid {
-		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx, invalidTx.GetGasLimit())
-		invalidTx.SetGasUsed(invalidTx.GetGasLimit())
-		invalidTx.SetFee(fee)
-		invalidTx.SetInitialPaidFee(fee)
+func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.TransactionPool) {
+	for _, invalidTx := range pool.InvalidTxs {
+		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx.Transaction, invalidTx.Transaction.GasLimit)
+		invalidTx.FeeInfo.SetGasUsed(invalidTx.Transaction.GetGasLimit())
+		invalidTx.FeeInfo.SetFee(fee)
+		invalidTx.FeeInfo.SetInitialPaidFee(fee)
 	}
 }
 
