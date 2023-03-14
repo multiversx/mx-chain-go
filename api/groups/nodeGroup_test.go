@@ -252,6 +252,37 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFound)
 }
 
+func TestBootstrapGetPeersRatings_ShouldWork(t *testing.T) {
+	providedRatings := map[string]int32{
+		"pid1": 100,
+		"pid2": -50,
+		"pid3": -5,
+	}
+	buff, _ := json.Marshal(providedRatings)
+	facade := mock.FacadeStub{
+		GetPeersRatingCalled: func() string {
+			return string(buff)
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/peers-rating", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+	respMap, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok)
+	ratings, ok := respMap["ratings"].(string)
+	assert.True(t, ok)
+	assert.Equal(t, string(buff), ratings)
+}
+
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
@@ -595,6 +626,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/peerinfo", Open: true},
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
+					{Name: "/peers-rating", Open: true},
 				},
 			},
 		},

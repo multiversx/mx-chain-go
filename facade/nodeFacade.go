@@ -479,6 +479,11 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
+// GetPeersRating returns the peers' ratings
+func (nf *nodeFacade) GetPeersRating() string {
+	return nf.node.GetPeersRating()
+}
+
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
 func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
 	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {

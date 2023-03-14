@@ -37,6 +37,7 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetPeersRatingCalled                           func() string
 	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
@@ -202,6 +203,15 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return make([]core.QueryP2PPeerInfo, 0), nil
+}
+
+// GetPeersRating -
+func (ns *NodeStub) GetPeersRating() string {
+	if ns.GetPeersRatingCalled != nil {
+		return ns.GetPeersRatingCalled()
+	}
+
+	return ""
 }
 
 // GetEpochStartDataAPI -

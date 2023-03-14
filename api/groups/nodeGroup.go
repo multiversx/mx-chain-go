@@ -26,6 +26,7 @@ const (
 	statusPath             = "/status"
 	epochStartDataForEpoch = "/epoch-start/:epoch"
 	bootstrapStatusPath    = "/bootstrapstatus"
+	peersRatingPath        = "/peers-rating"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -35,6 +36,7 @@ type nodeFacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetPeersRating() string
 	IsInterfaceNil() bool
 }
 
@@ -101,6 +103,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    bootstrapStatusPath,
 			Method:  http.MethodGet,
 			Handler: ng.bootstrapMetrics,
+		},
+		{
+			Path:    peersRatingPath,
+			Method:  http.MethodGet,
+			Handler: ng.peersRatings,
 		},
 	}
 	ng.endpoints = endpoints
@@ -312,6 +319,19 @@ func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// peersRatings returns the node's peers ratings
+func (ng *nodeGroup) peersRatings(c *gin.Context) {
+	ratings := ng.getFacade().GetPeersRating()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"ratings": ratings},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

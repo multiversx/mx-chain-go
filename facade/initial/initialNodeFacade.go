@@ -253,6 +253,11 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
+// GetPeersRating returns empty string
+func (inf *initialNodeFacade) GetPeersRating() string {
+	return ""
+}
+
 // GetEpochStartDataAPI returns nil and error
 func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
 	return nil, errNodeStarting
