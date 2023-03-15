@@ -3,6 +3,8 @@ package common
 import (
 	"math"
 	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 )
 
 // PeerType represents the type of a peer
@@ -847,3 +849,6 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
+
+// ShouldNotRespondToRequests -
+var ShouldNotRespondToRequests = atomic.Flag{}

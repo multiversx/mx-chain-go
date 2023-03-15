@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -223,9 +222,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if header.GetNonce() >= 1000 {
-		return errors.New("testing-forced error meta block")
-	}
+	common.ShouldNotRespondToRequests.SetValue(header.GetNonce() >= 1000)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {

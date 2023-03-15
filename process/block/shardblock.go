@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -199,9 +198,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if header.GetNonce() >= 1000 {
-		return errors.New("testing-forced error shard block")
-	}
+	common.ShouldNotRespondToRequests.SetValue(header.GetNonce() >= 1000)
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
