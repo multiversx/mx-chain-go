@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
@@ -884,9 +885,9 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return genesisBlocks, indexingData, nil
 }
 
-func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*outport.AlteredAccount, error) {
+func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*alteredAccount.AlteredAccount, error) {
 	if !pcf.statusComponents.OutportHandler().HasDrivers() {
-		return map[string]*outport.AlteredAccount{}, nil
+		return map[string]*alteredAccount.AlteredAccount{}, nil
 	}
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
@@ -903,7 +904,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		return nil, err
 	}
 
-	genesisAccounts := make(map[string]*outport.AlteredAccount, 0)
+	genesisAccounts := make(map[string]*alteredAccount.AlteredAccount, 0)
 	for leaf := range leavesChannels.LeavesChan {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -912,7 +913,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		}
 
 		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
-		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
+		genesisAccounts[encodedAddress] = &alteredAccount.AlteredAccount{
 			AdditionalData: &outport.AdditionalAccountData{
 				BalanceChanged: true,
 			},
@@ -1098,7 +1099,7 @@ func (pcf *processComponentsFactory) createGenesisMiniBlockHandlers(miniBlocks [
 func (pcf *processComponentsFactory) indexGenesisBlocks(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	initialIndexingData map[uint32]*genesis.IndexingData,
-	alteredAccounts map[string]*outport.AlteredAccount,
+	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	originalGenesisBlockHeader := genesisBlocks[currentShardId]
@@ -1122,7 +1123,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
-		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
+		alteredAccounts[genesisAddress] = &alteredAccount.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
 		}

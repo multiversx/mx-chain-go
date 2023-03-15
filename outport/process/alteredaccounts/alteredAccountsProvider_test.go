@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -95,16 +96,16 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 
-	res := &outportcore.AlteredAccount{
+	res := &alteredAccount.AlteredAccount{
 		Address: "addr",
 		Balance: "1000",
 	}
 	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
 
-	require.Equal(t, &outportcore.AlteredAccount{
+	require.Equal(t, &alteredAccount.AlteredAccount{
 		Address: "addr",
 		Balance: "1000",
-		AdditionalData: &outportcore.AdditionalAccountData{
+		AdditionalData: &alteredAccount.AdditionalAccountData{
 			DeveloperRewards: "100",
 			CurrentOwner:     "6f776e6572",
 			UserName:         "contract",
@@ -118,16 +119,16 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 
-	res = &outportcore.AlteredAccount{
+	res = &alteredAccount.AlteredAccount{
 		Address: "addr",
 		Balance: "5000",
 	}
 	aap.addAdditionalDataInAlteredAccount(res, userAccount, &markedAlteredAccount{})
 
-	require.Equal(t, &outportcore.AlteredAccount{
+	require.Equal(t, &alteredAccount.AlteredAccount{
 		Address: "addr",
 		Balance: "5000",
-		AdditionalData: &outportcore.AdditionalAccountData{
+		AdditionalData: &alteredAccount.AdditionalAccountData{
 			DeveloperRewards: "5000",
 		},
 	}, res)
@@ -186,7 +187,7 @@ func testExtractAlteredAccountsFromPoolSenderShard(t *testing.T) {
 	args.AddressConverter = testscommon.NewPubkeyConverterMock(20)
 	aap, _ := NewAlteredAccountsProvider(args)
 
-	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.Pool{
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
 		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
 			"hash0": outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
 				SndAddr: []byte("sender shard - tx0  "),
@@ -529,7 +530,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 1)
-	require.Equal(t, &outportcore.AccountTokenData{
+	require.Equal(t, &alteredAccount.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
@@ -582,11 +583,11 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	require.NoError(t, err)
 
 	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
-	require.Equal(t, &outportcore.AccountTokenData{
+	require.Equal(t, &alteredAccount.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      expectedToken.TokenMetaData.Nonce,
-		MetaData:   &outportcore.TokenMetaData{Nonce: expectedToken.TokenMetaData.Nonce},
+		MetaData:   &alteredAccount.TokenMetaData{Nonce: expectedToken.TokenMetaData.Nonce},
 	}, res[encodedAddr].Tokens[0])
 }
 
@@ -714,11 +715,11 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
 	creator := args.AddressConverter.Encode(expectedToken.TokenMetaData.Creator)
 	require.Len(t, res[mapKeyToSearch].Tokens, 1)
-	require.Equal(t, res[mapKeyToSearch].Tokens[0], &outportcore.AccountTokenData{
+	require.Equal(t, res[mapKeyToSearch].Tokens[0], &alteredAccount.AccountTokenData{
 		Identifier: "token0",
 		Balance:    "37",
 		Nonce:      38,
-		MetaData: &outportcore.TokenMetaData{
+		MetaData: &alteredAccount.TokenMetaData{
 			Nonce:      38,
 			Name:       "name",
 			Creator:    creator,
@@ -910,28 +911,28 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
-	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &alteredAccount.AccountTokenData{
 		Identifier: "esdttoken",
 		Balance:    expectedToken0.Value.String(),
 		Nonce:      0,
 		MetaData:   nil,
 	})
 
-	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &alteredAccount.AccountTokenData{
 		Identifier: string(expectedToken1.TokenMetaData.Name),
 		Balance:    expectedToken1.Value.String(),
 		Nonce:      expectedToken1.TokenMetaData.Nonce,
-		MetaData: &outportcore.TokenMetaData{
+		MetaData: &alteredAccount.TokenMetaData{
 			Nonce: expectedToken1.TokenMetaData.Nonce,
 			Name:  string(expectedToken1.TokenMetaData.Name),
 		},
 	})
 
-	require.Contains(t, res[encodedAddr].Tokens, &outportcore.AccountTokenData{
+	require.Contains(t, res[encodedAddr].Tokens, &alteredAccount.AccountTokenData{
 		Identifier: string(expectedToken2.TokenMetaData.Name),
 		Balance:    expectedToken2.Value.String(),
 		Nonce:      expectedToken2.TokenMetaData.Nonce,
-		MetaData: &outportcore.TokenMetaData{
+		MetaData: &alteredAccount.TokenMetaData{
 			Nonce: expectedToken2.TokenMetaData.Nonce,
 			Name:  string(expectedToken2.TokenMetaData.Name),
 		},
@@ -993,23 +994,23 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 
 	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
 	encodedAddrRcv := args.AddressConverter.Encode([]byte("rcv"))
-	require.Equal(t, map[string]*outportcore.AlteredAccount{
+	require.Equal(t, map[string]*alteredAccount.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "10",
-			Tokens: []*outportcore.AccountTokenData{
+			Tokens: []*alteredAccount.AccountTokenData{
 				{
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
 					Properties: "6f6b",
 					MetaData:   nil,
-					AdditionalData: &outportcore.AdditionalAccountTokenData{
+					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
 				},
 			},
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
 			},
@@ -1017,18 +1018,18 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 		encodedAddrRcv: {
 			Address: encodedAddrRcv,
 			Balance: "10",
-			Tokens: []*outportcore.AccountTokenData{
+			Tokens: []*alteredAccount.AccountTokenData{
 				{
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
 					Properties: "6f6b",
-					AdditionalData: &outportcore.AdditionalAccountTokenData{
+					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
 				},
 			},
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				IsSender:       false,
 				BalanceChanged: false,
 			},
@@ -1071,11 +1072,11 @@ func testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged(t *testi
 
 	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
 	encodedAddrRcv := args.AddressConverter.Encode([]byte("rcv"))
-	require.Equal(t, map[string]*outportcore.AlteredAccount{
+	require.Equal(t, map[string]*alteredAccount.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "15",
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
 			},
@@ -1083,7 +1084,7 @@ func testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged(t *testi
 		encodedAddrRcv: {
 			Address: encodedAddrRcv,
 			Balance: "15",
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				IsSender:       false,
 				BalanceChanged: true,
 			},
@@ -1117,11 +1118,11 @@ func testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged(t *tes
 	require.NoError(t, err)
 
 	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
-	require.Equal(t, map[string]*outportcore.AlteredAccount{
+	require.Equal(t, map[string]*alteredAccount.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "15",
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
 			},
@@ -1182,23 +1183,23 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 	require.NoError(t, err)
 
 	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
-	require.Equal(t, map[string]*outportcore.AlteredAccount{
+	require.Equal(t, map[string]*alteredAccount.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "10",
-			Tokens: []*outportcore.AccountTokenData{
+			Tokens: []*alteredAccount.AccountTokenData{
 				{
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
 					Properties: "6f6b",
 					MetaData:   nil,
-					AdditionalData: &outportcore.AdditionalAccountTokenData{
+					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: true,
 					},
 				},
 			},
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
 			},
@@ -1235,11 +1236,11 @@ func textExtractAlteredAccountsFromPoolTransactionValueNil(t *testing.T) {
 	require.NoError(t, err)
 
 	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
-	require.Equal(t, map[string]*outportcore.AlteredAccount{
+	require.Equal(t, map[string]*alteredAccount.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
 			Balance: "15",
-			AdditionalData: &outportcore.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 				IsSender:       true,
 			},

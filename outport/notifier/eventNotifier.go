@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -156,7 +157,7 @@ func (en *eventNotifier) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) 
 }
 
 // SaveAccounts does nothing
-func (en *eventNotifier) SaveAccounts(_ uint64, _ map[string]*outport.AlteredAccount, _ uint32) error {
+func (en *eventNotifier) SaveAccounts(_ uint64, _ map[string]*alteredAccount.AlteredAccount, _ uint32) error {
 	return nil
 }
 
