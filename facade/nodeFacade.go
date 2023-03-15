@@ -479,7 +479,7 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
-// GetConnectedPeersRatings returns the connected peers' ratings
+// GetConnectedPeersRatings returns the connected peers ratings
 func (nf *nodeFacade) GetConnectedPeersRatings() string {
 	return nf.node.GetConnectedPeersRatings()
 }

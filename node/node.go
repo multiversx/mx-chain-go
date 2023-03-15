@@ -984,7 +984,7 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetConnectedPeersRatings returns the connected peers' ratings
+// GetConnectedPeersRatings returns the connected peers ratings
 func (n *Node) GetConnectedPeersRatings() string {
 	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
 }
