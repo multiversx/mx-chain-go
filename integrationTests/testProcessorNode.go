@@ -275,7 +275,7 @@ type ArgTestProcessorNode struct {
 	EpochStartSubscriber    notifier.EpochStartNotifier
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
-	PeersRatingHandler      p2p.PeersRatingHandler
+	WithPeersRatingHandler  bool
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -378,6 +378,7 @@ type TestProcessorNode struct {
 
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
+	PeersRatingMonitor      p2p.PeersRatingMonitor
 	HardforkTrigger         node.HardforkTrigger
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
@@ -422,12 +423,30 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		appStatusHandler = TestAppStatusHandler
 	}
 
-	peersRatingHandler := args.PeersRatingHandler
-	if check.IfNil(args.PeersRatingHandler) {
-		peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	var peersRatingHandler p2p.PeersRatingHandler
+	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	topRatedCache := testscommon.NewCacherMock()
+	badRatedCache := testscommon.NewCacherMock()
+	if args.WithPeersRatingHandler {
+		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
+			p2pFactory.ArgPeersRatingHandler{
+				TopRatedCache: topRatedCache,
+				BadRatedCache: badRatedCache,
+			})
 	}
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+
+	var peersRatingMonitor p2p.PeersRatingMonitor
+	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
+	if args.WithPeersRatingHandler {
+		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache:       topRatedCache,
+				BadRatedCache:       badRatedCache,
+				ConnectionsProvider: messenger,
+			})
+	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -459,6 +478,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
 		AppStatusHandler:         appStatusHandler,
+		PeersRatingMonitor:       peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -2316,6 +2336,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
+	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -3147,6 +3169,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:           &mock.PeerBlackListCacherStub{},
 		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField: &p2pmocks.PeersRatingMonitorStub{},
 	}
 }
 

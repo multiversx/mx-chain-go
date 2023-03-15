@@ -92,6 +92,9 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	if check.IfNil(mnc.peersRatingHandler) {
 		return errors.ErrNilPeersRatingHandler
 	}
+	if check.IfNil(mnc.peersRatingMonitor) {
+		return errors.ErrNilPeersRatingMonitor
+	}
 
 	return nil
 }
@@ -190,6 +193,18 @@ func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler
 	}
 
 	return mnc.networkComponents.peersRatingHandler
+}
+
+// PeersRatingMonitor returns the peers rating monitor
+func (mnc *managedNetworkComponents) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.networkComponents.peersRatingMonitor
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil

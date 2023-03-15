@@ -51,7 +51,6 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricP2PCrossShardObservers,
 		common.MetricP2PFullHistoryObservers,
 		common.MetricP2PUnknownPeers,
-		common.MetricP2PPeersRating,
 		common.MetricInflation,
 		common.MetricDevRewardsInEpoch,
 		common.MetricTotalFees,

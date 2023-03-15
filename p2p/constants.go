@@ -28,8 +28,5 @@ const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 // ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
 const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
-// MetricP2PPeersRating is the metric that outputs the peers ratings
-const MetricP2PPeersRating = p2p.MetricP2PPeersRating
-
 // BroadcastMethod defines the broadcast method of the message
 type BroadcastMethod = p2p.BroadcastMethod
