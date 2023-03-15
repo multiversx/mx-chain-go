@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,8 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
+
+const loggerName = "outport/process/transactionsfee"
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
@@ -27,6 +31,7 @@ type transactionsFeeProcessor struct {
 	txFeeCalculator  FeesProcessorHandler
 	shardCoordinator sharding.Coordinator
 	dataFieldParser  dataFieldParser
+	log              logger.Logger
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -48,6 +53,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		txFeeCalculator:  arg.TxFeeCalculator,
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
+		log:              logger.GetOrCreate(loggerName),
 		dataFieldParser:  parser,
 	}, nil
 }
@@ -175,7 +181,13 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		txFromStorage, err := tep.txGetter.GetTxByHash(scr.OriginalTxHash)
 		if err != nil {
-			return err
+			tep.log.Trace("transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", "hash", scr.OriginalTxHash, "error", err.Error())
+			continue
+		}
+
+		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
+		if !isForInitialTxSender {
+			continue
 		}
 
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
