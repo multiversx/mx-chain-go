@@ -52,7 +52,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
-) (map[uint32][]*integrationTests.TestConsensusNode, error) {
+) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -98,7 +98,7 @@ func initNodesAndTest(
 		}
 	}
 
-	return nodes, nil
+	return nodes
 }
 
 func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
@@ -229,8 +229,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
-	assert.Nil(t, err)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
 
 	defer func() {
 		for shardID := range nodes {
@@ -292,8 +291,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes, err := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
-	assert.Nil(t, err)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	defer func() {
 		for shardID := range nodes {

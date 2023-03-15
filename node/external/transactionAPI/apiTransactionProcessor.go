@@ -100,11 +100,6 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 
 	tx.Hash = txHash
 	atp.PopulateComputedFields(tx)
-	atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
-
-	if withResults {
-		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
-	}
 
 	if withResults {
 		atp.gasUsedAndFeeProcessor.computeAndAttachGasUsedAndFee(tx)
@@ -322,12 +317,15 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	if requestedFieldsHandler.HasNonce {
 		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
 	}
+
 	if requestedFieldsHandler.HasSender {
-		tx.TxFields[senderField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
+		tx.TxFields[senderField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
 	}
+
 	if requestedFieldsHandler.HasReceiver {
-		tx.TxFields[receiverField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log)
+		tx.TxFields[receiverField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
 	}
+
 	if requestedFieldsHandler.HasGasLimit {
 		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
 	}
