@@ -82,13 +82,13 @@ type PreferredPeersHolderHandler interface {
 // TODO move antiflooding inside network messenger
 type PeerDenialEvaluator = p2p.PeerDenialEvaluator
 
-// SyncTimer represent an entity able to tell the current time
+// SyncTimer represents an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time
 	IsInterfaceNil() bool
 }
 
-// PeersRatingHandler represent an entity able to handle peers ratings
+// PeersRatingHandler represents an entity able to handle peers ratings
 type PeersRatingHandler interface {
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
@@ -96,13 +96,13 @@ type PeersRatingHandler interface {
 	IsInterfaceNil() bool
 }
 
-// PeersRatingMonitor represent an entity able to provide peers ratings
+// PeersRatingMonitor represents an entity able to provide peers ratings
 type PeersRatingMonitor interface {
 	GetConnectedPeersRatings() string
 	IsInterfaceNil() bool
 }
 
-// PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
+// PeerTopicNotifier represents an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
 
 // P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
