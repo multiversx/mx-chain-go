@@ -719,11 +719,16 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 }
 
 func createDefaultVMConfig() *config.VirtualMachineConfig {
+	return CreateVMConfigWithVersion("*")
+}
+
+// CreateVMConfigWithVersion -
+func CreateVMConfigWithVersion(version string) *config.VirtualMachineConfig {
 	return &config.VirtualMachineConfig{
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{
 				StartEpoch: 0,
-				Version:    "*",
+				Version:    version,
 			},
 		},
 		TimeOutForSCExecutionInMilliseconds: 10000, // 10 seconds
@@ -1108,7 +1113,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEp
 	)
 }
 
-// CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas -
+// CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 	enableEpochsConfig config.EnableEpochs,
 	shardCoordinator sharding.Coordinator,
@@ -1116,9 +1121,28 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	roundsConfig config.RoundConfig,
 ) (*VMTestContext, error) {
+	vmConfig := createDefaultVMConfig()
+	return CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+		enableEpochsConfig,
+		shardCoordinator,
+		db,
+		gasScheduleNotifier,
+		roundsConfig,
+		vmConfig,
+	)
+}
+
+// CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig -
+func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+	enableEpochsConfig config.EnableEpochs,
+	shardCoordinator sharding.Coordinator,
+	db storage.Storer,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	roundsConfig config.RoundConfig,
+	vmConfig *config.VirtualMachineConfig,
+) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateAccountsDB(db)
-	vmConfig := createDefaultVMConfig()
 	wasmVMChangeLocker := &sync.RWMutex{}
 
 	epochNotifierInstance := forking.NewGenericEpochNotifier()

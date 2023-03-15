@@ -58,9 +58,9 @@ func Test_Empty_C_NoPanic(t *testing.T) {
 	defer context.Close()
 
 	err := context.DeploySC("../testdata/bad-empty/empty.wasm", "")
-	require.Nil(t, err)
+	require.Equal(t, fmt.Errorf("invalid contract code"), err)
 	err = context.ExecuteSC(&context.Owner, "thisDoesNotExist")
-	require.Equal(t, fmt.Errorf("invalid function (not found)"), err)
+	require.Equal(t, fmt.Errorf("invalid contract code (not found)"), err)
 }
 
 func Test_Corrupt_NoPanic(t *testing.T) {

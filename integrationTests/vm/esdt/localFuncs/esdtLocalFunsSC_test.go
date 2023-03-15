@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	esdtCommon "github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -318,7 +317,6 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
 	)
 	time.Sleep(time.Second)
-	_ = logger.SetLogLevel("process:TRACE,arwen:TRACE,gasTrace:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 

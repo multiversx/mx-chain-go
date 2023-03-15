@@ -228,7 +228,7 @@ func TestESDTMultiTransferWithWrongArgumentsSFT(t *testing.T) {
 	senderNode := net.NodesSharded[0][0]
 	owner := senderNode.OwnAccount
 	forwarder := net.DeployNonpayableSC(owner, "../../testdata/execute.wasm")
-	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vaultV2.wasm")
+	vaultOtherShard := net.DeployNonpayableSC(net.NodesSharded[1][0].OwnAccount, "../../testdata/vault.wasm")
 
 	ESDTMultiTransferWithWrongArgumentsSFT_RunStepsAndAsserts(t, net, senderNode, senderNode.OwnAccount, forwarder, vaultOtherShard)
 }

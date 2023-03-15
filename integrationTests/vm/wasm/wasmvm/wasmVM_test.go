@@ -146,7 +146,6 @@ func TestVmSCDeployFactory(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
-// TODO remove this while processor V1 is deprecated
 func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
@@ -828,7 +827,7 @@ func TestCommunityContract_InShard(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	funderAddress := net.DeployPayableSC(owner, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
@@ -870,7 +869,7 @@ func TestCommunityContract_CrossShard(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	funderAddress := net.DeployPayableSC(ownerOfFunder, funderCode)
 	funderSC := net.GetAccountHandler(funderAddress)
@@ -935,7 +934,7 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 
 	codePath := "../testdata/community"
 	funderCode := codePath + "/funder.wasm"
-	parentCode := codePath + "/parent.wasm"
+	parentCode := codePath + "/parent_old.wasm"
 
 	logger.ToggleLoggerName(true)
 	// logger.SetLogLevel("*:TRACE")

@@ -108,7 +108,7 @@ func TestScCallShouldWork(t *testing.T) {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
-		require.Equal(t, uint64(387), calculatedGasLimit)
+		require.Equal(t, uint64(418), calculatedGasLimit)
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
@@ -121,15 +121,15 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(61300)
+	expectedBalance := big.NewInt(58200)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(49670), accumulatedFees)
+	require.Equal(t, big.NewInt(53700), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4138), developerFees)
+	require.Equal(t, big.NewInt(4479), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -193,7 +193,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(20970), accumulatedFees)
+	require.Equal(t, big.NewInt(21900), accumulatedFees)
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -225,10 +225,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFees)
+	require.Equal(t, big.NewInt(11900), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
@@ -262,7 +262,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(11170), accumulatedFees)
+	require.Equal(t, big.NewInt(12100), accumulatedFees)
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {

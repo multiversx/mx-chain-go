@@ -36,8 +36,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Nil(t, err)
 	defer testContextInner.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
-	scAddr, owner := utils.DoDeploy(t, testContextInner, pathToContract)
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
+	scAddr, owner := utils.DoDeployOldCounter(t, testContextInner, pathToContract)
 	gasAndFees := getZeroGasAndFees()
 	testContextInner.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInner)

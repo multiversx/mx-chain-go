@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO remove this while processor V1 is deprecated
 func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
@@ -52,7 +51,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(88180)
+	expectedBalance := big.NewInt(87250)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -90,7 +89,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(79030)
+	expectedBalance := big.NewInt(78100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -163,7 +162,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(79030)
+	expectedBalance := big.NewInt(78100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -200,7 +199,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(100000)
+	expectedBalance := big.NewInt(99070)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -236,7 +235,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(88190)
+	expectedBalance := big.NewInt(87260)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees

@@ -163,7 +163,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/wasm/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter_old.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
