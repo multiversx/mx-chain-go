@@ -257,6 +257,12 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 func (nc *networkComponents) Close() error {
 	nc.closeFunc()
 
+	if !check.IfNil(nc.peersRatingMonitor) {
+		peersRatingMonitorCloser, ok := nc.peersRatingMonitor.(factory.Closer)
+		if ok {
+			log.LogIfError(peersRatingMonitorCloser.Close())
+		}
+	}
 	if !check.IfNil(nc.inputAntifloodHandler) {
 		log.LogIfError(nc.inputAntifloodHandler.Close())
 	}
