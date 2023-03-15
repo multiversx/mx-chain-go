@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -62,7 +63,8 @@ func NewTrie(
 	if maxTrieLevelInMemory == 0 {
 		return nil, ErrInvalidLevelValue
 	}
-	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
+	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory,
+		"stake trace", debug.Stack())
 
 	return &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
@@ -356,6 +358,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 }
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+	log.Trace("recreateFromDb", "rootHash", rootHash)
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
