@@ -145,11 +145,14 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 			RcvAddr:  silentDecodeAddress(receiver),
 			Data:     []byte("relayedTx@"),
 		},
+		Sender:   sender,
+		Receiver: receiver,
 		GasLimit: 10_000_000,
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
 				Value:    big.NewInt(66350000000000),
 				IsRefund: true,
+				RcvAddr:  sender,
 			},
 		},
 		Logs: &transaction.ApiLogs{
