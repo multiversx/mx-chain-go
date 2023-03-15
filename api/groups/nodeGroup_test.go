@@ -253,10 +253,10 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 }
 
 func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
-	providedRatings := map[string]int32{
-		"pid1": 100,
-		"pid2": -50,
-		"pid3": -5,
+	providedRatings := map[string]string{
+		"pid1": "100",
+		"pid2": "-50",
+		"pid3": "-5",
 	}
 	buff, _ := json.Marshal(providedRatings)
 	facade := mock.FacadeStub{
