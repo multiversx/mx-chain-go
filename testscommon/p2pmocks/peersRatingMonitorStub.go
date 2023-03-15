@@ -2,15 +2,15 @@ package p2pmocks
 
 // PeersRatingMonitorStub -
 type PeersRatingMonitorStub struct {
-	GetPeersRatingsCalled func() string
+	GetConnectedPeersRatingsCalled func() string
 }
 
-// GetPeersRatings -
-func (stub *PeersRatingMonitorStub) GetPeersRatings() string {
-	if stub.GetPeersRatingsCalled != nil {
-		return stub.GetPeersRatingsCalled()
+// GetConnectedPeersRatings -
+func (stub *PeersRatingMonitorStub) GetConnectedPeersRatings() string {
+	if stub.GetConnectedPeersRatingsCalled != nil {
+		return stub.GetConnectedPeersRatingsCalled()
 	}
-	return "{}"
+	return ""
 }
 
 // IsInterfaceNil -

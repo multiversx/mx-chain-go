@@ -2,6 +2,7 @@ package peersRating
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -9,9 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,13 +69,13 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	// resolver node should have received and responded to numOfRequests
 	initialResolverRating, exists := peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	initialResolverExpectedRating := numOfRequests * (decreaseFactor + increaseFactor)
-	assert.Equal(t, int32(initialResolverExpectedRating), initialResolverRating)
+	initialResolverExpectedRating := fmt.Sprintf("%d", numOfRequests*(decreaseFactor+increaseFactor))
+	assert.Equal(t, initialResolverExpectedRating, initialResolverRating)
 	// malicious node should have only received numOfRequests
 	initialMaliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	initialMaliciousExpectedRating := numOfRequests * decreaseFactor
-	assert.Equal(t, int32(initialMaliciousExpectedRating), initialMaliciousRating)
+	initialMaliciousExpectedRating := fmt.Sprintf("%d", numOfRequests*decreaseFactor)
+	assert.Equal(t, initialMaliciousExpectedRating, initialMaliciousRating)
 
 	// Reach max limits
 	numOfRequests = 120
@@ -86,12 +85,12 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	// Resolver should have reached max limit and timestamps still update
 	initialResolverRating, exists = peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	assert.Equal(t, int32(100), initialResolverRating)
+	assert.Equal(t, "100", initialResolverRating)
 
 	// Malicious should have reached min limit and timestamps still update
 	initialMaliciousRating, exists = peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	assert.Equal(t, int32(-100), initialMaliciousRating)
+	assert.Equal(t, "-100", initialMaliciousRating)
 
 	// Add header to the malicious node's cache and remove it from the resolver's cache
 	maliciousNode.DataPool.Headers().AddHeader(hdrHash, hdr)
@@ -103,36 +102,24 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	// resolver node should have the max rating + numOfRequests that didn't answer to
 	resolverRating, exists := peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	finalResolverExpectedRating := 100 + decreaseFactor*numOfRequests
-	assert.Equal(t, int32(finalResolverExpectedRating), resolverRating)
+	finalResolverExpectedRating := fmt.Sprintf("%d", 100+decreaseFactor*numOfRequests)
+	assert.Equal(t, finalResolverExpectedRating, resolverRating)
 	// malicious node should have the min rating + numOfRequests that received and responded to
 	maliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
 	require.True(t, exists)
-	finalMaliciousExpectedRating := -100 + numOfRequests*increaseFactor + (numOfRequests-1)*decreaseFactor
-	assert.Equal(t, int32(finalMaliciousExpectedRating), maliciousRating)
+	finalMaliciousExpectedRating := fmt.Sprintf("%d", -100+numOfRequests*increaseFactor+(numOfRequests-1)*decreaseFactor)
+	assert.Equal(t, finalMaliciousExpectedRating, maliciousRating)
 }
 
 func createNodeWithPeersRatingHandler(shardID uint32, numShards uint32) *integrationTests.TestProcessorNode {
-	topRatedCache := testscommon.NewCacherMock()
-	badRatedCache := testscommon.NewCacherMock()
-	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
-		p2pFactory.ArgPeersRatingHandler{
-			TopRatedCache: topRatedCache,
-			BadRatedCache: badRatedCache,
-		})
 
-	peersRatingMonitor, _ := p2pFactory.NewPeersRatingMonitor(
-		p2pFactory.ArgPeersRatingMonitor{
-			TopRatedCache: topRatedCache,
-			BadRatedCache: badRatedCache,
-		})
-
-	return integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
-		MaxShards:          numShards,
-		NodeShardId:        shardID,
-		PeersRatingHandler: peersRatingHandler,
-		PeersRatingMonitor: peersRatingMonitor,
+	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:              numShards,
+		NodeShardId:            shardID,
+		WithPeersRatingHandler: true,
 	})
+
+	return tpn
 }
 
 func getHeader() (*block.Header, []byte, []byte) {
@@ -160,9 +147,9 @@ func getHeader() (*block.Header, []byte, []byte) {
 	return hdr, hdrHash, hdrBuff
 }
 
-func getRatingsMap(t *testing.T, node *integrationTests.TestProcessorNode) map[string]int32 {
-	peerRatingsStr := node.PeersRatingMonitor.GetPeersRatings()
-	peerRatingsMap := make(map[string]int32)
+func getRatingsMap(t *testing.T, node *integrationTests.TestProcessorNode) map[string]string {
+	peerRatingsStr := node.PeersRatingMonitor.GetConnectedPeersRatings()
+	peerRatingsMap := make(map[string]string)
 
 	err := json.Unmarshal([]byte(peerRatingsStr), &peerRatingsMap)
 	require.Nil(t, err)

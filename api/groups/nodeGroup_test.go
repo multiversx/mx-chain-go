@@ -252,7 +252,7 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFound)
 }
 
-func TestBootstrapGetPeersRatings_ShouldWork(t *testing.T) {
+func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
 	providedRatings := map[string]int32{
 		"pid1": 100,
 		"pid2": -50,
@@ -260,7 +260,7 @@ func TestBootstrapGetPeersRatings_ShouldWork(t *testing.T) {
 	}
 	buff, _ := json.Marshal(providedRatings)
 	facade := mock.FacadeStub{
-		GetPeersRatingCalled: func() string {
+		GetConnectedPeersRatingsCalled: func() string {
 			return string(buff)
 		},
 	}
@@ -270,7 +270,7 @@ func TestBootstrapGetPeersRatings_ShouldWork(t *testing.T) {
 
 	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
 
-	req, _ := http.NewRequest("GET", "/node/peers-rating", nil)
+	req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -626,7 +626,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/peerinfo", Open: true},
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
-					{Name: "/peers-rating", Open: true},
+					{Name: "/connected-peers-ratings", Open: true},
 				},
 			},
 		},

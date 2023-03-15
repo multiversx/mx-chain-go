@@ -37,8 +37,8 @@
         # /node/bootstrapstatus will return all metrics available during bootstrap
         { Name = "/bootstrapstatus", Open = true },
 
-        # /node/peers-rating will return the peers' ratings
-        { Name = "/peers-rating", Open = true }
+        # /node/connected-peers-ratings will return the peers' ratings
+        { Name = "/connected-peers-ratings", Open = true }
     ]
 
 [APIPackages.address]

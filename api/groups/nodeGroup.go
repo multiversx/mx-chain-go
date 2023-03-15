@@ -17,16 +17,16 @@ import (
 )
 
 const (
-	pidQueryParam          = "pid"
-	debugPath              = "/debug"
-	heartbeatStatusPath    = "/heartbeatstatus"
-	metricsPath            = "/metrics"
-	p2pStatusPath          = "/p2pstatus"
-	peerInfoPath           = "/peerinfo"
-	statusPath             = "/status"
-	epochStartDataForEpoch = "/epoch-start/:epoch"
-	bootstrapStatusPath    = "/bootstrapstatus"
-	peersRatingPath        = "/peers-rating"
+	pidQueryParam             = "pid"
+	debugPath                 = "/debug"
+	heartbeatStatusPath       = "/heartbeatstatus"
+	metricsPath               = "/metrics"
+	p2pStatusPath             = "/p2pstatus"
+	peerInfoPath              = "/peerinfo"
+	statusPath                = "/status"
+	epochStartDataForEpoch    = "/epoch-start/:epoch"
+	bootstrapStatusPath       = "/bootstrapstatus"
+	connectedPeersRatingsPath = "/connected-peers-ratings"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -36,7 +36,7 @@ type nodeFacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetPeersRating() string
+	GetConnectedPeersRatings() string
 	IsInterfaceNil() bool
 }
 
@@ -105,9 +105,9 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Handler: ng.bootstrapMetrics,
 		},
 		{
-			Path:    peersRatingPath,
+			Path:    connectedPeersRatingsPath,
 			Method:  http.MethodGet,
-			Handler: ng.peersRatings,
+			Handler: ng.connectedPeersRatings,
 		},
 	}
 	ng.endpoints = endpoints
@@ -325,9 +325,9 @@ func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
 	)
 }
 
-// peersRatings returns the node's peers ratings
-func (ng *nodeGroup) peersRatings(c *gin.Context) {
-	ratings := ng.getFacade().GetPeersRating()
+// connectedPeersRatings returns the node's connected peers ratings
+func (ng *nodeGroup) connectedPeersRatings(c *gin.Context) {
+	ratings := ng.getFacade().GetConnectedPeersRatings()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

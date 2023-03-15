@@ -253,8 +253,8 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetPeersRating returns empty string
-func (inf *initialNodeFacade) GetPeersRating() string {
+// GetConnectedPeersRatings returns empty string
+func (inf *initialNodeFacade) GetConnectedPeersRatings() string {
 	return ""
 }
 

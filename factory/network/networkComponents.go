@@ -123,15 +123,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
-		TopRatedCache: topRatedCache,
-		BadRatedCache: badRatedCache,
-	}
-	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
-	if err != nil {
-		return nil, err
-	}
-
 	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
 		TopRatedCache: topRatedCache,
 		BadRatedCache: badRatedCache,
@@ -165,6 +156,16 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 			cancelFunc()
 		}
 	}()
+
+	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
+		TopRatedCache:       topRatedCache,
+		BadRatedCache:       badRatedCache,
+		ConnectionsProvider: netMessenger,
+	}
+	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
+	if err != nil {
+		return nil, err
+	}
 
 	var antiFloodComponents *antifloodFactory.AntiFloodComponents
 	antiFloodComponents, err = antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
