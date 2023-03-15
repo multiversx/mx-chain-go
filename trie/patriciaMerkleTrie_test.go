@@ -476,7 +476,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	storageManager.SetCheckpoint(rootHash, make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
@@ -563,7 +563,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		iteratorChannels := &common.TrieIteratorChannels{
 			LeavesChan: nil,
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
@@ -589,7 +589,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 		assert.Nil(t, err)
@@ -611,7 +611,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
 		expectedErr := errors.New("expected error")
@@ -647,7 +647,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
 		expectedErr := errors.New("expected error")
@@ -696,7 +696,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		assert.Nil(t, err)

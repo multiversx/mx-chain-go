@@ -1734,7 +1734,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash)
 	if err != nil {
@@ -1763,7 +1763,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			if len(rh) != 0 {
 				dataTrie := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-					ErrChan:    errChan.NewErrChan(),
+					ErrChan:    errChan.NewErrChanWrapper(),
 				}
 				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
 				if errDataTrieGet != nil {

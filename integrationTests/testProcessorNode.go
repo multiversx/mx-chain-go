@@ -3149,7 +3149,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChan(),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		for leaf := range chLeaves.LeavesChan {

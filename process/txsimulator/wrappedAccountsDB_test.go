@@ -151,7 +151,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 
 	allLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
 	require.NoError(t, err)

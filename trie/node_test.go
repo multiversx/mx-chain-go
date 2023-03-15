@@ -520,7 +520,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash(), keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)

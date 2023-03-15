@@ -1442,7 +1442,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"))
 	assert.Nil(t, err)

@@ -80,7 +80,7 @@ func TestTrieStorageManagerWithoutSnapshot_TakeSnapshot(t *testing.T) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 

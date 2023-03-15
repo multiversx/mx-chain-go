@@ -67,7 +67,7 @@ func getCode(accountsDB state.AccountsAdapter, codeHash []byte) ([]byte, error) 
 func getData(accountsDB state.AccountsAdapter, rootHash []byte, address []byte) ([]string, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
 	err := accountsDB.GetAllLeaves(leavesChannels, context.Background(), rootHash)

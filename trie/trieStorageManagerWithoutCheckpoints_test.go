@@ -28,14 +28,14 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
 
 	iteratorChannels = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint([]byte("rootHash"), make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())

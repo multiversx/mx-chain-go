@@ -1037,7 +1037,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	mainTrie := adb.getMainTrie()
 	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -1143,7 +1143,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	stats := newSnapshotStatistics(1, 1)
 
@@ -1371,7 +1371,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	stats := newSnapshotStatistics(1, 1)
@@ -1437,7 +1437,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {

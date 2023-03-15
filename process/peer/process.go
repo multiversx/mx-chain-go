@@ -563,7 +563,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {

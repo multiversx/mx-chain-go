@@ -473,13 +473,6 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	snapshotEntry.stats.AddTrieStats(stats.GetTrieStats())
 }
 
-func writeInChanNonBlocking(errChan chan error, err error) {
-	select {
-	case errChan <- err:
-	default:
-	}
-}
-
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
 	defer func() {
 		tsm.finishOperation(checkpointEntry, "trie checkpoint finished")

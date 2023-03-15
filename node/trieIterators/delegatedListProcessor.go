@@ -130,7 +130,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {

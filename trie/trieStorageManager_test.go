@@ -37,8 +37,8 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	}
 }
 
-// ErrChanWithLen extends the BufferedErrChan interface with a Len method
-type ErrChanWithLen interface {
+// errChanWithLen extends the BufferedErrChan interface with a Len method
+type errChanWithLen interface {
 	common.BufferedErrChan
 	Len() int
 }
@@ -98,7 +98,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
@@ -107,7 +107,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -141,13 +141,13 @@ func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -161,13 +161,13 @@ func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -184,7 +184,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
@@ -192,7 +192,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -360,13 +360,13 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -380,13 +380,13 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 0, ch.Len())
 }
@@ -401,14 +401,14 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	missingNodesChan := make(chan []byte, 2)
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChan, &trieMock.MockStatistics{}, 0)
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
 
-	ch, ok := iteratorChannels.ErrChan.(ErrChanWithLen)
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
 	assert.True(t, ok)
 	assert.Equal(t, 1, ch.Len())
 	errRecovered := iteratorChannels.ErrChan.ReadFromChanNonBlocking()
@@ -490,7 +490,7 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 	t.Run("buffered (one element), empty chan should add", func(t *testing.T) {
 		t.Parallel()
 
-		errChannel := errChan.NewErrChan()
+		errChannel := errChan.NewErrChanWrapper()
 		errChannel.WriteInChanNonBlocking(err1)
 
 		require.Equal(t, 1, errChannel.Len())
@@ -500,7 +500,7 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 	t.Run("buffered (1 element), full chan should not add, but should finish", func(t *testing.T) {
 		t.Parallel()
 
-		errChannel := errChan.NewErrChan()
+		errChannel := errChan.NewErrChanWrapper()
 		errChannel.WriteInChanNonBlocking(err1)
 		errChannel.WriteInChanNonBlocking(err2)
 

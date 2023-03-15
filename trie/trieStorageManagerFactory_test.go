@@ -135,7 +135,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	tsm.SetCheckpoint(nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{})
 
@@ -168,7 +168,7 @@ func testTsmWithoutSnapshot(
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	tsm.TakeSnapshot("", nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{}, 10)
 

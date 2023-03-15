@@ -57,7 +57,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
@@ -93,7 +93,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	stats.NewSnapshotStarted()
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
 

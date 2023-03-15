@@ -875,7 +875,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChan(),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
