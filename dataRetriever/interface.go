@@ -340,11 +340,9 @@ type PreferredPeersHolderHandler interface {
 
 // PeersRatingHandler represent an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeers(pids []core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
-	Close() error
 	IsInterfaceNil() bool
 }
 

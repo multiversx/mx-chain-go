@@ -281,11 +281,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			},
 		},
 		PeersRatingConfig: config.PeersRatingConfig{
-			TopRatedCacheCapacity:           1000,
-			BadRatedCacheCapacity:           1000,
-			TimeWaitingForReconnectionInSec: 300,
-			TimeBetweenMetricsUpdateInSec:   60,
-			TimeBetweenCachersSweepInSec:    60,
+			TopRatedCacheCapacity: 1000,
+			BadRatedCacheCapacity: 1000,
 		},
 		PoolsCleanersConfig: config.PoolsCleanersConfig{
 			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
