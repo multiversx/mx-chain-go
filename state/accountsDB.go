@@ -901,6 +901,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
+	log.Debug("committing data tries", "num tries", len(dataTries))
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
@@ -978,7 +979,17 @@ func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashe
 		}
 	}
 
-	return tr.Commit()
+	err := tr.Commit()
+	if err != nil {
+		return err
+	}
+
+	if log.GetLevel() == logger.LogTrace {
+		rootHash, err := tr.RootHash()
+		log.Trace("trie committed", "root hash", rootHash, "err", err)
+	}
+
+	return nil
 }
 
 // RootHash returns the main trie's root hash
