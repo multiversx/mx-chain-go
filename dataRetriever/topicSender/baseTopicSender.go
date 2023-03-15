@@ -2,6 +2,7 @@ package topicsender
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -84,7 +85,15 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(topic string, buff []byte
 		)
 	}
 
-	return baseSender.messenger.SendToConnectedPeer(topic, buff, peer)
+	err = baseSender.messenger.SendToConnectedPeer(topic, buff, peer)
+	if err == nil {
+		logMsg := "testing- sending response to peer"
+		if strings.Contains(topic, "_REQUEST") {
+			logMsg = "testing- sending request to peer"
+		}
+		log.Debug(logMsg, "self", baseSender.messenger.ID().Pretty(), "peer", peer.Pretty(), "topic", topic)
+	}
+	return err
 }
 
 // DebugHandler returns the debug handler used in resolvers

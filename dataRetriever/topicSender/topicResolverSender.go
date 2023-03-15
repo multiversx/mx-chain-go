@@ -31,7 +31,6 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
 func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
-	log.Debug("testing- sending response to peer", "self", trs.messenger.ID().Pretty(), "peer", peer.Pretty(), "topic", trs.topicName)
 	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
 }
 
