@@ -193,7 +193,6 @@ func (trs *topicRequestSender) sendOnTopic(
 		if err != nil {
 			continue
 		}
-		log.Debug("testing- sending request to peer", "self", trs.messenger.ID().Pretty(), "peer", peer.Pretty(), "topic", topicToSendRequest)
 		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
