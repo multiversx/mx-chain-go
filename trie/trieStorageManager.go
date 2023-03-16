@@ -687,6 +687,17 @@ func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager
 	return tsm
 }
 
+// GetIdentifier returns the identifier of the main storer
+func (tsm *trieStorageManager) GetIdentifier() string {
+	dbWithIdentifier, ok := tsm.mainStorer.(dbWriteCacherWithIdentifier)
+	if !ok {
+		log.Warn("trieStorageManager.GetIdentifier mainStorer is not of type dbWriteCacherWithIdentifier", "type", fmt.Sprintf("%T", tsm.mainStorer))
+		return ""
+	}
+
+	return dbWithIdentifier.GetIdentifier()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tsm *trieStorageManager) IsInterfaceNil() bool {
 	return tsm == nil

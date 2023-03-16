@@ -28,6 +28,7 @@ type StorageManagerStub struct {
 	IsClosedCalled                         func() bool
 	RemoveFromCheckpointHashesHolderCalled func([]byte)
 	GetBaseTrieStorageManagerCalled        func() common.StorageManager
+	GetIdentifierCalled                    func() string
 }
 
 // Put -
@@ -212,6 +213,15 @@ func (sms *StorageManagerStub) GetBaseTrieStorageManager() common.StorageManager
 	}
 
 	return nil
+}
+
+// GetIdentifier -
+func (sms *StorageManagerStub) GetIdentifier() string {
+	if sms.GetIdentifierCalled != nil {
+		return sms.GetIdentifierCalled()
+	}
+
+	return ""
 }
 
 // IsInterfaceNil -
