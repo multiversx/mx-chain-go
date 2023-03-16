@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -816,7 +817,22 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
 
-		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
+		headerBytes, headerType, err := boot.getHeaderBytes(currHeader)
+		if err != nil {
+			return err
+		}
+
+		body, err := getBody(currBody)
+		if err != nil {
+			return err
+		}
+
+		boot.outportHandler.RevertIndexedBlock(&outportcore.BlockData{
+			HeaderBytes: headerBytes,
+			HeaderType:  string(headerType),
+			Body:        body,
+			HeaderHash:  nil, // TODO: Do we need hash here?
+		})
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
@@ -833,6 +849,41 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
+	if check.IfNil(bodyHandler) {
+		return nil, fmt.Errorf("nil body")
+	}
+
+	body, castOk := bodyHandler.(*block.Body)
+	if !castOk {
+		return nil, fmt.Errorf("cannot cast body")
+	}
+
+	return body, nil
+}
+
+func (boot *baseBootstrap) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
+	var err error
+	var headerBytes []byte
+	var headerType core.HeaderType
+
+	switch header := headerHandler.(type) {
+	case *block.MetaBlock:
+		headerType = core.MetaHeader
+		headerBytes, err = boot.marshalizer.Marshal(header)
+	case *block.Header:
+		headerType = core.ShardHeaderV1
+		headerBytes, err = boot.marshalizer.Marshal(header)
+	case *block.HeaderV2:
+		headerType = core.ShardHeaderV2
+		headerBytes, err = boot.marshalizer.Marshal(header)
+	default:
+		return nil, "", fmt.Errorf("invalid/unknown header type")
+	}
+
+	return headerBytes, headerType, err
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {

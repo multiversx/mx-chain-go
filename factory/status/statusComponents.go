@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
 	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
@@ -175,11 +176,24 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardValidatorsPubKeys: convertPubKeys(validatorsPubKeys),
+			Epoch:                  currentEpoch,
+		})
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
 	return subscribeHandler
+}
+
+func convertPubKeys(validatorsPubKeys map[uint32][][]byte) map[uint32]*outportCore.PubKeys {
+	ret := make(map[uint32]*outportCore.PubKeys, len(validatorsPubKeys))
+
+	for shard, validators := range validatorsPubKeys {
+		ret[shard] = &outportCore.PubKeys{Keys: validators}
+	}
+
+	return ret
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
