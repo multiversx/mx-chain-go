@@ -496,10 +496,10 @@ func GetProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error) {
-				txsPool := make(map[uint32]*outport.Pool)
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+				txsPool := make(map[uint32]*outport.TransactionPool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &outport.Pool{}
+					txsPool[i] = &outport.TransactionPool{}
 				}
 
 				return make([]*block.MiniBlock, 4), txsPool, nil

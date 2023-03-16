@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport"
 )
@@ -14,31 +13,31 @@ func NewNilOutport() *nilOutport {
 }
 
 // SaveBlock -
-func (n *nilOutport) SaveBlock(_ *outportcore.ArgsSaveBlockData) {
+func (n *nilOutport) SaveBlock(_ *outportcore.OutportBlock) {
 }
 
 // RevertIndexedBlock -
-func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+func (n *nilOutport) RevertIndexedBlock(_ *outportcore.BlockData) {
 }
 
 // SaveRoundsInfo -
-func (n *nilOutport) SaveRoundsInfo(_ []*outportcore.RoundInfo) {
+func (n *nilOutport) SaveRoundsInfo(_ *outportcore.RoundsInfo) {
 }
 
 // SaveValidatorsPubKeys -
-func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
+func (n *nilOutport) SaveValidatorsPubKeys(_ *outportcore.ValidatorsPubKeys) {
 }
 
 // SaveValidatorsRating -
-func (n *nilOutport) SaveValidatorsRating(_ string, _ []*outportcore.ValidatorRatingInfo) {
+func (n *nilOutport) SaveValidatorsRating(_ *outportcore.ValidatorsRating) {
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
+func (n *nilOutport) SaveAccounts(_ *outportcore.Accounts) {
 }
 
 // FinalizedBlock -
-func (n *nilOutport) FinalizedBlock(_ []byte) {
+func (n *nilOutport) FinalizedBlock(_ *outportcore.FinalizedBlock) {
 }
 
 // Close -
