@@ -243,6 +243,7 @@ type NetworkComponentsHolder interface {
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
+	PeersRatingMonitor() p2p.PeersRatingMonitor
 	IsInterfaceNil() bool
 }
 

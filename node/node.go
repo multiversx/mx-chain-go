@@ -984,6 +984,11 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
+// GetConnectedPeersRatings returns the connected peers ratings
+func (n *Node) GetConnectedPeersRatings() string {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
+}
+
 // GetEpochStartDataAPI returns epoch start data of a given epoch
 func (n *Node) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
 	if epoch == 0 {
