@@ -2,6 +2,7 @@ package txsFee
 
 import (
 	"encoding/hex"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"strings"
 	"testing"
@@ -11,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -24,8 +28,9 @@ import (
 
 const (
 	stakingIsFullMessage      = "staking is full key put into waiting list"
-	validatorBLSKey           = "4fcdbfce9a3621621d388019353f87aceb0c5ec826256bc5a57220ed8f7d84b5c13f50219dc7a6ef090671f39d398c106f8a36022a04e6c18061ff38629d5b42b125aaea1e94a97b5f1c871bcf93b1f141a49ddb0b4c32b976cd530c1008da86"
-	validatorStakeData        = "stake@01@" + validatorBLSKey + "@0b823739887c40e9331f70c5a140623dfaf4558a9138b62f4473b26bbafdd4f58cb5889716a71c561c9e20e7a280e985@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba"
+	validatorPrivateKey       = "4f0bdd5a2237cb61e495763d93c3a85577420faf51e4bbb40d5a03e915f1e21f"
+	validatorBLSKey           = "cb66c844dc64e0cab854997df9b3fd1b1c071ee25e6634e6b95bdb15f0acb38e7c5ac20d02f231a03fde3abb8220951328a7f550915ff9da4a1960c8005d6dfabc50f776bd17433f29e8d0566871380b439024a70dfade593173c6462ad49318"
+	validatorStakeData        = "stake@01@" + validatorBLSKey + "@7aaf0222069b5ac98c59c407411e00ec0d826ef323b0325da4e0dd98bc54eeaf042865c2856a4ef88ee54fe24552dd85@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba"
 	cannotUnBondTokensMessage = "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"
 	noTokensToUnBondMessage   = "no tokens that can be unbond at this time"
 )
@@ -36,6 +41,8 @@ var (
 	value1250EGLD, _   = big.NewInt(0).SetString("1250000000000000000000", 10)
 	value200EGLD, _    = big.NewInt(0).SetString("200000000000000000000", 10)
 	valueUnJailEGLD, _ = big.NewInt(0).SetString("2500000000000000000", 10)
+	blsSigner          = &mclsig.BlsSingleSigner{}
+	keyGen             = signing.NewKeyGenerator(&mcl.SuiteBLS12{})
 )
 
 const delegationManagementKey = "delegationManagement"
@@ -314,60 +321,17 @@ func TestValidatorsSC_ToStakeJailUnbondShouldNotWork(t *testing.T) {
 	executeTxAndCheckResultsNot(t, testContextMeta, tx, vmcommon.Ok, nil)
 }
 
-func TestValidatorsSC_ToStakeUnStakeNodesAndUnBondNodesShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
-	require.Nil(t, err)
+func getDelegationManagement(testContextMeta *vm.VMTestContext) *systemSmartContracts.DelegationManagement {
+	acc, _ := testContextMeta.Accounts.LoadAccount(vmAddr.DelegationManagerSCAddress)
+	userAcc, _ := acc.(state.UserAccountHandler)
 
-	defer testContextMeta.Close()
-
-	saveNodesConfig(t, testContextMeta, 1, 1, 2)
-	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
-
-	gasPrice := uint64(10)
-	gasLimit := uint64(4000)
-	sndAddr := []byte("12345678901234567890123456789012")
-
-	tx := vm.CreateTransaction(0, value1250EGLD, sndAddr, vmAddr.DelegationManagerSCAddress, gasPrice, gasLimit, []byte("createNewDelegationContract@00@00"))
-	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-
-	//tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
-	//
-	//tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
-	//
-	//tx = vm.CreateTransaction(0, valueUnJailEGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unJail@"+validatorBLSKey))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
-	//
-	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondNodes@"+validatorBLSKey))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unStakeTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
-	//
-	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value2500EGLD.Bytes())))
-	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
-	//
-	//intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
-	//require.Equal(t, 1, len(intermediateTxs))
-	//
-	//scrWithMessage := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-	//require.Equal(t, value2500EGLD, scrWithMessage.Value)
+	managementData := &systemSmartContracts.DelegationManagement{}
+	marshaledData, _, _ := userAcc.RetrieveValue([]byte(delegationManagementKey))
+	_ = testContextMeta.Marshalizer.Unmarshal(managementData, marshaledData)
+	return managementData
 }
 
-func TestValidatorsSC_ToStakeJailUnJail(t *testing.T) {
+func TestValidatorsSC_ToStakeJailUnJailShouldWork(t *testing.T) {
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
 	require.Nil(t, err)
 
@@ -395,6 +359,118 @@ func TestValidatorsSC_ToStakeJailUnJail(t *testing.T) {
 	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
 }
 
+func TestValidatorsSC_AddNodes(t *testing.T) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	require.Nil(t, err)
+
+	defer testContextMeta.Close()
+
+	saveNodesConfig(t, testContextMeta, 1, 1, 10)
+	saveDelegationManagerConfig(testContextMeta)
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0, Nonce: 1})
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(4000)
+	sndAddr := []byte("12345678901234567890123456789012")
+
+	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.DelegationManagerSCAddress, gasPrice, gasLimit, []byte("createNewDelegationContract@00@00"))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	managementData := getDelegationManagement(testContextMeta)
+	stakingContractAddress := managementData.LastAddress
+	signature, err := signMessage(stakingContractAddress)
+	require.Nil(t, err)
+
+	txData := "addNodes@" + validatorBLSKey + "@" + hex.EncodeToString(signature)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, stakingContractAddress, gasPrice, 7000000, []byte(txData))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, stakingContractAddress, gasPrice, 2000000, []byte("setAutomaticActivation@74727565"))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, value1250EGLD, sndAddr, stakingContractAddress, gasPrice, gasLimit, []byte("delegate"))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, valueUnJailEGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unJail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+}
+
+func TestValidatorsSC_StakeNodes(t *testing.T) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	require.Nil(t, err)
+
+	defer testContextMeta.Close()
+
+	saveNodesConfig(t, testContextMeta, 1, 1, 10)
+	saveDelegationManagerConfig(testContextMeta)
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0, Nonce: 1})
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(4000)
+	sndAddr := []byte("12345678901234567890123456789012")
+
+	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.DelegationManagerSCAddress, gasPrice, gasLimit, []byte("createNewDelegationContract@00@00"))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	managementData := getDelegationManagement(testContextMeta)
+	stakingContractAddress := managementData.LastAddress
+	signature, err := signMessage(stakingContractAddress)
+	require.Nil(t, err)
+
+	txData := "addNodes@" + validatorBLSKey + "@" + hex.EncodeToString(signature)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, stakingContractAddress, gasPrice, 7000000, []byte(txData))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	txData = "stakeNodes@" + validatorBLSKey
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, stakingContractAddress, gasPrice, 7000000, []byte(txData))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	//tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, stakingContractAddress, gasPrice, 2000000, []byte("setAutomaticActivation@74727565"))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	//tx = vm.CreateTransaction(0, value1250EGLD, sndAddr, stakingContractAddress, gasPrice, gasLimit, []byte("delegate"))
+	//executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	//
+	//utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, big.NewInt(0), vmAddr.JailingAddress, vmAddr.StakingSCAddress, gasPrice, gasLimit, []byte("jail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
+
+	tx = vm.CreateTransaction(0, valueUnJailEGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unJail@"+validatorBLSKey))
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+}
+
+func signMessage(message []byte) ([]byte, error) {
+	skBuff, err := hex.DecodeString(validatorPrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	sk, err := keyGen.PrivateKeyFromByteArray(skBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	signature, err := blsSigner.Sign(sk, message)
+	return signature, err
+}
+
 func executeTxAndCheckResults(
 	t *testing.T,
 	testContext *vm.VMTestContext,
@@ -403,8 +479,8 @@ func executeTxAndCheckResults(
 	expectedErr error,
 ) {
 	recCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, vmCodeExpected, recCode)
-	require.Equal(t, expectedErr, err)
+	assert.Equal(t, vmCodeExpected, recCode)
+	assert.Equal(t, expectedErr, err)
 }
 
 func executeTxAndCheckResultsNot(
