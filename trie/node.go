@@ -4,6 +4,7 @@ package trie
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -124,7 +125,7 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 			return nil, errors.NewGetNodeFromDBErrWithKey(n, err, "")
 		}
 
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
+		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
 		return nil, errors.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())
 	}
 
