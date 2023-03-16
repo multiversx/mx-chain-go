@@ -109,8 +109,8 @@ func GetMetaHeader(
 	return hdr, nil
 }
 
-// GetHeaderWithValidatorStats gets the header, which is associated with the given hash, from pool or storage
-func GetHeaderWithValidatorStats(
+// GetSovereignChainHeader gets the header, which is associated with the given hash, from pool or storage
+func GetSovereignChainHeader(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
@@ -124,7 +124,7 @@ func GetHeaderWithValidatorStats(
 
 	hdr, err := GetCommonHeaderFromPool(hash, headersCacher)
 	if err != nil {
-		hdr, err = GetHeaderWithValidatorStatsFromStorage(hash, marshalizer, storageService)
+		hdr, err = GetSovereignChainHeaderFromStorage(hash, marshalizer, storageService)
 		if err != nil {
 			return nil, err
 		}
@@ -223,8 +223,8 @@ func GetShardHeaderFromStorage(
 	return hdr, nil
 }
 
-// GetHeaderWithValidatorStatsFromStorage gets the header, which is associated with the given hash, from storage
-func GetHeaderWithValidatorStatsFromStorage(
+// GetSovereignChainHeaderFromStorage gets the header, which is associated with the given hash, from storage
+func GetSovereignChainHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
@@ -235,7 +235,7 @@ func GetHeaderWithValidatorStatsFromStorage(
 		return nil, err
 	}
 
-	hdr, err := UnmarshalHeaderWithValidatorStats(marshalizer, buffHdr)
+	hdr, err := UnmarshalSovereignChainHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -855,21 +855,21 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 	return header, nil
 }
 
-// UnmarshalHeaderWithValidatorStats unmarshalls a header with validator stats
-func UnmarshalHeaderWithValidatorStats(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.ShardHeaderHandler, error) {
-	hdrWithValidatorStats := &block.HeaderWithValidatorStats{}
-	err := marshalizer.Unmarshal(hdrWithValidatorStats, headerBuffer)
+// UnmarshalSovereignChainHeader unmarshalls a sovereign chain header
+func UnmarshalSovereignChainHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.ShardHeaderHandler, error) {
+	sovereignChainHeader := &block.SovereignChainHeader{}
+	err := marshalizer.Unmarshal(sovereignChainHeader, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(hdrWithValidatorStats.Header) {
+	if check.IfNil(sovereignChainHeader.Header) {
 		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
 	}
-	if !bytes.Equal(hdrWithValidatorStats.GetSoftwareVersion(), SovereignHeaderVersion) {
+	if !bytes.Equal(sovereignChainHeader.GetSoftwareVersion(), SovereignHeaderVersion) {
 		return nil, ErrWrongHeaderVersion
 	}
 
-	return hdrWithValidatorStats, nil
+	return sovereignChainHeader, nil
 }
 
 // UnmarshalShardHeader unmarshalls a shard header
@@ -879,7 +879,7 @@ func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data
 		return hdr, nil
 	}
 
-	hdr, err = UnmarshalHeaderWithValidatorStats(marshalizer, hdrBuff)
+	hdr, err = UnmarshalSovereignChainHeader(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}

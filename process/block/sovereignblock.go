@@ -41,7 +41,7 @@ func NewSovereignBlockProcessor(
 // CreateNewHeader creates a new header
 func (s *sovereignBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	s.enableRoundsHandler.CheckRound(round)
-	header := &block.HeaderWithValidatorStats{
+	header := &block.SovereignChainHeader{
 		Header: &block.Header{
 			SoftwareVersion: process.SovereignHeaderVersion,
 			RootHash:        s.uncomputedRootHash,
@@ -356,9 +356,9 @@ func (s *sovereignBlockProcessor) DecodeBlockHeader(data []byte) data.HeaderHand
 		return nil
 	}
 
-	header, err := process.UnmarshalHeaderWithValidatorStats(s.marshalizer, data)
+	header, err := process.UnmarshalSovereignChainHeader(s.marshalizer, data)
 	if err != nil {
-		log.Debug("DecodeBlockHeader.UnmarshalHeaderWithValidatorStats", "error", err.Error())
+		log.Debug("DecodeBlockHeader.UnmarshalSovereignChainHeader", "error", err.Error())
 		return nil
 	}
 
@@ -396,7 +396,7 @@ func (s *sovereignBlockProcessor) updateState(header data.HeaderHandler, headerH
 	s.validatorStatisticsProcessor.SetLastFinalizedRootHash(header.GetValidatorStatsRootHash())
 
 	prevHeaderHash := header.GetPrevHash()
-	prevHeader, errNotCritical := process.GetHeaderWithValidatorStats(
+	prevHeader, errNotCritical := process.GetSovereignChainHeader(
 		prevHeaderHash,
 		s.dataPool.Headers(),
 		s.marshalizer,
