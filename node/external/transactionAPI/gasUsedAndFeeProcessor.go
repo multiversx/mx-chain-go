@@ -8,12 +8,14 @@ import (
 )
 
 type gasUsedAndFeeProcessor struct {
-	feeComputer feeComputer
+	feeComputer     feeComputer
+	pubKeyConverter core.PubkeyConverter
 }
 
-func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer) *gasUsedAndFeeProcessor {
+func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer, pubKeyConverter core.PubkeyConverter) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
-		feeComputer: txFeeCalculator,
+		feeComputer:     txFeeCalculator,
+		pubKeyConverter: pubKeyConverter,
 	}
 }
 
@@ -24,7 +26,7 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
 
-	if tx.IsRelayed {
+	if tx.IsRelayed || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = tx.InitiallyPaidFee
 	}
@@ -32,6 +34,9 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	hasRefund := false
 	for _, scr := range tx.SmartContractResults {
 		if !scr.IsRefund {
+			continue
+		}
+		if scr.RcvAddr != tx.Sender {
 			continue
 		}
 
@@ -73,4 +78,34 @@ func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnRefundValue(tx *transac
 	gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refund)
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
+}
+
+func (gfp *gasUsedAndFeeProcessor) isESDTOperationWithSCCall(tx *transaction.ApiTransactionResult) bool {
+	isESDTTransferOperation := tx.Operation == core.BuiltInFunctionESDTTransfer ||
+		tx.Operation == core.BuiltInFunctionESDTNFTTransfer || tx.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
+
+	isReceiverSC := core.IsSmartContractAddress(tx.Tx.GetRcvAddr())
+	hasFunction := tx.Function != ""
+	if !hasFunction {
+		return false
+	}
+
+	if tx.Sender != tx.Receiver {
+		return isESDTTransferOperation && isReceiverSC && hasFunction
+	}
+
+	if len(tx.Receivers) == 0 {
+		return false
+	}
+
+	receiver := tx.Receivers[0]
+	decodedReceiver, err := gfp.pubKeyConverter.Decode(receiver)
+	if err != nil {
+		log.Warn("gasUsedAndFeeProcessor.isESDTOperationWithSCCall cannot decode receiver address", "error", err.Error())
+		return false
+	}
+
+	isReceiverSC = core.IsSmartContractAddress(decodedReceiver)
+
+	return isESDTTransferOperation && isReceiverSC && hasFunction
 }
