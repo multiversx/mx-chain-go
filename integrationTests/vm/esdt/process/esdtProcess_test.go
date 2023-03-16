@@ -1400,10 +1400,9 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 }
 
 func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEnoughGasInTx(t *testing.T) {
-	//TODO: fix wasmer1 on vm1.4 and enable test
-	//if testing.Short() {
-	t.Skip("this is not a short test")
-	//}
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfShards := 1
 	nodesPerShard := 1
