@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -914,7 +916,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
 		genesisAccounts[encodedAddress] = &alteredAccount.AlteredAccount{
-			AdditionalData: &outport.AdditionalAccountData{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 			},
 			Address: encodedAddress,
@@ -930,7 +932,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts, shardID)
+	pcf.statusComponents.OutportHandler().SaveAccounts(&outport.Accounts{
+		ShardID:         shardID,
+		BlockTimestamp:  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		AlteredAccounts: genesisAccounts,
+	})
 	return genesisAccounts, nil
 }
 
@@ -1128,20 +1134,28 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			Balance: "0",
 		}
 
-		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))
+		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Transactions)))
 
-		arg := &outport.ArgsSaveBlockData{
-			HeaderHash: genesisBlockHash,
-			Body:       genesisBody,
-			Header:     genesisBlockHeader,
-			HeaderGasConsumption: outport.HeaderGasConsumption{
+		headerBytes, headerType, err := pcf.getHeaderBytes(genesisBlockHeader)
+		if err != nil {
+			return err
+		}
+
+		arg := &outport.OutportBlock{
+			BlockData: &outport.BlockData{
+				HeaderBytes: headerBytes,
+				HeaderType:  string(headerType),
+				HeaderHash:  genesisBlockHash,
+				Body:        genesisBody,
+			},
+			HeaderGasConsumption: &outport.HeaderGasConsumption{
 				GasProvided:    0,
 				GasRefunded:    0,
 				GasPenalized:   0,
 				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
 			},
-			TransactionsPool: txsPoolPerShard[currentShardId],
-			AlteredAccounts:  alteredAccounts,
+			TransactionPool: txsPoolPerShard[currentShardId],
+			AlteredAccounts: alteredAccounts,
 		}
 		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
@@ -1152,10 +1166,10 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			genesisBlockHash,
 			originalGenesisBlockHeader,
 			genesisBody,
-			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
-			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			unwrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
+			unwrapReceipts(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
-			txsPoolPerShard[currentShardId].Logs)
+			unwrapLogs(txsPoolPerShard[currentShardId].Logs))
 		if err != nil {
 			return err
 		}
@@ -1167,7 +1181,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	if txsPoolPerShard[currentShardId] != nil {
-		err = pcf.saveGenesisTxsToStorage(unwrapTxs(txsPoolPerShard[currentShardId].Txs))
+		err = pcf.saveGenesisTxsToStorage(unwrapTxsInfo(txsPoolPerShard[currentShardId].Transactions))
 		if err != nil {
 			return err
 		}
@@ -1193,12 +1207,34 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	return nil
 }
 
+func (pcf *processComponentsFactory) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
+	var err error
+	var headerBytes []byte
+	var headerType core.HeaderType
+
+	switch header := headerHandler.(type) {
+	case *dataBlock.MetaBlock:
+		headerType = core.MetaHeader
+		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
+	case *dataBlock.Header:
+		headerType = core.ShardHeaderV1
+		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
+	case *dataBlock.HeaderV2:
+		headerType = core.ShardHeaderV2
+		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
+	default:
+		return nil, "", fmt.Errorf("invalid/unknown header type")
+	}
+
+	return headerBytes, headerType, err
+}
+
 func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 	genesisBlockHeader data.HeaderHandler,
 	genesisBlockHash []byte,
 	genesisBody *dataBlock.Body,
 	intraShardMiniBlocks []*dataBlock.MiniBlock,
-	txsPoolPerShard map[uint32]*outport.Pool,
+	txsPoolPerShard map[uint32]*outport.TransactionPool,
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 
@@ -1225,10 +1261,10 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 			genesisBlockHash,
 			genesisBlockHeader,
 			genesisBody,
-			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
-			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			unwrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
+			unwrapReceipts(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
-			txsPoolPerShard[currentShardId].Logs)
+			unwrapLogs(txsPoolPerShard[currentShardId].Logs))
 		if err != nil {
 			return err
 		}
@@ -1977,11 +2013,45 @@ func (pc *processComponents) Close() error {
 	return nil
 }
 
-func unwrapTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) map[string]data.TransactionHandler {
-	output := make(map[string]data.TransactionHandler)
-	for hash, wrappedTx := range txs {
-		output[hash] = wrappedTx.GetTxHandler()
+func unwrapTxsInfo(txs map[string]*outport.TxInfo) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(txs))
+	for hash, tx := range txs {
+		ret[hash] = tx.Transaction
 	}
 
-	return output
+	return ret
+}
+
+func unwrapSCRsInfo(scrs map[string]*outport.SCRInfo) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(scrs))
+	for hash, scr := range scrs {
+		ret[hash] = scr.SmartContractResult
+	}
+
+	return ret
+}
+
+func unwrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(receipts))
+	for hash, r := range receipts {
+		ret[hash] = r
+	}
+
+	return ret
+}
+
+func unwrapLogs(logs map[string]*transaction.Log) []*data.LogData {
+	ret := make([]*data.LogData, len(logs))
+
+	idx := 0
+	for hash, lg := range logs {
+		ret[idx] = &data.LogData{
+			LogHandler: lg,
+			TxHash:     hash,
+		}
+
+		idx++
+	}
+
+	return ret
 }
