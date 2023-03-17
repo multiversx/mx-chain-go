@@ -177,23 +177,13 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 		}
 
 		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
-			ShardValidatorsPubKeys: convertPubKeys(validatorsPubKeys),
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  currentEpoch,
 		})
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
 	return subscribeHandler
-}
-
-func convertPubKeys(validatorsPubKeys map[uint32][][]byte) map[uint32]*outportCore.PubKeys {
-	ret := make(map[uint32]*outportCore.PubKeys, len(validatorsPubKeys))
-
-	for shard, validators := range validatorsPubKeys {
-		ret[shard] = &outportCore.PubKeys{Keys: validators}
-	}
-
-	return ret
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1675,20 +1675,10 @@ func indexValidatorsListIfNeeded(
 
 	if len(validatorsPubKeys) > 0 {
 		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
-			ShardValidatorsPubKeys: convertPubKeys(validatorsPubKeys),
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  epoch,
 		})
 	}
-}
-
-func convertPubKeys(validatorsPubKeys map[uint32][][]byte) map[uint32]*outportCore.PubKeys {
-	ret := make(map[uint32]*outportCore.PubKeys, len(validatorsPubKeys))
-
-	for shard, validators := range validatorsPubKeys {
-		ret[shard] = &outportCore.PubKeys{Keys: validators}
-	}
-
-	return ret
 }
 
 func enableGopsIfNeeded(gopsEnabled bool) {
