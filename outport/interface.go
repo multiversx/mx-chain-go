@@ -2,6 +2,7 @@ package outport
 
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport/process"
 )
 
@@ -15,6 +16,7 @@ type Driver interface {
 	SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating) error
 	SaveAccounts(accounts *outportcore.Accounts) error
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) error
+	GetMarshaller() marshal.Marshalizer
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -22,8 +24,8 @@ type Driver interface {
 // OutportHandler is interface that defines what a proxy implementation should be able to do
 // The node is able to talk only with this interface
 type OutportHandler interface {
-	SaveBlock(outportBlock *outportcore.OutportBlock)
-	RevertIndexedBlock(blockData *outportcore.BlockData)
+	SaveBlock(outportBlock *outportcore.OutportBlockWithHeaderAndBody) error
+	RevertIndexedBlock(blockData *outportcore.HeaderDataWithBody) error
 	SaveRoundsInfo(roundsInfos *outportcore.RoundsInfo)
 	SaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating)
@@ -37,6 +39,6 @@ type OutportHandler interface {
 
 // DataProviderOutport is an interface that defines what an implementation of data provider outport should be able to do
 type DataProviderOutport interface {
-	PrepareOutportSaveBlockData(arg process.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlock, error)
+	PrepareOutportSaveBlockData(arg process.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error)
 	IsInterfaceNil() bool
 }

@@ -607,7 +607,12 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
-	sp.outportHandler.SaveBlock(argSaveBlock)
+	err = sp.outportHandler.SaveBlock(argSaveBlock)
+	if err != nil {
+		log.Warn("shardProcessor.outportHandler.SaveBlock cannot save block", "error", err)
+		return
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	shardID := sp.shardCoordinator.SelfId()

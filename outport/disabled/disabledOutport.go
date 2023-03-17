@@ -13,11 +13,13 @@ func NewDisabledOutport() *disabledOutport {
 }
 
 // SaveBlock does nothing
-func (n *disabledOutport) SaveBlock(_ *outportcore.OutportBlock) {
+func (n *disabledOutport) SaveBlock(_ *outportcore.OutportBlockWithHeaderAndBody) error {
+	return nil
 }
 
 // RevertIndexedBlock does nothing
-func (n *disabledOutport) RevertIndexedBlock(_ *outportcore.BlockData) {
+func (n *disabledOutport) RevertIndexedBlock(_ *outportcore.HeaderDataWithBody) error {
+	return nil
 }
 
 // SaveRoundsInfo does nothing

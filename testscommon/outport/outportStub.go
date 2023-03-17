@@ -7,17 +7,19 @@ import (
 
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
-	SaveBlockCalled             func(args *outportcore.OutportBlock)
+	SaveBlockCalled             func(args *outportcore.OutportBlockWithHeaderAndBody) error
 	SaveValidatorsRatingCalled  func(validatorsRating *outportcore.ValidatorsRating)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	HasDriversCalled            func() bool
 }
 
 // SaveBlock -
-func (as *OutportStub) SaveBlock(args *outportcore.OutportBlock) {
+func (as *OutportStub) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) error {
 	if as.SaveBlockCalled != nil {
-		as.SaveBlockCalled(args)
+		return as.SaveBlockCalled(args)
 	}
+
+	return nil
 }
 
 // SaveValidatorsRating -
@@ -48,8 +50,8 @@ func (as *OutportStub) HasDrivers() bool {
 }
 
 // RevertIndexedBlock -
-func (as *OutportStub) RevertIndexedBlock(_ *outportcore.BlockData) {
-
+func (as *OutportStub) RevertIndexedBlock(_ *outportcore.HeaderDataWithBody) error {
+	return nil
 }
 
 // SaveAccounts -

@@ -154,6 +154,11 @@ func (en *eventNotifier) SaveAccounts(_ *outport.Accounts) error {
 	return nil
 }
 
+// GetMarshaller returns internal marshaller
+func (en *eventNotifier) GetMarshaller() marshal.Marshalizer {
+	return en.marshalizer
+}
+
 // IsInterfaceNil returns whether the interface is nil
 func (en *eventNotifier) IsInterfaceNil() bool {
 	return en == nil

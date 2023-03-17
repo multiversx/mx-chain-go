@@ -1136,28 +1136,28 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Transactions)))
 
-		headerBytes, headerType, err := pcf.getHeaderBytes(genesisBlockHeader)
-		if err != nil {
-			return err
-		}
-
-		arg := &outport.OutportBlock{
-			BlockData: &outport.BlockData{
-				HeaderBytes: headerBytes,
-				HeaderType:  string(headerType),
-				HeaderHash:  genesisBlockHash,
-				Body:        genesisBody,
+		arg := &outport.OutportBlockWithHeaderAndBody{
+			OutportBlock: &outport.OutportBlock{
+				BlockData: nil, // this will be filled by outport handler
+				HeaderGasConsumption: &outport.HeaderGasConsumption{
+					GasProvided:    0,
+					GasRefunded:    0,
+					GasPenalized:   0,
+					MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
+				},
+				TransactionPool: txsPoolPerShard[currentShardId],
+				AlteredAccounts: alteredAccounts,
 			},
-			HeaderGasConsumption: &outport.HeaderGasConsumption{
-				GasProvided:    0,
-				GasRefunded:    0,
-				GasPenalized:   0,
-				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
+			HeaderDataWithBody: &outport.HeaderDataWithBody{
+				Body:       genesisBody,
+				Header:     genesisBlockHeader,
+				HeaderHash: genesisBlockHash,
 			},
-			TransactionPool: txsPoolPerShard[currentShardId],
-			AlteredAccounts: alteredAccounts,
 		}
-		pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		errOutport := pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		if errOutport != nil {
+			log.Warn("indexGenesisBlocks.outportHandler.SaveBlock cannot save block", "error", err)
+		}
 	}
 
 	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
@@ -1205,28 +1205,6 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	return nil
-}
-
-func (pcf *processComponentsFactory) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
-	var err error
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := headerHandler.(type) {
-	case *dataBlock.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
-	case *dataBlock.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
-	case *dataBlock.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = pcf.coreData.InternalMarshalizer().Marshal(header)
-	default:
-		return nil, "", fmt.Errorf("invalid/unknown header type")
-	}
-
-	return headerBytes, headerType, err
 }
 
 func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(

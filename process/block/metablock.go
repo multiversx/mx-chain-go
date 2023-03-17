@@ -627,7 +627,12 @@ func (mp *metaProcessor) indexBlock(
 		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
-	mp.outportHandler.SaveBlock(argSaveBlock)
+	err = mp.outportHandler.SaveBlock(argSaveBlock)
+	if err != nil {
+		log.Warn("metaProcessor.outportHandler.SaveBlock cannot save block", "error", err)
+		return
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)

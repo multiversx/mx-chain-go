@@ -43,13 +43,43 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 }
 
 // SaveBlock will save block for every driver
-func (o *outport) SaveBlock(args *outportcore.OutportBlock) {
+func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveBlockBlocking(args, driver)
+		blockData, err := prepareBlockData(args.HeaderDataWithBody, driver)
+		if err != nil {
+			return err
+		}
+
+		args.OutportBlock.BlockData = blockData
+		o.saveBlockBlocking(args.OutportBlock, driver)
 	}
+
+	return nil
+}
+
+func prepareBlockData(
+	headerBodyData *outportcore.HeaderDataWithBody,
+	driver Driver,
+) (*outportcore.BlockData, error) {
+	marshaller := driver.GetMarshaller()
+	headerBytes, headerType, err := outportcore.GetHeaderBytesAndType(marshaller, headerBodyData.Header)
+	if err != nil {
+		return nil, err
+	}
+	body, err := outportcore.GetBody(headerBodyData.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &outportcore.BlockData{
+		HeaderBytes: headerBytes,
+		HeaderType:  string(headerType),
+		HeaderHash:  headerBodyData.HeaderHash,
+		Body:        body,
+	}, nil
 }
 
 func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan struct{} {
@@ -107,13 +137,20 @@ func (o *outport) shouldTerminate() bool {
 }
 
 // RevertIndexedBlock will revert block for every driver
-func (o *outport) RevertIndexedBlock(blockData *outportcore.BlockData) {
+func (o *outport) RevertIndexedBlock(headerDataWithBody *outportcore.HeaderDataWithBody) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
+		blockData, err := prepareBlockData(headerDataWithBody, driver)
+		if err != nil {
+			return err
+		}
+
 		o.revertIndexedBlockBlocking(blockData, driver)
 	}
+
+	return nil
 }
 
 func (o *outport) revertIndexedBlockBlocking(blockData *outportcore.BlockData, driver Driver) {

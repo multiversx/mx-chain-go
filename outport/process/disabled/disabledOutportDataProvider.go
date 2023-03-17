@@ -13,8 +13,8 @@ func NewDisabledOutportDataProvider() *disabledOutportDataProvider {
 }
 
 // PrepareOutportSaveBlockData wil do nothing
-func (d *disabledOutportDataProvider) PrepareOutportSaveBlockData(_ process.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlock, error) {
-	return &outportcore.OutportBlock{}, nil
+func (d *disabledOutportDataProvider) PrepareOutportSaveBlockData(_ process.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+	return &outportcore.OutportBlockWithHeaderAndBody{}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -39,6 +39,8 @@ type ArgOutportDataProvider struct {
 type ArgPrepareOutportSaveBlockData struct {
 	HeaderHash             []byte
 	Header                 data.HeaderHandler
+	HeaderBytes            []byte
+	HeaderType             string
 	Body                   data.BodyHandler
 	PreviousHeader         data.HeaderHandler
 	RewardsTxs             map[string]data.TransactionHandler
@@ -78,7 +80,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 }
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
-func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlock, error) {
+func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
 	if check.IfNil(arg.Header) {
 		return nil, errNilHeaderHandler
 	}
@@ -115,38 +117,31 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	if err != nil {
 		return nil, err
 	}
-	body, err := getBody(arg.Body)
-	if err != nil {
-		return nil, err
-	}
 
-	headerBytes, headerType, err := odp.getHeaderBytes(arg.Header)
-	if err != nil {
-		return nil, err
-	}
+	return &outportcore.OutportBlockWithHeaderAndBody{
+		OutportBlock: &outportcore.OutportBlock{
+			BlockData:       nil, // this will be filed with specific data for each driver
+			TransactionPool: pool,
+			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
+				GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+				GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
+				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
+				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+			},
+			AlteredAccounts:        alteredAccounts,
+			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
+			NumberOfShards:         odp.numOfShards,
+			IsImportDB:             odp.isImportDBMode,
+			SignersIndexes:         signersIndexes,
 
-	return &outportcore.OutportBlock{
-		BlockData: &outportcore.BlockData{
-			HeaderBytes: headerBytes,
-			HeaderType:  string(headerType),
-			HeaderHash:  arg.HeaderHash,
-			Body:        body,
+			HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
+			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 		},
-		TransactionPool: pool,
-		HeaderGasConsumption: &outportcore.HeaderGasConsumption{
-			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
-			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
-			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
-			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+			Body:       arg.Body,
+			Header:     arg.Header,
+			HeaderHash: arg.HeaderHash,
 		},
-		AlteredAccounts:        alteredAccounts,
-		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
-		NumberOfShards:         odp.numOfShards,
-		IsImportDB:             odp.isImportDBMode,
-		SignersIndexes:         signersIndexes,
-
-		HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
-		HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 	}, nil
 }
 
@@ -178,41 +173,6 @@ func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]
 	}
 
 	return signersIndexes, nil
-}
-
-func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
-	if check.IfNil(bodyHandler) {
-		return nil, errNilBodyHandler
-	}
-
-	body, castOk := bodyHandler.(*block.Body)
-	if !castOk {
-		return nil, errCannotCastBlockBody
-	}
-
-	return body, nil
-}
-
-func (odp *outportDataProvider) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
-	var err error
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := headerHandler.(type) {
-	case *block.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = odp.marshaller.Marshal(header)
-	case *block.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = odp.marshaller.Marshal(header)
-	case *block.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = odp.marshaller.Marshal(header)
-	default:
-		return nil, "", errInvalidHeaderType
-	}
-
-	return headerBytes, headerType, err
 }
 
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
