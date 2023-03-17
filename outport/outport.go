@@ -47,6 +47,10 @@ func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) err
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
+	if args == nil {
+		return fmt.Errorf("outport.SaveBlock error: %w", errNilSaveBlockArgs)
+	}
+
 	for _, driver := range o.drivers {
 		blockData, err := prepareBlockData(args.HeaderDataWithBody, driver)
 		if err != nil {
@@ -64,6 +68,10 @@ func prepareBlockData(
 	headerBodyData *outportcore.HeaderDataWithBody,
 	driver Driver,
 ) (*outportcore.BlockData, error) {
+	if headerBodyData == nil {
+		return nil, fmt.Errorf("outport.prepareBlockData error: %w", errNilHeaderAndBodyArgs)
+	}
+
 	marshaller := driver.GetMarshaller()
 	headerBytes, headerType, err := outportcore.GetHeaderBytesAndType(marshaller, headerBodyData.Header)
 	if err != nil {

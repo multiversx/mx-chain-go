@@ -2228,16 +2228,24 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
-		SaveBlockCalled: func(args *outportcore.OutportBlock) {
+		SaveBlockCalled: func(args *outportcore.OutportBlockWithHeaderAndBody) error {
 			called = true
+			return nil
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
 	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
-		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlock, error) {
-			return &outportcore.OutportBlock{}, nil
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+					Body:       &block.Body{},
+					Header:     &block.HeaderV2{},
+					HeaderHash: []byte("hash"),
+				},
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
 		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts

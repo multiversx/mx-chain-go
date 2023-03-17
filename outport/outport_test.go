@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -17,6 +18,17 @@ import (
 )
 
 const counterPositionInLogMessage = 5
+
+func createSaveBlockArgs() *outportcore.OutportBlockWithHeaderAndBody {
+	return &outportcore.OutportBlockWithHeaderAndBody{
+		OutportBlock: &outportcore.OutportBlock{},
+		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+			Body:       &block.Body{},
+			Header:     &block.HeaderV2{},
+			HeaderHash: []byte("hash"),
+		},
+	}
+}
 
 func TestNewOutport(t *testing.T) {
 	t.Parallel()
@@ -114,11 +126,12 @@ func TestOutport_SaveBlock(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveBlock(nil)
+	_ = outportHandler.SaveBlock(args)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -298,13 +311,14 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 		}
 	}
 
-	outportHandler.RevertIndexedBlock(&outportcore.BlockData{})
+	args := createSaveBlockArgs()
+	_ = outportHandler.RevertIndexedBlock(args.HeaderDataWithBody)
 	time.Sleep(time.Second)
 
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.RevertIndexedBlock(&outportcore.BlockData{})
+	_ = outportHandler.RevertIndexedBlock(args.HeaderDataWithBody)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -448,11 +462,11 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveBlock(nil)
+		_ = outportHandler.SaveBlock(nil)
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.RevertIndexedBlock(nil)
+		_ = outportHandler.RevertIndexedBlock(nil)
 		wg.Done()
 	}()
 	go func() {
@@ -521,7 +535,8 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 		},
 	})
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 
 	assert.True(t, logErrorCalled.IsSet())
 	assert.Equal(t, uint32(1), atomicGo.LoadUint32(&numLogDebugCalled))
@@ -559,7 +574,8 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 		},
 	})
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))

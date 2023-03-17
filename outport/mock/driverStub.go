@@ -3,6 +3,7 @@ package mock
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // DriverStub -
@@ -81,7 +82,7 @@ func (d *DriverStub) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) 
 }
 
 func (d *DriverStub) GetMarshaller() marshal.Marshalizer {
-	return nil
+	return testscommon.MarshalizerMock{}
 }
 
 // Close -
