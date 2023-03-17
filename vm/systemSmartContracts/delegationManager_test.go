@@ -1192,7 +1192,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegation(t *testing.T) {
 			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 				return &mock.SystemSCStub{
 					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-						_ = d.eei.Transfer(args.RecipientAddr, args.CallerAddr, big.NewInt(10), nil, 0)
+						_ = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, big.NewInt(10), nil, 0)
 						return vmcommon.Ok
 					},
 				}, nil
@@ -1206,6 +1206,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegation(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, returnCode)
 	require.Equal(t, len(eei.output), 1)
 	require.Equal(t, eei.output[0], big.NewInt(20).Bytes())
+	require.Equal(t, len(eei.outputAccounts[string(vmInput.CallerAddr)].OutputTransfers), 2)
 }
 
 func TestDelegationManagerSystemSC_ReDelegateMulti(t *testing.T) {

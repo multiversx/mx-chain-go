@@ -5,6 +5,7 @@ package delegation
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -104,6 +105,7 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 	checkClaimMultiReturn(t, tpn, vm.DelegationManagerSCAddress, delegators[2], "claimMulti", listAddresses, 2700)
 	checkClaimMultiReturn(t, tpn, vm.DelegationManagerSCAddress, delegators[3], "claimMulti", listAddresses, 2700)
 
+	fmt.Println("FROM HEEEREEEEEEE !!!!!!!!!!!!!!!!!!!!!!!!!")
 	for _, delegator := range delegators {
 		returnedCode, err := processTransaction(tpn, delegator, vm.DelegationManagerSCAddress, txData, big.NewInt(0))
 		assert.Nil(t, err)
