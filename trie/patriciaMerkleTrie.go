@@ -609,19 +609,6 @@ func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][
 	return false, nil
 }
 
-// GetNumNodes will return the trie nodes statistics DTO
-func (tr *patriciaMerkleTrie) GetNumNodes() common.NumNodesDTO {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	n := tr.root
-	if check.IfNil(n) {
-		return common.NumNodesDTO{}
-	}
-
-	return n.getNumNodes()
-}
-
 // GetStorageManager returns the storage manager for the trie
 func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 	tr.mutOperation.Lock()
