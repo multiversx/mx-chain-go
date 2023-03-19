@@ -37,7 +37,7 @@ type FinalizedBlock struct {
 type eventNotifier struct {
 	httpClient      httpClientHandler
 	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
+	hasher          hashing.Hasher // todo: remove this
 	pubKeyConverter core.PubkeyConverter
 }
 
@@ -104,13 +104,8 @@ func (en *eventNotifier) RevertIndexedBlock(blockData *outport.BlockData) error 
 		return err
 	}
 
-	blockHash, err := core.CalculateHash(en.marshalizer, en.hasher, headerHandler)
-	if err != nil {
-		return fmt.Errorf("%w in eventNotifier.RevertIndexedBlock while computing the block hash", err)
-	}
-
 	revertBlock := RevertBlock{
-		Hash:  hex.EncodeToString(blockHash),
+		Hash:  hex.EncodeToString(blockData.HeaderHash),
 		Nonce: headerHandler.GetNonce(),
 		Round: headerHandler.GetRound(),
 		Epoch: headerHandler.GetEpoch(),
