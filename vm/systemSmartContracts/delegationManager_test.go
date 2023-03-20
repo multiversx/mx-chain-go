@@ -812,7 +812,6 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, vm.ErrUnknownSystemSmartContract.Error())
 
-	//eei.softCleanCache()
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.Ok
