@@ -509,12 +509,15 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 	return nil
 }
 
-// LoadDataTrie retrieves and saves the SC data inside accountHandler object.
+// loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie common.Trie) error {
+func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
 	if len(accountHandler.GetRootHash()) == 0 {
 		return nil
 	}
+
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
 
 	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
@@ -702,7 +705,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc, mainTrie)
+		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -754,7 +757,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc, mainTrie)
+		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -784,7 +787,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrie(baseAcc, adb.getMainTrie())
+	err = adb.loadDataTrieConcurrentSafe(baseAcc, adb.getMainTrie())
 	if err != nil {
 		return nil, err
 	}
