@@ -64,7 +64,7 @@ func NewTrie(
 		return nil, ErrInvalidLevelValue
 	}
 	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory,
-		"stake trace", debug.Stack())
+		"stake trace", string(debug.Stack()))
 
 	return &patriciaMerkleTrie{
 		trieStorage:          trieStorage,

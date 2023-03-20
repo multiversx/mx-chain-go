@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type dataTriesHolder struct {
@@ -21,6 +22,7 @@ func NewDataTriesHolder() *dataTriesHolder {
 // Put adds a trie pointer to the tries map
 func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 	dth.mutex.Lock()
+	log.Trace("put trie in data tries holder", "key", key)
 	dth.tries[string(key)] = tr
 	dth.mutex.Unlock()
 }
@@ -67,6 +69,13 @@ func (dth *dataTriesHolder) GetAllTries() map[string]common.Trie {
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
+
+	if log.GetLevel() == logger.LogTrace {
+		for key := range dth.tries {
+			log.Trace("reset data tries holder", "key", key)
+		}
+	}
+
 	dth.tries = make(map[string]common.Trie)
 	dth.mutex.Unlock()
 }
