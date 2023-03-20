@@ -164,6 +164,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			log.Trace("got message from peer on topic only for validators", "originator",
 				p2p.PeerIdToShortString(message.Peer()),
 				"topic", mdi.topic,
+				"method", message.BroadcastMethod(),
 				"err", errOriginator)
 			return errOriginator
 		}
@@ -176,6 +177,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"seq no", p2p.MessageOriginatorSeq(message),
 				"topic", message.Topic(),
 				"hash", interceptedData.Hash(),
+				"method", message.BroadcastMethod(),
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
