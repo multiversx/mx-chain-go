@@ -1346,7 +1346,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			address := adb.addressConverter.Encode(account.Address)
+			address := adb.addressConverter.SilentEncode(account.Address, log)
 			adb.mainTrie.GetStorageManager().TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
@@ -1455,8 +1455,12 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		address := adb.addressConverter.Encode(account.Address)
-		collectStats(tr, stats, account.RootHash, address)
+		accountAddress, err := adb.addressConverter.Encode(account.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		collectStats(tr, stats, account.RootHash, accountAddress)
 	}
 
 	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
