@@ -106,6 +106,61 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 	require.Nil(t, err)
 }
 
+type configNum struct {
+	eligible    map[uint32]int
+	waiting     map[uint32]int
+	leaving     map[uint32]int
+	shuffledOut map[uint32]int
+	queue       int
+	auction     int
+	new         int
+}
+
+func checkConfig(t *testing.T, expectedConfig *configNum, nodesConfig nodesConfig) {
+	checkNumNodes(t, expectedConfig.eligible, nodesConfig.eligible)
+	checkNumNodes(t, expectedConfig.waiting, nodesConfig.waiting)
+	checkNumNodes(t, expectedConfig.leaving, nodesConfig.leaving)
+	checkNumNodes(t, expectedConfig.shuffledOut, nodesConfig.shuffledOut)
+
+	require.Equal(t, expectedConfig.queue, len(nodesConfig.queue))
+	require.Equal(t, expectedConfig.auction, len(nodesConfig.auction))
+	require.Equal(t, expectedConfig.new, len(nodesConfig.new))
+}
+
+func checkNumNodes(t *testing.T, expectedNumNodes map[uint32]int, actualNodes map[uint32][][]byte) {
+	for shardID, numNodesInShard := range expectedNumNodes {
+		require.Equal(t, numNodesInShard, len(actualNodes[shardID]))
+	}
+}
+
+func checkShuffledOutNodes(t *testing.T, currNodesConfig, prevNodesConfig nodesConfig, numShuffledOutNodes int, numRemainingEligible int) {
+	// Shuffled nodes from previous eligible are sent to waiting and previous waiting list nodes are replacing shuffled nodes
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numShuffledOutNodes)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.eligible), numRemainingEligible)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), getAllPubKeys(prevNodesConfig.eligible), numShuffledOutNodes)
+}
+
+func checkStakingV4EpochChangeFlow(
+	t *testing.T,
+	currNodesConfig, prevNodesConfig nodesConfig,
+	numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction int) {
+
+	// Nodes which are now in eligible are from previous waiting list
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(prevNodesConfig.waiting), numOfShuffledOut)
+
+	// New auction list also contains unselected nodes from previous auction list
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, prevNodesConfig.auction, numOfUnselectedNodesFromAuction)
+
+	// All shuffled out are from previous eligible config
+	requireMapContains(t, prevNodesConfig.eligible, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// All shuffled out are now in auction
+	requireSliceContains(t, currNodesConfig.auction, getAllPubKeys(currNodesConfig.shuffledOut))
+
+	// Nodes which have been selected from previous auction list are now in waiting
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), prevNodesConfig.auction, numOfSelectedNodesFromAuction)
+}
+
 func TestStakingV4(t *testing.T) {
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
@@ -194,21 +249,7 @@ func TestStakingV4(t *testing.T) {
 		require.Empty(t, newNodeConfig.queue)
 		require.Empty(t, newNodeConfig.leaving)
 
-		// 320 nodes which are now in eligible are from previous waiting list
-		requireSliceContainsNumOfElements(t, getAllPubKeys(newNodeConfig.eligible), getAllPubKeys(prevConfig.waiting), numOfShuffledOut)
-
-		// New auction list also contains unselected nodes from previous auction list
-		requireSliceContainsNumOfElements(t, newNodeConfig.auction, prevConfig.auction, numOfUnselectedNodesFromAuction)
-
-		// All shuffled out are from previous eligible config
-		requireMapContains(t, prevConfig.eligible, getAllPubKeys(newNodeConfig.shuffledOut))
-
-		// All shuffled out are now in auction
-		requireSliceContains(t, newNodeConfig.auction, getAllPubKeys(newNodeConfig.shuffledOut))
-
-		// 320 nodes which have been selected from previous auction list are now in waiting
-		requireSliceContainsNumOfElements(t, getAllPubKeys(newNodeConfig.waiting), prevConfig.auction, numOfSelectedNodesFromAuction)
-
+		checkStakingV4EpochChangeFlow(t, newNodeConfig, prevConfig, numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction)
 		prevConfig = newNodeConfig
 		epochs++
 	}
@@ -900,4 +941,217 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	requireSameSliceDifferentOrder(t, queue, currNodesConfig.auction)
 	require.Empty(t, node.NodesConfig.queue)
+}
+
+func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffledToToWaiting(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:4],
+			0:                     pubKeys[4:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:9],
+			0:                     pubKeys[9:10],
+		},
+		TotalStake: big.NewInt(20 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        2,
+		ShardConsensusGroupSize:       2,
+		MinNumberOfEligibleShardNodes: 4,
+		MinNumberOfEligibleMetaNodes:  4,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            12,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch, // epoch 3
+				MaxNumNodes:            10,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            6,
+				MaxNumNodes:            12,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	expectedNodesNum := &configNum{
+		eligible: map[uint32]int{
+			core.MetachainShardId: 4,
+			0:                     4,
+		},
+		waiting: map[uint32]int{
+			core.MetachainShardId: 1,
+			0:                     1,
+		},
+	}
+	currNodesConfig := node.NodesConfig
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+
+	// During these 9 epochs, we will always have:
+	// - 10 activeNodes (8 eligible + 2 waiting)
+	// - 1 node to shuffle out per shard
+	// Meanwhile, maxNumNodes changes from 12-10-12
+	// Since activeNodes <= maxNumNodes, shuffled out nodes will always be sent directly to waiting list,
+	// instead of auction(there is no reason to send them to auction, they will be selected anyway)
+	epoch := uint32(0)
+	numOfShuffledOut := 2
+	numRemainingEligible := 6
+	prevNodesConfig := currNodesConfig
+	for epoch < 9 {
+		node.Process(t, 5)
+
+		currNodesConfig = node.NodesConfig
+		checkConfig(t, expectedNodesNum, currNodesConfig)
+		checkShuffledOutNodes(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numRemainingEligible)
+
+		prevNodesConfig = currNodesConfig
+		epoch++
+	}
+
+	require.Equal(t, epoch, node.EpochStartTrigger.Epoch())
+
+	// Epoch = 9 with:
+	// - activeNodes = 10
+	// - maxNumNodes = 12
+	// Owner2 stakes 2 nodes, which should be initially sent to auction list
+	owner2Nodes := pubKeys[10:12]
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"owner2": {
+			BLSKeys:    owner2Nodes,
+			TotalStake: big.NewInt(5 * nodePrice),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.auction = 2
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, owner2Nodes)
+
+	// Epoch = 10 with:
+	// - activeNodes = 12
+	// - maxNumNodes = 12
+	// Owner2's new nodes are selected from auction and distributed to waiting list
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.waiting[core.MetachainShardId]++
+	expectedNodesNum.waiting[0]++
+	expectedNodesNum.auction = 0
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	checkShuffledOutNodes(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numRemainingEligible)
+	requireSliceContains(t, getAllPubKeys(currNodesConfig.waiting), owner2Nodes)
+
+	// During epochs 10-13, we will have:
+	// - activeNodes = 12
+	// - maxNumNodes = 12
+	// Since activeNodes == maxNumNodes, shuffled out nodes will always be sent directly to waiting list, instead of auction
+	epoch = 10
+	require.Equal(t, epoch, node.EpochStartTrigger.Epoch())
+	prevNodesConfig = currNodesConfig
+	for epoch < 13 {
+		node.Process(t, 5)
+
+		currNodesConfig = node.NodesConfig
+		checkConfig(t, expectedNodesNum, currNodesConfig)
+		checkShuffledOutNodes(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numRemainingEligible)
+
+		prevNodesConfig = currNodesConfig
+		epoch++
+	}
+
+	// Epoch = 13 with:
+	// - activeNodes = 12
+	// - maxNumNodes = 12
+	// Owner3 stakes 2 nodes, which should be initially sent to auction list
+	owner3Nodes := pubKeys[12:14]
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"owner3": {
+			BLSKeys:    owner3Nodes,
+			TotalStake: big.NewInt(5 * nodePrice),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.auction = 2
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, owner3Nodes)
+
+	// During epochs 14-18, we will have:
+	// - activeNodes = 14
+	// - maxNumNodes = 12
+	// Since activeNodes > maxNumNodes, shuffled out nodes (2) will be sent to auction list
+	node.Process(t, 5)
+	prevNodesConfig = node.NodesConfig
+	epoch = 14
+	require.Equal(t, epoch, node.EpochStartTrigger.Epoch())
+
+	numOfUnselectedNodesFromAuction := 0
+	numOfSelectedNodesFromAuction := 2
+	for epoch < 18 {
+		checkConfig(t, expectedNodesNum, currNodesConfig)
+
+		node.Process(t, 5)
+		currNodesConfig = node.NodesConfig
+		checkStakingV4EpochChangeFlow(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction)
+
+		prevNodesConfig = currNodesConfig
+		epoch++
+	}
+
+	// Epoch = 18, with:
+	// - activeNodes = 14
+	// - maxNumNodes = 12
+	// Owner3 unStakes one of his nodes
+	node.ProcessUnStake(t, map[string][][]byte{
+		"owner3": {owner3Nodes[0]},
+	})
+
+	// Epoch = 19, with:
+	// - activeNodes = 13
+	// - maxNumNodes = 12
+	// Owner3's unStaked node is now leaving
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, currNodesConfig.leaving, 1)
+	requireMapContains(t, currNodesConfig.leaving, [][]byte{owner3Nodes[0]})
+
+	epoch = 19
+	require.Equal(t, epoch, node.EpochStartTrigger.Epoch())
+
+	// During epochs 19-23, we will have:
+	// - activeNodes = 13
+	// - maxNumNodes = 12
+	// Since activeNodes > maxNumNodes:
+	// - shuffled out nodes (2) will be sent to auction list
+	// - waiting lists will be unbalanced (3 in total: 1 + 2 per shard)
+	// - no node will spend extra epochs in eligible/waiting, since waiting lists will always be refilled
+	prevNodesConfig = node.NodesConfig
+	for epoch < 23 {
+		require.Len(t, getAllPubKeys(currNodesConfig.eligible), 8)
+		require.Len(t, getAllPubKeys(currNodesConfig.waiting), 3)
+		require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 4)
+		require.Len(t, currNodesConfig.eligible[0], 4)
+		require.Len(t, currNodesConfig.auction, 2)
+
+		node.Process(t, 5)
+
+		currNodesConfig = node.NodesConfig
+		checkStakingV4EpochChangeFlow(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction)
+
+		prevNodesConfig = currNodesConfig
+		epoch++
+	}
 }
