@@ -1166,10 +1166,10 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			genesisBlockHash,
 			originalGenesisBlockHeader,
 			genesisBody,
-			unwrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
-			unwrapReceipts(txsPoolPerShard[currentShardId].Receipts),
+			wrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
+			wrapReceipts(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
-			unwrapLogs(txsPoolPerShard[currentShardId].Logs))
+			wrapLogs(txsPoolPerShard[currentShardId].Logs))
 		if err != nil {
 			return err
 		}
@@ -1181,7 +1181,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	if txsPoolPerShard[currentShardId] != nil {
-		err = pcf.saveGenesisTxsToStorage(unwrapTxsInfo(txsPoolPerShard[currentShardId].Transactions))
+		err = pcf.saveGenesisTxsToStorage(wrapTxsInfo(txsPoolPerShard[currentShardId].Transactions))
 		if err != nil {
 			return err
 		}
@@ -1239,10 +1239,10 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 			genesisBlockHash,
 			genesisBlockHeader,
 			genesisBody,
-			unwrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
-			unwrapReceipts(txsPoolPerShard[currentShardId].Receipts),
+			wrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
+			wrapReceipts(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
-			unwrapLogs(txsPoolPerShard[currentShardId].Logs))
+			wrapLogs(txsPoolPerShard[currentShardId].Logs))
 		if err != nil {
 			return err
 		}
@@ -1991,7 +1991,7 @@ func (pc *processComponents) Close() error {
 	return nil
 }
 
-func unwrapTxsInfo(txs map[string]*outport.TxInfo) map[string]data.TransactionHandler {
+func wrapTxsInfo(txs map[string]*outport.TxInfo) map[string]data.TransactionHandler {
 	ret := make(map[string]data.TransactionHandler, len(txs))
 	for hash, tx := range txs {
 		ret[hash] = tx.Transaction
@@ -2000,7 +2000,7 @@ func unwrapTxsInfo(txs map[string]*outport.TxInfo) map[string]data.TransactionHa
 	return ret
 }
 
-func unwrapSCRsInfo(scrs map[string]*outport.SCRInfo) map[string]data.TransactionHandler {
+func wrapSCRsInfo(scrs map[string]*outport.SCRInfo) map[string]data.TransactionHandler {
 	ret := make(map[string]data.TransactionHandler, len(scrs))
 	for hash, scr := range scrs {
 		ret[hash] = scr.SmartContractResult
@@ -2009,7 +2009,7 @@ func unwrapSCRsInfo(scrs map[string]*outport.SCRInfo) map[string]data.Transactio
 	return ret
 }
 
-func unwrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.TransactionHandler {
+func wrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.TransactionHandler {
 	ret := make(map[string]data.TransactionHandler, len(receipts))
 	for hash, r := range receipts {
 		ret[hash] = r
@@ -2018,7 +2018,7 @@ func unwrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.Transa
 	return ret
 }
 
-func unwrapLogs(logs map[string]*transaction.Log) []*data.LogData {
+func wrapLogs(logs map[string]*transaction.Log) []*data.LogData {
 	ret := make([]*data.LogData, len(logs))
 
 	idx := 0

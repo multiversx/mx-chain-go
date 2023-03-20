@@ -259,27 +259,27 @@ func extractTxsFromMap(txsHashes [][]byte, txs map[string]*outport.TxInfo) ([]da
 	return result, nil
 }
 
-func extractSCRsFromMap(txsHashes [][]byte, txs map[string]*outport.SCRInfo) ([]data.TxWithExecutionOrderHandler, error) {
+func extractSCRsFromMap(txsHashes [][]byte, scrs map[string]*outport.SCRInfo) ([]data.TxWithExecutionOrderHandler, error) {
 	result := make([]data.TxWithExecutionOrderHandler, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
-		tx, found := txs[string(txHash)]
+		scr, found := scrs[string(txHash)]
 		if !found {
-			return nil, fmt.Errorf("cannot find transaction in pool, txHash: %s", hex.EncodeToString(txHash))
+			return nil, fmt.Errorf("cannot find scr in pool, txHash: %s", hex.EncodeToString(txHash))
 		}
-		result = append(result, tx)
+		result = append(result, scr)
 	}
 
 	return result, nil
 }
 
-func extractRewardsFromMap(txsHashes [][]byte, txs map[string]*outport.RewardInfo) ([]data.TxWithExecutionOrderHandler, error) {
+func extractRewardsFromMap(txsHashes [][]byte, rewards map[string]*outport.RewardInfo) ([]data.TxWithExecutionOrderHandler, error) {
 	result := make([]data.TxWithExecutionOrderHandler, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
-		tx, found := txs[string(txHash)]
+		reward, found := rewards[string(txHash)]
 		if !found {
-			return nil, fmt.Errorf("cannot find transaction in pool, txHash: %s", hex.EncodeToString(txHash))
+			return nil, fmt.Errorf("cannot find reward in pool, txHash: %s", hex.EncodeToString(txHash))
 		}
-		result = append(result, tx)
+		result = append(result, reward)
 	}
 
 	return result, nil
