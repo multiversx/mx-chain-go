@@ -540,6 +540,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 		return err
 	}
 	if len(oldValues) == 0 {
+		log.Trace("data trie is not dirty", "address", accountHandler.AddressBytes())
 		return nil
 	}
 
