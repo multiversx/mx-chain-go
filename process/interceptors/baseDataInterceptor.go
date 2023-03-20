@@ -71,6 +71,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 			"pid", p2p.MessageOriginatorPid(msg),
 			"seq no", p2p.MessageOriginatorSeq(msg),
 			"intercepted data", data.String(),
+			"method", msg.BroadcastMethod(),
 			"error", err.Error(),
 		)
 		bdi.processDebugInterceptedData(data, err)
@@ -86,6 +87,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 			"pid", p2p.MessageOriginatorPid(msg),
 			"seq no", p2p.MessageOriginatorSeq(msg),
 			"intercepted data", data.String(),
+			"method", msg.BroadcastMethod(),
 			"error", err.Error(),
 		)
 		bdi.processDebugInterceptedData(data, err)
@@ -98,6 +100,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"type", data.Type(),
 		"pid", p2p.MessageOriginatorPid(msg),
 		"seq no", p2p.MessageOriginatorSeq(msg),
+		"method", msg.BroadcastMethod(),
 		"intercepted data", data.String(),
 	)
 	bdi.processDebugInterceptedData(data, err)

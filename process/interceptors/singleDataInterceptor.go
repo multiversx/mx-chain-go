@@ -129,6 +129,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"seq no", p2p.MessageOriginatorSeq(message),
 			"topic", message.Topic(),
 			"hash", interceptedData.Hash(),
+			"method", message.BroadcastMethod(),
 			"is for current shard", isForCurrentShard,
 			"is white listed", isWhiteListed,
 		)
