@@ -169,6 +169,7 @@ func (n *NodesSetupStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHan
 	return nil
 }
 
+// GetChainId -
 func (n *NodesSetupStub) GetChainId() string {
 	if n.GetChainIdCalled != nil {
 		return n.GetChainIdCalled()
