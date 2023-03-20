@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/unmarshal"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -35,18 +34,14 @@ type FinalizedBlock struct {
 }
 
 type eventNotifier struct {
-	httpClient      httpClientHandler
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher // todo: remove this
-	pubKeyConverter core.PubkeyConverter
+	httpClient  httpClientHandler
+	marshalizer marshal.Marshalizer
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
 type ArgsEventNotifier struct {
-	HttpClient      httpClientHandler
-	Marshaller      marshal.Marshalizer
-	Hasher          hashing.Hasher
-	PubKeyConverter core.PubkeyConverter
+	HttpClient httpClientHandler
+	Marshaller marshal.Marshalizer
 }
 
 // NewEventNotifier creates a new instance of the eventNotifier
@@ -58,10 +53,8 @@ func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 	}
 
 	return &eventNotifier{
-		httpClient:      args.HttpClient,
-		marshalizer:     args.Marshaller,
-		hasher:          args.Hasher,
-		pubKeyConverter: args.PubKeyConverter,
+		httpClient:  args.HttpClient,
+		marshalizer: args.Marshaller,
 	}, nil
 }
 
@@ -71,12 +64,6 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 	}
 	if check.IfNil(args.Marshaller) {
 		return ErrNilMarshaller
-	}
-	if check.IfNil(args.Hasher) {
-		return ErrNilHasher
-	}
-	if check.IfNil(args.PubKeyConverter) {
-		return ErrNilPubKeyConverter
 	}
 
 	return nil

@@ -11,17 +11,14 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/notifier"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
-		HttpClient:      &mock.HTTPClientStub{},
-		Marshaller:      &testscommon.MarshalizerMock{},
-		Hasher:          &hashingMocks.HasherMock{},
-		PubKeyConverter: &testscommon.PubkeyConverterMock{},
+		HttpClient: &mock.HTTPClientStub{},
+		Marshaller: &testscommon.MarshalizerMock{},
 	}
 }
 
@@ -48,28 +45,6 @@ func TestNewEventNotifier(t *testing.T) {
 		en, err := notifier.NewEventNotifier(args)
 		require.Nil(t, en)
 		require.Equal(t, notifier.ErrNilMarshaller, err)
-	})
-
-	t.Run("nil hasher", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEventNotifierArgs()
-		args.Hasher = nil
-
-		en, err := notifier.NewEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, notifier.ErrNilHasher, err)
-	})
-
-	t.Run("nil pub key converter", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEventNotifierArgs()
-		args.PubKeyConverter = nil
-
-		en, err := notifier.NewEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, notifier.ErrNilPubKeyConverter, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
