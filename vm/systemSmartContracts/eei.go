@@ -120,9 +120,11 @@ func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, erro
 
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
+	//log.Warn("get storage", "addr", address, "key", key)
 	storageAdrMap, exists := host.storageUpdate[string(address)]
 	if exists {
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
+			//log.Warn("get storage", "addr", address, "key", key, "value", value)
 			return value
 		}
 	}
@@ -151,6 +153,8 @@ func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []
 	length := len(value)
 	host.storageUpdate[strAdr][string(key)] = make([]byte, length)
 	copy(host.storageUpdate[strAdr][string(key)][:length], value[:length])
+
+	//log.Warn("set storage", "addr", address, "key", key, "value", value)
 }
 
 // SetStorage saves the key value storage under the address
@@ -329,24 +333,26 @@ func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode 
 		return
 	}
 
-	if returnCode != vmcommon.UserError {
+	host.scAddress = parentContext.scAddress
+	host.AddReturnMessage(parentContext.returnMessage)
+	if returnCode != vmcommon.Ok {
 		// no need to merge - revert was done - transaction will fail
 		return
 	}
 
-	// do not merge storage updates, those are already updated
-
+	host.output = append(host.output, parentContext.output...)
 	for _, rightAccount := range parentContext.outputAccounts {
 		leftAccount, exist := host.outputAccounts[string(rightAccount.Address)]
 		if !exist {
-			leftAccount = &vmcommon.OutputAccount{}
+			leftAccount = &vmcommon.OutputAccount{
+				Balance:      big.NewInt(0),
+				BalanceDelta: big.NewInt(0),
+				Address:      rightAccount.Address,
+			}
 			host.outputAccounts[string(rightAccount.Address)] = leftAccount
-			continue
 		}
-
 		addOutputAccounts(leftAccount, rightAccount)
 	}
-	host.scAddress = parentContext.scAddress
 }
 
 func addOutputAccounts(
@@ -363,7 +369,7 @@ func addOutputAccounts(
 		destination.BalanceDelta = big.NewInt(0)
 	}
 	if rightAccount.BalanceDelta != nil {
-		destination.BalanceDelta = rightAccount.BalanceDelta
+		destination.BalanceDelta.Add(destination.BalanceDelta, rightAccount.BalanceDelta)
 	}
 	if len(rightAccount.Code) > 0 {
 		destination.Code = rightAccount.Code
@@ -383,7 +389,6 @@ func addOutputAccounts(
 
 	destination.BytesAddedToStorage += rightAccount.BytesAddedToStorage
 	destination.BytesDeletedFromStorage += rightAccount.BytesDeletedFromStorage
-
 	destination.OutputTransfers = append(destination.OutputTransfers, rightAccount.OutputTransfers...)
 }
 

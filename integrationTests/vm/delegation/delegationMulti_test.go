@@ -5,7 +5,6 @@ package delegation
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -69,6 +68,9 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 		assert.Equal(t, vmcommon.Ok, returnedCode)
 	}
 
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[0], big.NewInt(5000))
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000))
+
 	for i := range delegationScAddresses {
 		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
 		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(2000), 2, 1)
@@ -105,11 +107,12 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 	checkClaimMultiReturn(t, tpn, vm.DelegationManagerSCAddress, delegators[2], "claimMulti", listAddresses, 2700)
 	checkClaimMultiReturn(t, tpn, vm.DelegationManagerSCAddress, delegators[3], "claimMulti", listAddresses, 2700)
 
-	fmt.Println("FROM HEEEREEEEEEE !!!!!!!!!!!!!!!!!!!!!!!!!")
 	for _, delegator := range delegators {
+		tpn.ScrForwarder.CreateBlockStarted()
 		returnedCode, err := processTransaction(tpn, delegator, vm.DelegationManagerSCAddress, txData, big.NewInt(0))
 		assert.Nil(t, err)
 		assert.Equal(t, vmcommon.Ok, returnedCode)
+		assert.Equal(t, len(delegationScAddresses), len(tpn.ScrForwarder.GetAllCurrentFinishedTxs()))
 	}
 
 	for i := range delegationScAddresses {
@@ -119,6 +122,9 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
 	}
+
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[0], big.NewInt(5000))
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000))
 }
 
 func TestDelegationSystemRedelegateMulti(t *testing.T) {
@@ -169,6 +175,9 @@ func TestDelegationSystemRedelegateMulti(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, vmcommon.Ok, returnedCode)
 	}
+
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[0], big.NewInt(5000))
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000))
 
 	for i := range delegationScAddresses {
 		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
@@ -224,6 +233,9 @@ func TestDelegationSystemRedelegateMulti(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[1], big.NewInt(3700))
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[0], big.NewInt(1850))
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[1], big.NewInt(1850))
+
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[0], big.NewInt(5000+8100))
+	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000+8100))
 }
 
 func checkClaimMultiReturn(

@@ -330,11 +330,6 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return vmOutput.ReturnCode, nil
 	}
 
-	outAcc, exists := vmOutput.OutputAccounts[string(tx.GetSndAddr())]
-	if exists {
-		log.Error("num transfers", "num", len(outAcc.OutputTransfers))
-	}
-
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
 	if err != nil {
 		log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
