@@ -685,7 +685,7 @@ func TestEnableEpochConfig(t *testing.T) {
     RuntimeMemStoreLimitEnableEpoch = 63
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
-    MultiClaimOnDelegationEnableEpoch = 62
+    MultiClaimOnDelegationEnableEpoch = 64
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -782,7 +782,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
-			MultiClaimOnDelegationEnableEpoch:           62,
+			MultiClaimOnDelegationEnableEpoch:           64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
