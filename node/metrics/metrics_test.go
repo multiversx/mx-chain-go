@@ -7,7 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -181,7 +181,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	genesisNodesConfig := &testscommon.NodesSetupStub{
+	genesisNodesConfig := &genesisMocks.NodesSetupStub{
 		GetAdaptivityCalled: func() bool {
 			return true
 		},
@@ -212,7 +212,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		assert.Equal(t, v, keys[k])
 	}
 
-	genesisNodesConfig = &testscommon.NodesSetupStub{
+	genesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetAdaptivityCalled: func() bool {
 			return false
 		},

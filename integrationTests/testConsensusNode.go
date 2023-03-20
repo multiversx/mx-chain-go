@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -239,7 +240,7 @@ func (tcn *TestConsensusNode) initNode(
 		return string(ChainID)
 	}
 	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
-	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
+	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(consensusSize)
 		},

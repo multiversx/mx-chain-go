@@ -1,4 +1,4 @@
-package config
+package nodesSetupMock
 
 // NodesSetupMock -
 type NodesSetupMock struct {
@@ -40,4 +40,8 @@ func (n *NodesSetupMock) MinNumberOfNodesWithHysteresis() uint32 {
 	minNumberOfNodes := n.MinNumberOfNodes()
 
 	return minNumberOfNodes + hystNodesMeta + n.NumberOfShardsField*hystNodesShard
+}
+
+func getHysteresisNodes(minNumNodes uint32, hysteresis float32) uint32 {
+	return uint32(float32(minNumNodes) * hysteresis)
 }

@@ -1,4 +1,4 @@
-package testscommon
+package genesisMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -23,6 +23,8 @@ type NodesSetupStub struct {
 	MinNumberOfNodesCalled                    func() uint32
 	AllInitialNodesCalled                     func() []nodesCoordinator.GenesisNodeInfoHandler
 	MinNumberOfNodesWithHysteresisCalled      func() uint32
+	GetChainIdCalled                          func() string
+	GetMinTransactionVersionCalled            func() uint32
 }
 
 // InitialNodesPubKeys -
@@ -165,6 +167,21 @@ func (n *NodesSetupStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHan
 		return n.AllInitialNodesCalled()
 	}
 	return nil
+}
+
+func (n *NodesSetupStub) GetChainId() string {
+	if n.GetChainIdCalled != nil {
+		return n.GetChainIdCalled()
+	}
+	return "chainID"
+}
+
+// GetMinTransactionVersion -
+func (n *NodesSetupStub) GetMinTransactionVersion() uint32 {
+	if n.GetMinTransactionVersionCalled != nil {
+		return n.GetMinTransactionVersionCalled()
+	}
+	return 1
 }
 
 // IsInterfaceNil -

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/testscommon/nodesSetupMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -187,7 +188,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig().EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        numShards,
 			HysteresisField:            0,
 			MinNumberOfMetaNodesField:  5,
@@ -218,7 +219,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 40,
 			},
 		}
-		nodesSetup = &NodesSetupMock{
+		nodesSetup = &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        numShards,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  400,
@@ -238,7 +239,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 0,
 			},
 		}
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        numShards,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  400,
@@ -260,7 +261,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 80,
 			},
 		}
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        numShards,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  400,
@@ -283,7 +284,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 81,
 			},
 		}
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        numShards,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  400,
@@ -306,7 +307,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 80,
 			},
 		}
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        1,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  500,
@@ -330,7 +331,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 				NodesToShufflePerShard: 80,
 			},
 		}
-		nodesSetup := &NodesSetupMock{
+		nodesSetup := &nodesSetupMock.NodesSetupMock{
 			NumberOfShardsField:        1,
 			HysteresisField:            0.2,
 			MinNumberOfMetaNodesField:  300,

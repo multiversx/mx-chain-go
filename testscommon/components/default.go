@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -47,7 +48,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		EconomicsHandler:         &economicsmocks.EconomicsHandlerStub{},
 		RatingsConfig:            &testscommon.RatingsInfoMock{},
 		RatingHandler:            &testscommon.RaterMock{},
-		NodesConfig:              &testscommon.NodesSetupStub{},
+		NodesConfig:              &genesisMocks.NodesSetupStub{},
 		StartTime:                time.Time{},
 		NodeTypeProviderField:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},

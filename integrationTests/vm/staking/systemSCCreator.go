@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
-	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -25,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonMock "github.com/multiversx/mx-chain-vm-common-go/mock"
@@ -67,7 +67,7 @@ func createSystemSCProcessor(
 		StakingSCAddress:             vm.StakingSCAddress,
 		ChanceComputer:               &epochStartMock.ChanceComputerStub{},
 		EpochNotifier:                coreComponents.EpochNotifier(),
-		GenesisNodesConfig:           &mock.NodesSetupStub{},
+		GenesisNodesConfig:           &genesisMocks.NodesSetupStub{},
 		StakingDataProvider:          stakingDataProvider,
 		NodesConfigProvider:          nc,
 		ShardCoordinator:             shardCoordinator,
@@ -112,7 +112,7 @@ func createValidatorStatisticsProcessor(
 		PeerAdapter:                          peerAccounts,
 		Rater:                                coreComponents.Rater(),
 		RewardsHandler:                       &epochStartMock.RewardsHandlerStub{},
-		NodesSetup:                           &mock.NodesSetupStub{},
+		NodesSetup:                           &genesisMocks.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EnableEpochsHandler:                  coreComponents.EnableEpochsHandler(),
@@ -186,7 +186,7 @@ func createVMContainerFactory(
 		Economics:           coreComponents.EconomicsData(),
 		MessageSignVerifier: signVerifer,
 		GasSchedule:         gasScheduleNotifier,
-		NodesConfigProvider: &mock.NodesSetupStub{},
+		NodesConfigProvider: &genesisMocks.NodesSetupStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		SystemSCConfig: &config.SystemSmartContractsConfig{
