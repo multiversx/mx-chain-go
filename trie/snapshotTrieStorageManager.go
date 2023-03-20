@@ -38,6 +38,8 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, errors.ErrContextClosing
 	}
 
+	// test point get during snapshot
+
 	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
 	if errors.IsClosingError(err) {
 		return nil, err
