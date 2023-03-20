@@ -1303,7 +1303,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1339,7 +1339,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1376,7 +1376,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1437,13 +1437,13 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
 	epochStartTrigger.EpochStartMetaHdrHashCalled = func() []byte {
 		return header.EpochStartMetaHash
 	}
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
 
@@ -1502,14 +1502,14 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := coreComponents.InternalMarshalizer().Marshal(metaHdr)
 	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
 	metaHdr = &block.MetaBlock{Epoch: 3, EpochStart: block.EpochStart{
@@ -1519,7 +1519,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	metaHdrData, _ = coreComponents.InternalMarshalizer().Marshal(metaHdr)
 	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
 

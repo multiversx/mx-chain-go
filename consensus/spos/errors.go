@@ -237,3 +237,6 @@ var ErrNilSigningHandler = errors.New("nil signing handler")
 
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrNilEnableEpochHandler signals that a nil enable epoch handler has been provided
+var ErrNilEnableEpochHandler = errors.New("nil enable epoch handler")

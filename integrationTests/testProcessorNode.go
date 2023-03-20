@@ -2696,7 +2696,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
+	_, _, err = tpn.BlockProcessor.ProcessBlock(
 		header,
 		body,
 		func() time.Duration {
@@ -2726,7 +2726,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
+	_, _, err = tpn.BlockProcessor.ProcessBlock(
 		header,
 		body,
 		func() time.Duration {
