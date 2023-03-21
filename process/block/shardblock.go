@@ -602,7 +602,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		PreviousHeader: lastBlockHeader,
 	})
 	if err != nil {
-		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
 	sp.outportHandler.SaveBlock(argSaveBlock)
