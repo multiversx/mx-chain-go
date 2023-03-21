@@ -624,12 +624,14 @@ func (mp *metaProcessor) indexBlock(
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 		return
 	}
 	err = mp.outportHandler.SaveBlock(argSaveBlock)
 	if err != nil {
-		log.Warn("metaProcessor.outportHandler.SaveBlock cannot save block", "error", err)
+		log.Error("metaProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 		return
 	}
 

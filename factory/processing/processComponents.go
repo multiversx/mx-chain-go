@@ -1111,8 +1111,8 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	initialIndexingData map[uint32]*genesis.IndexingData,
 	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 ) error {
-	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	originalGenesisBlockHeader := genesisBlocks[currentShardId]
+	currentShardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	originalGenesisBlockHeader := genesisBlocks[currentShardID]
 	genesisBlockHeader := originalGenesisBlockHeader.ShallowClone()
 
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
@@ -1126,7 +1126,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	intraShardMiniBlocks := getGenesisIntraShardMiniblocks(miniBlocks)
-	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
+	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardID)
 
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
@@ -1139,7 +1139,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 			Balance: "0",
 		}
 
-		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Transactions)))
+		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardID].Transactions)))
 
 		arg := &outport.OutportBlockWithHeaderAndBody{
 			OutportBlock: &outport.OutportBlock{
@@ -1148,9 +1148,9 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 					GasProvided:    0,
 					GasRefunded:    0,
 					GasPenalized:   0,
-					MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
+					MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardID),
 				},
-				TransactionPool: txsPoolPerShard[currentShardId],
+				TransactionPool: txsPoolPerShard[currentShardID],
 				AlteredAccounts: alteredAccounts,
 			},
 			HeaderDataWithBody: &outport.HeaderDataWithBody{
@@ -1161,20 +1161,20 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		}
 		errOutport := pcf.statusComponents.OutportHandler().SaveBlock(arg)
 		if errOutport != nil {
-			log.Warn("indexGenesisBlocks.outportHandler.SaveBlock cannot save block", "error", err)
+			log.Error("indexGenesisBlocks.outportHandler.SaveBlock cannot save block", "error", errOutport)
 		}
 	}
 
-	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
-	if txsPoolPerShard[currentShardId] != nil {
+	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardID, "hash", genesisBlockHash)
+	if txsPoolPerShard[currentShardID] != nil {
 		err = pcf.historyRepo.RecordBlock(
 			genesisBlockHash,
 			originalGenesisBlockHeader,
 			genesisBody,
-			wrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
-			wrapReceipts(txsPoolPerShard[currentShardId].Receipts),
+			wrapSCRsInfo(txsPoolPerShard[currentShardID].SmartContractResults),
+			wrapReceipts(txsPoolPerShard[currentShardID].Receipts),
 			intraShardMiniBlocks,
-			wrapLogs(txsPoolPerShard[currentShardId].Logs))
+			wrapLogs(txsPoolPerShard[currentShardID].Logs))
 		if err != nil {
 			return err
 		}
@@ -1185,14 +1185,14 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
-	if txsPoolPerShard[currentShardId] != nil {
-		err = pcf.saveGenesisTxsToStorage(wrapTxsInfo(txsPoolPerShard[currentShardId].Transactions))
+	if txsPoolPerShard[currentShardID] != nil {
+		err = pcf.saveGenesisTxsToStorage(wrapTxsInfo(txsPoolPerShard[currentShardID].Transactions))
 		if err != nil {
 			return err
 		}
 	}
 
-	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardId)
+	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardID)
 	nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
 	err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 	if err != nil {

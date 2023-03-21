@@ -81,6 +81,7 @@ func (d *DriverStub) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) 
 	return nil
 }
 
+// GetMarshaller -
 func (d *DriverStub) GetMarshaller() marshal.Marshalizer {
 	return testscommon.MarshalizerMock{}
 }

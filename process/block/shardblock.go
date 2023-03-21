@@ -604,12 +604,14 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 		return
 	}
 	err = sp.outportHandler.SaveBlock(argSaveBlock)
 	if err != nil {
-		log.Warn("shardProcessor.outportHandler.SaveBlock cannot save block", "error", err)
+		log.Error("shardProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 		return
 	}
 
