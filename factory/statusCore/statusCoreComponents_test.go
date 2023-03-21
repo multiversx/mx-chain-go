@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +61,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 
 		coreComp := &mock.CoreComponentsStub{
 			EconomicsDataField:       &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:   &testscommon.NodesSetupStub{},
+			GenesisNodesSetupField:   &genesisMocks.NodesSetupStub{},
 			InternalMarshalizerField: nil,
 		}
 
@@ -74,7 +75,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 
 		coreComp := &mock.CoreComponentsStub{
 			EconomicsDataField:            &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:        &testscommon.NodesSetupStub{},
+			GenesisNodesSetupField:        &genesisMocks.NodesSetupStub{},
 			InternalMarshalizerField:      &testscommon.MarshalizerStub{},
 			Uint64ByteSliceConverterField: nil,
 		}

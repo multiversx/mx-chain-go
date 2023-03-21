@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -3940,7 +3941,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:         &testscommon.RatingsInfoMock{},
 		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &testscommon.NodesSetupStub{},
+		NodesConfig:           &genesisMocks.NodesSetupStub{},
 		StartTime:             time.Time{},
 		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),

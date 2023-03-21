@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -148,7 +149,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {
@@ -180,7 +181,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			return integrationTests.MinTransactionVersion
 		},
 	}
-
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
 		assert.NoError(t, errRemoveDir)
