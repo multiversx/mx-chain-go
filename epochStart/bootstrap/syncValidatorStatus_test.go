@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -263,7 +264,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Hasher:         &hashingMocks.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
-		GenesisNodesConfig: &mock.NodesSetupStub{
+		GenesisNodesConfig: &genesisMocks.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
 			},

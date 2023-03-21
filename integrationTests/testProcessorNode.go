@@ -572,7 +572,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
 	if check.IfNil(tpn.NodesSetup) {
-		tpn.NodesSetup = &mock.NodesSetupStub{
+		tpn.NodesSetup = &genesisMocks.NodesSetupStub{
 			MinNumberOfNodesCalled: func() uint32 {
 				return tpn.ShardCoordinator.NumberOfShards() * 2
 			},
@@ -3026,7 +3026,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		EconomicsDataField:           &economicsmocks.EconomicsHandlerStub{},
 		RatingsDataField:             &testscommon.RatingsInfoMock{},
 		RaterField:                   &testscommon.RaterMock{},
-		GenesisNodesSetupField:       &testscommon.NodesSetupStub{},
+		GenesisNodesSetupField:       &genesisMocks.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
 		EpochNotifierField:           genericEpochNotifier,
 		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
@@ -3237,7 +3237,7 @@ func getDefaultVMConfig() *config.VirtualMachineConfig {
 }
 
 func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes map[uint32][]byte) sharding.GenesisNodesSetupHandler {
-	return &mock.NodesSetupStub{
+	return &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < maxShards; i++ {

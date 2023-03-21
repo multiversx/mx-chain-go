@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -200,7 +201,7 @@ func createMockEpochStartBootstrapArgs(
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &mock.NodesSetupStub{},
+		GenesisNodesConfig:         &genesisMocks.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -756,7 +757,7 @@ func TestIsStartInEpochZero(t *testing.T) {
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetStartTimeCalled: func() int64 {
 			return 1000
 		},
@@ -790,7 +791,7 @@ func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) 
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -849,7 +850,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	}
 
 	args.DestinationShardAsObserver = uint32(7)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -884,7 +885,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 		},
 	}
 	args.DestinationShardAsObserver = desiredShardAsObserver
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -1446,7 +1447,7 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	roundDurationMillis := 4000
 	epochDurationMillis := 50 * int64(roundDurationMillis)
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < numOfShards; i++ {
