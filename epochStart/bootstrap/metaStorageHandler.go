@@ -38,8 +38,8 @@ func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error)
 			CurrentEpoch:                  args.CurrentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
-			SnapshotsEnabled:              arg.SnapshotsEnabled,
-			ManagedPeersHolder:            arg.ManagedPeersHolder,
+			SnapshotsEnabled:              args.SnapshotsEnabled,
+			ManagedPeersHolder:            args.ManagedPeersHolder,
 		},
 	)
 	if err != nil {

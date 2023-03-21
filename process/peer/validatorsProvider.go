@@ -253,7 +253,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	newCache := make(map[string]*state.ValidatorApiResponse)
 
 	for _, validatorInfo := range allNodes.GetAllValidatorsInfo() {
-		strKey := vp.validatorPubKeyConverter.Encode(validatorInfo.GetPublicKey())
+		strKey := vp.validatorPubKeyConverter.SilentEncode(validatorInfo.GetPublicKey(), log)
 		newCache[strKey] = &state.ValidatorApiResponse{
 			NumLeaderSuccess:                   validatorInfo.GetLeaderSuccess(),
 			NumLeaderFailure:                   validatorInfo.GetLeaderFailure(),
@@ -283,7 +283,7 @@ func (vp *validatorsProvider) aggregateLists(
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			encodedKey := vp.validatorPubKeyConverter.Encode(val)
+			encodedKey := vp.validatorPubKeyConverter.SilentEncode(val, log)
 			foundInTrieValidator, ok := newCache[encodedKey]
 
 			peerType := string(currentList)

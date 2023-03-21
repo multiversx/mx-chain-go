@@ -32,6 +32,8 @@ type StorageHandlerArgs struct {
 	Uint64Converter                 typeConverters.Uint64ByteSliceConverter
 	NodeTypeProvider                NodeTypeProviderHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	SnapshotsEnabled                bool
+	ManagedPeersHolder              common.ManagedPeersHolder
 }
 
 func checkNilArgs(args StorageHandlerArgs) error {

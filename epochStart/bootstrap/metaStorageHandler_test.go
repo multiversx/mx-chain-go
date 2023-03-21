@@ -36,7 +36,7 @@ func createStorageHandlerArgs() StorageHandlerArgs {
 		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
 		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-		//managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
 	}
 }
 

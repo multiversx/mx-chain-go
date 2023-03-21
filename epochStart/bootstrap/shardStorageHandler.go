@@ -42,8 +42,8 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 			CurrentEpoch:                  args.CurrentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
-			SnapshotsEnabled:              snapshotsEnabled,
-			ManagedPeersHolder:            managedPeersHolder,
+			SnapshotsEnabled:              args.SnapshotsEnabled,
+			ManagedPeersHolder:            args.ManagedPeersHolder,
 		},
 	)
 	if err != nil {
