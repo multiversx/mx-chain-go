@@ -244,7 +244,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
-		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     testscommon.NewPubkeyConverterMock(32),
 	}
 
 	vsp.updateCache()
@@ -320,7 +320,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
-		validatorPubKeyConverter:     mock.NewPubkeyConverterMock(32),
+		validatorPubKeyConverter:     testscommon.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
 	}
 
@@ -328,14 +328,14 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 
 	assert.NotNil(t, vsp.cache)
 	assert.Equal(t, len(validatorsMap.GetShardValidatorsInfoMap()[initialShardId]), len(vsp.cache))
-	encodedKey := arg.ValidatorPubKeyConverter.Encode(pk)
+	encodedKey, _ := arg.ValidatorPubKeyConverter.Encode(pk)
 	assert.NotNil(t, vsp.cache[encodedKey])
 	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
 	assert.Equal(t, initialShardId, vsp.cache[encodedKey].ShardId)
 }
 
 func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
-	pubKeyConverter := mock.NewPubkeyConverterMock(32)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
 	pkInactive := []byte("pk1")
 	trieInctiveShardId := uint32(0)
 	inactiveList := string(common.InactiveList)
@@ -346,9 +346,9 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	trieLeavingShardId := uint32(2)
 	leavingList := string(common.LeavingList)
 
-	encodedEligible := pubKeyConverter.Encode(pkEligible)
-	encondedInactive := pubKeyConverter.Encode(pkInactive)
-	encodedLeaving := pubKeyConverter.Encode(pkLeaving)
+	encodedEligible, _ := pubKeyConverter.Encode(pkEligible)
+	encondedInactive, _ := pubKeyConverter.Encode(pkInactive)
+	encodedLeaving, _ := pubKeyConverter.Encode(pkLeaving)
 	cache := make(map[string]*state.ValidatorApiResponse)
 	cache[encondedInactive] = &state.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
 	cache[encodedEligible] = &state.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
@@ -427,7 +427,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		List:      newList,
 	})
 	arg := createDefaultValidatorsProviderArg()
-	pubKeyConverter := mock.NewPubkeyConverterMock(32)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
@@ -441,22 +441,22 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 
 	assert.NotNil(t, cache)
 
-	encodedPkEligible := pubKeyConverter.Encode(pkEligible)
+	encodedPkEligible, _ := pubKeyConverter.Encode(pkEligible)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, eligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkWaiting := pubKeyConverter.Encode(pkWaiting)
+	encodedPkWaiting, _ := pubKeyConverter.Encode(pkWaiting)
 	assert.NotNil(t, cache[encodedPkWaiting])
 	assert.Equal(t, waitingList, cache[encodedPkWaiting].ValidatorStatus)
 	assert.Equal(t, waitingShardId, cache[encodedPkWaiting].ShardId)
 
-	encodedPkLeaving := pubKeyConverter.Encode(pkLeaving)
+	encodedPkLeaving, _ := pubKeyConverter.Encode(pkLeaving)
 	assert.NotNil(t, cache[encodedPkLeaving])
 	assert.Equal(t, leavingList, cache[encodedPkLeaving].ValidatorStatus)
 	assert.Equal(t, leavingShardId, cache[encodedPkLeaving].ShardId)
 
-	encodedPkNew := pubKeyConverter.Encode(pkNew)
+	encodedPkNew, _ := pubKeyConverter.Encode(pkNew)
 	assert.NotNil(t, cache[encodedPkNew])
 	assert.Equal(t, newList, cache[encodedPkNew].ValidatorStatus)
 	assert.Equal(t, newShardId, cache[encodedPkNew].ShardId)
@@ -511,12 +511,12 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 
 	cache := vsp.createNewCache(0, validatorsMap)
 
-	encodedPkEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
+	encodedPkEligible, _ := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkLeavingInTrie := arg.ValidatorPubKeyConverter.Encode(pkLeavingInTrie)
+	encodedPkLeavingInTrie, _ := arg.ValidatorPubKeyConverter.Encode(pkLeavingInTrie)
 	computedPeerType := fmt.Sprintf(common.CombinedPeerType, common.EligibleList, common.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
@@ -592,7 +592,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible, _ := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
@@ -630,7 +630,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible, _ := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
@@ -947,91 +947,91 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 
 		expectedList := []*common.AuctionListValidatorAPIResponse{
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner3)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner3), log),
 				NumStakedNodes: 2,
 				TotalTopUp:     "4000",
 				TopUpPerNode:   "2000",
 				QualifiedTopUp: "4000",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v5.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v5.PublicKey, log),
 						Qualified: true,
 					},
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v6.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v6.PublicKey, log),
 						Qualified: false,
 					},
 				},
 			},
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner1)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner1), log),
 				NumStakedNodes: 3,
 				TotalTopUp:     "7500",
 				TopUpPerNode:   "2500",
 				QualifiedTopUp: "2500",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v1.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v1.PublicKey, log),
 						Qualified: true,
 					},
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v2.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v2.PublicKey, log),
 						Qualified: true,
 					},
 				},
 			},
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner2)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner2), log),
 				NumStakedNodes: 3,
 				TotalTopUp:     "3000",
 				TopUpPerNode:   "1000",
 				QualifiedTopUp: "1500",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v3.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v3.PublicKey, log),
 						Qualified: true,
 					},
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v4.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v4.PublicKey, log),
 						Qualified: false,
 					},
 				},
 			},
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner7)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner7), log),
 				NumStakedNodes: 1,
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v12.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v12.PublicKey, log),
 						Qualified: true,
 					},
 				},
 			},
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner6)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner6), log),
 				NumStakedNodes: 1,
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v11.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v11.PublicKey, log),
 						Qualified: false,
 					},
 				},
 			},
 			{
-				Owner:          args.AddressPubKeyConverter.Encode([]byte(owner4)),
+				Owner:          args.AddressPubKeyConverter.SilentEncode([]byte(owner4), log),
 				NumStakedNodes: 3,
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
 				AuctionList: []*common.AuctionNode{
 					{
-						BlsKey:    args.ValidatorPubKeyConverter.Encode(v7.PublicKey),
+						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v7.PublicKey, log),
 						Qualified: false,
 					},
 				},
@@ -1092,8 +1092,8 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 			},
 		},
 		MaxRating:                100,
-		ValidatorPubKeyConverter: mock.NewPubkeyConverterMock(32),
-		AddressPubKeyConverter:   mock.NewPubkeyConverterMock(32),
+		ValidatorPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
+		AddressPubKeyConverter:   testscommon.NewPubkeyConverterMock(32),
 		AuctionListSelector:      &stakingcommon.AuctionListSelectorStub{},
 	}
 }

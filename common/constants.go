@@ -309,7 +309,7 @@ const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
-//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
 // processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 // subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"

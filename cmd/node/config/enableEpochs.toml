@@ -216,27 +216,30 @@
     FixOldTokenLiquidityEnableEpoch = 1
 
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
-    RuntimeMemStoreLimitEnableEpoch = 2
+    RuntimeMemStoreLimitEnableEpoch = 1
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 2
+    SetSenderInEeiOutputTransferEnableEpoch = 1
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 2
+    RefactorPeersMiniBlocksEnableEpoch = 1
 
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-    MaxBlockchainHookCountersEnableEpoch = 2
+    MaxBlockchainHookCountersEnableEpoch = 1
 
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
-    WipeSingleNFTLiquidityDecreaseEnableEpoch = 2
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 1
 
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
-    AlwaysSaveTokenMetaDataEnableEpoch = 2
+    AlwaysSaveTokenMetaDataEnableEpoch = 1
+
+    # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
+    RuntimeCodeSizeFixEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 2, Type = "KOSK"}
+        { EnableEpoch = 1, Type = "KOSK"}
     ]
 
     # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
@@ -269,5 +272,5 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
-        { StartEpoch = 2, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
     ]

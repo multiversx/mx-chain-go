@@ -41,6 +41,7 @@ func GetGeneralConfig() config.Config {
 			Length:          32,
 			Type:            "bech32",
 			SignatureLength: 0,
+			Hrp:             "erd",
 		},
 		ValidatorPubkeyConverter: config.PubkeyConfig{
 			Length:          96,
@@ -128,7 +129,6 @@ func GetGeneralConfig() config.Config {
 		},
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
-			SnapshotsEnabled:            false,
 			CheckpointsEnabled:          false,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
@@ -277,6 +277,7 @@ func GetGeneralConfig() config.Config {
 			HideInactiveValidatorIntervalInSec:               60,
 			HardforkTimeBetweenSendsInSec:                    5,
 			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			PeerAuthenticationTimeBetweenChecksInSec:         1,
 			HeartbeatPool:                                    getLRUCacheConfig(),
 		},
 		StatusMetricsStorage: config.StorageConfig{

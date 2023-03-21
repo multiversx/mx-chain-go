@@ -163,7 +163,7 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(
 	for ownerPubKey, ownerData := range vp.stakingDataProvider.GetOwnersData() {
 		numAuctionNodes := len(ownerData.AuctionList)
 		if numAuctionNodes > 0 {
-			ownerEncodedPubKey := vp.addressPubKeyConverter.Encode([]byte(ownerPubKey))
+			ownerEncodedPubKey := vp.addressPubKeyConverter.SilentEncode([]byte(ownerPubKey), log)
 			auctionValidator := &common.AuctionListValidatorAPIResponse{
 				Owner:          ownerEncodedPubKey,
 				NumStakedNodes: ownerData.NumStakedNodes,
@@ -191,7 +191,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 	numOwnerQualifiedNodes := int64(0)
 	for _, nodeInAuction := range ownerData.AuctionList {
 		auctionNode := &common.AuctionNode{
-			BlsKey:    vp.validatorPubKeyConverter.Encode(nodeInAuction.GetPublicKey()),
+			BlsKey:    vp.validatorPubKeyConverter.SilentEncode(nodeInAuction.GetPublicKey(), log),
 			Qualified: false,
 		}
 		if ownerData.Qualified && contains(selectedNodes, nodeInAuction) {
