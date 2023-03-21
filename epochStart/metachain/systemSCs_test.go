@@ -758,7 +758,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
 		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
 		StorageService:                       &storageStubs.ChainStorerStub{},
-		PubkeyConv:                           &mock.PubkeyConverterMock{},
+		PubkeyConv:                           &testscommon.PubkeyConverterMock{},
 		PeerAdapter:                          peerAccountsDB,
 		Rater:                                &mock.RaterStub{},
 		RewardsHandler:                       &mock.RewardsHandlerStub{},
@@ -781,7 +781,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:              userAccountsDB,
-		PubkeyConv:            &mock.PubkeyConverterMock{},
+		PubkeyConv:            &testscommon.PubkeyConverterMock{},
 		StorageService:        &storageStubs.ChainStorerStub{},
 		BlockChain:            blockChain,
 		ShardCoordinator:      &mock.ShardCoordinatorStub{},

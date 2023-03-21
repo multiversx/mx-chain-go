@@ -285,6 +285,7 @@ func (vp *validatorsProvider) aggregateLists(
 		for _, val := range shardValidators {
 			encodedKey := vp.validatorPubKeyConverter.Encode(val)
 			foundInTrieValidator, ok := newCache[encodedKey]
+
 			peerType := string(currentList)
 
 			if !ok || foundInTrieValidator == nil {

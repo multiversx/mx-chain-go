@@ -377,7 +377,10 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	if err != nil {
 		return nil, err
 	}
-	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
+
+	encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+
+	leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
@@ -782,7 +785,9 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
-		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
+
+		encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+		leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err

@@ -88,10 +88,11 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MaxBlockchainHookCountersEnableEpoch:              74,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
-		StakeLimitsEnableEpoch:                            77,
-		StakingV4Step1EnableEpoch:                         78,
-		StakingV4Step2EnableEpoch:                         79,
-		StakingV4Step3EnableEpoch:                         80,
+		RuntimeCodeSizeFixEnableEpoch:                     77,
+		StakeLimitsEnableEpoch:                            78,
+		StakingV4Step1EnableEpoch:                         79,
+		StakingV4Step2EnableEpoch:                         80,
+		StakingV4Step3EnableEpoch:                         81,
 	}
 }
 
@@ -211,6 +212,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsStakeLimitsFlagEnabled())
 		assert.False(t, handler.IsStakingV4Step1Enabled()) // epoch == limit
 		assert.True(t, handler.IsStakingV4Step2Enabled())
@@ -315,6 +317,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsStakeLimitsFlagEnabled())
 		assert.True(t, handler.IsStakingV4Step1Enabled())
 		assert.True(t, handler.IsStakingV4Step2Enabled())
@@ -413,6 +416,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsStakeLimitsFlagEnabled())
 		assert.False(t, handler.IsStakingV4Step1Enabled())
 		assert.False(t, handler.IsStakingV4Step2Enabled())
