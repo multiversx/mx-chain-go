@@ -624,7 +624,7 @@ func (mp *metaProcessor) indexBlock(
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
 	err = mp.outportHandler.SaveBlock(argSaveBlock)

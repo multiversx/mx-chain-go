@@ -914,7 +914,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			continue
 		}
 
-		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		if err != nil {
+			return nil, err
+		}
+
 		genesisAccounts[encodedAddress] = &alteredAccount.AlteredAccount{
 			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
@@ -1129,6 +1133,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+
 		alteredAccounts[genesisAddress] = &alteredAccount.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",

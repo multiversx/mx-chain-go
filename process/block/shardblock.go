@@ -604,7 +604,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Warn("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
 	err = sp.outportHandler.SaveBlock(argSaveBlock)

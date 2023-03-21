@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,8 +39,8 @@ func createMockInitialAccount() *data.InitialAccount {
 	}
 }
 
-func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
-	return &mock.PubkeyConverterStub{
+func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
+	return &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
 		},
