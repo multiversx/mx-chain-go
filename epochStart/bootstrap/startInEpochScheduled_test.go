@@ -630,9 +630,10 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		},
 	}
 
-	scheduledTxHashes, err := sds.getScheduledTransactionHashes(header)
+	scheduledTxHashes, scheduledMBs, err := sds.getScheduledTransactionHashes(header)
 	require.Nil(t, err)
 	require.Equal(t, expectedScheduledTxHashes, scheduledTxHashes)
+	require.Len(t, scheduledMBs, 2)
 }
 
 func Test_getShardIDAndHashesForIncludedMetaBlocks(t *testing.T) {

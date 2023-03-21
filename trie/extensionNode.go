@@ -601,18 +601,6 @@ func (en *extensionNode) getChildren(db common.DBWriteCacher) ([]node, error) {
 	return nextNodes, nil
 }
 
-func (en *extensionNode) getNumNodes() common.NumNodesDTO {
-	if check.IfNil(en) {
-		return common.NumNodesDTO{}
-	}
-
-	childNumNodes := en.child.getNumNodes()
-	childNumNodes.Extensions++
-	childNumNodes.MaxLevel++
-
-	return childNumNodes
-}
-
 func (en *extensionNode) isValid() bool {
 	if len(en.EncodedChild) == 0 && en.child == nil {
 		return false
