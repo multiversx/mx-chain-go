@@ -3,8 +3,10 @@ package staking
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -27,6 +29,10 @@ func getAllPubKeys(validatorsMap map[uint32][][]byte) [][]byte {
 
 func getShortPubKeysList(pubKeys [][]byte) [][]byte {
 	pubKeysToDisplay := pubKeys
+	sort.SliceStable(pubKeysToDisplay, func(i, j int) bool {
+		return string(pubKeysToDisplay[i]) < string(pubKeysToDisplay[j])
+	})
+
 	if len(pubKeys) > maxPubKeysListLen {
 		pubKeysToDisplay = make([][]byte, 0)
 		pubKeysToDisplay = append(pubKeysToDisplay, pubKeys[:maxPubKeysListLen/2]...)
@@ -49,7 +55,10 @@ func (tmp *TestMetaProcessor) displayConfig(config nodesConfig) {
 	allNodes := tmp.getAllNodeKeys()
 	_ = tmp.StakingDataProvider.PrepareStakingData(allNodes)
 
-	for shard := range config.eligible {
+	numShards := uint32(len(config.eligible))
+	for shardId := uint32(0); shardId < numShards; shardId++ {
+		shard := getShardId(shardId, numShards)
+
 		lines = append(lines, tmp.getDisplayableValidatorsInShard("eligible", config.eligible[shard], shard)...)
 		lines = append(lines, tmp.getDisplayableValidatorsInShard("waiting", config.waiting[shard], shard)...)
 		lines = append(lines, tmp.getDisplayableValidatorsInShard("leaving", config.leaving[shard], shard)...)
@@ -71,6 +80,14 @@ func (tmp *TestMetaProcessor) displayConfig(config nodesConfig) {
 	tmp.displayValidators("Queue", config.queue)
 
 	tmp.StakingDataProvider.Clean()
+}
+
+func getShardId(shardId, numShards uint32) uint32 {
+	if shardId == numShards-1 {
+		return core.MetachainShardId
+	}
+
+	return shardId
 }
 
 func (tmp *TestMetaProcessor) getDisplayableValidatorsInShard(list string, pubKeys [][]byte, shardID uint32) []*display.LineData {
