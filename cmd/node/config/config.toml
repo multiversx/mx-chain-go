@@ -37,8 +37,12 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
-    ]
+                { EnableEpoch = 5, RoundDuration = 6000, ShardConsensusGroupSize = 4, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 6, MetachainMinNumNodes = 6, Hysteresis = 0.2, Adaptivity = false },
+                { EnableEpoch = 10, RoundDuration = 6000, ShardConsensusGroupSize = 6, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 6, MetachainMinNumNodes = 6, Hysteresis = 0.2, Adaptivity = false },
+                { EnableEpoch = 15, RoundDuration = 6000, ShardConsensusGroupSize = 6, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 4, MetachainMinNumNodes = 6, Hysteresis = 0.2, Adaptivity = false },
+                { EnableEpoch = 20, RoundDuration = 6000, ShardConsensusGroupSize = 6, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 6, MetachainMinNumNodes = 6, Hysteresis = 0.2, Adaptivity = false },
+                { EnableEpoch = 25, RoundDuration = 6000, ShardConsensusGroupSize = 6, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 4, MetachainMinNumNodes = 4, Hysteresis = 0.2, Adaptivity = false },
+                { EnableEpoch = 30, RoundDuration = 6000, ShardConsensusGroupSize = 6, ShardMinNumNodes = 6, MetachainConsensusGroupSize = 6, MetachainMinNumNodes = 6, Hysteresis = 0.2, Adaptivity = false }             ]
 
 [Versions]
     DefaultVersion = "default"
