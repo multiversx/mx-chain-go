@@ -41,14 +41,15 @@ func prepareTransactionsAndScrs(txPool *outportcore.TransactionPool) *transactio
 		}
 	}
 
-	for txHash, txLog := range txPool.Logs {
+	for _, txLog := range txPool.Logs {
+		txHash := txLog.TxHash
 		txWithResults, ok := transactionsAndScrs.txsWithResults[txHash]
 		if !ok {
 			continue
 		}
 
 		txWithResults.log = &data.LogData{
-			LogHandler: txLog,
+			LogHandler: txLog.Log,
 			TxHash:     txHash,
 		}
 	}

@@ -69,7 +69,7 @@ func TestSaveBlock(t *testing.T) {
 		PostCalled: func(route string, payload interface{}) error {
 			saveBlockData := payload.(*outport.OutportBlock)
 
-			require.Contains(t, saveBlockData.TransactionPool.Logs, txHash1)
+			require.Equal(t, saveBlockData.TransactionPool.Logs[0].TxHash, txHash1)
 			for txHash := range saveBlockData.TransactionPool.Transactions {
 				require.Equal(t, txHash1, txHash)
 			}
@@ -96,8 +96,11 @@ func TestSaveBlock(t *testing.T) {
 			SmartContractResults: map[string]*outport.SCRInfo{
 				scrHash1: nil,
 			},
-			Logs: map[string]*transaction.Log{
-				txHash1: {},
+			Logs: []*outport.LogData{
+				{
+					TxHash: txHash1,
+					Log:    &transaction.Log{},
+				},
 			},
 		},
 	}

@@ -25,7 +25,7 @@ var errCannotCastReward = errors.New("cannot cast reward transaction")
 
 var errCannotCastReceipt = errors.New("cannot cast receipt transaction")
 
-var errCannotCastEvent = errors.New("cannot cast event")
+var errCannotCastLog = errors.New("cannot cast log")
 
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher provided")

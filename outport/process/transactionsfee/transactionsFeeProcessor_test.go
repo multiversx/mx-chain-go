@@ -233,30 +233,39 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 			tx1Hash: tx1,
 			tx2Hash: tx2,
 			"t3":    {Transaction: &transaction.Transaction{}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}},
-		Logs: map[string]*transaction.Log{
-			"hhh": {
-				Events: []*transaction.Event{
-					{
-						Identifier: []byte("ignore"),
+		Logs: []*outportcore.LogData{
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte("ignore"),
+						},
 					},
 				},
+				TxHash: "hhh",
 			},
-			tx1Hash: {
-				Events: []*transaction.Event{
-					{
-						Identifier: []byte("ignore"),
-					},
-					{
-						Identifier: []byte(core.SignalErrorOperation),
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte("ignore"),
+						},
+						{
+							Identifier: []byte(core.SignalErrorOperation),
+						},
 					},
 				},
+				TxHash: tx1Hash,
 			},
-			tx2Hash: {
-				Events: []*transaction.Event{
-					{
-						Identifier: []byte(core.WriteLogIdentifier),
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.WriteLogIdentifier),
+						},
 					},
 				},
+				TxHash: tx2Hash,
 			},
 		},
 	}

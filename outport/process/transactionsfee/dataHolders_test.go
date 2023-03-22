@@ -55,10 +55,14 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"hash": {},
-			txHash: {
-				Address: []byte("addr"),
+		Logs: []*outportcore.LogData{
+			{
+				Log:    &transaction.Log{Address: []byte("addr")},
+				TxHash: txHash,
+			},
+			{
+				Log:    &transaction.Log{},
+				TxHash: "hash",
 			},
 		},
 	}

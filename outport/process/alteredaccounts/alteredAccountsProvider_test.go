@@ -520,24 +520,27 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: map[string]*transaction.Log{
-			"hash": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(0).Bytes(),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(0).Bytes(),
+							},
 						},
-					},
-					{
-						Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(0).Bytes(),
+						{
+							Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(0).Bytes(),
+							},
 						},
 					},
 				},
@@ -569,24 +572,27 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: map[string]*transaction.Log{
-			"hash": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(0).Bytes(),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(0).Bytes(),
+							},
 						},
-					},
-					{
-						Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(0).Bytes(),
+						{
+							Address:    []byte("addr"), // other event for the same token, to ensure it isn't added twice
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(0).Bytes(),
+							},
 						},
 					},
 				},
@@ -630,16 +636,19 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: map[string]*transaction.Log{
-			"hash": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(38).Bytes(),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(38).Bytes(),
+							},
 						},
 					},
 				},
@@ -695,18 +704,21 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"hh": {
-				Address: sendAddrShard0,
-				Events: []*transaction.Event{
-					{
-						Address:    sendAddrShard0,
-						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(38).Bytes(),
-							nil,
-							receiverOnDestination,
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hh",
+				Log: &transaction.Log{
+					Address: sendAddrShard0,
+					Events: []*transaction.Event{
+						{
+							Address:    sendAddrShard0,
+							Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(38).Bytes(),
+								nil,
+								receiverOnDestination,
+							},
 						},
 					},
 				},
@@ -759,18 +771,21 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: map[string]*transaction.Log{
-			"hash0": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"),
-							big.NewInt(38).Bytes(),
-							nil,
-							receiverOnDestination,
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+								big.NewInt(38).Bytes(),
+								nil,
+								receiverOnDestination,
+							},
 						},
 					},
 				},
@@ -836,25 +851,28 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"hash0": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("esdt"),
-							big.NewInt(1).Bytes(),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("esdt"),
+								big.NewInt(1).Bytes(),
+							},
 						},
-					},
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
-						Topics: [][]byte{
-							[]byte("nft"),
-							big.NewInt(38).Bytes(),
-							big.NewInt(1).Bytes(),
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								[]byte("nft"),
+								big.NewInt(38).Bytes(),
+								big.NewInt(1).Bytes(),
+							},
 						},
 					},
 				},
@@ -950,32 +968,35 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"hash0": {
-				Address: []byte("addr"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("esdttoken"),
-							big.NewInt(0).Bytes(),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("esdttoken"),
+								big.NewInt(0).Bytes(),
+							},
 						},
-					},
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
-						Topics: [][]byte{
-							expectedToken1.TokenMetaData.Name,
-							big.NewInt(0).SetUint64(expectedToken1.TokenMetaData.Nonce).Bytes(),
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								expectedToken1.TokenMetaData.Name,
+								big.NewInt(0).SetUint64(expectedToken1.TokenMetaData.Nonce).Bytes(),
+							},
 						},
-					},
-					{
-						Address:    []byte("addr"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
-						Topics: [][]byte{
-							expectedToken2.TokenMetaData.Name,
-							big.NewInt(0).SetUint64(expectedToken2.TokenMetaData.Nonce).Bytes(),
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTTransfer),
+							Topics: [][]byte{
+								expectedToken2.TokenMetaData.Name,
+								big.NewInt(0).SetUint64(expectedToken2.TokenMetaData.Nonce).Bytes(),
+							},
 						},
 					},
 				},
@@ -1053,15 +1074,18 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"txHash": {
-				Address: []byte("snd"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("snd"),
-						Identifier: []byte(core.BuiltInFunctionESDTTransfer),
-						Topics: [][]byte{
-							[]byte("token0"), big.NewInt(0).Bytes(), big.NewInt(10).Bytes(), []byte("rcv"),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "txHash",
+				Log: &transaction.Log{
+					Address: []byte("snd"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("snd"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"), big.NewInt(0).Bytes(), big.NewInt(10).Bytes(), []byte("rcv"),
+							},
 						},
 					},
 				},
@@ -1261,15 +1285,18 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 				},
 			},
 		},
-		Logs: map[string]*transaction.Log{
-			"txHash": {
-				Address: []byte("snd"),
-				Events: []*transaction.Event{
-					{
-						Address:    []byte("snd"),
-						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
-						Topics: [][]byte{
-							[]byte("token0"), big.NewInt(0).Bytes(), big.NewInt(10).Bytes(), []byte("a"),
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "txHash",
+				Log: &transaction.Log{
+					Address: []byte("snd"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("snd"),
+							Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+							Topics: [][]byte{
+								[]byte("token0"), big.NewInt(0).Bytes(), big.NewInt(10).Bytes(), []byte("a"),
+							},
 						},
 					},
 				},

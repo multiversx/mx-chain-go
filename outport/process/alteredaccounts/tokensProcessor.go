@@ -46,7 +46,7 @@ func (tp *tokensProcessor) extractESDTAccounts(
 ) error {
 	var err error
 	for _, txLog := range txPool.Logs {
-		for _, event := range txLog.Events {
+		for _, event := range txLog.Log.Events {
 			err = tp.processEvent(event, markedAlteredAccounts)
 			if err != nil {
 				return err

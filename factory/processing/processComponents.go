@@ -16,7 +16,6 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -2023,17 +2022,14 @@ func wrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.Transact
 	return ret
 }
 
-func wrapLogs(logs map[string]*transaction.Log) []*data.LogData {
+func wrapLogs(logs []*outport.LogData) []*data.LogData {
 	ret := make([]*data.LogData, len(logs))
 
-	idx := 0
-	for hash, lg := range logs {
+	for idx, logData := range logs {
 		ret[idx] = &data.LogData{
-			LogHandler: lg,
-			TxHash:     hash,
+			LogHandler: logData.Log,
+			TxHash:     logData.TxHash,
 		}
-
-		idx++
 	}
 
 	return ret

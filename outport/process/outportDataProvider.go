@@ -338,38 +338,22 @@ func getReceipts(receipts map[string]data.TransactionHandler) (map[string]*recei
 	return ret, nil
 }
 
-func getLogs(logs []*data.LogData) (map[string]*transaction.Log, error) {
-	ret := make(map[string]*transaction.Log, len(logs))
+func getLogs(logs []*data.LogData) ([]*outportcore.LogData, error) {
+	ret := make([]*outportcore.LogData, len(logs))
 
-	for _, logHandler := range logs {
-		eventHandlers := logHandler.GetLogEvents()
-		events, err := getEvents(eventHandlers)
-		txHashHex := getHexEncodedHash(logHandler.TxHash)
-		if err != nil {
-			return nil, fmt.Errorf("%w, hash: %s", err, txHashHex)
+	for idx, logData := range logs {
+		txHashHex := getHexEncodedHash(logData.TxHash)
+		log, castOk := logData.LogHandler.(*transaction.Log)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastLog, txHashHex)
 		}
 
-		ret[txHashHex] = &transaction.Log{
-			Address: logHandler.GetAddress(),
-			Events:  events,
+		ret[idx] = &outportcore.LogData{
+			TxHash: txHashHex,
+			Log:    log,
 		}
 	}
 	return ret, nil
-}
-
-func getEvents(eventHandlers []data.EventHandler) ([]*transaction.Event, error) {
-	events := make([]*transaction.Event, len(eventHandlers))
-
-	for idx, eventHandler := range eventHandlers {
-		event, castOk := eventHandler.(*transaction.Event)
-		if !castOk {
-			return nil, errCannotCastEvent
-		}
-
-		events[idx] = event
-	}
-
-	return events, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
