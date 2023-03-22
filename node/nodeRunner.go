@@ -110,7 +110,7 @@ func (nr *nodeRunner) Start() error {
 	log.Debug("config", "file", configurationPaths.Nodes)
 	log.Debug("config", "file", configurationPaths.Genesis)
 
-	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
+	log.Info("starting node", "version", flagsConfig.Version, "chain ID", configs.GeneralConfig.GeneralSettings.ChainID, "pid", os.Getpid())
 
 	err = cleanupStorageIfNecessary(flagsConfig.DbDir, flagsConfig.CleanupStorage)
 	if err != nil {

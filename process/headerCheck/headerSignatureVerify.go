@@ -1,7 +1,9 @@
 package headerCheck
 
 import (
+	"fmt"
 	"math/bits"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -119,11 +121,16 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler) ([]
 		return nil, process.ErrBlockProposerSignatureMissing
 	}
 
-	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 	epochForConsensus := header.GetEpoch()
 	if header.IsStartOfEpochBlock() && epochForConsensus > 0 {
+		// TODO:
 		epochForConsensus = epochForConsensus - 1
 	}
+	/*
+		ep 10 -> ep 11, proposer sets epoch 11 with consensus configuration from epoch 10
+		validators use epoch 10 config
+	*/
 
 	consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
@@ -211,8 +218,15 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 	}
 
 	log.Debug("not enough signatures",
+		"shard ID", header.GetShardID(),
+		"nonce", header.GetNonce(),
+		"round", header.GetRound(),
+		"epoch", header.GetEpoch(),
+		"is epoch start", header.IsStartOfEpochBlock(),
 		"minimum expected", minNumRequiredSignatures,
 		"actual", numOfOnesInBitmap)
+
+	debug.PrintStack()
 
 	return ErrNotEnoughSignatures
 }
@@ -303,9 +317,11 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
 	prevRandSeed := header.GetPrevRandSeed()
 
+	log.Error("REMOVE_ME HeaderSigVerifier.getLeader", "hdr nonce", header.GetNonce(), "epoch", header.GetEpoch(), "header handler", fmt.Sprintf("%+v", header))
 	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()
 	if header.IsStartOfEpochBlock() && epoch > 0 {
+		log.Error("REMOVE_ME HeaderSigVerifier.getLeader epoch start", "hdr nonce", header.GetNonce(), "epoch", header.GetEpoch(), "header handler", fmt.Sprintf("%+v", header))
 		epoch = epoch - 1
 	}
 
