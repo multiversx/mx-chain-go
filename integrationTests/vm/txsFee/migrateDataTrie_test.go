@@ -159,9 +159,13 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		require.Equal(t, uint64(numLeaves-1), numNonMigratedLeaves)
 		require.Equal(t, uint64(1), numMigratedLeaves)
 
-		gasLimit := uint64(500000000)
+		gasLimit := uint64(100_000_000)
+
+		numMigrateDataTrieCalls := 0
+		maxExpectedNumCalls := 15
 		for numNonMigratedLeaves > 0 {
 			migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+			numMigrateDataTrieCalls++
 
 			err = dtr.Commit()
 			require.Nil(t, err)
@@ -178,6 +182,8 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 			numNonMigratedLeaves = dts.GetLeavesMigrationStats()[core.NotSpecified]
 			numMigratedLeaves = dts.GetLeavesMigrationStats()[core.AutoBalanceEnabled]
 		}
+
+		require.True(t, numMigrateDataTrieCalls < maxExpectedNumCalls)
 
 		require.Equal(t, uint64(0), dts.GetLeavesMigrationStats()[core.NotSpecified])
 		require.Equal(t, uint64(numLeaves), dts.GetLeavesMigrationStats()[core.AutoBalanceEnabled])
@@ -266,7 +272,7 @@ func migrateDataTrie(
 ) {
 	testContext.CleanIntermediateTransactions(t)
 
-	gasLocked := "00"
+	gasLocked := "00" //use all available gas
 	txData := core.BuiltInFunctionMigrateDataTrie + "@" + hex.EncodeToString([]byte{byte(core.NotSpecified)}) + "@" + hex.EncodeToString([]byte{byte(core.AutoBalanceEnabled)}) + "@" + gasLocked
 
 	scr := &smartContractResult.SmartContractResult{
