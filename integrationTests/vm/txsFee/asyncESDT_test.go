@@ -551,8 +551,6 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 		// do nothing, just iterate
 	}
 
-	select {
-	case err = <-leaves.ErrChan:
-		require.Nil(t, err)
-	}
+	err = <-leaves.ErrChan
+	require.Nil(t, err)
 }
