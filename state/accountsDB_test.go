@@ -2834,6 +2834,7 @@ func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
 	_ = adb.SaveAccount(acc)
 
 	_, err = adb.Commit()
+	require.Nil(t, err)
 
 	acc, err = adb.LoadAccount(addr)
 	require.Nil(t, err)
