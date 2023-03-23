@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -119,7 +120,7 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
+		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
