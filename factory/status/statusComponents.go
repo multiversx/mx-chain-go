@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
 	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
@@ -175,7 +176,10 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  currentEpoch,
+		})
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
@@ -248,8 +252,6 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Password:          eventNotifierConfig.Password,
 		RequestTimeoutSec: eventNotifierConfig.RequestTimeoutSec,
 		Marshaller:        scf.coreComponents.InternalMarshalizer(),
-		Hasher:            scf.coreComponents.Hasher(),
-		PubKeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 	}
 }
 

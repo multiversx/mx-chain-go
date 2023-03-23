@@ -1,28 +1,24 @@
 package notifier_test
 
 import (
-	"encoding/hex"
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/notifier"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
-		HttpClient:      &mock.HTTPClientStub{},
-		Marshaller:      &testscommon.MarshalizerMock{},
-		Hasher:          &hashingMocks.HasherMock{},
-		PubKeyConverter: &testscommon.PubkeyConverterMock{},
+		HttpClient: &mock.HTTPClientStub{},
+		Marshaller: &testscommon.MarshalizerMock{},
 	}
 }
 
@@ -51,28 +47,6 @@ func TestNewEventNotifier(t *testing.T) {
 		require.Equal(t, notifier.ErrNilMarshaller, err)
 	})
 
-	t.Run("nil hasher", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEventNotifierArgs()
-		args.Hasher = nil
-
-		en, err := notifier.NewEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, notifier.ErrNilHasher, err)
-	})
-
-	t.Run("nil pub key converter", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEventNotifierArgs()
-		args.PubKeyConverter = nil
-
-		en, err := notifier.NewEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, notifier.ErrNilPubKeyConverter, err)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -93,15 +67,15 @@ func TestSaveBlock(t *testing.T) {
 	wasCalled := false
 	args.HttpClient = &mock.HTTPClientStub{
 		PostCalled: func(route string, payload interface{}) error {
-			saveBlockData := payload.(outportSenderData.ArgsSaveBlock)
+			saveBlockData := payload.(*outport.OutportBlock)
 
-			require.Equal(t, hex.EncodeToString([]byte(txHash1)), saveBlockData.TransactionsPool.Logs[0].TxHash)
-			for txHash := range saveBlockData.TransactionsPool.Txs {
-				require.Equal(t, hex.EncodeToString([]byte(txHash1)), txHash)
+			require.Equal(t, saveBlockData.TransactionPool.Logs[0].TxHash, txHash1)
+			for txHash := range saveBlockData.TransactionPool.Transactions {
+				require.Equal(t, txHash1, txHash)
 			}
 
-			for scrHash := range saveBlockData.TransactionsPool.Scrs {
-				require.Equal(t, hex.EncodeToString([]byte(scrHash1)), scrHash)
+			for scrHash := range saveBlockData.TransactionPool.SmartContractResults {
+				require.Equal(t, scrHash1, scrHash)
 			}
 
 			wasCalled = true
@@ -111,18 +85,21 @@ func TestSaveBlock(t *testing.T) {
 
 	en, _ := notifier.NewEventNotifier(args)
 
-	saveBlockData := &outport.ArgsSaveBlockData{
-		HeaderHash: []byte{},
-		TransactionsPool: &outport.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+	saveBlockData := &outport.OutportBlock{
+		BlockData: &outport.BlockData{
+			HeaderHash: []byte{},
+		},
+		TransactionPool: &outport.TransactionPool{
+			Transactions: map[string]*outport.TxInfo{
 				txHash1: nil,
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
+			SmartContractResults: map[string]*outport.SCRInfo{
 				scrHash1: nil,
 			},
-			Logs: []*data.LogData{
+			Logs: []*outport.LogData{
 				{
 					TxHash: txHash1,
+					Log:    &transaction.Log{},
 				},
 			},
 		},
@@ -154,9 +131,15 @@ func TestRevertIndexedBlock(t *testing.T) {
 		Round: 2,
 		Epoch: 3,
 	}
-	err := en.RevertIndexedBlock(header, &block.Body{})
-	require.Nil(t, err)
+	headerBytes, _ := args.Marshaller.Marshal(header)
 
+	err := en.RevertIndexedBlock(&outport.BlockData{
+		HeaderBytes: headerBytes,
+		Body:        &block.Body{},
+		HeaderType:  string(core.ShardHeaderV1),
+	},
+	)
+	require.Nil(t, err)
 	require.True(t, wasCalled)
 }
 
@@ -176,7 +159,7 @@ func TestFinalizedBlock(t *testing.T) {
 	en, _ := notifier.NewEventNotifier(args)
 
 	hash := []byte("headerHash")
-	err := en.FinalizedBlock(hash)
+	err := en.FinalizedBlock(&outport.FinalizedBlock{HeaderHash: hash})
 	require.Nil(t, err)
 
 	require.True(t, wasCalled)
@@ -199,13 +182,13 @@ func TestMockFunctions(t *testing.T) {
 	err = en.SaveRoundsInfo(nil)
 	require.Nil(t, err)
 
-	err = en.SaveValidatorsRating("", nil)
+	err = en.SaveValidatorsRating(nil)
 	require.Nil(t, err)
 
-	err = en.SaveValidatorsPubKeys(nil, 0)
+	err = en.SaveValidatorsPubKeys(nil)
 	require.Nil(t, err)
 
-	err = en.SaveAccounts(0, nil, 0)
+	err = en.SaveAccounts(nil)
 	require.Nil(t, err)
 
 	err = en.Close()

@@ -7,8 +7,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -197,7 +197,7 @@ func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQuery
 }
 
 // GetAlteredAccountsForBlock will return the altered accounts for the desired block
-func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
 }
 

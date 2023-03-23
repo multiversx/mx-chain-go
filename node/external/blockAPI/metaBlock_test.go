@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -892,11 +893,11 @@ func TestMetaAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 
 		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{}
 		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
-			ExtractAlteredAccountsFromPoolCalled: func(outportPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
-				retMap := map[string]*outportcore.AlteredAccount{}
-				for _, tx := range outportPool.Txs {
-					retMap[string(tx.GetSndAddr())] = &outportcore.AlteredAccount{
-						Address: string(tx.GetSndAddr()),
+			ExtractAlteredAccountsFromPoolCalled: func(outportPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				retMap := map[string]*alteredAccount.AlteredAccount{}
+				for _, tx := range outportPool.Transactions {
+					retMap[string(tx.Transaction.GetSndAddr())] = &alteredAccount.AlteredAccount{
+						Address: string(tx.Transaction.GetSndAddr()),
 						Balance: "10",
 					}
 				}
@@ -912,7 +913,7 @@ func TestMetaAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		require.True(t, areAlteredAccountsResponsesTheSame([]*outportcore.AlteredAccount{
+		require.True(t, areAlteredAccountsResponsesTheSame([]*alteredAccount.AlteredAccount{
 			{
 				Address: "addr0",
 				Balance: "10",

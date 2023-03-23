@@ -76,7 +76,7 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 		HasDriversCalled: func() bool {
 			return true
 		},
-		SaveBlockCalled: func(args *outportCore.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportCore.OutportBlockWithHeaderAndBody) error {
 			saveBlockCalledMutex.Lock()
 			require.NotNil(t, args)
 
@@ -84,11 +84,13 @@ func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 				MiniBlocks: make([]*block.MiniBlock, 4),
 			}
 
-			txsPoolRequired := &outportCore.Pool{}
+			txsPoolRequired := &outportCore.TransactionPool{}
 
-			assert.Equal(t, txsPoolRequired, args.TransactionsPool)
-			assert.Equal(t, bodyRequired, args.Body)
+			assert.Equal(t, txsPoolRequired, args.TransactionPool)
+			assert.Equal(t, bodyRequired, args.HeaderDataWithBody.Body)
 			saveBlockCalledMutex.Unlock()
+
+			return nil
 		},
 	}
 

@@ -2,8 +2,8 @@ package blockAPI
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
@@ -22,7 +22,7 @@ type APIBlockHandler interface {
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByHash(hash []byte, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error)
+	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 

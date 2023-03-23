@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/notifier"
@@ -18,8 +17,6 @@ type EventNotifierFactoryArgs struct {
 	Password          string
 	RequestTimeoutSec int
 	Marshaller        marshal.Marshalizer
-	Hasher            hashing.Hasher
-	PubKeyConverter   core.PubkeyConverter
 }
 
 // CreateEventNotifier will create a new event notifier client instance
@@ -41,10 +38,8 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 	}
 
 	notifierArgs := notifier.ArgsEventNotifier{
-		HttpClient:      httpClient,
-		Marshaller:      args.Marshaller,
-		Hasher:          args.Hasher,
-		PubKeyConverter: args.PubKeyConverter,
+		HttpClient: httpClient,
+		Marshaller: args.Marshaller,
 	}
 
 	return notifier.NewEventNotifier(notifierArgs)
@@ -53,12 +48,6 @@ func CreateEventNotifier(args *EventNotifierFactoryArgs) (outport.Driver, error)
 func checkInputArgs(args *EventNotifierFactoryArgs) error {
 	if check.IfNil(args.Marshaller) {
 		return core.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return core.ErrNilHasher
-	}
-	if check.IfNil(args.PubKeyConverter) {
-		return outport.ErrNilPubKeyConverter
 	}
 
 	return nil
