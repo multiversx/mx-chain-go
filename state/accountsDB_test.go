@@ -2812,6 +2812,34 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)
 }
 
+func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+	addr := generateRandomByteArray(32)
+
+	acc, _ := adb.LoadAccount(addr)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(addr)
+	acc.(state.UserAccountHandler).IncreaseNonce(1)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	err := adb.RevertToSnapshot(1)
+	require.Nil(t, err)
+
+	acc, _ = adb.LoadAccount(addr)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	_, err = adb.Commit()
+
+	acc, err = adb.LoadAccount(addr)
+	require.Nil(t, err)
+	require.NotNil(t, acc)
+}
+
 func testAccountMethodsConcurrency(
 	t *testing.T,
 	adb state.AccountsAdapter,
