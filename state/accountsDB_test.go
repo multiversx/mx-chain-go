@@ -698,7 +698,7 @@ func TestAccountsDB_LoadDataNilRootShouldRetNil(t *testing.T) {
 	_, account, adb := generateAddressAccountAccountsDB(tr)
 
 	// since root is nil, result should be nil and data trie should be nil
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 	assert.Nil(t, account.DataTrie())
 }
@@ -715,7 +715,7 @@ func TestAccountsDB_LoadDataBadLengthShouldErr(t *testing.T) {
 	account.SetRootHash([]byte("12345"))
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -733,7 +733,7 @@ func TestAccountsDB_LoadDataMalfunctionTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(mockTrie)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -751,7 +751,7 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
@@ -795,7 +795,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should not return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 
 	// verify data

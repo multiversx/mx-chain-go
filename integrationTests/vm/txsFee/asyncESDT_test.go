@@ -494,6 +494,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	sndAddr := []byte("sender-8901234567890123456789000")
 
 	esdtBalance := big.NewInt(100000000)
+	esdtTransferValue := big.NewInt(5000)
 	token := []byte("miiutoken")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
@@ -508,12 +509,15 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 
 	// execute first call
 	gasLimit := uint64(500000)
-	tx := utils.CreateESDTTransferTx(0, sndAddr, scAddress, token, big.NewInt(5000), gasPrice, gasLimit)
+	tx := utils.CreateESDTTransferTx(0, sndAddr, scAddress, token, esdtTransferValue, gasPrice, gasLimit)
 	tx.Data = []byte(string(tx.Data) + "@" + hex.EncodeToString(function1) + "@01@" + hex.EncodeToString(scAddress) + "@" + hex.EncodeToString(function2))
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
+
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, esdtBalance)
+	utils.CheckESDTBalance(t, testContext, scAddress, token, big.NewInt(0))
 
 	// execute second call
 	tx = utils.CreateESDTTransferTx(1, sndAddr, scAddress, token, big.NewInt(5000), gasPrice, gasLimit)
@@ -525,6 +529,9 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
+
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, big.NewInt(0).Sub(esdtBalance, esdtTransferValue))
+	utils.CheckESDTBalance(t, testContext, scAddress, token, esdtTransferValue)
 
 	// try to recreate the data trie
 	scAccount, err := testContext.Accounts.LoadAccount(scAddress)
@@ -540,12 +547,10 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	err = testContext.Accounts.GetAllLeaves(leaves, context.Background(), roothash)
 	require.Nil(t, err)
 
-	for _ = range leaves.LeavesChan {
+	for range leaves.LeavesChan {
 		// do nothing, just iterate
 	}
 
-	select {
-	case err = <-leaves.ErrChan:
-		require.Nil(t, err)
-	}
+	err = <-leaves.ErrChan
+	require.Nil(t, err)
 }
