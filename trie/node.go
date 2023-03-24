@@ -130,15 +130,11 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
-	logLevel := logger.LogTrace
-	extraInfo := make([]interface{}, 0, 6)
-	extraInfo = append(extraInfo, "error", err, "key", key)
-	if !errors.IsClosingError(err) {
-		logLevel = logger.LogWarning
-		extraInfo = append(extraInfo, "stack trace", string(debug.Stack()))
+	if logInstance.GetLevel() != logger.LogTrace {
+		return
 	}
 
-	logInstance.Log(logLevel, common.GetNodeFromDBErrorString, extraInfo...)
+	logInstance.Trace(common.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
 func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
