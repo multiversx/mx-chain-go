@@ -121,16 +121,24 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		logLevel := logger.LogWarning
-		if errors.IsClosingError(err) {
-			logLevel = logger.LogTrace
-		}
+		treatLogError(log, err, n)
 
-		log.Log(logLevel, common.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
 		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
+}
+
+func treatLogError(logInstance logger.Logger, err error, key []byte) {
+	logLevel := logger.LogTrace
+	extraInfo := make([]interface{}, 0, 6)
+	extraInfo = append(extraInfo, "error", err, "key", key)
+	if !errors.IsClosingError(err) {
+		logLevel = logger.LogWarning
+		extraInfo = append(extraInfo, "stack trace", string(debug.Stack()))
+	}
+
+	logInstance.Log(logLevel, common.GetNodeFromDBErrorString, extraInfo...)
 }
 
 func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {

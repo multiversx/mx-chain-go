@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,9 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
@@ -620,6 +625,63 @@ func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
 		case <-time.After(time.Second):
 			assert.Fail(t, "timeout while waiting for the shouldStopIfContextDone call to write the result")
 		}
+	})
+}
+
+func TestTreatLogError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error is not of type of closing error", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		err := errors.New("trie was not found")
+		wasCalled := false
+		logInstance := &testscommon.LoggerStub{
+			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
+				wasCalled = true
+				require.Equal(t, logger.LogWarning, logLevel)
+				require.Equal(t, common.GetNodeFromDBErrorString, message)
+				require.Equal(t, 6, len(args))
+				expectedFirst5Args := []interface{}{"error", err, "key", key, "stack trace"}
+				require.Equal(t, expectedFirst5Args, args[:5])
+			},
+		}
+
+		treatLogError(logInstance, err, key)
+		assert.True(t, wasCalled)
+		treatLogError(log, err, key) //display only
+	})
+	t.Run("error is of type of closing error", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		numCalled := 0
+		var err error
+
+		logInstance := &testscommon.LoggerStub{
+			LogCalled: func(logLevel logger.LogLevel, message string, args ...interface{}) {
+				numCalled++
+				require.Equal(t, logger.LogTrace, logLevel)
+				require.Equal(t, common.GetNodeFromDBErrorString, message)
+				require.Equal(t, 4, len(args))
+				expectedFirst5Args := []interface{}{"error", err, "key", key}
+				require.Equal(t, expectedFirst5Args, args)
+			},
+		}
+
+		t.Run("db is closed", func(t *testing.T) {
+			crtCounter := numCalled
+			err = storage.ErrDBIsClosed
+			treatLogError(logInstance, err, key)
+			assert.Equal(t, crtCounter+1, numCalled)
+		})
+		t.Run("context closing", func(t *testing.T) {
+			crtCounter := numCalled
+			err = mxErrors.ErrContextClosing
+			treatLogError(logInstance, err, key)
+			assert.Equal(t, crtCounter+1, numCalled)
+		})
 	})
 }
 
