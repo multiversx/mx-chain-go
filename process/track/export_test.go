@@ -48,7 +48,7 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // baseBlockTrack
 
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	bbt.receivedHeader(headerHandler, headerHash)
+	bbt.receivedHeaderFunc(headerHandler, headerHash)
 }
 
 func CheckTrackerNilParameters(arguments ArgBaseTracker) error {
@@ -79,8 +79,8 @@ func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.Header
 	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
 }
 
-func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) bool {
-	return bbt.addHeader(header, hash)
+func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte, shardID uint32) bool {
+	return bbt.addHeader(header, hash, shardID)
 }
 
 func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler) {
@@ -180,7 +180,7 @@ func (bp *blockProcessor) DoJobOnReceivedHeader(shardID uint32) {
 }
 
 func (bp *blockProcessor) DoJobOnReceivedCrossNotarizedHeader(shardID uint32) {
-	bp.doJobOnReceivedCrossNotarizedHeader(shardID)
+	bp.doJobOnReceivedCrossNotarizedHeaderFunc(shardID)
 }
 
 func (bp *blockProcessor) ComputeLongestChainFromLastCrossNotarized(shardID uint32) (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
@@ -199,8 +199,8 @@ func (bp *blockProcessor) CheckHeaderFinality(header data.HeaderHandler, sortedH
 	return bp.checkHeaderFinality(header, sortedHeaders, index)
 }
 
-func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler) {
-	bp.requestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler, shardID uint32) {
+	bp.requestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders, shardID)
 }
 
 func (bp *blockProcessor) GetLatestValidHeader(lastNotarizedHeader data.HeaderHandler, longestChainHeaders []data.HeaderHandler) data.HeaderHandler {
@@ -211,8 +211,8 @@ func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader dat
 	return bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
 }
 
-func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
-	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
+func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64, shardID uint32) {
+	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders, shardID)
 }
 
 func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {

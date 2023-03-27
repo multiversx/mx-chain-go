@@ -2,6 +2,8 @@ package track_test
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -9,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignChainShardBlockTrack_ShouldErrNilBlockTracker(t *testing.T) {
@@ -99,4 +101,42 @@ func TestSovereignChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testi
 	assert.Equal(t, lastNotarizedHeader, header)
 	assert.NotNil(t, lastNotarizedHash, hash)
 	assert.Nil(t, err)
+}
+
+func TestReceivedHeader_ShouldAddExtendedShardHeaderToSovereignChainTrackedHeaders(t *testing.T) {
+	t.Parallel()
+
+	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
+
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+	header := &block.Header{Nonce: 1}
+	headerV2 := &block.HeaderV2{Header: header}
+	extendedShardHeader := &block.ShardHeaderExtended{
+		Header: headerV2,
+	}
+	extendedShardHeaderHash := []byte("hash")
+	scsbt.ReceivedHeader(extendedShardHeader, extendedShardHeaderHash)
+	headers, _ := scsbt.GetTrackedHeaders(core.SovereignChainShardId)
+
+	require.Equal(t, 1, len(headers))
+	assert.Equal(t, extendedShardHeader, headers[0])
+}
+
+func TestReceivedHeader_ShouldAddShardHeaderToSovereignChainTrackedHeaders(t *testing.T) {
+	t.Parallel()
+
+	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
+
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+	header := &block.Header{Nonce: 1}
+	headerHash := []byte("hash")
+	scsbt.ReceivedHeader(header, headerHash)
+	headers, _ := scsbt.GetTrackedHeaders(header.GetShardID())
+
+	require.Equal(t, 1, len(headers))
+	assert.Equal(t, header, headers[0])
 }

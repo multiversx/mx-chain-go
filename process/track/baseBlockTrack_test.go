@@ -789,8 +789,8 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 	}
 	headerHash := []byte("hash")
 
-	wasAddedAtFirstCall := sbt.AddHeader(header, headerHash)
-	wasAddedAtSecondCall := sbt.AddHeader(header, headerHash)
+	wasAddedAtFirstCall := sbt.AddHeader(header, headerHash, header.ShardID)
+	wasAddedAtSecondCall := sbt.AddHeader(header, headerHash, header.ShardID)
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
@@ -818,8 +818,8 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 	}
 	hdr2Hash := []byte("hash2")
 
-	wasAddedHdr1 := sbt.AddHeader(hdr1, hdr1Hash)
-	wasAddedHdr2 := sbt.AddHeader(hdr2, hdr2Hash)
+	wasAddedHdr1 := sbt.AddHeader(hdr1, hdr1Hash, hdr1.ShardID)
+	wasAddedHdr2 := sbt.AddHeader(hdr2, hdr2Hash, hdr2.ShardID)
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 

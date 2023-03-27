@@ -7,15 +7,14 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -731,7 +730,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
 
 	sortedHeaders := []data.HeaderHandler{&dataBlock.Header{}}
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{}}
-	bp.RequestHeadersIfNeeded(nil, sortedHeaders, longestChainHeaders)
+	bp.RequestHeadersIfNeeded(nil, sortedHeaders, longestChainHeaders, 0)
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -756,7 +755,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfSortedHeadersAreEmpty(t *testi
 
 	lastNotarizedHeader := &dataBlock.Header{}
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{}}
-	bp.RequestHeadersIfNeeded(lastNotarizedHeader, nil, longestChainHeaders)
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader, nil, longestChainHeaders, lastNotarizedHeader.GetShardID())
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -782,7 +781,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfNodeIsSync(t *testing.T) {
 	lastNotarizedHeader := &dataBlock.Header{}
 	sortedHeaders := []data.HeaderHandler{&dataBlock.Header{}}
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{}}
-	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders, lastNotarizedHeader.GetShardID())
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -808,7 +807,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *tes
 	lastNotarizedHeader := &dataBlock.Header{}
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: 1}}
 	sortedHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: 3}}
-	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders, lastNotarizedHeader.GetShardID())
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -848,7 +847,7 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 
 	lastNotarizedHeader := &dataBlock.Header{}
 	sortedHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: 2}}
-	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, nil)
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, nil, lastNotarizedHeader.GetShardID())
 	wg.Wait()
 
 	mutCalled.RLock()
@@ -865,7 +864,7 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 
 	lastNotarizedHeader2 := &dataBlock.MetaBlock{}
 	sortedHeaders2 := []data.HeaderHandler{&dataBlock.MetaBlock{Nonce: 2}}
-	bp.RequestHeadersIfNeeded(lastNotarizedHeader2, sortedHeaders2, nil)
+	bp.RequestHeadersIfNeeded(lastNotarizedHeader2, sortedHeaders2, nil, lastNotarizedHeader2.GetShardID())
 	wg.Wait()
 
 	mutCalled.RLock()
@@ -915,7 +914,7 @@ func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uin
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: nonce - 1, Round: round - 1}}
 	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
 	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
-	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound)
+	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound, lastNotarizedHeader.GetShardID())
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, called)
@@ -961,7 +960,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	longestChainHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: 2, Round: 2}}
 	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
 	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
-	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound)
+	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound, lastNotarizedHeader.GetShardID())
 	wg.Wait()
 
 	mutCalled.RLock()

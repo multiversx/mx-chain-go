@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -51,6 +51,7 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+	receivedHeaderFunc          func(headerHandler data.HeaderHandler, headerHash []byte)
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -135,8 +136,10 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
+	shardID := shardHeader.GetShardID()
+
 	log.Debug("received shard header from network in block tracker",
-		"shard", shardHeader.GetShardID(),
+		"shard", shardID,
 		"epoch", shardHeader.GetEpoch(),
 		"round", shardHeader.GetRound(),
 		"nonce", shardHeader.GetNonce(),
@@ -148,7 +151,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
-	if !bbt.addHeader(shardHeader, shardHeaderHash) {
+	if !bbt.addHeader(shardHeader, shardHeaderHash, shardID) {
 		log.Trace("received shard header was not added", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -164,8 +167,10 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
+	shardID := metaBlock.GetShardID()
+
 	log.Debug("received meta block from network in block tracker",
-		"shard", metaBlock.GetShardID(),
+		"shard", shardID,
 		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
@@ -177,7 +182,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	if !bbt.addHeader(metaBlock, metaBlockHash) {
+	if !bbt.addHeader(metaBlock, metaBlockHash, shardID) {
 		log.Trace("received meta block was not added", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -215,12 +220,11 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	return !isHeaderOutOfRange
 }
 
-func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) bool {
+func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte, shardID uint32) bool {
 	if check.IfNil(header) {
 		return false
 	}
 
-	shardID := header.GetShardID()
 	nonce := header.GetNonce()
 
 	bbt.mutHeaders.Lock()
@@ -263,7 +267,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.receivedHeader(header, hash)
+	bbt.receivedHeaderFunc(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard
@@ -318,6 +322,11 @@ func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.He
 	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
 
 	return hdrsForShard, hdrsHashesForShard, nil
+}
+
+// ComputeLongestExtendedShardChainFromLastNotarized returns empty slices of headers handlers and headers hashes in main chain
+func (bbt *baseBlockTrack) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
 }
 
 // ComputeLongestShardsChainsFromLastNotarized returns the longest valid chains for all shards from theirs last cross notarized headers
