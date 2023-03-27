@@ -20,6 +20,7 @@ type ContextFlagsConfig struct {
 	UseLogView                   bool
 	ValidatorKeyIndex            int
 	EnableRestAPIServerDebugMode bool
+	BaseVersion                  string
 	Version                      string
 	ForceStartFromNetwork        bool
 	DisableConsensusWatchdog     bool
