@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [mx-chain-go-runner]
+        runs-on: self-hosted
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
