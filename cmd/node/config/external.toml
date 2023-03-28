@@ -37,6 +37,10 @@
     # RequestTimeoutSec defines the timeout in seconds for the http client
     RequestTimeoutSec = 60
 
+    # MarshallerType is used to define the marshalled type to be used for inner
+    # marshalled structures in block events data
+    MarshallerType = "json"
+
 [WebSocketConnector]
     # This flag shall only be used for observer nodes
     Enabled = false

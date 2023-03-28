@@ -651,6 +651,12 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:           false,
+				ProxyUrl:          "http://localhost:5000",
+				RequestTimeoutSec: 30,
+				MarshallerType:    "json",
+			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
