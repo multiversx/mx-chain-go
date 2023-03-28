@@ -1,6 +1,7 @@
 package node
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"io"
 	"time"
 
@@ -55,4 +56,9 @@ type Throttler interface {
 type HealthService interface {
 	io.Closer
 	RegisterComponent(component interface{})
+}
+
+type accountHandlerWithDataTrieMigrationStatus interface {
+	vmcommon.AccountHandler
+	IsDataTrieMigrated() (bool, error)
 }

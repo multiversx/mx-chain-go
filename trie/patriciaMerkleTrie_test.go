@@ -1473,6 +1473,39 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 	})
 }
 
+func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil root", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		isMigrated, err := tr.IsMigrated()
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("not migrated", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("dog"), []byte("reindeer"))
+		isMigrated, err := tr.IsMigrated()
+		assert.False(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("migrated", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		_ = tr.(dataTrie).UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		isMigrated, err := tr.IsMigrated()
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()

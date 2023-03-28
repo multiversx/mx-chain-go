@@ -713,6 +713,23 @@ func (tr *patriciaMerkleTrie) checkIfMigrationPossible(newVersion core.TrieNodeV
 	return nil
 }
 
+// IsMigrated returns true if the trie is migrated to the latest version
+func (tr *patriciaMerkleTrie) IsMigrated() (bool, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if check.IfNil(tr.root) {
+		return true, nil
+	}
+
+	version, err := tr.root.getVersion()
+	if err != nil {
+		return false, err
+	}
+
+	return version == core.AutoBalanceEnabled, nil
+}
+
 // Close stops all the active goroutines started by the trie
 func (tr *patriciaMerkleTrie) Close() error {
 	tr.mutOperation.Lock()

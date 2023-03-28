@@ -37,6 +37,11 @@ func (ddth *disabledDataTrieHandler) GetAllLeavesOnChannel(
 	return nil
 }
 
+// IsMigrated returns true
+func (ddth *disabledDataTrieHandler) IsMigrated() (bool, error) {
+	return true, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ddth *disabledDataTrieHandler) IsInterfaceNil() bool {
 	return ddth == nil

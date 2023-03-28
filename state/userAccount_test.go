@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -310,5 +312,67 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 			assert.True(t, ok)
 			assert.Equal(t, val, leaf.Value())
 		}
+	})
+}
+
+func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil trie", func(t *testing.T) {
+		t.Parallel()
+
+		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
+		isMigrated, err := acc.IsDataTrieMigrated()
+		assert.False(t, isMigrated)
+		assert.Equal(t, state.ErrNilTrie, err)
+	})
+
+	t.Run("trie is not migrated", func(t *testing.T) {
+		t.Parallel()
+
+		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
+		acc.SetDataTrie(
+			&trie.TrieStub{
+				IsMigratedCalled: func() (bool, error) {
+					return false, nil
+				},
+			},
+		)
+		isMigrated, err := acc.IsDataTrieMigrated()
+		assert.False(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("trie is migrated", func(t *testing.T) {
+		t.Parallel()
+
+		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
+		acc.SetDataTrie(
+			&trie.TrieStub{
+				IsMigratedCalled: func() (bool, error) {
+					return true, nil
+				},
+			},
+		)
+		isMigrated, err := acc.IsDataTrieMigrated()
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("trie is migrated error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := fmt.Errorf("expected error")
+		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
+		acc.SetDataTrie(
+			&trie.TrieStub{
+				IsMigratedCalled: func() (bool, error) {
+					return false, expectedErr
+				},
+			},
+		)
+		isMigrated, err := acc.IsDataTrieMigrated()
+		assert.False(t, isMigrated)
+		assert.Equal(t, expectedErr, err)
 	})
 }

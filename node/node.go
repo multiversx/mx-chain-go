@@ -1219,6 +1219,26 @@ func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (boo
 	return mpv.VerifyProof(rootHashBytes, key, proof)
 }
 
+// IsDataTrieMigrated returns true if the data trie for the given address is migrated
+func (n *Node) IsDataTrieMigrated(address string) (bool, error) {
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return false, err
+	}
+
+	accountHandler, err := n.stateComponents.AccountsAdapterAPI().LoadAccount(addressBytes)
+	if err != nil {
+		return false, err
+	}
+
+	acc, ok := accountHandler.(accountHandlerWithDataTrieMigrationStatus)
+	if !ok {
+		return false, fmt.Errorf("wrong type assertion for address %s, account type %T", address, accountHandler)
+	}
+
+	return acc.IsDataTrieMigrated()
+}
+
 func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]byte, []byte, error) {
 	rootHashBytes, err := hex.DecodeString(rootHash)
 	if err != nil {

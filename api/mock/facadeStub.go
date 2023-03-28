@@ -82,6 +82,7 @@ type FacadeStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
+	IsDataTrieMigratedCalled                    func(address string) (bool, error)
 }
 
 // GetTokenSupply -
@@ -535,6 +536,15 @@ func (f *FacadeStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*sta
 	}
 
 	return nil, nil
+}
+
+// IsDataTrieMigrated -
+func (f *FacadeStub) IsDataTrieMigrated(address string) (bool, error) {
+	if f.IsDataTrieMigratedCalled != nil {
+		return f.IsDataTrieMigratedCalled(address)
+	}
+
+	return false, nil
 }
 
 // Trigger -
