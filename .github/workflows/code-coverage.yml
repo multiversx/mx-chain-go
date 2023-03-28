@@ -3,9 +3,7 @@ name: Code-coverage
 on:
   push:
     branches:
-      - master
-  pull_request:
-    branches: [ master, feat/*, rc/* ]
+      - fix-code-coverage
 
   workflow_dispatch:
 
@@ -13,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest]
+        runs-on: [mx-chain-go-runner]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
