@@ -594,6 +594,11 @@ func GetStatusComponents(
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:        false,
+				ProxyUrl:       "https://localhost:5000",
+				MarshallerType: "json",
+			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     shardCoordinator,
