@@ -39,6 +39,27 @@ func (sbt *shardBlockTrack) SetSelfNotarizer(selfNotarizer blockNotarizerHandler
 	sbt.selfNotarizer = selfNotarizer
 }
 
+// sovereignChainShardBlockTrack
+
+func (scsbt *sovereignChainShardBlockTrack) ReceivedExtendedShardHeader(
+	extendedShardHeaderHandler data.ShardHeaderExtendedHandler,
+	extendedShardHeaderHash []byte,
+) {
+	scsbt.receivedExtendedShardHeader(extendedShardHeaderHandler, extendedShardHeaderHash)
+}
+
+func (scsbt *sovereignChainShardBlockTrack) ShouldAddExtendedShardHeader(extendedShardHeaderHandler data.ShardHeaderExtendedHandler) bool {
+	return scsbt.shouldAddExtendedShardHeader(extendedShardHeaderHandler)
+}
+
+func (scsbt *sovereignChainShardBlockTrack) DoWhitelistWithExtendedShardHeaderIfNeeded(extendedShardHeaderHandler data.ShardHeaderExtendedHandler) {
+	scsbt.doWhitelistWithExtendedShardHeaderIfNeeded(extendedShardHeaderHandler)
+}
+
+func (scsbt *sovereignChainShardBlockTrack) IsExtendedShardHeaderOutOfRange(extendedShardHeaderHandler data.ShardHeaderExtendedHandler) bool {
+	return scsbt.isExtendedShardHeaderOutOfRange(extendedShardHeaderHandler)
+}
+
 // metaBlockTrack
 
 func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
