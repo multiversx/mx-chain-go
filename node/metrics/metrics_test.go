@@ -5,9 +5,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -328,4 +331,142 @@ func TestInitRatingsMetrics(t *testing.T) {
 	for k, v := range expectedValues {
 		assert.Equal(t, v, keys[k])
 	}
+}
+
+func TestInitMetrics(t *testing.T) {
+	t.Parallel()
+
+	appStatusHandler := &statusHandler.AppStatusHandlerStub{}
+	pubkeyString := "pub key"
+	nodeType := core.NodeTypeValidator
+	shardCoordinator := &testscommon.ShardsCoordinatorMock{
+		NoShards: 3,
+		SelfIDCalled: func() uint32 {
+			return 0
+		},
+	}
+	nodesSetup := &testscommon.NodesSetupStub{
+		GetShardConsensusGroupSizeCalled: func() uint32 {
+			return 63
+		},
+		GetMetaConsensusGroupSizeCalled: func() uint32 {
+			return 400
+		},
+		GetRoundDurationCalled: func() uint64 {
+			return 6000
+		},
+		MinNumberOfMetaNodesCalled: func() uint32 {
+			return 401
+		},
+		MinNumberOfShardNodesCalled: func() uint32 {
+			return 402
+		},
+		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+			validators := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
+				0: {
+					&shardingMocks.NodeInfoMock{},
+					&shardingMocks.NodeInfoMock{},
+				},
+				1: {
+					&shardingMocks.NodeInfoMock{},
+				},
+			}
+
+			return validators, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+		},
+		GetStartTimeCalled: func() int64 {
+			return 111111
+		},
+	}
+	version := "version"
+	economicsConfigs := &config.EconomicsConfig{
+		RewardsSettings: config.RewardsSettings{
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage: 2,
+				},
+			},
+		},
+		GlobalSettings: config.GlobalSettings{
+			Denomination: 4,
+		},
+	}
+	roundsPerEpoch := int64(200)
+	minTransactionVersion := uint32(1)
+
+	t.Run("nil app status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := InitMetrics(nil, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Equal(t, ErrNilAppStatusHandler, err)
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErrorString := "nil shard coordinator when initializing metrics"
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, nil, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Equal(t, expectedErrorString, err.Error())
+	})
+	t.Run("nil nodes configs should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErrorString := "nil nodes config when initializing metrics"
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nil, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Equal(t, expectedErrorString, err.Error())
+	})
+	t.Run("nil economics configs should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErrorString := "nil economics config when initializing metrics"
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, nil, roundsPerEpoch, minTransactionVersion)
+		assert.Equal(t, expectedErrorString, err.Error())
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		keys := make(map[string]interface{})
+		localStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				keys[key] = value
+			},
+			SetStringValueHandler: func(key string, value string) {
+				keys[key] = value
+			},
+		}
+
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Nil(t, err)
+
+		expectedValues := map[string]interface{}{
+			common.MetricPublicKeyBlockSign:           pubkeyString,
+			common.MetricShardId:                      uint64(shardCoordinator.SelfId()),
+			common.MetricNumShardsWithoutMetachain:    uint64(shardCoordinator.NoShards),
+			common.MetricNodeType:                     string(nodeType),
+			common.MetricRoundTime:                    uint64(6),
+			common.MetricAppVersion:                   version,
+			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
+			common.MetricCrossCheckBlockHeight:        "0",
+			common.MetricCrossCheckBlockHeight + "_0": uint64(0),
+			common.MetricCrossCheckBlockHeight + "_1": uint64(0),
+			common.MetricCrossCheckBlockHeight + "_2": uint64(0),
+			common.MetricCrossCheckBlockHeightMeta:    uint64(0),
+			common.MetricIsSyncing:                    uint64(1),
+			common.MetricLeaderPercentage:             fmt.Sprintf("%f", 2.0),
+			common.MetricDenomination:                 uint64(4),
+			common.MetricShardConsensusGroupSize:      uint64(63),
+			common.MetricMetaConsensusGroupSize:       uint64(400),
+			common.MetricNumNodesPerShard:             uint64(402),
+			common.MetricNumMetachainNodes:            uint64(401),
+			common.MetricStartTime:                    uint64(111111),
+			common.MetricRoundDuration:                uint64(6000),
+			common.MetricMinTransactionVersion:        uint64(1),
+			common.MetricNumValidators:                uint64(2),
+			common.MetricConsensusGroupSize:           uint64(63),
+		}
+
+		assert.Equal(t, len(expectedValues), len(keys))
+		for k, v := range expectedValues {
+			assert.Equal(t, v, keys[k], fmt.Sprintf("for key %s", k))
+		}
+	})
 }
