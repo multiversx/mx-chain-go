@@ -280,6 +280,9 @@ type ArgTestProcessorNode struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	OwnAccount              *TestWalletAccount
 	EpochStartSubscriber    notifier.EpochStartNotifier
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
+	WithPeersRatingHandler  bool
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -382,7 +385,10 @@ type TestProcessorNode struct {
 
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
+	PeersRatingMonitor      p2p.PeersRatingMonitor
 	HardforkTrigger         node.HardforkTrigger
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -419,13 +425,35 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
-	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
-		p2pFactory.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
+	appStatusHandler := args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		appStatusHandler = TestAppStatusHandler
+	}
+
+	var peersRatingHandler p2p.PeersRatingHandler
+	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	topRatedCache := testscommon.NewCacherMock()
+	badRatedCache := testscommon.NewCacherMock()
+	if args.WithPeersRatingHandler {
+		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
+			p2pFactory.ArgPeersRatingHandler{
+				TopRatedCache: topRatedCache,
+				BadRatedCache: badRatedCache,
+			})
+	}
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+
+	var peersRatingMonitor p2p.PeersRatingMonitor
+	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
+	if args.WithPeersRatingHandler {
+		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache:       topRatedCache,
+				BadRatedCache:       badRatedCache,
+				ConnectionsProvider: messenger,
+			})
+	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -456,6 +484,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
+		AppStatusHandler:         appStatusHandler,
+		PeersRatingMonitor:       peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -644,6 +674,16 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
+	tpn.AppStatusHandler = args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		tpn.AppStatusHandler = TestAppStatusHandler
+	}
+
+	tpn.StatusMetrics = args.StatusMetrics
+	if check.IfNil(args.StatusMetrics) {
+		args.StatusMetrics = &testscommon.StatusMetricsStub{}
+	}
+
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -1284,6 +1324,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
+	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           tpn.ShardCoordinator,
@@ -1298,7 +1339,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PreferredPeersHolder:       preferredPeersHolder,
 		PayloadValidator:           payloadValidator,
 	}
 
@@ -1330,7 +1371,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:          tpn.PeersRatingHandler,
 		SizeCheckDelta:              0,
 	}
 
@@ -2230,6 +2271,11 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		StatusMetricsField:    tpn.StatusMetrics,
+		AppStatusHandlerField: tpn.AppStatusHandler,
+	}
+
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
@@ -2306,6 +2352,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
+	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2318,6 +2366,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
+		node.WithStatusCoreComponents(statusCoreComponents),
 	)
 	log.LogIfError(err)
 
@@ -2873,7 +2922,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
-		AppStatusHandlerField: TestAppStatusHandler,
+		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
 
 	err = tpn.Node.ApplyOptions(
@@ -3151,6 +3200,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:           &mock.PeerBlackListCacherStub{},
 		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField: &p2pmocks.PeersRatingMonitorStub{},
 	}
 }
 
