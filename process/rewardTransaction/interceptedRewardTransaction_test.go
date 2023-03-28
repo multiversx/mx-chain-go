@@ -377,7 +377,7 @@ func TestNewInterceptedRewardTransaction_IsForCurrentShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, irt.IsForCurrentShard())
 	})
-	t.Run("different shard should return true", func(t *testing.T) {
+	t.Run("different shard should return false", func(t *testing.T) {
 		mockShardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 			if bytes.Equal(address, receiverAddress) {
 				return testShardID
