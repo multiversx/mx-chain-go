@@ -2,6 +2,11 @@ package track_test
 
 import (
 	"errors"
+	"sort"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -12,10 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"sort"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestNewSovereignChainBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T) {
