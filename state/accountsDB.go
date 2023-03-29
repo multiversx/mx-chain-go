@@ -1162,7 +1162,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.SnapshotFinished()
 	}()
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetrics, epoch)
 
@@ -1263,6 +1263,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	defer func() {
 		adb.isSnapshotInProgress.Reset()
 		adb.updateMetricsOnSnapshotCompletion(metrics, stats)
+		close(errChan)
 	}()
 
 	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
@@ -1275,22 +1276,22 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	}
 
 	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
-	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
+	handleLoggingWhenError("could not remove lastSnapshotStarted", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 }
 
-func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *snapshotStatistics, syncer AccountsDBSyncer) {
+func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, errChan chan error, stats *snapshotStatistics, syncer AccountsDBSyncer) {
 	defer stats.SyncFinished()
 
 	if check.IfNil(syncer) {
-		log.Error("nil trie syncer")
+		log.Error("can not sync missing nodes", "error", ErrNilTrieSyncer.Error())
 		for missingNode := range missingNodesChan {
 			log.Warn("could not sync node", "hash", missingNode)
 		}
-
+		errChan <- ErrNilTrieSyncer
 		return
 	}
 
@@ -1301,6 +1302,7 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *sna
 				"missing node hash", missingNode,
 				"error", err,
 			)
+			errChan <- err
 		}
 	}
 }
@@ -1380,7 +1382,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		stats.SnapshotFinished()
 	}()
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
