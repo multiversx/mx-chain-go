@@ -526,7 +526,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens, "blockInfo": blockInfo})
 }
 
-// isDataTrieMigrated returns if the data trie is migrated for the given address
+// isDataTrieMigrated returns true if the data trie is migrated for the given address
 func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
