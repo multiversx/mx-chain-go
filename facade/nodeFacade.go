@@ -334,7 +334,12 @@ func (nf *nodeFacade) GetLastPoolNonceForSender(sender string) (uint64, error) {
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender)
+	accountResponse, _, err := nf.node.GetAccount(sender, apiData.AccountQueryOptions{})
+	if err != nil {
+		return &common.TransactionsPoolNonceGapsForSenderApiResponse{}, err
+	}
+
+	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -472,6 +477,11 @@ func (nf *nodeFacade) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartData
 // GetPeerInfo returns the peer info of a provided pid
 func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
+}
+
+// GetConnectedPeersRatings returns the connected peers ratings
+func (nf *nodeFacade) GetConnectedPeersRatings() string {
+	return nf.node.GetConnectedPeersRatings()
 }
 
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
@@ -675,6 +685,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	eligible, waiting := nf.apiResolver.GetGenesisNodesPubKeys()
+
 	if eligible == nil && waiting == nil {
 		return nil, nil, ErrNilGenesisNodes
 	}
