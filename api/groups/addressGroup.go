@@ -53,7 +53,7 @@ type addressFacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	IsDataTrieMigrated(address string) (bool, error)
+	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -526,17 +526,23 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens, "blockInfo": blockInfo})
 }
 
-// getAllESDTData returns the tokens list from this account
+// isDataTrieMigrated returns if the data trie is migrated for the given address
 func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrEmptyAddress)
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, errors.ErrEmptyAddress)
 		return
 	}
 
-	isMigrated, err := ag.getFacade().IsDataTrieMigrated(addr)
+	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetESDTNFTData, err)
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, err)
+		return
+	}
+
+	isMigrated, err := ag.getFacade().IsDataTrieMigrated(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrIsDataTrieMigrated, err)
 		return
 	}
 

@@ -50,7 +50,7 @@ type NodeStub struct {
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
-	IsDataTrieMigratedCalled                       func(address string) (bool, error)
+	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetProof -
@@ -264,9 +264,9 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]
 }
 
 // IsDataTrieMigrated -
-func (ns *NodeStub) IsDataTrieMigrated(address string) (bool, error) {
+func (ns *NodeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
 	if ns.IsDataTrieMigratedCalled != nil {
-		return ns.IsDataTrieMigratedCalled(address)
+		return ns.IsDataTrieMigratedCalled(address, options)
 	}
 	return false, nil
 }

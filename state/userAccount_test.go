@@ -333,7 +333,7 @@ func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
 		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
 		acc.SetDataTrie(
 			&trie.TrieStub{
-				IsMigratedCalled: func() (bool, error) {
+				IsMigratedToLatestVersionCalled: func() (bool, error) {
 					return false, nil
 				},
 			},
@@ -349,7 +349,7 @@ func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
 		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
 		acc.SetDataTrie(
 			&trie.TrieStub{
-				IsMigratedCalled: func() (bool, error) {
+				IsMigratedToLatestVersionCalled: func() (bool, error) {
 					return true, nil
 				},
 			},
@@ -366,7 +366,7 @@ func TestUserAccount_IsDataTrieMigrated(t *testing.T) {
 		acc, _ := state.NewUserAccount([]byte("address"), getDefaultArgsAccountCreation())
 		acc.SetDataTrie(
 			&trie.TrieStub{
-				IsMigratedCalled: func() (bool, error) {
+				IsMigratedToLatestVersionCalled: func() (bool, error) {
 					return false, expectedErr
 				},
 			},

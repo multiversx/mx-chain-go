@@ -404,7 +404,7 @@ func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, err
 }
 
 // IsDataTrieMigrated returns false and error
-func (inf *initialNodeFacade) IsDataTrieMigrated(_ string) (bool, error) {
+func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
 	return false, errNodeStarting
 }
 

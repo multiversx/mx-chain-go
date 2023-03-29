@@ -229,7 +229,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, uint64(0), nonce)
 	assert.Equal(t, errNodeStarting, err)
 
-	isMigrated, err := inf.IsDataTrieMigrated("")
+	isMigrated, err := inf.IsDataTrieMigrated("", api.AccountQueryOptions{})
 	assert.False(t, isMigrated)
 	assert.Equal(t, errNodeStarting, err)
 

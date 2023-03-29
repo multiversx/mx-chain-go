@@ -1220,13 +1220,8 @@ func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (boo
 }
 
 // IsDataTrieMigrated returns true if the data trie for the given address is migrated
-func (n *Node) IsDataTrieMigrated(address string) (bool, error) {
-	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
-	if err != nil {
-		return false, err
-	}
-
-	accountHandler, err := n.stateComponents.AccountsAdapterAPI().LoadAccount(addressBytes)
+func (n *Node) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	accountHandler, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return false, err
 	}

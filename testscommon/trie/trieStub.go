@@ -33,7 +33,7 @@ type TrieStub struct {
 	GetOldRootCalled                func() []byte
 	CloseCalled                     func() error
 	CollectLeavesForMigrationCalled func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
-	IsMigratedCalled                func() (bool, error)
+	IsMigratedToLatestVersionCalled func() (bool, error)
 }
 
 // GetStorageManager -
@@ -216,10 +216,10 @@ func (ts *TrieStub) GetOldRoot() []byte {
 	return nil
 }
 
-// IsMigrated -
-func (ts *TrieStub) IsMigrated() (bool, error) {
-	if ts.IsMigratedCalled != nil {
-		return ts.IsMigratedCalled()
+// IsMigratedToLatestVersion -
+func (ts *TrieStub) IsMigratedToLatestVersion() (bool, error) {
+	if ts.IsMigratedToLatestVersionCalled != nil {
+		return ts.IsMigratedToLatestVersionCalled()
 	}
 
 	return false, nil

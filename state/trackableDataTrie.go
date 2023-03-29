@@ -128,7 +128,7 @@ func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 		oldVersion: optionalVersion{
 			isValueKnown: false,
 		},
-		newVersion: tdaw.getVersionForNewlyAddedData(),
+		newVersion: core.GetVersionForNewData(tdaw.enableEpochsHandler),
 	}
 
 	tdaw.dirtyData[string(key)] = dataEntry
@@ -169,14 +169,6 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVer
 	}
 
 	return nil
-}
-
-func (tdaw *trackableDataTrie) getVersionForNewlyAddedData() core.TrieNodeVersion {
-	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		return core.AutoBalanceEnabled
-	}
-
-	return core.NotSpecified
 }
 
 func (tdaw *trackableDataTrie) getKeyForVersion(key []byte, version core.TrieNodeVersion) []byte {
@@ -298,7 +290,7 @@ func (tdaw *trackableDataTrie) getOldValue(key []byte, dataEntry dirtyData) core
 		}
 	}
 
-	newDataVersion := tdaw.getVersionForNewlyAddedData()
+	newDataVersion := core.GetVersionForNewData(tdaw.enableEpochsHandler)
 	return core.TrieData{
 		Key:     tdaw.getKeyForVersion(key, newDataVersion),
 		Value:   nil,

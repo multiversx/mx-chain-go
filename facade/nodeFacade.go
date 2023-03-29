@@ -596,8 +596,8 @@ func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byt
 }
 
 // IsDataTrieMigrated returns true if the data trie for the given address is migrated
-func (nf *nodeFacade) IsDataTrieMigrated(address string) (bool, error) {
-	return nf.node.IsDataTrieMigrated(address)
+func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.AccountQueryOptions) (bool, error) {
+	return nf.node.IsDataTrieMigrated(address, options)
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

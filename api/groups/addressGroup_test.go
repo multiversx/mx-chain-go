@@ -1208,7 +1208,7 @@ func TestIsDataTrieMigrated(t *testing.T) {
 		t.Parallel()
 
 		facade := mock.FacadeStub{
-			IsDataTrieMigratedCalled: func(address string) (bool, error) {
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
 				return false, expectedErr
 			},
 		}
@@ -1231,7 +1231,7 @@ func TestIsDataTrieMigrated(t *testing.T) {
 		t.Parallel()
 
 		facade := mock.FacadeStub{
-			IsDataTrieMigratedCalled: func(address string) (bool, error) {
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
 				return true, nil
 			},
 		}
@@ -1258,7 +1258,7 @@ func TestIsDataTrieMigrated(t *testing.T) {
 		t.Parallel()
 
 		facade := mock.FacadeStub{
-			IsDataTrieMigratedCalled: func(address string) (bool, error) {
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
 				return false, nil
 			},
 		}

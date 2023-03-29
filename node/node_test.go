@@ -3795,22 +3795,26 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid address", func(t *testing.T) {
+		t.Parallel()
+
 		n, _ := node.NewNode(
 			node.WithStateComponents(getDefaultStateComponents()),
 			node.WithCoreComponents(getDefaultCoreComponents()),
 		)
 
-		isMigrated, err := n.IsDataTrieMigrated("invalid address")
+		isMigrated, err := n.IsDataTrieMigrated("invalid address", api.AccountQueryOptions{})
 		assert.False(t, isMigrated)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("load account err", func(t *testing.T) {
+		t.Parallel()
+
 		expectedErr := errors.New("load account error")
 		stateComponents := getDefaultStateComponents()
-		stateComponents.AccountsAPI = &stateMock.AccountsStub{
-			LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
@@ -3819,16 +3823,18 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 			node.WithCoreComponents(getDefaultCoreComponents()),
 		)
 
-		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l")
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
 		assert.False(t, isMigrated)
 		assert.Equal(t, expectedErr, err)
 	})
 
 	t.Run("wrong type assertion", func(t *testing.T) {
+		t.Parallel()
+
 		stateComponents := getDefaultStateComponents()
-		stateComponents.AccountsAPI = &stateMock.AccountsStub{
-			LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return &stateMock.AccountWrapMock{}, nil
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return &stateMock.AccountWrapMock{}, nil, nil
 			},
 		}
 
@@ -3837,23 +3843,25 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 			node.WithCoreComponents(getDefaultCoreComponents()),
 		)
 
-		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l")
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
 		assert.False(t, isMigrated)
 		assert.True(t, strings.Contains(err.Error(), "wrong type assertion"))
 	})
 
 	t.Run("should work and return false", func(t *testing.T) {
+		t.Parallel()
+
 		acc := createAcc([]byte("000000000000000000010000000000000000000000000000000000000001ffff"))
 		acc.SetDataTrie(&trieMock.TrieStub{
-			IsMigratedCalled: func() (bool, error) {
+			IsMigratedToLatestVersionCalled: func() (bool, error) {
 				return false, nil
 			},
 		})
 
 		stateComponents := getDefaultStateComponents()
-		stateComponents.AccountsAPI = &stateMock.AccountsStub{
-			LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return acc, nil
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
 			},
 		}
 
@@ -3862,23 +3870,25 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 			node.WithCoreComponents(getDefaultCoreComponents()),
 		)
 
-		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l")
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
 		assert.False(t, isMigrated)
 		assert.Nil(t, err)
 	})
 
 	t.Run("should work and return true", func(t *testing.T) {
+		t.Parallel()
+
 		acc := createAcc([]byte("000000000000000000010000000000000000000000000000000000000001ffff"))
 		acc.SetDataTrie(&trieMock.TrieStub{
-			IsMigratedCalled: func() (bool, error) {
+			IsMigratedToLatestVersionCalled: func() (bool, error) {
 				return true, nil
 			},
 		})
 
 		stateComponents := getDefaultStateComponents()
-		stateComponents.AccountsAPI = &stateMock.AccountsStub{
-			LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return acc, nil
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
 			},
 		}
 
@@ -3887,7 +3897,7 @@ func TestNode_IsDataTrieMigrated(t *testing.T) {
 			node.WithCoreComponents(getDefaultCoreComponents()),
 		)
 
-		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l")
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
 		assert.True(t, isMigrated)
 		assert.Nil(t, err)
 	})

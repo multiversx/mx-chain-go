@@ -1480,7 +1480,7 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 		t.Parallel()
 
 		tr := emptyTrie()
-		isMigrated, err := tr.IsMigrated()
+		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.True(t, isMigrated)
 		assert.Nil(t, err)
 	})
@@ -1488,9 +1488,14 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("not migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tr := emptyTrie()
+		tsm, marshaller, hasher, enableEpochs, maxTrieInMem := getDefaultTrieParameters()
+		enableEpochs = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
-		isMigrated, err := tr.IsMigrated()
+		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.False(t, isMigrated)
 		assert.Nil(t, err)
 	})
@@ -1498,9 +1503,14 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tr := emptyTrie()
-		_ = tr.(dataTrie).UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
-		isMigrated, err := tr.IsMigrated()
+		tsm, marshaller, hasher, enableEpochs, maxTrieInMem := getDefaultTrieParameters()
+		enableEpochs = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+
+		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.True(t, isMigrated)
 		assert.Nil(t, err)
 	})

@@ -150,3 +150,6 @@ var ErrFetchingNonceGapsCannotIncludeFields = errors.New("fetching nonce gaps ca
 
 // ErrInvalidFields signals that invalid fields were provided
 var ErrInvalidFields = errors.New("invalid fields")
+
+// ErrIsDataTrieMigrated signals that an error occurred while trying to verify the migration status of the data trie
+var ErrIsDataTrieMigrated = errors.New("could not verify the migration status of the data trie")

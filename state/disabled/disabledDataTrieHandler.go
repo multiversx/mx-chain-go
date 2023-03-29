@@ -37,8 +37,8 @@ func (ddth *disabledDataTrieHandler) GetAllLeavesOnChannel(
 	return nil
 }
 
-// IsMigrated returns true
-func (ddth *disabledDataTrieHandler) IsMigrated() (bool, error) {
+// IsMigratedToLatestVersion returns true
+func (ddth *disabledDataTrieHandler) IsMigratedToLatestVersion() (bool, error) {
 	return true, nil
 }
 
