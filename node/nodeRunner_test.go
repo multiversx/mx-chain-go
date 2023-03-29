@@ -133,7 +133,7 @@ func TestNewNodeRunner(t *testing.T) {
 	})
 }
 
-func TestNodeRunner_StartAndCloseNodeWithShuffleOut(t *testing.T) {
+func TestNodeRunner_StartAndCloseNodeWith(t *testing.T) {
 	t.Parallel()
 
 	configs := createConfigs(t)
