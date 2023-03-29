@@ -2296,6 +2296,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCurrentShardGetFinalFailsShouldErr
 
 	crtShard := uint32(0)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	expectedErr := errors.New("expected err")
 	bbt.SetSelfNotarizer(
@@ -2318,6 +2319,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShould
 
 	crtShard := uint32(0)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	expectedErr := errors.New("expected err")
 	bbt.SetCrossNotarizer(
@@ -2341,6 +2343,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerRoundInBlockShouldErr(t *test
 	crtShard := uint32(0)
 	finalRound := uint64(667)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	bbt.SetSelfNotarizer(
 		&mock.BlockNotarizerHandlerMock{
@@ -2370,6 +2373,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalLowerNonceInBlockShouldErr(t *test
 	finalRound := uint64(667)
 	finalNonce := uint64(334)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	bbt.SetSelfNotarizer(
 		&mock.BlockNotarizerHandlerMock{
@@ -2401,6 +2405,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalHigherNonceInBlockShouldErr(t *tes
 	finalRound := uint64(667)
 	finalNonce := uint64(334)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	bbt.SetSelfNotarizer(
 		&mock.BlockNotarizerHandlerMock{
@@ -2432,6 +2437,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 	finalRound := uint64(667)
 	finalNonce := uint64(334)
 	bbt := track.NewBaseBlockTrack()
+	bbt.SetGetFinalHeaderFunc()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
 	bbt.SetSelfNotarizer(
 		&mock.BlockNotarizerHandlerMock{

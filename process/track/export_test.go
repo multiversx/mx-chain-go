@@ -60,6 +60,10 @@ func (scsbt *sovereignChainShardBlockTrack) IsExtendedShardHeaderOutOfRange(exte
 	return scsbt.isExtendedShardHeaderOutOfRange(extendedShardHeaderHandler)
 }
 
+func (scsbt *sovereignChainShardBlockTrack) GetFinalHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
+	return scsbt.getFinalHeader(headerHandler)
+}
+
 // metaBlockTrack
 
 func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
@@ -154,6 +158,10 @@ func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block
 
 func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
 	return bbt.isHeaderOutOfRange(headerHandler)
+}
+
+func (bbt *baseBlockTrack) SetGetFinalHeaderFunc() {
+	bbt.getFinalHeaderFunc = bbt.getFinalHeader
 }
 
 // blockNotifier

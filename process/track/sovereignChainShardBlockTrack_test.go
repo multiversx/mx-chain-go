@@ -2,6 +2,7 @@ package track_test
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -562,5 +564,181 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 		require.Equal(t, 2, len(headers))
 		assert.Equal(t, shardHeaderExtended1, headers[0])
 		assert.Equal(t, shardHeaderExtended2, headers[1])
+	})
+}
+
+func TestSovereignChainShardBlockTrack_CleanupHeadersBehindNonceShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+	header := &block.Header{
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+
+	scsbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+	scsbt.AddTrackedHeader(header, headerHash)
+
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+		},
+	}
+	shardHeaderExtendedHash := []byte("extended_hash")
+
+	scsbt.AddCrossNotarizedHeader(core.SovereignChainShardId, shardHeaderExtended, shardHeaderExtendedHash)
+	scsbt.AddTrackedHeader(shardHeaderExtended, shardHeaderExtendedHash)
+
+	scsbt.CleanupHeadersBehindNonce(shardArguments.ShardCoordinator.SelfId(), 2, 2)
+
+	lastSelfNotarizedHeader, _, _ := scsbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	lastCrossNotarizedHeader, _, _ := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+	trackedHeadersForSelfShard, _ := scsbt.GetTrackedHeaders(header.GetShardID())
+	trackedHeadersForCrossShard, _ := scsbt.GetTrackedHeaders(core.SovereignChainShardId)
+
+	assert.Equal(t, header, lastSelfNotarizedHeader)
+	assert.Equal(t, shardHeaderExtended, lastCrossNotarizedHeader)
+	assert.Zero(t, len(trackedHeadersForSelfShard))
+	assert.Zero(t, len(trackedHeadersForCrossShard))
+}
+
+func TestSovereignChainShardBlockTrack_DisplayTrackedHeadersShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have paniced %v", r))
+		}
+	}()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+	header := &block.Header{
+		ShardID: shardArguments.ShardCoordinator.SelfId(),
+		Nonce:   1,
+	}
+	headerHash := []byte("hash")
+	scsbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+	scsbt.AddTrackedHeader(header, headerHash)
+
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+		},
+	}
+	shardHeaderExtendedHash := []byte("extended_hash")
+	scsbt.AddCrossNotarizedHeader(core.SovereignChainShardId, shardHeaderExtended, shardHeaderExtendedHash)
+	scsbt.AddTrackedHeader(shardHeaderExtended, shardHeaderExtendedHash)
+
+	_ = logger.SetLogLevel("track:DEBUG")
+	scsbt.DisplayTrackedHeaders()
+}
+
+func TestSovereignChainShardBlockTrack_GetFinalHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error for shard header or extended shard header", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+		expectedSelfNotarizerErr := errors.New("expected self notarizer err")
+		scsbt.SetSelfNotarizer(
+			&mock.BlockNotarizerHandlerMock{
+				GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+					return nil, nil, expectedSelfNotarizerErr
+				},
+			},
+		)
+
+		expectedCrossNotarizerErr := errors.New("expected cross notarizer err")
+		scsbt.SetCrossNotarizer(
+			&mock.BlockNotarizerHandlerMock{
+				GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+					return nil, nil, expectedCrossNotarizerErr
+				},
+			},
+		)
+
+		header := &block.Header{}
+		finalHeader, err := scsbt.GetFinalHeader(header)
+
+		assert.Nil(t, finalHeader)
+		assert.True(t, errors.Is(err, expectedSelfNotarizerErr))
+
+		shardHeaderExtended := &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{},
+			},
+		}
+		finalHeader, err = scsbt.GetFinalHeader(shardHeaderExtended)
+
+		assert.Nil(t, finalHeader)
+		assert.True(t, errors.Is(err, expectedCrossNotarizerErr))
+	})
+
+	t.Run("should work for shard header or extended shard header", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+		expectedShardHeader := &block.Header{Nonce: 69}
+		scsbt.SetSelfNotarizer(
+			&mock.BlockNotarizerHandlerMock{
+				GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+					return expectedShardHeader, []byte("hash"), nil
+				},
+			},
+		)
+
+		expectedExtendedShardHeader := &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{
+					Nonce: 69,
+				},
+			},
+		}
+		scsbt.SetCrossNotarizer(
+			&mock.BlockNotarizerHandlerMock{
+				GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
+					return expectedExtendedShardHeader, []byte("extended_hash"), nil
+				},
+			},
+		)
+
+		header := &block.Header{}
+		finalHeader, err := scsbt.GetFinalHeader(header)
+
+		assert.Equal(t, expectedShardHeader, finalHeader)
+		assert.Nil(t, err)
+
+		shardHeaderExtended := &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{},
+			},
+		}
+		finalHeader, err = scsbt.GetFinalHeader(shardHeaderExtended)
+
+		assert.Equal(t, expectedExtendedShardHeader, finalHeader)
+		assert.Nil(t, err)
 	})
 }

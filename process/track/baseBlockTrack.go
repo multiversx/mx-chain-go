@@ -52,6 +52,7 @@ type baseBlockTrack struct {
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
 	receivedHeaderFunc          func(headerHandler data.HeaderHandler, headerHash []byte)
+	getFinalHeaderFunc          func(headerHandler data.HeaderHandler) (data.HeaderHandler, error)
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -435,7 +436,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
+	finalHeader, err := bbt.getFinalHeaderFunc(headerHandler)
 	if err != nil {
 		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
 			err,
@@ -475,7 +476,16 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 	return nil
 }
 
-func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+func (bbt *baseBlockTrack) getFinalHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
+	finalHeader, _, err := bbt.getFinalHeaderForShard(headerHandler.GetShardID())
+	if err != nil {
+		return nil, err
+	}
+
+	return finalHeader, nil
+}
+
+func (bbt *baseBlockTrack) getFinalHeaderForShard(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if shardID != bbt.shardCoordinator.SelfId() {
 		return bbt.crossNotarizer.GetFirstNotarizedHeader(shardID)
 	}

@@ -36,6 +36,7 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 
 	scsbt.blockProcessor = scbp
 	scsbt.receivedHeaderFunc = scsbt.receivedHeader
+	scsbt.getFinalHeaderFunc = scsbt.getFinalHeader
 
 	return scsbt, nil
 }
@@ -168,4 +169,56 @@ func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFrom
 	hdrsForShard, hdrsHashesForShard := scsbt.ComputeLongestChain(core.SovereignChainShardId, lastCrossNotarizedHeader)
 
 	return hdrsForShard, hdrsHashesForShard, nil
+}
+
+// CleanupHeadersBehindNonce removes from local pools old headers
+func (scsbt *sovereignChainShardBlockTrack) CleanupHeadersBehindNonce(
+	shardID uint32,
+	selfNotarizedNonce uint64,
+	crossNotarizedNonce uint64,
+) {
+	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
+	scsbt.cleanupTrackedHeadersBehindNonce(shardID, selfNotarizedNonce)
+
+	scsbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(core.SovereignChainShardId, crossNotarizedNonce)
+	scsbt.cleanupTrackedHeadersBehindNonce(core.SovereignChainShardId, crossNotarizedNonce)
+}
+
+// DisplayTrackedHeaders displays tracked headers
+func (scsbt *sovereignChainShardBlockTrack) DisplayTrackedHeaders() {
+	scsbt.displayTrackedHeadersForShard(scsbt.shardCoordinator.SelfId(), "tracked headers")
+	scsbt.selfNotarizer.DisplayNotarizedHeaders(scsbt.shardCoordinator.SelfId(), "self notarized headers")
+
+	scsbt.displayTrackedHeadersForShard(core.SovereignChainShardId, "cross tracked headers")
+	scsbt.crossNotarizer.DisplayNotarizedHeaders(core.SovereignChainShardId, "cross notarized headers")
+}
+
+func (scsbt *sovereignChainShardBlockTrack) getFinalHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
+	shardID := headerHandler.GetShardID()
+
+	_, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
+	if isExtendedShardHeaderReceived {
+		shardID = core.SovereignChainShardId
+	}
+
+	finalHeader, _, err := scsbt.getFinalHeaderForShard(shardID)
+	if err != nil {
+		return nil, err
+	}
+
+	return finalHeader, nil
+}
+
+// ShouldSkipMiniBlocksCreationFromSelf returns false for sovereign chain
+func (scsbt *sovereignChainShardBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
+	return false
+}
+
+// IsShardStuck returns false for sovereign chain
+func (scsbt *sovereignChainShardBlockTrack) IsShardStuck(_ uint32) bool {
+	return false
+}
+
+// ComputeCrossInfo does nothing for sovereign chain
+func (scsbt *sovereignChainShardBlockTrack) ComputeCrossInfo(_ []data.HeaderHandler) {
 }
