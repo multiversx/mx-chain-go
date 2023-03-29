@@ -470,3 +470,47 @@ func TestInitMetrics(t *testing.T) {
 		}
 	})
 }
+
+func TestSaveStringMetric(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not panic if appStatusHandler is nil", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			SaveStringMetric(nil, "key", "value")
+		})
+	})
+	t.Run("should work", func(t *testing.T) {
+		wasCalled := false
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				wasCalled = true
+				assert.Equal(t, "key", key)
+				assert.Equal(t, "value", value)
+			},
+		}
+		SaveStringMetric(appStatusHandler, "key", "value")
+		assert.True(t, wasCalled)
+	})
+}
+
+func TestSaveUint64Metric(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not panic if appStatusHandler is nil", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			SaveUint64Metric(nil, "key", 1)
+		})
+	})
+	t.Run("should work", func(t *testing.T) {
+		wasCalled := false
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				wasCalled = true
+				assert.Equal(t, "key", key)
+				assert.Equal(t, uint64(1), value)
+			},
+		}
+		SaveUint64Metric(appStatusHandler, "key", 1)
+		assert.True(t, wasCalled)
+	})
+}
