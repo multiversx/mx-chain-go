@@ -7,17 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
-
-// NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
-// trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
-type NumNodesDTO struct {
-	Leaves     int
-	Extensions int
-	Branches   int
-	MaxLevel   int
-}
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
 type TrieIteratorChannels struct {
@@ -40,7 +32,6 @@ type Trie interface {
 	GetOldRoot() []byte
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
-	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
@@ -333,10 +324,32 @@ type EnableEpochsHandler interface {
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool
+	IsRuntimeCodeSizeFixEnabled() bool
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
+type ManagedPeersHolder interface {
+	AddManagedPeer(privateKeyBytes []byte) error
+	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	GetMachineID(pkBytes []byte) (string, error)
+	GetNameAndIdentity(pkBytes []byte) (string, string, error)
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte)
+	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	IsKeyRegistered(pkBytes []byte) bool
+	IsPidManagedByCurrentNode(pid core.PeerID) bool
+	IsKeyValidator(pkBytes []byte) bool
+	SetValidatorState(pkBytes []byte, state bool)
+	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
+	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
+	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }
 

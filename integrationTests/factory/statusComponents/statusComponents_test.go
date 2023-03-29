@@ -22,14 +22,13 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
-	configs := factory.CreateDefaultConfig()
+	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
@@ -50,7 +49,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		&testscommon.HardforkExclusionHandlerStub{},
 	)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)

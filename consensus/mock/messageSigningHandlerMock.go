@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-p2p-go/message"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
 )
 
 // MessageSignerMock implements P2PSigningHandler interface but it does nothing as it is disabled
@@ -28,7 +28,7 @@ func (ms *MessageSignerMock) Serialize(messages []p2p.MessageP2P) ([]byte, error
 
 // Deserialize will unmarshal into a list of p2p messages
 func (ms *MessageSignerMock) Deserialize(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-	var messages []*message.Message
+	var messages []*factory.Message
 	err := json.Unmarshal(messagesBytes, &messages)
 	if err != nil {
 		return nil, err

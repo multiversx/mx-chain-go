@@ -15,9 +15,9 @@ import (
 
 func createMockArguments() ArgsNewSystemVM {
 	gasMap := make(map[string]map[string]uint64)
-	gasMap[common.ElrondAPICost] = make(map[string]uint64)
-	gasMap[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasMap[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasMap[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasMap[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasMap[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	args := ArgsNewSystemVM{
 		SystemEI:        &mock.SystemEIStub{},
 		SystemContracts: &mock.SystemSCContainerStub{},
@@ -82,7 +82,7 @@ func TestNewSystemVM_NoApiCost(t *testing.T) {
 	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilGasSchedule, err)
 
-	gasMap[common.ElrondAPICost] = make(map[string]uint64)
+	gasMap[common.BaseOpsAPICost] = make(map[string]uint64)
 	args.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	sVM, err = NewSystemVM(args)
 

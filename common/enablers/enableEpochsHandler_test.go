@@ -90,6 +90,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MaxBlockchainHookCountersEnableEpoch:              74,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
+		RuntimeCodeSizeFixEnableEpoch:                     77,
 	}
 }
 
@@ -128,7 +129,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(76, 0)
+		handler.EpochConfirmed(77, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
@@ -211,11 +212,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(77)
+		epoch := uint32(78)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
@@ -310,6 +312,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -404,5 +407,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 	})
 }

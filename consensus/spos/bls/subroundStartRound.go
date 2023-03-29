@@ -167,6 +167,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	msg := ""
+	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		msg = " (my turn in multi-key)"
+	}
 	if leader == sr.SelfPubKey() {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
@@ -179,12 +182,15 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		"messsage", msg)
 
 	pubKeys := sr.ConsensusGroup()
+	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
 
 	sr.indexRoundIfNeeded(pubKeys)
 
 	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("not in consensus group")
+		if numMultiKeysInConsensusGroup == 0 {
+			log.Debug("not in consensus group")
+		}
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
 		if leader != sr.SelfPubKey() {
@@ -193,7 +199,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.SignatureHandler().Reset(pubKeys)
+	err = sr.SigningHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 
@@ -220,6 +226,25 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	go sr.executeStoredMessages()
 
 	return true
+}
+
+func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
+	numMultiKeysInConsensusGroup := 0
+	for _, pk := range pubKeys {
+		pkBytes := []byte(pk)
+		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+			numMultiKeysInConsensusGroup++
+			log.Trace("in consensus group with multi key",
+				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
+		}
+	}
+
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+	}
+
+	return numMultiKeysInConsensusGroup
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {

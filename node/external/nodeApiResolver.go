@@ -17,8 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+var log = logger.GetOrCreate("node/external")
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
@@ -169,8 +172,8 @@ func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, er
 }
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions
@@ -294,7 +297,11 @@ func bigInToString(input *big.Int) string {
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	eligibleNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
+	waitingNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes
 }
 
 func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
@@ -302,7 +309,8 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
+			validatorPubKey := nar.validatorPubKeyConverter.SilentEncode(ni[i].PubKeyBytes(), log)
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], validatorPubKey)
 		}
 	}
 
