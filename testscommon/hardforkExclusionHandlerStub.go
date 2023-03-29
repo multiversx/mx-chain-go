@@ -19,7 +19,7 @@ func (stub *HardforkExclusionHandlerStub) IsRollbackForbidden(round uint64) bool
 	if stub.IsRollbackForbiddenCalled != nil {
 		return stub.IsRollbackForbiddenCalled(round)
 	}
-	return true
+	return false
 }
 
 // IsInterfaceNil -
