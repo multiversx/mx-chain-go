@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func CreateShardTrackerMockArguments() track.ArgShardTracker {
+func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &testscommon.HasherStub{},
 		Marshalizer: &testscommon.MarshalizerStub{},
@@ -25,7 +25,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			Hasher:           &testscommon.HasherStub{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &testscommon.MarshalizerStub{},
-			RequestHandler:   &testscommon.RequestHandlerStub{},
+			RequestHandler:   &testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			RoundHandler:     &testscommon.RoundHandlerMock{},
 			ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			Store:            &storage.ChainStorerStub{},
@@ -56,7 +56,7 @@ func TestSovereignBlockProcessor_NewSovereignBlockProcessorShouldWork(t *testing
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
