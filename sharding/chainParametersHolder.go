@@ -172,6 +172,13 @@ func (c *chainParametersHolder) ChainParametersForEpoch(epoch uint32) (config.Ch
 func getMatchingChainParametersUnprotected(epoch uint32, configValues []config.ChainParametersByEpochConfig) (config.ChainParametersByEpochConfig, error) {
 	for _, chainParams := range configValues {
 		if chainParams.EnableEpoch <= epoch {
+			log.Debug("REMOVE_ME chainParametersHolder.ChainParametersForEpoch",
+				"epoch param", epoch,
+				"enable epoch", chainParams.EnableEpoch,
+				"shard cns grp", chainParams.ShardConsensusGroupSize,
+				"shard min nodes", chainParams.ShardMinNumNodes,
+				"meta cns grp", chainParams.MetachainConsensusGroupSize,
+				"meta min nodes", chainParams.MetachainMinNumNodes)
 			return chainParams, nil
 		}
 	}

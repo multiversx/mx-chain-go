@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"bytes"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -344,6 +345,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
+		debug.PrintStack()
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
@@ -436,6 +438,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
+		debug.PrintStack()
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
@@ -460,6 +463,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
+		debug.PrintStack()
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
@@ -484,6 +488,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
+		debug.PrintStack()
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
@@ -870,6 +875,7 @@ func (ihnc *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
+		debug.PrintStack()
 		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
@@ -885,6 +891,7 @@ func (ihnc *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	ihnc.mutNodesConfig.Unlock()
 
 	if nodesConfig == nil {
+		debug.PrintStack()
 		log.Warn("shuffleOutForEpoch failed",
 			"epoch", epoch,
 			"error", ErrEpochNodesConfigDoesNotExist)

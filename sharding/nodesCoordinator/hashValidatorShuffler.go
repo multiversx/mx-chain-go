@@ -2,8 +2,10 @@ package nodesCoordinator
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -211,6 +213,19 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	createListsForAllShards(waitingCopy, arg.nbShards)
 
+	allNodesPrintRemoveMe := strings.Builder{}
+	for shID, el := range eligibleCopy {
+		for _, elN := range el {
+			allNodesPrintRemoveMe.WriteString(fmt.Sprintf("\n\t eligible - shard ID: %d, pub key: %s", shID, hex.EncodeToString(elN.PubKey())))
+		}
+	}
+	for shID, el := range waitingCopy {
+		for _, elN := range el {
+			allNodesPrintRemoveMe.WriteString(fmt.Sprintf("\n\t waiting - shard ID: %d, pub key: %s", shID, hex.EncodeToString(elN.PubKey())))
+		}
+	}
+	log.Warn("REMOVE_ME - shuffleNodes - before processing", "value", allNodesPrintRemoveMe.String())
+
 	numToRemove, err := computeNumToRemove(arg)
 	if err != nil {
 		return nil, err
@@ -263,6 +278,19 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	actualLeaving, _ := removeValidatorsFromList(allLeaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
 
+	allNodesPrintRemoveMe = strings.Builder{}
+	for shID, el := range newEligible {
+		for _, elN := range el {
+			allNodesPrintRemoveMe.WriteString(fmt.Sprintf("\n\t eligible - shard ID: %d, pub key: %s", shID, hex.EncodeToString(elN.PubKey())))
+		}
+	}
+	for shID, el := range newWaiting {
+		for _, elN := range el {
+			allNodesPrintRemoveMe.WriteString(fmt.Sprintf("\n\t waiting - shard ID: %d, pub key: %s", shID, hex.EncodeToString(elN.PubKey())))
+		}
+	}
+	log.Warn("REMOVE_ME - shuffleNodes - after processing", "value", allNodesPrintRemoveMe.String())
+
 	return &ResUpdateNodes{
 		Eligible:       newEligible,
 		Waiting:        newWaiting,
@@ -313,6 +341,7 @@ func computeNumToRemove(arg shuffleNodesArg) (map[uint32]int, error) {
 }
 
 func computeNumToRemovePerShard(numEligible int, numWaiting int, nodesPerShard int) (int, error) {
+	log.Warn("REMOVE_ME - computeNumToRemovePerShard", "numEl", numEligible, "numW", numWaiting, "nodesPerShard", nodesPerShard)
 	notEnoughValidatorsInShard := numEligible+numWaiting < nodesPerShard
 	if notEnoughValidatorsInShard {
 		return 0, ErrSmallShardEligibleListSize

@@ -2,6 +2,7 @@ package headerCheck
 
 import (
 	"math/bits"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -211,8 +212,15 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 	}
 
 	log.Debug("not enough signatures",
+		"shard ID", header.GetShardID(),
+		"nonce", header.GetNonce(),
+		"round", header.GetRound(),
+		"epoch", header.GetEpoch(),
+		"is epoch start", header.IsStartOfEpochBlock(),
 		"minimum expected", minNumRequiredSignatures,
 		"actual", numOfOnesInBitmap)
+
+	debug.PrintStack()
 
 	return ErrNotEnoughSignatures
 }
