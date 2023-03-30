@@ -541,3 +541,6 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilLogger signals that a nil logger instance has been provided
+var ErrNilLogger = errors.New("nil logger")

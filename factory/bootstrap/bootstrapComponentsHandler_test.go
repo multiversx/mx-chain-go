@@ -4,9 +4,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,11 +36,11 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 
 	mbc, err := bootstrap.NewManagedBootstrapComponents(nil)
 
-	require.Nil(t, mbc)
+	require.True(t, check.IfNil(mbc))
 	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
 }
 
-func TestManagedBootstrapComponents_CheckSubcomponentsNoCreate(t *testing.T) {
+func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -47,11 +50,15 @@ func TestManagedBootstrapComponents_CheckSubcomponentsNoCreate(t *testing.T) {
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 	err := mbc.CheckSubcomponents()
-
 	require.Equal(t, errorsErd.ErrNilBootstrapComponentsHolder, err)
+
+	assert.Nil(t, mbc.EpochStartBootstrapper())
+	assert.Nil(t, mbc.EpochBootstrapParams())
+	assert.Nil(t, mbc.Close())
+	assert.Equal(t, factory.BootstrapComponentsName, mbc.String())
 }
 
-func TestManagedBootstrapComponents_Create(t *testing.T) {
+func TestManagedBootstrapComponents_MethodsCreate(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -66,6 +73,17 @@ func TestManagedBootstrapComponents_Create(t *testing.T) {
 
 	err = mbc.CheckSubcomponents()
 	require.Nil(t, err)
+
+	assert.NotNil(t, mbc.EpochStartBootstrapper())
+	params := mbc.EpochBootstrapParams()
+	assert.False(t, check.IfNil(params))
+	assert.Equal(t, uint32(0), params.Epoch())
+	assert.Equal(t, uint32(0), params.SelfShardID())
+	assert.Equal(t, uint32(2), params.NumOfShards())
+	assert.Nil(t, params.NodesConfig())
+
+	assert.Nil(t, mbc.Close())
+	assert.Equal(t, factory.BootstrapComponentsName, mbc.String())
 }
 
 func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {

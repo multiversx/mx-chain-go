@@ -82,9 +82,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return nil, errors.ErrNilStatusCoreComponents
-	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
