@@ -24,9 +24,6 @@ import (
 // ------------ Test ConsensusComponentsFactory --------------------
 func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -39,9 +36,6 @@ func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -55,9 +49,6 @@ func TestNewConsensusComponentsFactory_NilCoreComponents(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilDataComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -71,9 +62,6 @@ func TestNewConsensusComponentsFactory_NilDataComponents(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -87,9 +75,6 @@ func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilNetworkComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -103,9 +88,6 @@ func TestNewConsensusComponentsFactory_NilNetworkComponents(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilProcessComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -119,9 +101,6 @@ func TestNewConsensusComponentsFactory_NilProcessComponents(t *testing.T) {
 
 func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -136,9 +115,6 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 // ------------ Test Old Use Cases --------------------
 func TestConsensusComponentsFactory_CreateGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	consensusArgs := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -163,9 +139,6 @@ func TestConsensusComponentsFactory_CreateGenesisBlockNotInitializedShouldErr(t 
 
 func TestConsensusComponentsFactory_CreateForShard(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -192,9 +165,6 @@ func (wp *wrappedProcessComponents) ShardCoordinator() sharding.Coordinator {
 
 func TestConsensusComponentsFactory_CreateForMeta(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -212,9 +182,6 @@ func TestConsensusComponentsFactory_CreateForMeta(t *testing.T) {
 
 func TestConsensusComponentsFactory_CreateNilShardCoordinator(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	consensusArgs := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -230,9 +197,6 @@ func TestConsensusComponentsFactory_CreateNilShardCoordinator(t *testing.T) {
 
 func TestConsensusComponentsFactory_CreateConsensusTopicCreateTopicError(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	localError := errors.New("error")
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -260,9 +224,6 @@ func TestConsensusComponentsFactory_CreateConsensusTopicCreateTopicError(t *test
 
 func TestConsensusComponentsFactory_CreateConsensusTopicNilMessageProcessor(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -279,9 +240,6 @@ func TestConsensusComponentsFactory_CreateConsensusTopicNilMessageProcessor(t *t
 
 func TestConsensusComponentsFactory_CreateNilSyncTimer(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -297,9 +255,6 @@ func TestConsensusComponentsFactory_CreateNilSyncTimer(t *testing.T) {
 
 func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -315,9 +270,6 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 
 func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.CurrentShard = 0
@@ -336,9 +288,6 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 
 func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.CurrentShard = core.MetachainShardId
@@ -365,9 +314,6 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 
 func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -384,9 +330,6 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 
 func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	localErr := errors.New("err")
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -406,9 +349,6 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 
 func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
