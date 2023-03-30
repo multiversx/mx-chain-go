@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -11,7 +12,9 @@ import (
 	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
@@ -620,6 +623,50 @@ func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
 		case <-time.After(time.Second):
 			assert.Fail(t, "timeout while waiting for the shouldStopIfContextDone call to write the result")
 		}
+	})
+}
+
+func TestTreatLogError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("logger instance is not in Trace mode, should not call", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		err := errors.New("trie was not found")
+		logInstance := &testscommon.LoggerStub{
+			GetLevelCalled: func() logger.LogLevel {
+				return logger.LogDebug
+			},
+			TraceCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called Log")
+			},
+		}
+
+		treatLogError(logInstance, err, key)
+		treatLogError(log, err, key) //display only
+	})
+	t.Run("logger instance is in Trace mode, should call", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		wasCalled := false
+		err := errors.New("error")
+		logInstance := &testscommon.LoggerStub{
+			GetLevelCalled: func() logger.LogLevel {
+				return logger.LogTrace
+			},
+			TraceCalled: func(message string, args ...interface{}) {
+				wasCalled = true
+				require.Equal(t, common.GetNodeFromDBErrorString, message)
+				require.Equal(t, 6, len(args))
+				expectedFirst5Args := []interface{}{"error", err, "key", key, "stack trace"}
+				require.Equal(t, expectedFirst5Args, args[:5])
+			},
+		}
+
+		treatLogError(logInstance, err, key)
+		assert.True(t, wasCalled)
 	})
 }
 
