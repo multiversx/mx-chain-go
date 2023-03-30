@@ -1148,3 +1148,167 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
 	require.True(t, elapsedTime < 100*time.Second)
 }
+
+func TestPruningStorer_RangeKeys(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewPruningStorer(args)
+
+	t.Run("should not panic with nil handler", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NotPanics(t, func() {
+			ps.RangeKeys(nil)
+		})
+	})
+	t.Run("should not call handler", func(t *testing.T) {
+		t.Parallel()
+
+		ps.RangeKeys(func(key []byte, val []byte) bool {
+			assert.Fail(t, "should not have called handler")
+			return false
+		})
+	})
+}
+
+func TestPruningStorer_GetOldestEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error if no persisters are found", func(t *testing.T) {
+		t.Parallel()
+
+		epochsData := pruning.EpochArgs{
+			NumOfEpochsToKeep:     0,
+			NumOfActivePersisters: 0,
+		}
+
+		args := getDefaultArgs()
+		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+		ps, _ := pruning.NewPruningStorer(args)
+
+		epoch, err := ps.GetOldestEpoch()
+		assert.NotNil(t, err)
+		assert.Zero(t, epoch)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		epochsData := pruning.EpochArgs{
+			NumOfEpochsToKeep:     2,
+			NumOfActivePersisters: 2,
+			StartingEpoch:         5,
+		}
+
+		args := getDefaultArgs()
+		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+		args.EpochsData = epochsData
+		ps, _ := pruning.NewPruningStorer(args)
+
+		epoch, err := ps.GetOldestEpoch()
+		assert.Nil(t, err)
+		expectedEpoch := uint32(4) // 5 and 4 are the active epochs
+		assert.Equal(t, expectedEpoch, epoch)
+	})
+}
+
+func TestPruningStorer_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+		StartingEpoch:         5,
+	}
+	args := getDefaultArgs()
+	args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+	args.EpochsData = epochsData
+	ps, _ := pruning.NewPruningStorer(args)
+
+	t.Run("if the epoch is not handled, should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := ps.PutInEpoch([]byte("key"), []byte("value"), 3) // only 4 and 5 are handled
+		expectedErrorString := "put in epoch: persister for epoch 3 not found"
+		assert.Equal(t, expectedErrorString, err.Error())
+	})
+	t.Run("put in existing epochs", func(t *testing.T) {
+		t.Parallel()
+
+		key4 := []byte("key4")
+		value4 := []byte("value4")
+		key5 := []byte("key5")
+		value5 := []byte("value5")
+
+		err := ps.PutInEpoch(key4, value4, 4)
+		assert.Nil(t, err)
+
+		err = ps.PutInEpoch(key5, value5, 5)
+		assert.Nil(t, err)
+
+		t.Run("get from their respective epochs should work", func(t *testing.T) {
+			ps.ClearCache()
+			recovered4, errGet := ps.GetFromEpoch(key4, 4)
+			assert.Nil(t, errGet)
+			assert.Equal(t, value4, recovered4)
+
+			ps.ClearCache()
+			recovered5, errGet := ps.GetFromEpoch(key5, 5)
+			assert.Nil(t, errGet)
+			assert.Equal(t, value5, recovered5)
+		})
+		t.Run("get from wrong epochs should error", func(t *testing.T) {
+			ps.ClearCache()
+			result, errGet := ps.GetFromEpoch(key4, 3)
+			expectedErrorString := fmt.Sprintf("key %x not found in id", key4)
+			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.Nil(t, result)
+
+			ps.ClearCache()
+			result, errGet = ps.GetFromEpoch(key4, 5)
+			expectedErrorString = fmt.Sprintf("key %x not found in id", key4)
+			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.Nil(t, result)
+		})
+	})
+}
+
+func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+		StartingEpoch:         5,
+	}
+	args := getDefaultArgs()
+	args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+	args.EpochsData = epochsData
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// current epoch is 5
+	key := []byte("key")
+	value := []byte("value")
+
+	// put in epoch 4
+	_ = ps.PutInEpoch(key, value, 4)
+	// put in epoch 5
+	_ = ps.PutInEpoch(key, value, 5)
+
+	// remove from epoch 5
+	err := ps.RemoveFromCurrentEpoch(key)
+	assert.Nil(t, err)
+
+	// get from epoch 5 should error
+	ps.ClearCache()
+	result, errGet := ps.GetFromEpoch(key, 5)
+	expectedErrorString := fmt.Sprintf("key %x not found in id", key)
+	assert.Equal(t, expectedErrorString, errGet.Error())
+	assert.Nil(t, result)
+
+	// get from epoch 4 should work
+	ps.ClearCache()
+	recovered, errGet := ps.GetFromEpoch(key, 4)
+	assert.Nil(t, errGet)
+	assert.Equal(t, value, recovered)
+}

@@ -350,3 +350,34 @@ func TestTriePruningStorer_KeepMoreDbsOpenIfNecessary(t *testing.T) {
 	err = tps.Close()
 	assert.Nil(t, err)
 }
+
+func TestTriePruningStorer_GetLatestStorageEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+		StartingEpoch:         5,
+	}
+	args := getDefaultArgs()
+	args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+
+	t.Run("no active db should error", func(t *testing.T) {
+		t.Parallel()
+
+		tps, _ := pruning.NewTriePruningStorer(args)
+		latestEpoch, err := tps.GetLatestStorageEpoch()
+		expectedErrString := "there are no active persisters"
+		assert.Equal(t, expectedErrString, err.Error())
+		assert.Zero(t, latestEpoch)
+	})
+	t.Run("no active db should error", func(t *testing.T) {
+		t.Parallel()
+
+		tps, _ := pruning.NewTriePruningStorer(args)
+		_ = tps.ChangeEpochSimple(5)
+		latestEpoch, err := tps.GetLatestStorageEpoch()
+		assert.Nil(t, err)
+		assert.Equal(t, uint32(5), latestEpoch)
+	})
+}

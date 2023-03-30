@@ -140,5 +140,52 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB)
 	assert.NoError(t, err)
 	assert.NotNil(t, storer)
+}
+
+func TestStorageUnitOpenHandler_OpenDB(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	args := createMockArgsOpenStorageUnits()
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string {
+			return tempDir
+		},
+	}
+	suoh, _ := NewStorageUnitOpenHandler(args)
+
+	// do not run these in parallel as they are using the same temp dir
+	t.Run("create DB fails, should error", func(t *testing.T) {
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "invalid DB type",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
+		}
+
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.NotNil(t, err)
+		expectedErrorString := "not supported db type"
+		assert.Equal(t, expectedErrorString, err.Error())
+		assert.True(t, check.IfNil(storerInstance))
+	})
+	t.Run("should work", func(t *testing.T) {
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
+		}
+
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storerInstance))
+
+		_ = storerInstance.Close()
+	})
 
 }

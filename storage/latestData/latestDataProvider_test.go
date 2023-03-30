@@ -28,6 +28,14 @@ func TestNewLatestDataProvider_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestLatestDataProvider_GetParentDirectory(t *testing.T) {
+	t.Parallel()
+
+	args := getLatestDataProviderArgs()
+	ldp, _ := NewLatestDataProvider(args)
+	assert.Equal(t, args.ParentDir, ldp.GetParentDirectory())
+}
+
 func TestGetShardsFromDirectory(t *testing.T) {
 	t.Parallel()
 
