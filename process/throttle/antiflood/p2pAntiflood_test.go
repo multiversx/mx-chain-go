@@ -16,8 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
-	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -497,7 +497,7 @@ func TestP2pAntiflood_ConcurrentOperations(t *testing.T) {
 			case 2:
 				_ = afm.Close()
 			case 3:
-				_ = afm.CanProcessMessage(&mock.P2PMessageMock{}, "peer")
+				_ = afm.CanProcessMessage(&p2pmocks.P2PMessageMock{}, "peer")
 			case 4:
 				afm.BlacklistPeer("peer", "reason", time.Millisecond)
 			case 5:

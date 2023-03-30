@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -76,7 +77,6 @@ type consensusComponents struct {
 	worker               factory.ConsensusWorker
 	peerBlacklistHandler consensus.PeerBlacklistHandler
 	consensusTopic       string
-	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -136,13 +136,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 	cc := &consensusComponents{}
 
-	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
-	if err != nil {
-		return nil, err
-	}
-
-	cc.consensusGroupSize = int(consensusGroupSize)
-
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
@@ -163,7 +156,12 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.bootstrapper.StartSyncingBlocks()
 
 	epoch := ccf.getEpoch()
-	consensusState, err := ccf.createConsensusState(epoch)
+
+	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator(), ccf.processComponents.NodesCoordinator(), epoch)
+	if err != nil {
+		return nil, err
+	}
+	consensusState, err := ccf.createConsensusState(epoch, consensusGroupSize)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +376,7 @@ func (ccf *consensusComponentsFactory) getEpoch() uint32 {
 }
 
 // createConsensusState method creates a consensusState object
-func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
+func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consensusGroupSize int) (*spos.ConsensusState, error) {
 	if ccf.cryptoComponents.PublicKey() == nil {
 		return nil, errors.ErrNilPublicKey
 	}
@@ -394,8 +392,6 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos
 	if err != nil {
 		return nil, err
 	}
-
-	consensusGroupSize := ccf.processComponents.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(ccf.processComponents.ShardCoordinator().SelfId(), epoch)
 
 	roundConsensus, err := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
@@ -743,12 +739,17 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	return nil
 }
 
-func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator, nodesCoordinator nodesCoord.NodesCoordinator, epoch uint32) (int, error) {
+	consensusGroupSize := nodesCoordinator.ConsensusGroupSizeForShardAndEpoch(shardCoordinator.SelfId(), epoch)
+	if consensusGroupSize > 0 {
+		return consensusGroupSize, nil
+	}
+
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return nodesConfig.GetMetaConsensusGroupSize(), nil
+		return int(nodesConfig.GetMetaConsensusGroupSize()), nil
 	}
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return nodesConfig.GetShardConsensusGroupSize(), nil
+		return int(nodesConfig.GetShardConsensusGroupSize()), nil
 	}
 
 	return 0, sharding.ErrShardIdOutOfRange
