@@ -133,7 +133,7 @@ func TestNewNodeRunner(t *testing.T) {
 	})
 }
 
-func TestNodeRunner_StartAndCloseNodeWith(t *testing.T) {
+func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 	t.Parallel()
 
 	configs := createConfigs(t)
@@ -143,7 +143,7 @@ func TestNodeRunner_StartAndCloseNodeWith(t *testing.T) {
 	err := logger.AddLogObserver(trigger, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
-	// start a go routine that will send the SIGINT message after 1 minute
+	// start a go routine that will send the SIGINT message after 1 second after the node has started
 	go func() {
 		timeout := time.Minute * 5
 		select {
