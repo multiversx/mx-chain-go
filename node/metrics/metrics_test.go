@@ -137,49 +137,59 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 33,
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
+			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            1,
+					NodesToShufflePerShard: 2,
+				},
+			},
 		},
 	}
 
 	expectedValues := map[string]interface{}{
-		"erd_smart_contract_deploy_enable_epoch":                 uint32(1),
-		"erd_built_in_functions_enable_epoch":                    uint32(2),
-		"erd_relayed_transactions_enable_epoch":                  uint32(3),
-		"erd_penalized_too_much_gas_enable_epoch":                uint32(4),
-		"erd_switch_jail_waiting_enable_epoch":                   uint32(5),
-		"erd_switch_hysteresis_for_min_nodes_enable_epoch":       uint32(6),
-		"erd_below_signed_threshold_enable_epoch":                uint32(7),
-		"erd_transaction_signed_with_txhash_enable_epoch":        uint32(8),
-		"erd_meta_protection_enable_epoch":                       uint32(9),
-		"erd_ahead_of_time_gas_usage_enable_epoch":               uint32(10),
-		"erd_gas_price_modifier_enable_epoch":                    uint32(11),
-		"erd_repair_callback_enable_epoch":                       uint32(12),
-		"erd_block_gas_and_fee_recheck_enable_epoch":             uint32(13),
-		"erd_staking_v2_enable_epoch":                            uint32(14),
-		"erd_stake_enable_epoch":                                 uint32(15),
-		"erd_double_key_protection_enable_epoch":                 uint32(16),
-		"erd_esdt_enable_epoch":                                  uint32(17),
-		"erd_governance_enable_epoch":                            uint32(18),
-		"erd_delegation_manager_enable_epoch":                    uint32(19),
-		"erd_delegation_smart_contract_enable_epoch":             uint32(20),
-		"erd_correct_last_unjailed_enable_epoch":                 uint32(21),
-		"erd_balance_waiting_lists_enable_epoch":                 uint32(22),
-		"erd_return_data_to_last_transfer_enable_epoch":          uint32(23),
-		"erd_sender_in_out_transfer_enable_epoch":                uint32(24),
-		"erd_relayed_transactions_v2_enable_epoch":               uint32(25),
-		"erd_unbond_tokens_v2_enable_epoch":                      uint32(26),
-		"erd_save_jailed_always_enable_epoch":                    uint32(27),
-		"erd_validator_to_delegation_enable_epoch":               uint32(28),
-		"erd_redelegate_below_min_check_enable_epoch":            uint32(29),
-		"erd_increment_scr_nonce_in_multi_transfer_enable_epoch": uint32(30),
-		"erd_esdt_multi_transfer_enable_epoch":                   uint32(31),
-		"erd_global_mint_burn_disable_epoch":                     uint32(32),
-		"erd_esdt_transfer_role_enable_epoch":                    uint32(33),
-		"erd_builtin_function_on_meta_enable_epoch":              uint32(34),
-		"erd_waiting_list_fix_enable_epoch":                      uint32(35),
-		"erd_max_nodes_change_enable_epoch":                      nil,
-		"erd_total_supply":                                       "12345",
-		"erd_hysteresis":                                         "0.100000",
-		"erd_adaptivity":                                         "true",
+		"erd_smart_contract_deploy_enable_epoch":                        uint32(1),
+		"erd_built_in_functions_enable_epoch":                           uint32(2),
+		"erd_relayed_transactions_enable_epoch":                         uint32(3),
+		"erd_penalized_too_much_gas_enable_epoch":                       uint32(4),
+		"erd_switch_jail_waiting_enable_epoch":                          uint32(5),
+		"erd_switch_hysteresis_for_min_nodes_enable_epoch":              uint32(6),
+		"erd_below_signed_threshold_enable_epoch":                       uint32(7),
+		"erd_transaction_signed_with_txhash_enable_epoch":               uint32(8),
+		"erd_meta_protection_enable_epoch":                              uint32(9),
+		"erd_ahead_of_time_gas_usage_enable_epoch":                      uint32(10),
+		"erd_gas_price_modifier_enable_epoch":                           uint32(11),
+		"erd_repair_callback_enable_epoch":                              uint32(12),
+		"erd_block_gas_and_fee_recheck_enable_epoch":                    uint32(13),
+		"erd_staking_v2_enable_epoch":                                   uint32(14),
+		"erd_stake_enable_epoch":                                        uint32(15),
+		"erd_double_key_protection_enable_epoch":                        uint32(16),
+		"erd_esdt_enable_epoch":                                         uint32(17),
+		"erd_governance_enable_epoch":                                   uint32(18),
+		"erd_delegation_manager_enable_epoch":                           uint32(19),
+		"erd_delegation_smart_contract_enable_epoch":                    uint32(20),
+		"erd_correct_last_unjailed_enable_epoch":                        uint32(21),
+		"erd_balance_waiting_lists_enable_epoch":                        uint32(22),
+		"erd_return_data_to_last_transfer_enable_epoch":                 uint32(23),
+		"erd_sender_in_out_transfer_enable_epoch":                       uint32(24),
+		"erd_relayed_transactions_v2_enable_epoch":                      uint32(25),
+		"erd_unbond_tokens_v2_enable_epoch":                             uint32(26),
+		"erd_save_jailed_always_enable_epoch":                           uint32(27),
+		"erd_validator_to_delegation_enable_epoch":                      uint32(28),
+		"erd_redelegate_below_min_check_enable_epoch":                   uint32(29),
+		"erd_increment_scr_nonce_in_multi_transfer_enable_epoch":        uint32(30),
+		"erd_esdt_multi_transfer_enable_epoch":                          uint32(31),
+		"erd_global_mint_burn_disable_epoch":                            uint32(32),
+		"erd_esdt_transfer_role_enable_epoch":                           uint32(33),
+		"erd_builtin_function_on_meta_enable_epoch":                     uint32(34),
+		"erd_waiting_list_fix_enable_epoch":                             uint32(35),
+		"erd_max_nodes_change_enable_epoch":                             nil,
+		"erd_total_supply":                                              "12345",
+		"erd_hysteresis":                                                "0.100000",
+		"erd_adaptivity":                                                "true",
+		"erd_max_nodes_change_enable_epoch0_epoch_enable":               uint32(0),
+		"erd_max_nodes_change_enable_epoch0_max_num_nodes":              uint32(1),
+		"erd_max_nodes_change_enable_epoch0_nodes_to_shuffle_per_shard": uint32(2),
 	}
 
 	economicsConfig := config.EconomicsConfig{
@@ -385,6 +395,9 @@ func TestInitMetrics(t *testing.T) {
 				{
 					LeaderPercentage: 2,
 				},
+				{
+					LeaderPercentage: 2,
+				},
 			},
 		},
 		GlobalSettings: config.GlobalSettings{
@@ -468,6 +481,84 @@ func TestInitMetrics(t *testing.T) {
 		for k, v := range expectedValues {
 			assert.Equal(t, v, keys[k], fmt.Sprintf("for key %s", k))
 		}
+	})
+	t.Run("should work - metachain", func(t *testing.T) {
+		t.Parallel()
+
+		keys := make(map[string]interface{})
+		localStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				keys[key] = value
+			},
+			SetStringValueHandler: func(key string, value string) {
+				keys[key] = value
+			},
+		}
+		localShardCoordinator := &testscommon.ShardsCoordinatorMock{
+			NoShards: 3,
+			SelfIDCalled: func() uint32 {
+				return common.MetachainShardId
+			},
+		}
+
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Nil(t, err)
+
+		expectedValues := map[string]interface{}{
+			common.MetricPublicKeyBlockSign:           pubkeyString,
+			common.MetricShardId:                      uint64(localShardCoordinator.SelfId()),
+			common.MetricNumShardsWithoutMetachain:    uint64(localShardCoordinator.NoShards),
+			common.MetricNodeType:                     string(nodeType),
+			common.MetricRoundTime:                    uint64(6),
+			common.MetricAppVersion:                   version,
+			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
+			common.MetricCrossCheckBlockHeight:        "0",
+			common.MetricCrossCheckBlockHeight + "_0": uint64(0),
+			common.MetricCrossCheckBlockHeight + "_1": uint64(0),
+			common.MetricCrossCheckBlockHeight + "_2": uint64(0),
+			common.MetricCrossCheckBlockHeightMeta:    uint64(0),
+			common.MetricIsSyncing:                    uint64(1),
+			common.MetricLeaderPercentage:             fmt.Sprintf("%f", 2.0),
+			common.MetricDenomination:                 uint64(4),
+			common.MetricShardConsensusGroupSize:      uint64(63),
+			common.MetricMetaConsensusGroupSize:       uint64(400),
+			common.MetricNumNodesPerShard:             uint64(402),
+			common.MetricNumMetachainNodes:            uint64(401),
+			common.MetricStartTime:                    uint64(111111),
+			common.MetricRoundDuration:                uint64(6000),
+			common.MetricMinTransactionVersion:        uint64(1),
+			common.MetricNumValidators:                uint64(0),
+			common.MetricConsensusGroupSize:           uint64(400),
+		}
+
+		assert.Equal(t, len(expectedValues), len(keys))
+		for k, v := range expectedValues {
+			assert.Equal(t, v, keys[k], fmt.Sprintf("for key %s", k))
+		}
+	})
+	t.Run("should work - invalid shard id", func(t *testing.T) {
+		t.Parallel()
+
+		keys := make(map[string]interface{})
+		localStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetUInt64ValueHandler: func(key string, value uint64) {
+				keys[key] = value
+			},
+			SetStringValueHandler: func(key string, value string) {
+				keys[key] = value
+			},
+		}
+		localShardCoordinator := &testscommon.ShardsCoordinatorMock{
+			NoShards: 3,
+			SelfIDCalled: func() uint32 {
+				return 10
+			},
+		}
+
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		assert.Nil(t, err)
+
+		assert.Equal(t, uint64(0), keys[common.MetricConsensusGroupSize])
 	})
 }
 

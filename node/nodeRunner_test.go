@@ -374,7 +374,7 @@ func TestWaitForSignal(t *testing.T) {
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
-		// as the closable components are called in revered order
+		// as the closable components are called in reversed order
 		exceptions := []string{"node closable component 1", "node closable component 2"}
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
 		checkCloseCalledMap(t, closedCalled, exceptions...)
@@ -403,7 +403,7 @@ func TestWaitForSignal(t *testing.T) {
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
-		// as the closable components are called in revered order
+		// as the closable components are called in reversed order
 		exceptions := []string{"node closable component 1", "node closable component 2"}
 		// in this case, even if the node is shuffled out, it should stop as some components were not closed
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
