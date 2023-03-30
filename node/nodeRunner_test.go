@@ -181,7 +181,7 @@ func TestCopyDirectory(t *testing.T) {
 	// src
 	//   +- file2
 	//   +- dir1
-	//	       +- file3
+	//         +- file3
 	//   +- dir2
 	//         +- file4
 

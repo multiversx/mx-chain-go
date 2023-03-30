@@ -19,6 +19,7 @@ func NewApplicationRunningTrigger() *applicationRunningTrigger {
 	}
 }
 
+// Write -
 func (trigger *applicationRunningTrigger) Write(p []byte) (n int, err error) {
 	if strings.Contains(string(p), "application is now running") {
 		log.Info("got signal, trying to gracefully close the node")
