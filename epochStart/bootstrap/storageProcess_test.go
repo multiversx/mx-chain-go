@@ -538,3 +538,49 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 		assert.Equal(t, expectedShardId, miniBlock.GetSenderShardID())
 	}
 }
+
+func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	t.Run("should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		require.NotNil(t, requestHandler)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		require.NotNil(t, requestHandler)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		sesb.chainRunType = "X"
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		assert.Nil(t, requestHandler)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
+}
