@@ -5,7 +5,7 @@ type ExtendedShardHeaderRequestHandlerStub struct {
 	RequestExtendedShardHeaderByNonceCalled func(nonce uint64)
 }
 
-// RequestShardHeaderByNonce -
+// RequestExtendedShardHeaderByNonce -
 func (eshrhs *ExtendedShardHeaderRequestHandlerStub) RequestExtendedShardHeaderByNonce(nonce uint64) {
 	if eshrhs.RequestExtendedShardHeaderByNonceCalled != nil {
 		eshrhs.RequestExtendedShardHeaderByNonceCalled(nonce)
