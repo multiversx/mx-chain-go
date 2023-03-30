@@ -236,18 +236,6 @@ func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
-// ComputeLongestExtendedShardChainFromLastNotarized -
-func (btm *BlockTrackerMock) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(core.SovereignChainShardId, lastCrossNotarizedHeader)
-
-	return hdrsForShard, hdrsHashesForShard, nil
-}
-
 // ComputeLongestShardsChainsFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)

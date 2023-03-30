@@ -18,6 +18,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
+	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	shardBlockTrackArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+	return shardBlockTrackArguments
+}
+
 func TestNewSovereignChainShardBlockTrack_ShouldErrNilBlockTracker(t *testing.T) {
 	t.Parallel()
 
@@ -42,7 +48,7 @@ func TestNewSovereignChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing
 func TestNewSovereignChainShardBlockTrack_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
 
 	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
@@ -55,7 +61,7 @@ func TestSovereignChainShardBlockTrack_ComputeLongestSelfChainShouldWork(t *test
 
 	lastNotarizedHeader := &block.Header{Nonce: 1}
 	lastNotarizedHash := []byte("hash")
-	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinatorMock.CurrentShard = 1
 	shardBlockTrackArguments.ShardCoordinator = shardCoordinatorMock
@@ -84,7 +90,7 @@ func TestSovereignChainShardBlockTrack_GetSelfNotarizedHeaderShouldWork(t *testi
 
 	lastNotarizedHeader := &block.Header{Nonce: 1}
 	lastNotarizedHash := []byte("hash")
-	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+	shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinatorMock.CurrentShard = 1
 	shardBlockTrackArguments.ShardCoordinator = shardCoordinatorMock
@@ -113,7 +119,7 @@ func TestSovereignChainShardBlockTrack_ReceivedHeaderShouldWork(t *testing.T) {
 	t.Run("should add extended shard header to sovereign chain tracked headers", func(t *testing.T) {
 		t.Parallel()
 
-		shardBlockTrackArguments := CreateShardTrackerMockArguments()
+		shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -134,7 +140,7 @@ func TestSovereignChainShardBlockTrack_ReceivedHeaderShouldWork(t *testing.T) {
 	t.Run("should add shard header to sovereign chain tracked headers", func(t *testing.T) {
 		t.Parallel()
 
-		shardBlockTrackArguments := CreateShardTrackerMockArguments()
+		shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -155,7 +161,7 @@ func TestSovereignChainShardBlockTrack_ReceivedExtendedShardHeaderShouldWork(t *
 	t.Run("should not add to tracked headers when extended shard header is out of range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -186,7 +192,7 @@ func TestSovereignChainShardBlockTrack_ReceivedExtendedShardHeaderShouldWork(t *
 	t.Run("should add to tracked headers when extended shard header is in range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -223,7 +229,7 @@ func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t 
 	t.Run("should return true when first extended shard header is added", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -245,7 +251,7 @@ func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t 
 	t.Run("should return false when extended shard header is out of range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -276,7 +282,7 @@ func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t 
 	t.Run("should return true when extended shard header is in range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -313,7 +319,7 @@ func TestSovereignChainShardBlockTrack_DoWhitelistWithExtendedShardHeaderIfNeede
 
 		cache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
@@ -364,7 +370,7 @@ func TestSovereignChainShardBlockTrack_DoWhitelistWithExtendedShardHeaderIfNeede
 
 		cache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
@@ -417,7 +423,7 @@ func TestSovereignChainShardBlockTrack_IsExtendedShardHeaderOutOfRangeShouldWork
 	t.Run("should return true when extended shard header is out of range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -448,7 +454,7 @@ func TestSovereignChainShardBlockTrack_IsExtendedShardHeaderOutOfRangeShouldWork
 	t.Run("should return false when extended shard header is in range", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -483,7 +489,7 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 	t.Run("should return error when notarized header slice for shard is nil", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -496,7 +502,7 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -570,7 +576,7 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 func TestSovereignChainShardBlockTrack_CleanupHeadersBehindNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments := CreateSovereignChainShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -619,7 +625,7 @@ func TestSovereignChainShardBlockTrack_DisplayTrackedHeadersShouldNotPanic(t *te
 		}
 	}()
 
-	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments := CreateSovereignChainShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -653,7 +659,7 @@ func TestSovereignChainShardBlockTrack_GetFinalHeaderShouldWork(t *testing.T) {
 	t.Run("should error for shard header or extended shard header", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
@@ -696,7 +702,7 @@ func TestSovereignChainShardBlockTrack_GetFinalHeaderShouldWork(t *testing.T) {
 	t.Run("should work for shard header or extended shard header", func(t *testing.T) {
 		t.Parallel()
 
-		shardArguments := CreateShardTrackerMockArguments()
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)

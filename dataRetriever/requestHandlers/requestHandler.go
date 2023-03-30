@@ -414,11 +414,6 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	rrh.addRequestedItems([][]byte{key}, suffix)
 }
 
-// RequestExtendedShardHeaderByNonce method does nothing in main chain
-func (rrh *resolverRequestHandler) RequestExtendedShardHeaderByNonce(_ uint64) {
-	//TODO: This method should be implemented for sovereign chain
-}
-
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)

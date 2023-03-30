@@ -19,6 +19,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+	return blockProcessorArguments
+}
+
 func TestNewSovereignChainBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T) {
 	t.Parallel()
 
@@ -27,10 +33,21 @@ func TestNewSovereignChainBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T
 	assert.Equal(t, process.ErrNilBlockProcessor, err)
 }
 
-func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
+func TestNewSovereignChainBlockProcessor_ShouldErrWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	scpb, err := track.NewSovereignChainBlockProcessor(bp)
+	assert.Nil(t, scpb)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	scpb, err := track.NewSovereignChainBlockProcessor(bp)
@@ -41,7 +58,7 @@ func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
 func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldReturnFalseWhenGetLastNotarizedHeaderFails(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
@@ -65,7 +82,7 @@ func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldReturnFal
 func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
@@ -110,7 +127,7 @@ func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *t
 func TestSovereignChainBlockProcessor_ProcessReceivedHeaderShouldWorkWhenHeaderIsFromSelfShard(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	called := false
 	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
@@ -136,7 +153,7 @@ func TestSovereignChainBlockProcessor_ProcessReceivedHeaderShouldWorkWhenHeaderI
 func TestSovereignChainBlockProcessor_ProcessReceivedHeaderShouldWorkWhenHeaderIsFromCrossShard(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	called := false
 	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
@@ -176,7 +193,7 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 	hasherMock := &hashingMocks.HasherMock{}
 	marshalizerMock := &mock.MarshalizerMock{}
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	shardHeaderExtended1 := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
@@ -248,7 +265,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 
 	var mutRequest sync.Mutex
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	shardIDAddCalled := make([]uint32, 0)
 	nonceAddCalled := make([]uint64, 0)
@@ -262,12 +279,14 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 
 	shardIDRequestCalled := make([]uint32, 0)
 	nonceRequestCalled := make([]uint64, 0)
-	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
-		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
-			mutRequest.Lock()
-			shardIDRequestCalled = append(shardIDRequestCalled, shardId)
-			nonceRequestCalled = append(nonceRequestCalled, nonce)
-			mutRequest.Unlock()
+	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+				mutRequest.Lock()
+				shardIDRequestCalled = append(shardIDRequestCalled, shardId)
+				nonceRequestCalled = append(nonceRequestCalled, nonce)
+				mutRequest.Unlock()
+			},
 		},
 	}
 
@@ -303,7 +322,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 
 	var mutRequest sync.Mutex
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
 
 	shardIDAddCalled := make([]uint32, 0)
 	nonceAddCalled := make([]uint64, 0)
@@ -317,7 +336,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 
 	shardIDRequestCalled := make([]uint32, 0)
 	nonceRequestCalled := make([]uint64, 0)
-	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{
 		RequestExtendedShardHeaderByNonceCalled: func(nonce uint64) {
 			mutRequest.Lock()
 			shardIDRequestCalled = append(shardIDRequestCalled, core.SovereignChainShardId)

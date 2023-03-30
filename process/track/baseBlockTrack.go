@@ -325,11 +325,6 @@ func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.He
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
-// ComputeLongestExtendedShardChainFromLastNotarized returns empty slices of headers handlers and headers hashes in main chain
-func (bbt *baseBlockTrack) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
-}
-
 // ComputeLongestShardsChainsFromLastNotarized returns the longest valid chains for all shards from theirs last cross notarized headers
 func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)

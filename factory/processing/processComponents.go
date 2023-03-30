@@ -302,14 +302,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		requestersFinder,
-		pcf.requestedItemsHandler,
-		pcf.whiteListHandler,
-		common.MaxTxsToRequest,
-		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
-		time.Second,
-	)
+	requestHandler, err := pcf.createResolverRequestHandler(requestersFinder)
 	if err != nil {
 		return nil, err
 	}
@@ -715,6 +708,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:               pcf.accountsParser,
 		receiptsRepository:           receiptsRepository,
 	}, nil
+}
+
+func (pcf *processComponentsFactory) createResolverRequestHandler(
+	requestersFinder dataRetriever.RequestersFinder,
+) (process.RequestHandler, error) {
+	requestHandler, err := requestHandlers.NewResolverRequestHandler(
+		requestersFinder,
+		pcf.requestedItemsHandler,
+		pcf.whiteListHandler,
+		common.MaxTxsToRequest,
+		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		time.Second,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return requestHandler, nil
+	case common.ChainRunTypeSovereign:
+		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
