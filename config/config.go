@@ -50,6 +50,7 @@ type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
+	Hrp             string
 }
 
 // TypeConfig will map the string type configuration
@@ -129,6 +130,7 @@ type HeartbeatV2Config struct {
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
+	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -292,7 +294,6 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
-	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -321,6 +322,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
 	GetAddressesBulkMaxSize            uint32
+	VmQueryDelayAfterStartInSec        uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
@@ -603,6 +605,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string

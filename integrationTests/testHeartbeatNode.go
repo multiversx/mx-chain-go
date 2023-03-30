@@ -88,7 +88,7 @@ type TestHeartbeatNode struct {
 	NodesCoordinator             nodesCoordinator.NodesCoordinator
 	PeerShardMapper              process.NetworkShardingCollector
 	Messenger                    p2p.Messenger
-	NodeKeys                     TestKeyPair
+	NodeKeys                     *TestNodeKeys
 	DataPool                     dataRetriever.PoolsHolder
 	Sender                       update.Closer
 	PeerAuthInterceptor          *interceptors.MultiDataInterceptor
@@ -191,9 +191,11 @@ func NewTestHeartbeatNode(
 	pkBytes, _ := pk.ToByteArray()
 	thn.PeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
-	thn.NodeKeys = TestKeyPair{
-		Sk: sk,
-		Pk: pk,
+	thn.NodeKeys = &TestNodeKeys{
+		MainKey: &TestKeyPair{
+			Sk: sk,
+			Pk: pk,
+		},
 	}
 
 	// start a go routine in order to allow peers to connect first
@@ -209,7 +211,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 	nodeShardId uint32,
 	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
-	keys TestKeyPair,
+	keys *TestNodeKeys,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	singleSigner := singlesig.NewBlsSigner()
@@ -279,8 +281,8 @@ func CreateNodesWithTestHeartbeatNode(
 	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestHeartbeatNode {
 
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards), 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestHeartbeatNode)
@@ -320,13 +322,13 @@ func CreateNodesWithTestHeartbeatNode(
 
 		nodesList := make([]*TestHeartbeatNode, len(validatorList))
 		for i := range validatorList {
-			kp := cp.Keys[shardId][i]
+			kp := cp.NodesKeys[shardId][i]
 			nodesList[i] = NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
 				nodesCoordinatorInstance,
-				*kp,
+				kp,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -370,12 +372,15 @@ func CreateNodesWithTestHeartbeatNode(
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
 
+			nodeKeysInstance := &TestNodeKeys{
+				MainKey: createCryptoPair(),
+			}
 			n := NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
 				nodesCoordinatorInstance,
-				createCryptoPair(),
+				nodeKeysInstance,
 			)
 
 			nodesMap[shardId] = append(nodesMap[shardId], n)
@@ -423,18 +428,21 @@ func (thn *TestHeartbeatNode) initSender() {
 		Marshaller:              TestMarshaller,
 		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
 		HeartbeatTopic:          identifierHeartbeat,
+		BaseVersionNumber:       "v01-base",
 		VersionNumber:           "v01",
 		NodeDisplayName:         defaultNodeName,
 		Identity:                defaultNodeName + "_identity",
 		PeerSubType:             core.RegularPeer,
 		CurrentBlockProvider:    &testscommon.ChainHandlerStub{},
 		PeerSignatureHandler:    thn.PeerSigHandler,
-		PrivateKey:              thn.NodeKeys.Sk,
+		PrivateKey:              thn.NodeKeys.MainKey.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
 		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
+		ShardCoordinator:        thn.ShardCoordinator,
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -443,6 +451,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatTimeThresholdBetweenSends:          thresholdBetweenSends,
 		HardforkTimeBetweenSends:                    timeBetweenHardforks,
+		PeerAuthenticationTimeBetweenChecks:         time.Second * 2,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -731,7 +740,7 @@ func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) st
 
 	for shardId, nodesList := range nodes {
 		for _, n := range nodesList {
-			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
+			buffPk, _ := n.NodeKeys.MainKey.Pk.ToByteArray()
 
 			peerInfo := n.Messenger.GetConnectedPeersInfo()
 
@@ -843,11 +852,11 @@ func (thn *TestHeartbeatNode) IsInterfaceNil() bool {
 	return thn == nil
 }
 
-func createCryptoPair() TestKeyPair {
+func createCryptoPair() *TestKeyPair {
 	suite := mcl.NewSuiteBLS12()
 	keyGen := signing.NewKeyGenerator(suite)
 
-	kp := TestKeyPair{}
+	kp := &TestKeyPair{}
 	kp.Sk, kp.Pk = keyGen.GeneratePair()
 
 	return kp
