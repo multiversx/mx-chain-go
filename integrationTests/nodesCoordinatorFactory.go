@@ -41,8 +41,8 @@ type IndexHashedNodesCoordinatorFactory struct {
 // CreateNodesCoordinator -
 func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) nodesCoordinator.NodesCoordinator {
 
-	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := keys.Pk.ToByteArray()
+	keys := arg.cp.NodesKeys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.MainKey.Pk.ToByteArray()
 
 	nodeShufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		ShuffleBetweenShards: shuffleBetweenShards,
@@ -101,8 +101,8 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
 	arg ArgIndexHashedNodesCoordinatorFactory,
 ) nodesCoordinator.NodesCoordinator {
-	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := keys.Pk.ToByteArray()
+	keys := arg.cp.NodesKeys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.MainKey.Pk.ToByteArray()
 
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		ShuffleBetweenShards: shuffleBetweenShards,

@@ -490,8 +490,8 @@
     Type = "LRU"
 
 [PeersRatingConfig]
-    TopRatedCacheCapacity = 5000
-    BadRatedCacheCapacity = 5000
+    TopRatedCacheCapacity           = 5000
+    BadRatedCacheCapacity           = 5000
 
 [PoolsCleanersConfig]
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
@@ -594,6 +594,8 @@
     TrieOperationsDeadlineMilliseconds = 10000
     # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
     GetAddressesBulkMaxSize = 100
+    # VmQueryDelayAfterStartInSec represents the number of seconds to wait when starting node before accepting vm query requests
+    VmQueryDelayAfterStartInSec = 120
     # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
     EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                            { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -604,6 +606,7 @@
     Length = 32
     Type = "bech32"
     SignatureLength = 64
+    Hrp = "erd"
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -672,7 +675,6 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
-    SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -937,8 +939,9 @@
     HardforkTimeBetweenSendsInSec                    = 60   # 1min       # time between hardfork messages
     TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec      # time between consecutive connections metrics updates
     TimeToReadDirectConnectionsInSec                 = 15   # 15sec      # time between consecutive peer shard mapper updates with direct connections
+    PeerAuthenticationTimeBetweenChecksInSec         = 6    # 6sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
-        Capacity = 1000
+        Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB

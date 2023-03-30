@@ -43,7 +43,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
-	"github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,7 +79,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			Hash:                         &hashingMocks.HasherMock{},
 			TxSignHasherField:            &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv:          &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:               &mock.PubkeyConverterMock{},
+			AddrPubKeyConv:               &testscommon.PubkeyConverterMock{},
 			PathHdl:                      &testscommon.PathManagerStub{},
 			EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
@@ -97,6 +97,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			BlKeyGen:        &cryptoMocks.KeyGenStub{},
 			TxKeyGen:        &cryptoMocks.KeyGenStub{},
 			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
+			ManagedPeers:    &testscommon.ManagedPeersHolderStub{},
 		}
 }
 
@@ -149,7 +150,6 @@ func createMockEpochStartBootstrapArgs(
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     5,
-				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
@@ -594,6 +594,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
 		assert.Nil(t, epochStartProvider)
 	})
+	t.Run("nil managed peers holder", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		cryptoComp.ManagedPeers = nil
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
@@ -1002,6 +1013,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		},
 	}
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1021,6 +1033,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1047,6 +1060,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 	}
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
