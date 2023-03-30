@@ -2,6 +2,9 @@ package spos
 
 import (
 	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 // roundConsensus defines the data needed by spos to do the consensus in each round
@@ -13,6 +16,7 @@ type roundConsensus struct {
 	selfPubKey           string
 	validatorRoundStates map[string]*roundState
 	mut                  sync.RWMutex
+	keysHandler          consensus.KeysHandler
 }
 
 // NewRoundConsensus creates a new roundConsensus object
@@ -20,18 +24,20 @@ func NewRoundConsensus(
 	eligibleNodes map[string]struct{},
 	consensusGroupSize int,
 	selfId string,
-) *roundConsensus {
-
-	rcns := roundConsensus{
-		eligibleNodes:      eligibleNodes,
-		consensusGroupSize: consensusGroupSize,
-		selfPubKey:         selfId,
-		mutEligible:        sync.RWMutex{},
+	keysHandler consensus.KeysHandler,
+) (*roundConsensus, error) {
+	if check.IfNil(keysHandler) {
+		return nil, ErrNilKeysHandler
 	}
 
-	rcns.validatorRoundStates = make(map[string]*roundState)
-
-	return &rcns
+	return &roundConsensus{
+		eligibleNodes:        eligibleNodes,
+		consensusGroupSize:   consensusGroupSize,
+		selfPubKey:           selfId,
+		mutEligible:          sync.RWMutex{},
+		validatorRoundStates: make(map[string]*roundState),
+		keysHandler:          keysHandler,
+	}, nil
 }
 
 // ConsensusGroupIndex returns the index of given public key in the current consensus group
@@ -136,11 +142,6 @@ func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
 	return rcns.JobDone(rcns.selfPubKey, subroundId)
 }
 
-// SetSelfJobDone set the self state of the action done in subround given by the subroundId parameter
-func (rcns *roundConsensus) SetSelfJobDone(subroundId int, value bool) error {
-	return rcns.SetJobDone(rcns.selfPubKey, subroundId, value)
-}
-
 // IsNodeInConsensusGroup method checks if the node is part of consensus group of the current round
 func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
 	for i := 0; i < len(rcns.consensusGroup); i++ {
@@ -198,4 +199,26 @@ func (rcns *roundConsensus) ResetRoundState() {
 	}
 
 	rcns.mut.Unlock()
+}
+
+// IsMultiKeyInConsensusGroup method checks if one of the nodes which are controlled by this instance
+// is in consensus group in the current round
+func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
+	for i := 0; i < len(rcns.consensusGroup); i++ {
+		if rcns.IsKeyManagedByCurrentNode([]byte(rcns.consensusGroup[i])) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsKeyManagedByCurrentNode returns true if the key is managed by the current node
+func (rcns *roundConsensus) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+	return rcns.keysHandler.IsKeyManagedByCurrentNode(pkBytes)
+}
+
+// IncrementRoundsWithoutReceivedMessages increments the number of rounds without received messages on a provided public key
+func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
+	rcns.keysHandler.IncrementRoundsWithoutReceivedMessages(pkBytes)
 }
