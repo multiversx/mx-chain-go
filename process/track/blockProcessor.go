@@ -4,7 +4,6 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
@@ -25,8 +24,11 @@ type blockProcessor struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
 
-	blockFinality                   uint64
-	shouldProcessReceivedHeaderFunc func(headerHandler data.HeaderHandler) bool
+	blockFinality                           uint64
+	shouldProcessReceivedHeaderFunc         func(headerHandler data.HeaderHandler) bool
+	processReceivedHeaderFunc               func(header data.HeaderHandler)
+	doJobOnReceivedCrossNotarizedHeaderFunc func(shardID uint32)
+	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64)
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -52,29 +54,36 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 
 	bp.blockFinality = process.BlockFinality
 	bp.shouldProcessReceivedHeaderFunc = bp.shouldProcessReceivedHeader
+	bp.processReceivedHeaderFunc = bp.processReceivedHeader
+	bp.doJobOnReceivedCrossNotarizedHeaderFunc = bp.doJobOnReceivedCrossNotarizedHeader
+	bp.requestHeaderWithShardAndNonceFunc = bp.requestHeaderWithShardAndNonce
 
 	return &bp, nil
 }
 
 // ProcessReceivedHeader processes the header which has been received
-func (bp *blockProcessor) ProcessReceivedHeader(header data.HeaderHandler) {
-	if check.IfNil(header) {
+func (bp *blockProcessor) ProcessReceivedHeader(headerHandler data.HeaderHandler) {
+	if check.IfNil(headerHandler) {
 		return
 	}
 
-	if !bp.shouldProcessReceivedHeaderFunc(header) {
+	if !bp.shouldProcessReceivedHeaderFunc(headerHandler) {
 		return
 	}
 
-	if header.GetShardID() == core.MetachainShardId {
+	bp.processReceivedHeaderFunc(headerHandler)
+}
+
+func (bp *blockProcessor) processReceivedHeader(headerHandler data.HeaderHandler) {
+	if headerHandler.GetShardID() == core.MetachainShardId {
 		bp.doJobOnReceivedMetachainHeader()
 	}
 
-	isHeaderForSelfShard := header.GetShardID() == bp.shardCoordinator.SelfId()
+	isHeaderForSelfShard := headerHandler.GetShardID() == bp.shardCoordinator.SelfId()
 	if isHeaderForSelfShard {
-		bp.doJobOnReceivedHeader(header.GetShardID())
+		bp.doJobOnReceivedHeader(headerHandler.GetShardID())
 	} else {
-		bp.doJobOnReceivedCrossNotarizedHeader(header.GetShardID())
+		bp.doJobOnReceivedCrossNotarizedHeaderFunc(headerHandler.GetShardID())
 	}
 }
 
@@ -233,7 +242,7 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 	var sortedHeadersHashes [][]byte
 
 	defer func() {
-		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
+		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers, shardID)
 	}()
 
 	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
@@ -331,6 +340,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	lastNotarizedHeader data.HeaderHandler,
 	sortedReceivedHeaders []data.HeaderHandler,
 	longestChainHeaders []data.HeaderHandler,
+	shardID uint32,
 ) {
 	if check.IfNil(lastNotarizedHeader) {
 		return
@@ -342,7 +352,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		if !shouldRequestHeaders {
 			latestValidHeader := bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
 			highestRound := bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
-			bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound)
+			bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound, shardID)
 		}
 	}()
 
@@ -371,7 +381,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
 
-	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1)
+	bp.requestHeaders(shardID, highestNonceInLongestChain+1)
 }
 
 func (bp *blockProcessor) getLatestValidHeader(
@@ -410,6 +420,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	lastNotarizedHeaderNonce uint64,
 	latestValidHeader data.HeaderHandler,
 	highestRoundInReceivedHeaders uint64,
+	shardID uint32,
 ) {
 	if check.IfNil(latestValidHeader) {
 		return
@@ -427,7 +438,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		"chronology round", bp.roundHandler.Index(),
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
-	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
+	bp.requestHeaders(shardID, latestValidHeader.GetNonce()+1)
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
@@ -438,12 +449,15 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 			"nonce", nonce)
 
 		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
+		bp.requestHeaderWithShardAndNonceFunc(shardID, nonce)
+	}
+}
 
-		if shardID == core.MetachainShardId {
-			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
-		} else {
-			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-		}
+func (bp *blockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64) {
+	if shardID == core.MetachainShardId {
+		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	}
 }
 

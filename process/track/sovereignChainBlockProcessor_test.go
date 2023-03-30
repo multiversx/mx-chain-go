@@ -2,13 +2,21 @@ package track_test
 
 import (
 	"errors"
+	"sort"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignChainBlockProcessor_ShouldErrNilBlockProcessor(t *testing.T) {
@@ -30,25 +38,317 @@ func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) {
+func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldReturnFalseWhenGetLastNotarizedHeaderFails(t *testing.T) {
 	t.Parallel()
 
-	header := &block.Header{ShardID: 1}
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
 	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			if shardID != header.GetShardID() {
-				return nil, nil, errors.New("wrong shard ID")
-			}
-			return &block.Header{Nonce: 499}, []byte("hash"), nil
+			return nil, nil, errors.New("error")
 		},
 	}
+
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return nil, nil, errors.New("error")
+		},
+	}
+
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
-	header.Nonce = 499
-	assert.False(t, scbp.ShouldProcessReceivedHeader(header))
+	assert.False(t, scbp.ShouldProcessReceivedHeader(&block.Header{}))
+	assert.False(t, scbp.ShouldProcessReceivedHeader(&block.ShardHeaderExtended{}))
+}
 
-	header.Nonce = 500
-	assert.True(t, scbp.ShouldProcessReceivedHeader(header))
+func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{Nonce: 15}, []byte(""), nil
+		},
+	}
+
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			shardHeaderExtended := &block.ShardHeaderExtended{
+				Header: &block.HeaderV2{
+					Header: &block.Header{Nonce: 10},
+				},
+			}
+			return shardHeaderExtended, []byte(""), nil
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	assert.False(t, scbp.ShouldProcessReceivedHeader(&block.Header{Nonce: 14}))
+	assert.False(t, scbp.ShouldProcessReceivedHeader(&block.Header{Nonce: 15}))
+	assert.True(t, scbp.ShouldProcessReceivedHeader(&block.Header{Nonce: 16}))
+
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{},
+		},
+	}
+
+	_ = shardHeaderExtended.SetNonce(9)
+	assert.False(t, scbp.ShouldProcessReceivedHeader(shardHeaderExtended))
+
+	_ = shardHeaderExtended.SetNonce(10)
+	assert.False(t, scbp.ShouldProcessReceivedHeader(shardHeaderExtended))
+
+	_ = shardHeaderExtended.SetNonce(11)
+	assert.True(t, scbp.ShouldProcessReceivedHeader(shardHeaderExtended))
+}
+
+func TestSovereignChainBlockProcessor_ProcessReceivedHeaderShouldWorkWhenHeaderIsFromSelfShard(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	called := false
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+		ComputeLongestSelfChainCalled: func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte) {
+			called = true
+			return nil, nil, nil, nil
+		},
+	}
+	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{}, nil, nil
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	scbp.ProcessReceivedHeader(&block.Header{Nonce: 1})
+
+	assert.True(t, called)
+}
+
+func TestSovereignChainBlockProcessor_ProcessReceivedHeaderShouldWorkWhenHeaderIsFromCrossShard(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	called := false
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+		SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+			called = true
+			return nil, nil
+		},
+	}
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			shardHeaderExtended := &block.ShardHeaderExtended{
+				Header: &block.HeaderV2{
+					Header: &block.Header{},
+				},
+			}
+			return shardHeaderExtended, []byte(""), nil
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{Nonce: 1},
+		},
+	}
+
+	scbp.ProcessReceivedHeader(shardHeaderExtended)
+
+	assert.True(t, called)
+}
+
+func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hasherMock := &hashingMocks.HasherMock{}
+	marshalizerMock := &mock.MarshalizerMock{}
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	shardHeaderExtended1 := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Round: 1,
+				Nonce: 1,
+			},
+		},
+	}
+
+	shardHeaderExtended1Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended1)
+	shardHeaderExtendedHash1 := hasherMock.Compute(string(shardHeaderExtended1Marshalled))
+
+	shardHeaderExtended2 := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Round:    2,
+				Nonce:    2,
+				PrevHash: shardHeaderExtendedHash1,
+			},
+		},
+	}
+
+	shardHeaderExtended2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2)
+	shardHeaderExtendedHash2 := hasherMock.Compute(string(shardHeaderExtended2Marshalled))
+
+	shardHeaderExtended3 := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Round:    3,
+				Nonce:    3,
+				PrevHash: shardHeaderExtendedHash2,
+			},
+		},
+	}
+
+	shardHeaderExtended3Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended3)
+	shardHeaderExtendedHash3 := hasherMock.Compute(string(shardHeaderExtended3Marshalled))
+
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return shardHeaderExtended1, shardHeaderExtendedHash1, nil
+		},
+	}
+
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+		SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+			return []data.HeaderHandler{shardHeaderExtended2, shardHeaderExtended3}, [][]byte{shardHeaderExtendedHash2, shardHeaderExtendedHash3}
+		},
+	}
+
+	wasCalled := false
+	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerStub{
+		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+			wasCalled = true
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	scbp.DoJobOnReceivedCrossNotarizedHeader(core.SovereignChainShardId)
+
+	assert.True(t, wasCalled)
+}
+
+func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	var mutRequest sync.Mutex
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	shardIDAddCalled := make([]uint32, 0)
+	nonceAddCalled := make([]uint64, 0)
+
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+		AddHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
+			shardIDAddCalled = append(shardIDAddCalled, shardID)
+			nonceAddCalled = append(nonceAddCalled, nonce)
+		},
+	}
+
+	shardIDRequestCalled := make([]uint32, 0)
+	nonceRequestCalled := make([]uint64, 0)
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
+			mutRequest.Lock()
+			shardIDRequestCalled = append(shardIDRequestCalled, shardId)
+			nonceRequestCalled = append(nonceRequestCalled, nonce)
+			mutRequest.Unlock()
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	shardID := uint32(0)
+	fromNonce := uint64(1)
+
+	scbp.RequestHeaders(shardID, fromNonce)
+
+	time.Sleep(100 * time.Millisecond)
+
+	mutRequest.Lock()
+	sort.Slice(nonceRequestCalled, func(i, j int) bool {
+		return nonceRequestCalled[i] < nonceRequestCalled[j]
+	})
+	mutRequest.Unlock()
+
+	require.Equal(t, 2, len(shardIDAddCalled))
+	require.Equal(t, 2, len(nonceAddCalled))
+	require.Equal(t, 2, len(shardIDRequestCalled))
+	require.Equal(t, 2, len(nonceRequestCalled))
+
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
+}
+
+func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtendedShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	var mutRequest sync.Mutex
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	shardIDAddCalled := make([]uint32, 0)
+	nonceAddCalled := make([]uint64, 0)
+
+	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+		AddHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
+			shardIDAddCalled = append(shardIDAddCalled, shardID)
+			nonceAddCalled = append(nonceAddCalled, nonce)
+		},
+	}
+
+	shardIDRequestCalled := make([]uint32, 0)
+	nonceRequestCalled := make([]uint64, 0)
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestExtendedShardHeaderByNonceCalled: func(nonce uint64) {
+			mutRequest.Lock()
+			shardIDRequestCalled = append(shardIDRequestCalled, core.SovereignChainShardId)
+			nonceRequestCalled = append(nonceRequestCalled, nonce)
+			mutRequest.Unlock()
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
+
+	shardID := core.SovereignChainShardId
+	fromNonce := uint64(1)
+
+	scbp.RequestHeaders(shardID, fromNonce)
+
+	time.Sleep(100 * time.Millisecond)
+
+	mutRequest.Lock()
+	sort.Slice(nonceRequestCalled, func(i, j int) bool {
+		return nonceRequestCalled[i] < nonceRequestCalled[j]
+	})
+	mutRequest.Unlock()
+
+	require.Equal(t, 2, len(shardIDAddCalled))
+	require.Equal(t, 2, len(nonceAddCalled))
+	require.Equal(t, 2, len(shardIDRequestCalled))
+	require.Equal(t, 2, len(nonceRequestCalled))
+
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
 }
