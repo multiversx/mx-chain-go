@@ -1,5 +1,6 @@
 package testscommon
 
+// ExtendedShardHeaderRequestHandlerStub -
 type ExtendedShardHeaderRequestHandlerStub struct {
 	RequestHandlerStub
 	RequestExtendedShardHeaderByNonceCalled func(nonce uint64)

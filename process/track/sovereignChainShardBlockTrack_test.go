@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CreateSovereignChainShardTrackerMockArguments -
 func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	shardBlockTrackArguments := CreateShardTrackerMockArguments()
 	shardBlockTrackArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}

@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -555,19 +556,21 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		requestHandler, err := sesb.createStorageRequestHandler()
 
 		require.NotNil(t, requestHandler)
+		assert.Equal(t, "*requestHandlers.resolverRequestHandler", fmt.Sprintf("%T", requestHandler))
 		assert.Nil(t, err)
 	})
 
 	t.Run("should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		args.ChainRunType = common.ChainRunTypeRegular
+		args.ChainRunType = common.ChainRunTypeSovereign
 
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
 
 		require.NotNil(t, requestHandler)
+		assert.Equal(t, "*requestHandlers.sovereignResolverRequestHandler", fmt.Sprintf("%T", requestHandler))
 		assert.Nil(t, err)
 	})
 

@@ -42,7 +42,7 @@ func NewSovereignBlockProcessor(
 
 	extendedShardHeaderTracker, ok := sbp.blockTracker.(extendedShardHeaderTrackHandler)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, fmt.Errorf("%w in NewSovereignBlockProcessor", process.ErrWrongTypeAssertion)
 	}
 
 	sbp.extendedShardHeaderTracker = extendedShardHeaderTracker

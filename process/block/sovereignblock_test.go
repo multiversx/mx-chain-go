@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// CreateSovereignChainShardTrackerMockArguments -
 func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &testscommon.HasherStub{},
@@ -50,7 +51,7 @@ func TestSovereignBlockProcessor_NewSovereignBlockProcessorShouldWork(t *testing
 		sbp, err := blproc.NewSovereignBlockProcessor(bp, &mock.ValidatorStatisticsProcessorStub{})
 
 		assert.Nil(t, sbp)
-		assert.Equal(t, process.ErrWrongTypeAssertion, err)
+		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	})
 
 	t.Run("should work", func(t *testing.T) {

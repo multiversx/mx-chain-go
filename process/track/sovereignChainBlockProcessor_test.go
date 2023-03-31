@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CreateSovereignChainBlockProcessorMockArguments -
 func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
@@ -41,7 +42,7 @@ func TestNewSovereignChainBlockProcessor_ShouldErrWrongTypeAssertion(t *testing.
 
 	scpb, err := track.NewSovereignChainBlockProcessor(bp)
 	assert.Nil(t, scpb)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 }
 
 func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {

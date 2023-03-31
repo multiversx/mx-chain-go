@@ -2,6 +2,7 @@ package mock
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
+// ExtendedShardHeaderTrackerStub -
 type ExtendedShardHeaderTrackerStub struct {
 	BlockTrackerStub
 	ComputeLongestExtendedShardChainFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, error)
