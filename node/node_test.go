@@ -133,7 +133,7 @@ func TestNewNode(t *testing.T) {
 	n, err := node.NewNode()
 
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(n))
+	assert.NotNil(t, n)
 }
 
 func TestNewNode_NilOptionShouldError(t *testing.T) {
@@ -4503,4 +4503,14 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		ShCoordinator:        &mock.ShardCoordinatorMock{},
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
+}
+
+func TestNode_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var n *node.Node
+	require.True(t, check.IfNil(n))
+
+	n, _ = node.NewNode()
+	require.False(t, check.IfNil(n))
 }

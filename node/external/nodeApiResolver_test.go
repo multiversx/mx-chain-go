@@ -127,7 +127,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(nar))
+	assert.NotNil(t, nar)
 }
 
 func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
@@ -675,4 +675,15 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 
 	_ = nar.GetGasConfigs()
 	require.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	nar, _ := external.NewNodeApiResolver(external.ArgNodeApiResolver{})
+	require.True(t, check.IfNil(nar))
+
+	arg := createMockArgs()
+	nar, _ = external.NewNodeApiResolver(arg)
+	require.False(t, check.IfNil(nar))
 }

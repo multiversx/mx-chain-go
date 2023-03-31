@@ -24,7 +24,7 @@ func TestNewFeeComputer(t *testing.T) {
 
 		computer, err := NewFeeComputer(arguments)
 		require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
-		require.True(t, check.IfNil(computer))
+		require.Nil(t, computer)
 	})
 
 	t.Run("AllArgumentsProvided", func(t *testing.T) {
@@ -215,4 +215,19 @@ func TestFeeComputer_InHighConcurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var fc *feeComputer
+	require.True(t, check.IfNil(fc))
+
+	arguments := ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+	}
+
+	fc, _ = NewFeeComputer(arguments)
+	require.False(t, check.IfNil(fc))
 }
