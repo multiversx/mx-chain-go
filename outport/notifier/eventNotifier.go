@@ -29,11 +29,6 @@ type RevertBlock struct {
 	Epoch uint32 `json:"epoch"`
 }
 
-// FinalizedBlock holds finalized block data
-type FinalizedBlock struct {
-	Hash string `json:"hash"`
-}
-
 type eventNotifier struct {
 	httpClient     httpClientHandler
 	marshalizer    marshal.Marshalizer
@@ -79,9 +74,6 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 // SaveBlock converts block data in order to be pushed to subscribers
 func (en *eventNotifier) SaveBlock(args *outport.OutportBlock) error {
 	log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.BlockData.HeaderHash)
-	if args.TransactionPool == nil {
-		return ErrNilTransactionsPool
-	}
 
 	err := en.httpClient.Post(pushEventEndpoint, args)
 	if err != nil {
