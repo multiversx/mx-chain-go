@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const invalidPath = "\\/\\/\\/\\/"
@@ -17,7 +18,7 @@ func TestNewDirectoryReader(t *testing.T) {
 
 	instance := NewDirectoryReader()
 	assert.NotNil(t, instance)
-	assert.False(t, check.IfNil(instance))
+	assert.NotNil(t, instance)
 }
 
 func TestDirectoryReaderListFilesAsString(t *testing.T) {
@@ -153,6 +154,16 @@ func TestDirectoryReaderListAllAsString(t *testing.T) {
 		assert.True(t, contains(allNames, file2))
 		assert.True(t, contains(allNames, dir1))
 	})
+}
+
+func TestDirectoryReader_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var dr *directoryReader
+	require.True(t, check.IfNil(dr))
+
+	dr = NewDirectoryReader()
+	require.False(t, check.IfNil(dr))
 }
 
 func contains(s []string, e string) bool {

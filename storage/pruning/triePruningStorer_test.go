@@ -27,7 +27,7 @@ func TestNewTriePruningStorer(t *testing.T) {
 		emptyAndInvalidConfig := pruning.StorerArgs{}
 		tps, err := pruning.NewTriePruningStorer(emptyAndInvalidConfig)
 		require.Error(t, err)
-		require.True(t, check.IfNil(tps))
+		require.Nil(t, tps)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -36,7 +36,7 @@ func TestNewTriePruningStorer(t *testing.T) {
 		args := getDefaultArgs()
 		ps, err := pruning.NewTriePruningStorer(args)
 		require.NoError(t, err)
-		require.False(t, check.IfNil(ps))
+		require.NotNil(t, ps)
 	})
 }
 
@@ -380,4 +380,15 @@ func TestTriePruningStorer_GetLatestStorageEpoch(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, uint32(5), latestEpoch)
 	})
+}
+
+func TestTriePruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	tps, _ := pruning.NewTriePruningStorer(pruning.StorerArgs{})
+	require.True(t, check.IfNil(tps))
+
+	args := getDefaultArgs()
+	tps, _ = pruning.NewTriePruningStorer(args)
+	require.False(t, check.IfNil(tps))
 }

@@ -37,7 +37,7 @@ func (disabled *errorDisabledPersister) Remove(_ []byte) error {
 	return fmt.Errorf("disabledPersister.Remove")
 }
 
-// Destroy does nothing
+// Destroy returns error
 func (disabled *errorDisabledPersister) Destroy() error {
 	return fmt.Errorf("disabledPersister.Destroy")
 }

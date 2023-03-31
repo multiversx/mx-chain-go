@@ -24,7 +24,7 @@ func TestNewLatestDataProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ldp, err := NewLatestDataProvider(getLatestDataProviderArgs())
-	require.False(t, check.IfNil(ldp))
+	require.NotNil(t, ldp)
 	require.NoError(t, err)
 }
 
@@ -373,4 +373,14 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 	round, err := ldp.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
+}
+
+func TestLatestDataProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var ldp *latestDataProvider
+	require.True(t, check.IfNil(ldp))
+
+	ldp, _ = NewLatestDataProvider(getLatestDataProviderArgs())
+	require.False(t, check.IfNil(ldp))
 }

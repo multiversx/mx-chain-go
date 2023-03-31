@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDBConfig(dbType string) config.DBConfig {
@@ -25,7 +26,7 @@ func TestNewPersisterFactory(t *testing.T) {
 	t.Parallel()
 
 	factoryInstance := NewPersisterFactory(createDBConfig("LvlDB"))
-	assert.False(t, check.IfNil(factoryInstance))
+	assert.NotNil(t, check.IfNil(factoryInstance))
 }
 
 func TestPersisterFactory_Create(t *testing.T) {
@@ -85,6 +86,16 @@ func TestPersisterFactory_CreateDisabled(t *testing.T) {
 
 	factoryInstance := NewPersisterFactory(createDBConfig("LvlDB"))
 	persisterInstance := factoryInstance.CreateDisabled()
-	assert.False(t, check.IfNil(persisterInstance))
+	assert.NotNil(t, persisterInstance)
 	assert.Equal(t, "*disabled.errorDisabledPersister", fmt.Sprintf("%T", persisterInstance))
+}
+
+func TestPersisterFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pf *PersisterFactory
+	require.True(t, check.IfNil(pf))
+
+	pf = NewPersisterFactory(config.DBConfig{})
+	require.False(t, check.IfNil(pf))
 }

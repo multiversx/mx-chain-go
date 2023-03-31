@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-storage-go/common"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -23,21 +24,21 @@ func TestNewStorageUnit(t *testing.T) {
 		t.Parallel()
 
 		unit, err := storageunit.NewStorageUnit(nil, persister)
-		assert.True(t, check.IfNil(unit))
+		assert.Nil(t, unit)
 		assert.Equal(t, common.ErrNilCacher, err)
 	})
 	t.Run("nil persister should error", func(t *testing.T) {
 		t.Parallel()
 
 		unit, err := storageunit.NewStorageUnit(cacher, nil)
-		assert.True(t, check.IfNil(unit))
+		assert.Nil(t, unit)
 		assert.Equal(t, common.ErrNilPersister, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		unit, err := storageunit.NewStorageUnit(cacher, persister)
-		assert.False(t, check.IfNil(unit))
+		assert.NotNil(t, unit)
 		assert.Nil(t, err)
 	})
 }
@@ -123,7 +124,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 		}
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig)
-		assert.True(t, check.IfNil(unit))
+		assert.Nil(t, unit)
 		assert.Equal(t, common.ErrNotSupportedCacheType, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -135,7 +136,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 		}
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig)
-		assert.False(t, check.IfNil(unit))
+		assert.NotNil(t, unit)
 		assert.Nil(t, err)
 		_ = unit.Close()
 	})
@@ -145,7 +146,7 @@ func TestNewNilStorer(t *testing.T) {
 	t.Parallel()
 
 	unit := storageunit.NewNilStorer()
-	assert.False(t, check.IfNil(unit))
+	assert.NotNil(t, unit)
 }
 
 func TestNewStorageCacherAdapter(t *testing.T) {
@@ -153,7 +154,7 @@ func TestNewStorageCacherAdapter(t *testing.T) {
 
 	cacher := &mock.AdaptedSizedLruCacheStub{}
 	db := &mock.PersisterStub{}
-	storedDataFactory := &mock.StoredDataFactoryStub{}
+	storedDataFactory := &storage.StoredDataFactoryStub{}
 	marshaller := &testscommon.MarshalizerStub{}
 
 	t.Run("nil parameter should error", func(t *testing.T) {

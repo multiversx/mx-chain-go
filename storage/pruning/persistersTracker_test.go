@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getArgs() EpochArgs {
@@ -19,7 +20,7 @@ func TestNewPersistersTracker(t *testing.T) {
 	t.Parallel()
 
 	pt := NewPersistersTracker(getArgs())
-	assert.False(t, check.IfNil(pt))
+	assert.NotNil(t, pt)
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 }
@@ -42,4 +43,14 @@ func TestPersistersTracker_ShouldClosePersister(t *testing.T) {
 
 	assert.False(t, pt.ShouldClosePersister(8))
 	assert.True(t, pt.ShouldClosePersister(7))
+}
+
+func TestPersistersTracker_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var npt *normalPersistersTracker
+	require.True(t, check.IfNil(npt))
+
+	npt = NewPersistersTracker(getArgs())
+	require.False(t, check.IfNil(npt))
 }

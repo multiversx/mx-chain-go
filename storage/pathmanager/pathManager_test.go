@@ -6,13 +6,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("", "shard_[S]/[I]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrEmptyPruningPathTemplate, err)
 }
 
@@ -20,7 +21,7 @@ func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrEmptyStaticPathTemplate, err)
 }
 
@@ -28,7 +29,7 @@ func TestNewPathManager_EmptyDBPathTemplateShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidDatabasePath, err)
 }
 
@@ -36,7 +37,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard/[I]", "shard_[S]/[I]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
@@ -44,7 +45,7 @@ func TestNewPathManager_InvalidPruningPathTemplate_NoEpochPlaceholder_ShouldErr(
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch/shard_[S]/[I]", "shard_[S]/[I]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
@@ -52,7 +53,7 @@ func TestNewPathManager_InvalidPathPruningTemplate_NoIdentifierPlaceholder_Shoul
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]", "shard_[S]/[I]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidPruningPathTemplate, err)
 }
 
@@ -60,7 +61,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoShardPlaceholder_ShouldErr(t
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard/[I]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidStaticPathTemplate, err)
 }
 
@@ -68,7 +69,7 @@ func TestNewPathManager_InvalidStaticPathTemplate_NoIdentifierPlaceholder_Should
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]", "db")
-	assert.True(t, check.IfNil(pm))
+	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrInvalidStaticPathTemplate, err)
 }
 
@@ -76,7 +77,7 @@ func TestNewPathManager_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
-	assert.False(t, check.IfNil(pm))
+	assert.NotNil(t, pm)
 	assert.Nil(t, err)
 }
 
@@ -167,4 +168,14 @@ func TestPathManager_PathForStatic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPathManager_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pm *pathmanager.PathManager
+	require.True(t, check.IfNil(pm))
+
+	pm, _ = pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
+	require.False(t, check.IfNil(pm))
 }

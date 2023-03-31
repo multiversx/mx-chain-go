@@ -132,7 +132,7 @@ func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T)
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrInvalidNumberOfPersisters, err)
 }
 
@@ -144,7 +144,7 @@ func TestNewPruningStorer_NilPersistersTrackerShouldErr(t *testing.T) {
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPersistersTracker, err)
 }
 
@@ -157,7 +157,7 @@ func TestNewPruningStorer_NumEpochKeepLowerThanNumActiveShouldErr(t *testing.T) 
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrEpochKeepIsLowerThanNumActive, err)
 }
 
@@ -168,7 +168,7 @@ func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
 	args.Notifier = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilEpochStartNotifier, err)
 }
 
@@ -179,7 +179,7 @@ func TestNewPruningStorer_NilShardCoordinatorShouldErr(t *testing.T) {
 	args.ShardCoordinator = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilShardCoordinator, err)
 }
 
@@ -190,7 +190,7 @@ func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
 	args.PathManager = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPathManager, err)
 }
 
@@ -201,7 +201,7 @@ func TestNewPruningStorer_NilOldDataCleanerProviderShouldErr(t *testing.T) {
 	args.OldDataCleanerProvider = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilOldDataCleanerProvider, err)
 }
 
@@ -212,7 +212,7 @@ func TestNewPruningStorer_NilCustomDatabaseRemoverProviderShouldErr(t *testing.T
 	args.CustomDatabaseRemover = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilCustomDatabaseRemover, err)
 }
 
@@ -223,7 +223,7 @@ func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
 	args.PersisterFactory = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPersisterFactory, err)
 }
 
@@ -234,7 +234,7 @@ func TestNewPruningStorer_CacheSizeLowerThanBatchSizeShouldErr(t *testing.T) {
 	args.MaxBatchSize = 11
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrCacheSizeIsLowerThanBatchSize, err)
 }
 
@@ -244,7 +244,7 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 	args := getDefaultArgs()
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.False(t, check.IfNil(ps))
+	assert.NotNil(t, ps)
 	assert.Nil(t, err)
 	assert.False(t, ps.IsInterfaceNil())
 }
@@ -1311,4 +1311,15 @@ func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
 	recovered, errGet := ps.GetFromEpoch(key, 4)
 	assert.Nil(t, errGet)
 	assert.Equal(t, value, recovered)
+}
+
+func TestPruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var ps *pruning.PruningStorer
+	require.True(t, check.IfNil(ps))
+
+	args := getDefaultArgs()
+	ps, _ = pruning.NewPruningStorer(args)
+	require.False(t, check.IfNil(ps))
 }

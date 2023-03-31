@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +26,7 @@ func TestNewTxCache(t *testing.T) {
 		}
 
 		cache, err := NewTxCache(cfg, nil)
-		assert.True(t, check.IfNil(cache))
+		assert.Nil(t, cache)
 		assert.Equal(t, common.ErrNilTxGasHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -48,7 +47,7 @@ func TestNewTxCache(t *testing.T) {
 			MinimumGasPrice:      1,
 			MinimumGasMove:       1,
 		})
-		assert.False(t, check.IfNil(cache))
+		assert.NotNil(t, cache)
 		assert.Nil(t, err)
 	})
 }
@@ -57,7 +56,7 @@ func TestNewDisabledCache(t *testing.T) {
 	t.Parallel()
 
 	cache := NewDisabledCache()
-	assert.False(t, check.IfNil(cache))
+	assert.NotNil(t, cache)
 }
 
 func TestNewCrossTxCache(t *testing.T) {
@@ -75,7 +74,7 @@ func TestNewCrossTxCache(t *testing.T) {
 		}
 
 		cache, err := NewCrossTxCache(cfg)
-		assert.True(t, check.IfNil(cache))
+		assert.Nil(t, cache)
 		assert.ErrorIs(t, err, common.ErrInvalidConfig)
 		assert.True(t, strings.Contains(err.Error(), "config.Name is invalid"))
 	})
@@ -91,7 +90,7 @@ func TestNewCrossTxCache(t *testing.T) {
 		}
 
 		cache, err := NewCrossTxCache(cfg)
-		assert.False(t, check.IfNil(cache))
+		assert.NotNil(t, cache)
 		assert.Nil(t, err)
 	})
 }

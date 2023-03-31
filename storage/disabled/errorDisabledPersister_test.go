@@ -1,18 +1,18 @@
 package disabled
 
-import "github.com/multiversx/mx-chain-core-go/core/check"
-
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewErrorDisabledPersister(t *testing.T) {
 	t.Parallel()
 
 	disabled := NewErrorDisabledPersister()
-	assert.False(t, check.IfNil(disabled))
+	assert.NotNil(t, disabled)
 }
 
 func TestErrorDisabledPersister_MethodsShouldError(t *testing.T) {
@@ -83,9 +83,21 @@ func TestErrorDisabledPersister_RangeKeys(t *testing.T) {
 		})
 	})
 	t.Run("handler should not be called", func(t *testing.T) {
+		t.Parallel()
+
 		disabled.RangeKeys(func(key []byte, val []byte) bool {
 			assert.Fail(t, "should have not called the handler")
 			return false
 		})
 	})
+}
+
+func TestErrorDisabledPersister_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var edp *errorDisabledPersister
+	require.True(t, check.IfNil(edp))
+
+	edp = NewErrorDisabledPersister()
+	require.False(t, check.IfNil(edp))
 }

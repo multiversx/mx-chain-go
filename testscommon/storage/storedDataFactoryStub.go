@@ -1,4 +1,4 @@
-package mock
+package storage
 
 // StoredDataFactoryStub -
 type StoredDataFactoryStub struct {
