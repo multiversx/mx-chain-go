@@ -11,14 +11,16 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/notifier"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
-		HttpClient: &mock.HTTPClientStub{},
-		Marshaller: &testscommon.MarshalizerMock{},
+		HttpClient:     &mock.HTTPClientStub{},
+		Marshaller:     &testscommon.MarshalizerMock{},
+		BlockContainer: &outportStub.BlockContainerStub{},
 	}
 }
 
@@ -45,6 +47,17 @@ func TestNewEventNotifier(t *testing.T) {
 		en, err := notifier.NewEventNotifier(args)
 		require.Nil(t, en)
 		require.Equal(t, notifier.ErrNilMarshaller, err)
+	})
+
+	t.Run("nil block container", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEventNotifierArgs()
+		args.BlockContainer = nil
+
+		en, err := notifier.NewEventNotifier(args)
+		require.Nil(t, en)
+		require.Equal(t, notifier.ErrNilBlockContainerHandler, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -121,6 +134,11 @@ func TestRevertIndexedBlock(t *testing.T) {
 		PostCalled: func(route string, payload interface{}) error {
 			wasCalled = true
 			return nil
+		},
+	}
+	args.BlockContainer = &outportStub.BlockContainerStub{
+		GetCalled: func(headerType core.HeaderType) (block.EmptyBlockCreator, error) {
+			return block.NewEmptyHeaderCreator(), nil
 		},
 	}
 

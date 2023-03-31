@@ -32,13 +32,14 @@ type RevertBlock struct {
 type eventNotifier struct {
 	httpClient     httpClientHandler
 	marshalizer    marshal.Marshalizer
-	blockContainer blockContainerHandler
+	blockContainer BlockContainerHandler
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
 type ArgsEventNotifier struct {
-	HttpClient httpClientHandler
-	Marshaller marshal.Marshalizer
+	HttpClient     httpClientHandler
+	Marshaller     marshal.Marshalizer
+	BlockContainer BlockContainerHandler
 }
 
 // NewEventNotifier creates a new instance of the eventNotifier
@@ -48,15 +49,11 @@ func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 	if err != nil {
 		return nil, err
 	}
-	blockContainer, err := createBlockCreatorsContainer()
-	if err != nil {
-		return nil, err
-	}
 
 	return &eventNotifier{
 		httpClient:     args.HttpClient,
 		marshalizer:    args.Marshaller,
-		blockContainer: blockContainer,
+		blockContainer: args.BlockContainer,
 	}, nil
 }
 
@@ -66,6 +63,9 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 	}
 	if check.IfNil(args.Marshaller) {
 		return ErrNilMarshaller
+	}
+	if check.IfNilReflect(args.BlockContainer) {
+		return ErrNilBlockContainerHandler
 	}
 
 	return nil
@@ -157,22 +157,4 @@ func (en *eventNotifier) getHeaderFromBytes(headerType core.HeaderType, headerBy
 	}
 
 	return block.GetHeaderFromBytes(en.marshalizer, creator, headerBytes)
-}
-
-func createBlockCreatorsContainer() (blockContainerHandler, error) {
-	container := block.NewEmptyBlockCreatorsContainer()
-	err := container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.ShardHeaderV2, block.NewEmptyHeaderV2Creator())
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.MetaHeader, block.NewEmptyMetaBlockCreator())
-	if err != nil {
-		return nil, err
-	}
-
-	return container, nil
 }
