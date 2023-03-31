@@ -91,6 +91,7 @@ type NodeHandler interface {
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatings() string
 
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 
