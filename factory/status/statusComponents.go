@@ -210,10 +210,15 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		return nil, err
 	}
 
+	eventNotifierArgs, err := scf.makeEventNotifierArgs()
+	if err != nil {
+		return nil, err
+	}
+
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
+		EventNotifierFactoryArgs:  eventNotifierArgs,
 		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
 			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
 			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
@@ -242,8 +247,14 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 	}
 }
 
-func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactory.EventNotifierFactoryArgs {
+func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFactory.EventNotifierFactoryArgs, error) {
 	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
+
+	marshaller, err := factoryMarshalizer.NewMarshalizer(eventNotifierConfig.MarshallerType)
+	if err != nil {
+		return &outportDriverFactory.EventNotifierFactoryArgs{}, err
+	}
+
 	return &outportDriverFactory.EventNotifierFactoryArgs{
 		Enabled:           eventNotifierConfig.Enabled,
 		UseAuthorization:  eventNotifierConfig.UseAuthorization,
@@ -251,8 +262,8 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Username:          eventNotifierConfig.Username,
 		Password:          eventNotifierConfig.Password,
 		RequestTimeoutSec: eventNotifierConfig.RequestTimeoutSec,
-		Marshaller:        scf.coreComponents.InternalMarshalizer(),
-	}
+		Marshaller:        marshaller,
+	}, nil
 }
 
 func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
