@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -130,7 +131,7 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 	}
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	err := txRes.ProcessReceivedMessage(&mock.P2PMessageMock{}, connectedPeerId)
+	err := txRes.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, connectedPeerId)
 
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
@@ -158,7 +159,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 
 	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.NonceType, Value: []byte("aaa")})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -175,7 +176,7 @@ func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: nil})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -215,7 +216,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -259,7 +260,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 
 	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -307,7 +308,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -347,7 +348,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -407,7 +408,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 	buff, _ := marshalizer.Marshal(&batch.Batch{Data: [][]byte{txHash1, txHash2}})
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
@@ -468,7 +469,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	buff, _ := marshalizer.Marshal(&batch.Batch{Data: [][]byte{txHash1, txHash2}})
 	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
 
-	msg := &mock.P2PMessageMock{DataField: data}
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 

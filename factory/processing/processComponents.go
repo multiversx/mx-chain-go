@@ -911,7 +911,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			continue
 		}
 
-		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		if err != nil {
+			return nil, err
+		}
+
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
 			AdditionalData: &outport.AdditionalAccountData{
 				BalanceChanged: true,
@@ -1122,6 +1126,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+
 		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
@@ -1499,6 +1504,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -1931,6 +1937,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManagedPeersHolder)
 	}
 
 	return nil
