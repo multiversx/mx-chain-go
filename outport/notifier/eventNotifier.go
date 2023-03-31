@@ -6,7 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/unmarshal"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -34,8 +35,9 @@ type FinalizedBlock struct {
 }
 
 type eventNotifier struct {
-	httpClient  httpClientHandler
-	marshalizer marshal.Marshalizer
+	httpClient     httpClientHandler
+	marshalizer    marshal.Marshalizer
+	blockContainer blockContainerHandler
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
@@ -51,10 +53,15 @@ func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 	if err != nil {
 		return nil, err
 	}
+	blockContainer, err := createBlockCreatorsContainer()
+	if err != nil {
+		return nil, err
+	}
 
 	return &eventNotifier{
-		httpClient:  args.HttpClient,
-		marshalizer: args.Marshaller,
+		httpClient:     args.HttpClient,
+		marshalizer:    args.Marshaller,
+		blockContainer: blockContainer,
 	}, nil
 }
 
@@ -86,7 +93,7 @@ func (en *eventNotifier) SaveBlock(args *outport.OutportBlock) error {
 
 // RevertIndexedBlock converts revert data in order to be pushed to subscribers
 func (en *eventNotifier) RevertIndexedBlock(blockData *outport.BlockData) error {
-	headerHandler, err := unmarshal.GetHeaderFromBytes(en.marshalizer, core.HeaderType(blockData.HeaderType), blockData.HeaderBytes)
+	headerHandler, err := en.getHeaderFromBytes(core.HeaderType(blockData.HeaderType), blockData.HeaderBytes)
 	if err != nil {
 		return err
 	}
@@ -149,4 +156,31 @@ func (en *eventNotifier) IsInterfaceNil() bool {
 // Close returns nil
 func (en *eventNotifier) Close() error {
 	return nil
+}
+
+func (en *eventNotifier) getHeaderFromBytes(headerType core.HeaderType, headerBytes []byte) (header data.HeaderHandler, err error) {
+	creator, err := en.blockContainer.Get(headerType)
+	if err != nil {
+		return nil, err
+	}
+
+	return block.GetHeaderFromBytes(en.marshalizer, creator, headerBytes)
+}
+
+func createBlockCreatorsContainer() (blockContainerHandler, error) {
+	container := block.NewEmptyBlockCreatorsContainer()
+	err := container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.ShardHeaderV2, block.NewEmptyHeaderV2Creator())
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.MetaHeader, block.NewEmptyMetaBlockCreator())
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
 }
