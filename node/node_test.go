@@ -4509,8 +4509,8 @@ func TestNode_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var n *node.Node
-	require.True(t, check.IfNil(n))
+	require.True(t, n.IsInterfaceNil())
 
 	n, _ = node.NewNode()
-	require.False(t, check.IfNil(n))
+	require.False(t, n.IsInterfaceNil())
 }

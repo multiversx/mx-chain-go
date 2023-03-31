@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -681,9 +680,9 @@ func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	nar, _ := external.NewNodeApiResolver(external.ArgNodeApiResolver{})
-	require.True(t, check.IfNil(nar))
+	require.True(t, nar.IsInterfaceNil())
 
 	arg := createMockArgs()
 	nar, _ = external.NewNodeApiResolver(arg)
-	require.False(t, check.IfNil(nar))
+	require.False(t, nar.IsInterfaceNil())
 }

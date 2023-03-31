@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -171,8 +170,8 @@ func TestDirectStakedListProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var dslp *directStakedListProcessor
-	require.True(t, check.IfNil(dslp))
+	require.True(t, dslp.IsInterfaceNil())
 
 	dslp, _ = NewDirectStakedListProcessor(createMockArgs())
-	require.False(t, check.IfNil(dslp))
+	require.False(t, dslp.IsInterfaceNil())
 }

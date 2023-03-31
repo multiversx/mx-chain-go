@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -149,7 +148,7 @@ func TestLogsFacade_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var lf *logsFacade
-	require.True(t, check.IfNil(lf))
+	require.True(t, lf.IsInterfaceNil())
 
 	arguments := ArgsNewLogsFacade{
 		StorageService:  genericMocks.NewChainStorerMock(7),
@@ -157,5 +156,5 @@ func TestLogsFacade_IsInterfaceNil(t *testing.T) {
 		PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 	}
 	lf, _ = NewLogsFacade(arguments)
-	require.False(t, check.IfNil(lf))
+	require.False(t, lf.IsInterfaceNil())
 }

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -221,7 +220,7 @@ func TestFeeComputer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var fc *feeComputer
-	require.True(t, check.IfNil(fc))
+	require.True(t, fc.IsInterfaceNil())
 
 	arguments := ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
@@ -229,5 +228,5 @@ func TestFeeComputer_IsInterfaceNil(t *testing.T) {
 	}
 
 	fc, _ = NewFeeComputer(arguments)
-	require.False(t, check.IfNil(fc))
+	require.False(t, fc.IsInterfaceNil())
 }

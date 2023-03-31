@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -216,10 +215,10 @@ func TestDelegatedListProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var dlp *delegatedListProcessor
-	require.True(t, check.IfNil(dlp))
+	require.True(t, dlp.IsInterfaceNil())
 
 	dlp, _ = NewDelegatedListProcessor(createMockArgs())
-	require.False(t, check.IfNil(dlp))
+	require.False(t, dlp.IsInterfaceNil())
 }
 
 func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
