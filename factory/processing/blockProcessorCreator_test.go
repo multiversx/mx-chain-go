@@ -85,13 +85,13 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		require.NoError(t, err)
 
 		bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
-			&testscommon.RequestHandlerStub{},
+			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			&mock.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
 			&mock.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
-			&mock.BlockTrackerStub{},
+			&mock.ExtendedShardHeaderTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
 			&txsimulator.ArgsTxSimulator{
 				VMOutputCacher: txcache.NewDisabledCache(),
