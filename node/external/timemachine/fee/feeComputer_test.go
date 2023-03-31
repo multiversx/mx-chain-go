@@ -217,7 +217,7 @@ func TestFeeComputer_InHighConcurrency(t *testing.T) {
 	wg.Wait()
 }
 
-func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
+func TestFeeComputer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var fc *feeComputer
