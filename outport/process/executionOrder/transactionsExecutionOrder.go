@@ -173,7 +173,7 @@ func (s *sorter) getInvalidTxsExecutedInCurrentBlock(scheduledMbsFromPreviousBlo
 	for _, hash := range mb.TxHashes {
 		_, found := allScheduledTxs[string(hash)]
 		if found {
-			scheduledExecutedInvalidTxsHashesPrevBlock = append(scheduledExecutedInvalidTxsHashesPrevBlock, string(hash))
+			scheduledExecutedInvalidTxsHashesPrevBlock = append(scheduledExecutedInvalidTxsHashesPrevBlock, hex.EncodeToString(hash))
 			continue
 		}
 		invalidTxHashes = append(invalidTxHashes, hash)
@@ -249,9 +249,10 @@ func getRewardsTxsFromMe(pool *outport.TransactionPool, blockBody *block.Body, h
 func extractTxsFromMap(txsHashes [][]byte, txs map[string]*outport.TxInfo) ([]data.TxWithExecutionOrderHandler, error) {
 	result := make([]data.TxWithExecutionOrderHandler, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
-		tx, found := txs[string(txHash)]
+		txHashHex := hex.EncodeToString(txHash)
+		tx, found := txs[txHashHex]
 		if !found {
-			return nil, fmt.Errorf("cannot find transaction in pool, txHash: %s", hex.EncodeToString(txHash))
+			return nil, fmt.Errorf("cannot find transaction in pool, txHash: %s", txHashHex)
 		}
 		result = append(result, tx)
 	}
@@ -262,9 +263,10 @@ func extractTxsFromMap(txsHashes [][]byte, txs map[string]*outport.TxInfo) ([]da
 func extractSCRsFromMap(txsHashes [][]byte, scrs map[string]*outport.SCRInfo) ([]data.TxWithExecutionOrderHandler, error) {
 	result := make([]data.TxWithExecutionOrderHandler, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
-		scr, found := scrs[string(txHash)]
+		txHashHex := hex.EncodeToString(txHash)
+		scr, found := scrs[txHashHex]
 		if !found {
-			return nil, fmt.Errorf("cannot find scr in pool, txHash: %s", hex.EncodeToString(txHash))
+			return nil, fmt.Errorf("cannot find scr in pool, txHash: %s", txHashHex)
 		}
 		result = append(result, scr)
 	}
@@ -275,9 +277,10 @@ func extractSCRsFromMap(txsHashes [][]byte, scrs map[string]*outport.SCRInfo) ([
 func extractRewardsFromMap(txsHashes [][]byte, rewards map[string]*outport.RewardInfo) ([]data.TxWithExecutionOrderHandler, error) {
 	result := make([]data.TxWithExecutionOrderHandler, 0, len(txsHashes))
 	for _, txHash := range txsHashes {
-		reward, found := rewards[string(txHash)]
+		txHashHex := hex.EncodeToString(txHash)
+		reward, found := rewards[txHashHex]
 		if !found {
-			return nil, fmt.Errorf("cannot find reward in pool, txHash: %s", hex.EncodeToString(txHash))
+			return nil, fmt.Errorf("cannot find reward in pool, txHash: %s", txHashHex)
 		}
 		result = append(result, reward)
 	}
@@ -299,7 +302,8 @@ func extractExecutedTxHashes(mbIndex int, mbTxHashes [][]byte, header data.Heade
 
 func extractAndPutScrsToDestinationMap(scrsHashes [][]byte, scrsMap map[string]*outport.SCRInfo, destinationMap map[string]data.TxWithExecutionOrderHandler) {
 	for _, scrHash := range scrsHashes {
-		scr, found := scrsMap[string(scrHash)]
+		scrHashHex := hex.EncodeToString(scrHash)
+		scr, found := scrsMap[scrHashHex]
 		if !found {
 			continue
 		}

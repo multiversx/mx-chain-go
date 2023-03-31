@@ -1,6 +1,7 @@
 package executionOrder
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -130,25 +131,25 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 
 	pool := &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(txHashToMe):   {Transaction: &transaction.Transaction{Nonce: 1}},
-			string(txHashFromMe): {Transaction: &transaction.Transaction{Nonce: 2}},
+			hex.EncodeToString(txHashToMe):   {Transaction: &transaction.Transaction{Nonce: 1}},
+			hex.EncodeToString(txHashFromMe): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
 		SmartContractResults: map[string]*outport.SCRInfo{
-			string(scrHashToMe): {SmartContractResult: &smartContractResult.SmartContractResult{Nonce: 3}},
-			string(scrHashFromMe): {SmartContractResult: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHashToMe): {SmartContractResult: &smartContractResult.SmartContractResult{Nonce: 3}},
+			hex.EncodeToString(scrHashFromMe): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          4,
 				OriginalTxHash: txHashToMe,
 			}},
-			string(scrHashIntra): {SmartContractResult: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHashIntra): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          0,
 				OriginalTxHash: txHashToMe,
 			}},
 		},
 		Rewards: map[string]*outport.RewardInfo{
-			string(rewardTxHash): {Reward: &rewardTx.RewardTx{}},
+			hex.EncodeToString(rewardTxHash): {Reward: &rewardTx.RewardTx{}},
 		},
 		InvalidTxs: map[string]*outport.TxInfo{
-			string(invalidTxHash): {Transaction: &transaction.Transaction{Nonce: 5}},
+			hex.EncodeToString(invalidTxHash): {Transaction: &transaction.Transaction{Nonce: 5}},
 		},
 		Receipts: map[string]*receipt.Receipt{},
 		Logs:     nil,
@@ -159,28 +160,28 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 
 	require.Equal(t, &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(txHashToMe): {
+			hex.EncodeToString(txHashToMe): {
 				Transaction:    &transaction.Transaction{Nonce: 1},
 				ExecutionOrder: 0,
 			},
-			string(txHashFromMe): {
+			hex.EncodeToString(txHashFromMe): {
 				Transaction:    &transaction.Transaction{Nonce: 2},
 				ExecutionOrder: 3,
 			},
 		},
 		SmartContractResults: map[string]*outport.SCRInfo{
-			string(scrHashToMe): {
+			hex.EncodeToString(scrHashToMe): {
 				SmartContractResult: &smartContractResult.SmartContractResult{Nonce: 3},
 				ExecutionOrder:      1,
 			},
-			string(scrHashFromMe): {
+			hex.EncodeToString(scrHashFromMe): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          4,
 					OriginalTxHash: txHashToMe,
 				},
 				ExecutionOrder: 0,
 			},
-			string(scrHashIntra): {
+			hex.EncodeToString(scrHashIntra): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          0,
 					OriginalTxHash: txHashToMe,
@@ -189,13 +190,13 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 			},
 		},
 		Rewards: map[string]*outport.RewardInfo{
-			string(rewardTxHash): {
+			hex.EncodeToString(rewardTxHash): {
 				Reward:         &rewardTx.RewardTx{},
 				ExecutionOrder: 2,
 			},
 		},
 		InvalidTxs: map[string]*outport.TxInfo{
-			string(invalidTxHash): {
+			hex.EncodeToString(invalidTxHash): {
 				Transaction:    &transaction.Transaction{Nonce: 5},
 				ExecutionOrder: 4,
 			},
@@ -256,8 +257,8 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 
 	pool := &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(firstTxHash):  {Transaction: &transaction.Transaction{Nonce: 1}},
-			string(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
+			hex.EncodeToString(firstTxHash):  {Transaction: &transaction.Transaction{Nonce: 1}},
+			hex.EncodeToString(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
 	}
 
@@ -266,11 +267,11 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 
 	require.Equal(t, &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(firstTxHash): {
+			hex.EncodeToString(firstTxHash): {
 				Transaction:    &transaction.Transaction{Nonce: 1},
 				ExecutionOrder: 0,
 			},
-			string(secondTxHash): {
+			hex.EncodeToString(secondTxHash): {
 				Transaction:    &transaction.Transaction{Nonce: 2},
 				ExecutionOrder: 1,
 			},
@@ -369,13 +370,13 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 
 	pool := &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
+			hex.EncodeToString(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
 		InvalidTxs: map[string]*outport.TxInfo{
-			string(firstTxHash): {Transaction: &transaction.Transaction{Nonce: 1}},
+			hex.EncodeToString(firstTxHash): {Transaction: &transaction.Transaction{Nonce: 1}},
 		},
 		SmartContractResults: map[string]*outport.SCRInfo{
-			string(scrHash): {SmartContractResult: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHash): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          3,
 				OriginalTxHash: scheduledTx,
 			}},
@@ -386,19 +387,19 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 	require.Nil(t, err)
 	require.Equal(t, &outport.TransactionPool{
 		Transactions: map[string]*outport.TxInfo{
-			string(secondTxHash): {
+			hex.EncodeToString(secondTxHash): {
 				Transaction:    &transaction.Transaction{Nonce: 2},
 				ExecutionOrder: 1,
 			},
 		},
 		InvalidTxs: map[string]*outport.TxInfo{
-			string(firstTxHash): {
+			hex.EncodeToString(firstTxHash): {
 				Transaction:    &transaction.Transaction{Nonce: 1},
 				ExecutionOrder: 0,
 			},
 		},
 		SmartContractResults: map[string]*outport.SCRInfo{
-			string(scrHash): {
+			hex.EncodeToString(scrHash): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          3,
 					OriginalTxHash: scheduledTx,
@@ -408,6 +409,6 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 		},
 	}, pool)
 
-	require.Equal(t, []string{string(scrHash)}, scrsHashes)
-	require.Equal(t, []string{string(scheduledInvalidTxHash)}, invalidTxsHashes)
+	require.Equal(t, []string{hex.EncodeToString(scrHash)}, scrsHashes)
+	require.Equal(t, []string{hex.EncodeToString(scheduledInvalidTxHash)}, invalidTxsHashes)
 }
