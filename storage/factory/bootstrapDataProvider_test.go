@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -98,8 +97,8 @@ func TestBootstrapDataProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var bdp *bootstrapDataProvider
-	require.True(t, check.IfNil(bdp))
+	require.True(t, bdp.IsInterfaceNil())
 
 	bdp, _ = NewBootstrapDataProvider(&mock.MarshalizerMock{})
-	require.False(t, check.IfNil(bdp))
+	require.False(t, bdp.IsInterfaceNil())
 }

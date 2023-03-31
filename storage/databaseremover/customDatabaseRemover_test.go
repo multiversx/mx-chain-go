@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
@@ -94,8 +93,8 @@ func TestCustomDatabaseRemover_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var cdr *customDatabaseRemover
-	require.True(t, check.IfNil(cdr))
+	require.True(t, cdr.IsInterfaceNil())
 
 	cdr, _ = NewCustomDatabaseRemover(createCfgWithPattern("%2,%3"))
-	require.False(t, check.IfNil(cdr))
+	require.False(t, cdr.IsInterfaceNil())
 }

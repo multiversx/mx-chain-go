@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -160,10 +159,10 @@ func TestDirectoryReader_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var dr *directoryReader
-	require.True(t, check.IfNil(dr))
+	require.True(t, dr.IsInterfaceNil())
 
 	dr = NewDirectoryReader()
-	require.False(t, check.IfNil(dr))
+	require.False(t, dr.IsInterfaceNil())
 }
 
 func contains(s []string, e string) bool {

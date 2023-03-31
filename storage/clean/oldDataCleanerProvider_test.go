@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -75,8 +74,8 @@ func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var odcp *oldDataCleanerProvider
-	require.True(t, check.IfNil(odcp))
+	require.True(t, odcp.IsInterfaceNil())
 
 	odcp, _ = NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
-	require.False(t, check.IfNil(odcp))
+	require.False(t, odcp.IsInterfaceNil())
 }

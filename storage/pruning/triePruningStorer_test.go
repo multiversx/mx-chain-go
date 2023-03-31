@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -386,9 +385,9 @@ func TestTriePruningStorer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	tps, _ := pruning.NewTriePruningStorer(pruning.StorerArgs{})
-	require.True(t, check.IfNil(tps))
+	require.True(t, tps.IsInterfaceNil())
 
 	args := getDefaultArgs()
 	tps, _ = pruning.NewTriePruningStorer(args)
-	require.False(t, check.IfNil(tps))
+	require.False(t, tps.IsInterfaceNil())
 }

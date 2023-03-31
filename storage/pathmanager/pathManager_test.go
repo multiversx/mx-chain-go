@@ -3,7 +3,6 @@ package pathmanager_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -174,8 +173,8 @@ func TestPathManager_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var pm *pathmanager.PathManager
-	require.True(t, check.IfNil(pm))
+	require.True(t, pm.IsInterfaceNil())
 
 	pm, _ = pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
-	require.False(t, check.IfNil(pm))
+	require.False(t, pm.IsInterfaceNil())
 }

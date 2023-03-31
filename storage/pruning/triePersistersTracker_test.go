@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/stretchr/testify/assert"
@@ -143,8 +142,8 @@ func TestTriePersistersTracker_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var tpt *triePersistersTracker
-	require.True(t, check.IfNil(tpt))
+	require.True(t, tpt.IsInterfaceNil())
 
 	tpt = NewTriePersisterTracker(getArgs())
-	require.False(t, check.IfNil(tpt))
+	require.False(t, tpt.IsInterfaceNil())
 }

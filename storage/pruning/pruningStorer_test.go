@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/config"
@@ -1317,9 +1316,9 @@ func TestPruningStorer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var ps *pruning.PruningStorer
-	require.True(t, check.IfNil(ps))
+	require.True(t, ps.IsInterfaceNil())
 
 	args := getDefaultArgs()
 	ps, _ = pruning.NewPruningStorer(args)
-	require.False(t, check.IfNil(ps))
+	require.False(t, ps.IsInterfaceNil())
 }

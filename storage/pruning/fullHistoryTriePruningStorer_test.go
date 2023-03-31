@@ -3,7 +3,6 @@ package pruning_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -124,7 +123,7 @@ func TestFullHistoryTriePruningStorer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	fhtps, _ := pruning.NewFullHistoryTriePruningStorer(pruning.FullHistoryStorerArgs{})
-	require.True(t, check.IfNil(fhtps))
+	require.True(t, fhtps.IsInterfaceNil())
 
 	args := getDefaultArgs()
 	fhArgs := pruning.FullHistoryStorerArgs{
@@ -132,5 +131,5 @@ func TestFullHistoryTriePruningStorer_IsInterfaceNil(t *testing.T) {
 		NumOfOldActivePersisters: 10,
 	}
 	fhtps, _ = pruning.NewFullHistoryTriePruningStorer(fhArgs)
-	require.False(t, check.IfNil(fhtps))
+	require.False(t, fhtps.IsInterfaceNil())
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -284,9 +283,9 @@ func TestOldDatabaseCleaner_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var odc *oldDatabaseCleaner
-	require.True(t, check.IfNil(odc))
+	require.True(t, odc.IsInterfaceNil())
 
 	args := createMockArgs()
 	odc, _ = NewOldDatabaseCleaner(args)
-	require.False(t, check.IfNil(odc))
+	require.False(t, odc.IsInterfaceNil())
 }

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/config"
@@ -388,7 +387,7 @@ func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var fhps *pruning.FullHistoryPruningStorer
-	require.True(t, check.IfNil(fhps))
+	require.True(t, fhps.IsInterfaceNil())
 
 	args := getDefaultArgs()
 	fhArgs := pruning.FullHistoryStorerArgs{
@@ -396,5 +395,5 @@ func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
 		NumOfOldActivePersisters: 10,
 	}
 	fhps, _ = pruning.NewFullHistoryPruningStorer(fhArgs)
-	require.False(t, check.IfNil(fhps))
+	require.False(t, fhps.IsInterfaceNil())
 }

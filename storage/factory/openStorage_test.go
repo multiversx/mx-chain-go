@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -193,8 +192,8 @@ func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var osu *openStorageUnits
-	require.True(t, check.IfNil(osu))
+	require.True(t, osu.IsInterfaceNil())
 
 	osu = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
-	require.False(t, check.IfNil(osu))
+	require.False(t, osu.IsInterfaceNil())
 }

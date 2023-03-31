@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
@@ -379,8 +378,8 @@ func TestLatestDataProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var ldp *latestDataProvider
-	require.True(t, check.IfNil(ldp))
+	require.True(t, ldp.IsInterfaceNil())
 
 	ldp, _ = NewLatestDataProvider(getLatestDataProviderArgs())
-	require.False(t, check.IfNil(ldp))
+	require.False(t, ldp.IsInterfaceNil())
 }

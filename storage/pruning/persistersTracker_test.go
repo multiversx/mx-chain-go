@@ -3,7 +3,6 @@ package pruning
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,8 +48,8 @@ func TestPersistersTracker_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var npt *normalPersistersTracker
-	require.True(t, check.IfNil(npt))
+	require.True(t, npt.IsInterfaceNil())
 
 	npt = NewPersistersTracker(getArgs())
-	require.False(t, check.IfNil(npt))
+	require.False(t, npt.IsInterfaceNil())
 }

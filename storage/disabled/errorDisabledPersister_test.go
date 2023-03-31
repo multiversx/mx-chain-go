@@ -3,7 +3,6 @@ package disabled
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,8 +95,8 @@ func TestErrorDisabledPersister_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var edp *errorDisabledPersister
-	require.True(t, check.IfNil(edp))
+	require.True(t, edp.IsInterfaceNil())
 
 	edp = NewErrorDisabledPersister()
-	require.False(t, check.IfNil(edp))
+	require.False(t, edp.IsInterfaceNil())
 }

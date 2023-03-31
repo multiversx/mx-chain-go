@@ -26,7 +26,7 @@ func TestNewPersisterFactory(t *testing.T) {
 	t.Parallel()
 
 	factoryInstance := NewPersisterFactory(createDBConfig("LvlDB"))
-	assert.NotNil(t, check.IfNil(factoryInstance))
+	assert.NotNil(t, factoryInstance)
 }
 
 func TestPersisterFactory_Create(t *testing.T) {
@@ -94,8 +94,8 @@ func TestPersisterFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var pf *PersisterFactory
-	require.True(t, check.IfNil(pf))
+	require.True(t, pf.IsInterfaceNil())
 
 	pf = NewPersisterFactory(config.DBConfig{})
-	require.False(t, check.IfNil(pf))
+	require.False(t, pf.IsInterfaceNil())
 }
