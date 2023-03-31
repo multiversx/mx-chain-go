@@ -544,3 +544,6 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 
 // ErrNilLogger signals that a nil logger instance has been provided
 var ErrNilLogger = errors.New("nil logger")
+
+// ErrNilShuffleOutCloser signals that a nil shuffler out closer has been provided
+var ErrNilShuffleOutCloser = errors.New("nil shuffler out closer")

@@ -31,7 +31,7 @@ func CreateShardCoordinator(
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
 	if check.IfNil(nodesConfig) {
-		return nil, "", errErd.ErrNilNodesConfig
+		return nil, "", errErd.ErrNilGenesisNodesSetupHandler
 	}
 	if pubKey == nil {
 		return nil, "", errErd.ErrNilPublicKey
@@ -114,6 +114,21 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 ) (nodesCoordinator.NodesCoordinator, error) {
+	if check.IfNil(nodeShufflerOut) {
+		return nil, errErd.ErrNilShuffleOutCloser
+	}
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(epochStartNotifier) {
+		return nil, errErd.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(pubKey) {
+		return nil, errErd.ErrNilPublicKey
+	}
+	if check.IfNil(bootstrapParameters) {
+		return nil, errErd.ErrNilBootstrapParamsHandler
+	}
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
 	}
@@ -224,6 +239,10 @@ func CreateNodesShuffleOut(
 	epochConfig config.EpochStartConfig,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (factory.ShuffleOutCloser, error) {
+
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
 
 	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
 	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {
