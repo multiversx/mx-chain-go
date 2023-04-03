@@ -34,6 +34,7 @@ import (
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -3165,7 +3166,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		for leaf := range chLeaves.LeavesChan {
@@ -3176,7 +3177,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 			return leaf.Key()
 		}
 
-		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		err := chLeaves.ErrChan.ReadFromChanNonBlocking()
 		if err != nil {
 			log.Error("error getting all leaves from channel", "err", err)
 		}

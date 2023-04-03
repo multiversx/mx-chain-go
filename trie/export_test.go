@@ -75,7 +75,10 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
-	writeInChanNonBlocking(errChan, err)
+	select {
+	case errChan <- err:
+	default:
+	}
 }
 
 type StorageManagerExtensionStub struct {
