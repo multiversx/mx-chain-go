@@ -1259,6 +1259,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		EpochStartNotifier:            coreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1295,17 +1296,13 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
-	processingMode := common.Normal
-	if nr.configs.ImportDbConfig.IsImportDBMode {
-		processingMode = common.ImportDb
-	}
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
 		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
 		Core:                     coreComponents,
 		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),
-		ProcessingMode:           processingMode,
+		ProcessingMode:           common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
