@@ -16,12 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -46,6 +47,7 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
 	timeToWaitForRequestedData time.Duration
+	chainRunType               common.ChainRunType
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -66,6 +68,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
+		chainRunType:               args.ChainRunType,
 	}
 
 	return sesb, nil
@@ -183,10 +186,12 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.trieContainer = triesContainer
 	sesb.trieStorageManagers = trieStorageManagers
 
-	err = sesb.createStorageRequestHandler()
+	requestHandler, err := sesb.createStorageRequestHandler()
 	if err != nil {
 		return err
 	}
+
+	sesb.requestHandler = requestHandler
 
 	metablockProcessor, err := NewStorageEpochStartMetaBlockProcessor(
 		sesb.messenger,
@@ -219,19 +224,19 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	return nil
 }
 
-func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
+func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.RequestHandler, error) {
 	err := sesb.createStorageRequesters()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	finder, err := containers.NewRequestersFinder(sesb.container, sesb.shardCoordinator)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
-	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
+	requestHandler, err := requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
 		sesb.whiteListHandler,
@@ -239,7 +244,18 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		core.MetachainShardId,
 		timeBetweenRequests,
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	switch sesb.chainRunType {
+	case common.ChainRunTypeRegular:
+		return requestHandler, nil
+	case common.ChainRunTypeSovereign:
+		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
+	default:
+		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, sesb.chainRunType)
+	}
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {

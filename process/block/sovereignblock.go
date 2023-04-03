@@ -16,10 +16,15 @@ import (
 
 var rootHash = "uncomputed root hash"
 
+type extendedShardHeaderTrackHandler interface {
+	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
+}
+
 type sovereignBlockProcessor struct {
 	*shardProcessor
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	uncomputedRootHash           []byte
+	extendedShardHeaderTracker   extendedShardHeaderTrackHandler
 }
 
 // NewSovereignBlockProcessor creates a new sovereign block processor
@@ -34,6 +39,13 @@ func NewSovereignBlockProcessor(
 	}
 
 	sbp.uncomputedRootHash = sbp.hasher.Compute(rootHash)
+
+	extendedShardHeaderTracker, ok := sbp.blockTracker.(extendedShardHeaderTrackHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w in NewSovereignBlockProcessor", process.ErrWrongTypeAssertion)
+	}
+
+	sbp.extendedShardHeaderTracker = extendedShardHeaderTracker
 
 	return sbp, nil
 }

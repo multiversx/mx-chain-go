@@ -8,7 +8,6 @@ type RequestHandlerStub struct {
 	RequestMetaHeaderCalled                  func(hash []byte)
 	RequestMetaHeaderByNonceCalled           func(nonce uint64)
 	RequestShardHeaderByNonceCalled          func(shardID uint32, nonce uint64)
-	RequestExtendedShardHeaderByNonceCalled  func(nonce uint64)
 	RequestTransactionHandlerCalled          func(destShardID uint32, txHashes [][]byte)
 	RequestScrHandlerCalled                  func(destShardID uint32, txHashes [][]byte)
 	RequestRewardTxHandlerCalled             func(destShardID uint32, txHashes [][]byte)
@@ -90,14 +89,6 @@ func (rhs *RequestHandlerStub) RequestShardHeaderByNonce(shardID uint32, nonce u
 		return
 	}
 	rhs.RequestShardHeaderByNonceCalled(shardID, nonce)
-}
-
-// RequestExtendedShardHeaderByNonce -
-func (rhs *RequestHandlerStub) RequestExtendedShardHeaderByNonce(nonce uint64) {
-	if rhs.RequestExtendedShardHeaderByNonceCalled == nil {
-		return
-	}
-	rhs.RequestExtendedShardHeaderByNonceCalled(nonce)
 }
 
 // RequestTransaction -

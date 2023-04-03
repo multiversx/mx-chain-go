@@ -1,14 +1,21 @@
 package track
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+type extendedShardHeaderRequestHandler interface {
+	RequestExtendedShardHeaderByNonce(nonce uint64)
+}
+
 type sovereignChainBlockProcessor struct {
 	*blockProcessor
+	extendedShardHeaderRequester extendedShardHeaderRequestHandler
 }
 
 // NewSovereignChainBlockProcessor creates an object for processing the received tracked blocks
@@ -18,13 +25,20 @@ func NewSovereignChainBlockProcessor(blockProcessor *blockProcessor) (*sovereign
 	}
 
 	scbp := &sovereignChainBlockProcessor{
-		blockProcessor,
+		blockProcessor: blockProcessor,
 	}
 
 	scbp.shouldProcessReceivedHeaderFunc = scbp.shouldProcessReceivedHeader
 	scbp.processReceivedHeaderFunc = scbp.processReceivedHeader
 	scbp.doJobOnReceivedCrossNotarizedHeaderFunc = scbp.doJobOnReceivedCrossNotarizedHeader
 	scbp.requestHeaderWithShardAndNonceFunc = scbp.requestHeaderWithShardAndNonce
+
+	extendedShardHeaderRequester, ok := scbp.requestHandler.(extendedShardHeaderRequestHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w in NewSovereignChainBlockProcessor", process.ErrWrongTypeAssertion)
+	}
+
+	scbp.extendedShardHeaderRequester = extendedShardHeaderRequester
 
 	return scbp, nil
 }
@@ -73,7 +87,7 @@ func (scbp *sovereignChainBlockProcessor) doJobOnReceivedCrossNotarizedHeader(sh
 
 func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64) {
 	if shardID == core.SovereignChainShardId {
-		scbp.requestHandler.RequestExtendedShardHeaderByNonce(nonce)
+		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	} else {
 		scbp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	}
