@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -574,6 +575,13 @@ func TestNode_NodeExtension(t *testing.T) {
 		},
 	}
 	assert.False(t, shouldTestNode(n, make([]byte, 0)))
+}
+
+func TestSnapshotGetTestPoint(t *testing.T) {
+	t.Parallel()
+
+	err := snapshotGetTestPoint([]byte("key"), 1)
+	assert.True(t, strings.Contains(err.Error(), "snapshot get error"))
 }
 
 func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {

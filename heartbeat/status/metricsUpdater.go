@@ -122,7 +122,7 @@ func (updater *metricsUpdater) updateConnectionsMetrics() {
 }
 
 func (updater *metricsUpdater) updateSenderMetrics() {
-	result, subType, err := updater.heartbeatSenderInfoProvider.GetSenderInfo()
+	result, subType, err := updater.heartbeatSenderInfoProvider.GetCurrentNodeType()
 	if err != nil {
 		log.Warn("error while updating metrics in heartbeat v2 metricsUpdater", "error", err)
 		return
