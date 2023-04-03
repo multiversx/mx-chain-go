@@ -408,7 +408,7 @@ func createScQueryElement(
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
 		if errParser != nil {
-			return nil, err
+			return nil, errParser
 		}
 
 		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
