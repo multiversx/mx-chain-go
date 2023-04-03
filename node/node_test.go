@@ -65,6 +65,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testBlockInfo struct {
+}
+
+func (t testBlockInfo) apiResult() api.BlockInfo {
+	return api.BlockInfo{
+		Nonce:    37,
+		Hash:     hex.EncodeToString([]byte("hash")),
+		RootHash: hex.EncodeToString([]byte("root")),
+	}
+}
+
+func (t testBlockInfo) forProcessing() common.BlockInfo {
+	hash := []byte("hash")
+	rHash := []byte("root")
+	return holders.NewBlockInfo(hash, 37, rHash)
+}
+
+var dummyBlockInfo = testBlockInfo{}
+
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
@@ -195,6 +214,44 @@ func TestGetBalance_AccountNotFoundShouldReturnZeroBalance(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), balance)
 }
 
+func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	balance, bInfo, err := n.GetBalance(testscommon.TestAddressAlice, api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Empty(t, balance)
+}
+
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
 
@@ -259,6 +316,44 @@ func TestGetUsername(t *testing.T) {
 	assert.Equal(t, string(expectedUsername), username)
 }
 
+func TestNode_GetCodeHashAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	codeHash, bInfo, err := n.GetCodeHash("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th", api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Empty(t, codeHash)
+}
+
 func TestGetCodeHash(t *testing.T) {
 	t.Parallel()
 
@@ -290,6 +385,44 @@ func TestGetCodeHash(t *testing.T) {
 	codeHash, _, err := n.GetCodeHash(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCodeHash, codeHash)
+}
+
+func TestNode_GetKeyValuePairsAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	pairs, bInfo, err := n.GetKeyValuePairs(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Len(t, pairs, 0)
 }
 
 func TestNode_GetKeyValuePairs(t *testing.T) {
@@ -472,6 +605,44 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
+func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	value, bInfo, err := n.GetValueForKey(testscommon.TestAddressAlice, "0a0a", api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Empty(t, value)
+}
+
 func TestNode_GetValueForKey(t *testing.T) {
 	t.Parallel()
 
@@ -512,6 +683,46 @@ func TestNode_GetValueForKey(t *testing.T) {
 	value, _, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1), api.AccountQueryOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, hex.EncodeToString(v1), value)
+}
+
+func TestNode_GetESDTDataAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	esdtToken := "newToken"
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	esdtTokenData, bInfo, err := n.GetESDTData(testscommon.TestAddressAlice, esdtToken, 0, api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Equal(t, "0", esdtTokenData.Value.String())
 }
 
 func TestNode_GetESDTData(t *testing.T) {
@@ -788,6 +999,44 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	value, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, ctxWithTimeout)
 	assert.Nil(t, value)
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
+}
+
+func TestNode_GetAllESDTsAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	tokens, bInfo, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Len(t, tokens, 0)
 }
 
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
@@ -3076,6 +3325,44 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 	assert.ErrorIs(t, err, errExpected)
 }
 
+func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
+		},
+		RecreateTrieCalled: func(_ []byte) error {
+			return nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	acc, bInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
+	require.Equal(t, api.AccountResponse{Address: testscommon.TestAddressAlice, Balance: "0", DeveloperReward: "0"}, acc)
+}
+
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
@@ -4168,7 +4455,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), "invalid address"))
 	})
-	t.Run("error on loadUserAccountHandlerByAddress but extractApiBlockInfoIfErrAccountNotFoundAtBlock ok", func(t *testing.T) {
+	t.Run("error on loadUserAccountHandlerByAddress but account is new", func(t *testing.T) {
 		providedBlockInfo := holders.NewBlockInfo([]byte{0xaa}, 7, []byte{0xbb})
 		accDB := &stateMock.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
