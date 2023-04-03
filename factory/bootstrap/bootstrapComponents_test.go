@@ -102,7 +102,6 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	// TODO: add tests for createLatestStorageDataProvider and createUnitOpener failure
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

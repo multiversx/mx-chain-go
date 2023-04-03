@@ -33,7 +33,7 @@ func CreateShardCoordinator(
 	if check.IfNil(nodesConfig) {
 		return nil, "", errErd.ErrNilGenesisNodesSetupHandler
 	}
-	if pubKey == nil {
+	if check.IfNil(pubKey) {
 		return nil, "", errErd.ErrNilPublicKey
 	}
 	if check.IfNil(log) {

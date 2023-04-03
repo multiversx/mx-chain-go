@@ -105,11 +105,11 @@ func TestManagedBootstrapComponents_Close(t *testing.T) {
 func TestManagedBootstrapComponents_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
-	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(nil)
 	require.True(t, mbc.IsInterfaceNil())
 
+	args := componentsMock.GetBootStrapFactoryArgs()
+	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ = bootstrap.NewManagedBootstrapComponents(bcf)
 	require.False(t, mbc.IsInterfaceNil())
 }
