@@ -73,7 +73,7 @@ func (mbt *miniBlockTrack) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
-	log.Trace("miniBlockTrack.receivedMiniBlock",
+	log.Debug("received miniblock from network in block tracker",
 		"hash", key,
 		"sender", miniBlock.SenderShardID,
 		"receiver", miniBlock.ReceiverShardID,

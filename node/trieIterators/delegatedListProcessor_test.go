@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -42,24 +41,19 @@ func TestNewDelegatedListProcessor(t *testing.T) {
 			},
 			exError: ErrNilAccountsAdapter,
 		},
-		{
-			name: "ShouldWork",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				return createMockArgs()
-			},
-			exError: nil,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewDelegatedListProcessor(tt.argsFunc())
+			dlp, err := NewDelegatedListProcessor(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
+			require.Nil(t, dlp)
 		})
 	}
 
-	dlp, _ := NewDelegatedListProcessor(createMockArgs())
-	assert.False(t, check.IfNil(dlp))
+	dlp, err := NewDelegatedListProcessor(createMockArgs())
+	require.NotNil(t, dlp)
+	require.Nil(t, err)
 }
 
 func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldErr(t *testing.T) {
@@ -217,6 +211,16 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.Delegator{&expectedDelegator1, &expectedDelegator2}, delegatorsValues)
 }
 
+func TestDelegatedListProcessor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var dlp *delegatedListProcessor
+	require.True(t, dlp.IsInterfaceNil())
+
+	dlp, _ = NewDelegatedListProcessor(createMockArgs())
+	require.False(t, dlp.IsInterfaceNil())
+}
+
 func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
 	acc.SetDataTrie(&trieMock.TrieStub{
@@ -232,7 +236,7 @@ func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte,
 				}
 
 				close(leavesChannels.LeavesChan)
-				close(leavesChannels.ErrChan)
+				leavesChannels.ErrChan.Close()
 			}()
 
 			return nil
