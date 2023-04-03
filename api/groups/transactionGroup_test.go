@@ -135,13 +135,15 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	value := "10"
 	txData := []byte("data")
 	hash := "hash"
+	guardian := "guardian"
 	facade := mock.FacadeStub{
 		GetTransactionHandler: func(hash string, withEvents bool) (i *dataTx.ApiTransactionResult, e error) {
 			return &dataTx.ApiTransactionResult{
-				Sender:   sender,
-				Receiver: receiver,
-				Data:     txData,
-				Value:    value,
+				Sender:       sender,
+				Receiver:     receiver,
+				Data:         txData,
+				Value:        value,
+				GuardianAddr: guardian,
 			}, nil
 		},
 	}
@@ -164,6 +166,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, receiver, txResp.Receiver)
 	assert.Equal(t, value, txResp.Value)
 	assert.Equal(t, txData, txResp.Data)
+	assert.Equal(t, guardian, txResp.GuardianAddr)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
