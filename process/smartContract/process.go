@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -339,7 +338,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return vmcommon.ExecutionFailed, err
 		}
 		log.Trace("process vm output returned with problem ", "err", err.Error())
@@ -381,7 +380,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return nil, err
 		}
 		log.Debug("run smart contract call error", "error", err.Error())
@@ -984,7 +983,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		tmpCreatedAsyncCallback := false
 		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
-			if errors.IsGetNodeFromDBError(err) {
+			if core.IsGetNodeFromDBError(err) {
 				return vmcommon.ExecutionFailed, err
 			}
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
@@ -1086,7 +1085,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 			GasRemaining:  0,
 		}
 
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return nil, err
 		}
 
@@ -1376,7 +1375,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		if !errors.IsClosingError(err) {
+		if !core.IsClosingError(err) {
 			log.Warn("revert to snapshot", "error", err.Error())
 		}
 
@@ -1730,7 +1729,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return vmcommon.ExecutionFailed, err
 		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1755,7 +1754,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return vmcommon.ExecutionFailed, err
 		}
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)

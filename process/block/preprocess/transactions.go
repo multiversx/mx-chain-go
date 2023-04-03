@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	chainErr "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -1091,7 +1090,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	if err != nil {
 		log.Debug("createAndProcessMiniBlocksFromMe", "error", err.Error())
 
-		if chainErr.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return nil, err
 		}
 
@@ -1206,7 +1205,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
-			if chainErr.IsGetNodeFromDBError(err) {
+			if core.IsGetNodeFromDBError(err) {
 				return nil, nil, err
 			}
 			continue
@@ -1298,7 +1297,7 @@ func (txs *transactions) handleBadTransaction(
 ) {
 	log.Trace("bad tx", "error", err.Error(), "hash", wtx.TxHash)
 	errRevert := txs.accounts.RevertToSnapshot(snapshot)
-	if errRevert != nil && !chainErr.IsClosingError(errRevert) {
+	if errRevert != nil && !core.IsClosingError(errRevert) {
 		log.Warn("revert to snapshot", "error", err.Error())
 	}
 

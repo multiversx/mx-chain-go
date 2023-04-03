@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -269,7 +270,7 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 }
 
 func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("context closing", "hash", hash)
 		return
 	}

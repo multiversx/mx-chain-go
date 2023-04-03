@@ -3,6 +3,7 @@ package trie
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -73,7 +74,7 @@ func treatGetFromEpochError(err error, epoch uint32) {
 		return
 	}
 
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error(), "epoch", epoch)
 		return
 	}

@@ -180,7 +180,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	val, err := tsm.mainStorer.Get(key)
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -214,7 +214,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -516,7 +516,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("context closing", "message", message, "rootHash", rootHash, "mainTrieRootHash", mainTrieRootHash)
 		return
 	}

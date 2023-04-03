@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -2028,7 +2027,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return nil, nil, err
 		}
 	}

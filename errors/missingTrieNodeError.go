@@ -3,27 +3,8 @@ package errors
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
-
 	"github.com/multiversx/mx-chain-go/common"
 )
-
-// IsGetNodeFromDBError returns true if the provided error is of type getNodeFromDB
-func IsGetNodeFromDBError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if IsClosingError(err) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-		return true
-	}
-
-	return false
-}
 
 // GetNodeFromDBErrWithKey defines a custom error for trie get node
 type GetNodeFromDBErrWithKey struct {
