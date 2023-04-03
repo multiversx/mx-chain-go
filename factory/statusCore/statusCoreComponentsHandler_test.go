@@ -10,9 +10,6 @@ import (
 
 func TestManagedStatusCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetDefaultCoreComponents())
 	args.Config.ResourceStats.RefreshIntervalInSec = 0
@@ -29,9 +26,6 @@ func TestManagedStatusCoreComponents_CreateWithInvalidArgsShouldErr(t *testing.T
 
 func TestManagedStatusCoreComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
@@ -51,9 +45,6 @@ func TestManagedStatusCoreComponents_CreateShouldWork(t *testing.T) {
 
 func TestManagedCoreComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
