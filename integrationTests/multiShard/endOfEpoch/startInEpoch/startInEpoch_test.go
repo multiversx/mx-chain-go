@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -285,6 +286,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            common.Normal,
 		},
 	)
 	assert.NoError(t, err)
