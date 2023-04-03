@@ -370,7 +370,7 @@ func TestTriePruningStorer_GetLatestStorageEpoch(t *testing.T) {
 		assert.Equal(t, expectedErrString, err.Error())
 		assert.Zero(t, latestEpoch)
 	})
-	t.Run("no active db should error", func(t *testing.T) {
+	t.Run("with at least one active DB should work", func(t *testing.T) {
 		t.Parallel()
 
 		tps, _ := pruning.NewTriePruningStorer(args)
