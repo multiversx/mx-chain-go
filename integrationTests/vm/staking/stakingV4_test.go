@@ -1214,7 +1214,7 @@ func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIs
 	// Epoch = 0, before staking v4, owner2 stakes 2 nodes
 	// - maxNumNodes    = 20
 	// - activeNumNodes = 10
-	// Newly staked nodes should be sent tu new list
+	// Newly staked nodes should be sent to new list
 	owner2Nodes := pubKeys[12:14]
 	node.ProcessStake(t, map[string]*NodesRegisterData{
 		"owner2": {
