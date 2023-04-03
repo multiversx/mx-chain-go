@@ -15,10 +15,6 @@ import (
 )
 
 func TestCreateApiResolver(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := componentsMock.GetCoreComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
