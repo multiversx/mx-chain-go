@@ -2527,89 +2527,106 @@ func TestNodesCoordinator_CustomConsensusGroupSize(t *testing.T) {
 	arguments.EligibleNodes = eligibleMap
 	arguments.WaitingNodes = waitingMap
 	arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+
+	consensusParams := []struct {
+		enableEpoch   uint32
+		shardCnsSize  uint32
+		metaCnsSize   uint32
+		shardMinNodes uint32
+		metaMinNodes  uint32
+	}{
+		{
+			enableEpoch:   9,
+			shardCnsSize:  3,
+			shardMinNodes: 3,
+			metaCnsSize:   3,
+			metaMinNodes:  3,
+		},
+		{
+			enableEpoch:   6,
+			shardCnsSize:  3,
+			shardMinNodes: 3,
+			metaCnsSize:   2,
+			metaMinNodes:  2,
+		},
+		{
+			enableEpoch:   3,
+			shardCnsSize:  3,
+			shardMinNodes: 3,
+			metaCnsSize:   3,
+			metaMinNodes:  3,
+		},
+		{
+			enableEpoch:   0,
+			shardCnsSize:  2,
+			shardMinNodes: 2,
+			metaCnsSize:   3,
+			metaMinNodes:  3,
+		},
+	}
 	arguments.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
-			if epoch < 3 {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     2,
-					ShardMinNumNodes:            2,
-					MetachainConsensusGroupSize: 3,
-					MetachainMinNumNodes:        3,
-				}, nil
+			for _, cfg := range consensusParams {
+				if epoch >= cfg.enableEpoch {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize:     cfg.shardCnsSize,
+						ShardMinNumNodes:            cfg.shardMinNodes,
+						MetachainConsensusGroupSize: cfg.metaCnsSize,
+						MetachainMinNumNodes:        cfg.metaMinNodes,
+					}, nil
+				}
 			}
 
-			if epoch < 6 {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     3,
-					ShardMinNumNodes:            3,
-					MetachainConsensusGroupSize: 3,
-					MetachainMinNumNodes:        3,
-				}, nil
-			}
-
-			if epoch < 9 {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     3,
-					ShardMinNumNodes:            3,
-					MetachainConsensusGroupSize: 2,
-					MetachainMinNumNodes:        2,
-				}, nil
-			}
-
-			return config.ChainParametersByEpochConfig{
-				ShardConsensusGroupSize:     3,
-				ShardMinNumNodes:            3,
-				MetachainConsensusGroupSize: 3,
-				MetachainMinNumNodes:        3,
-			}, nil
+			return config.ChainParametersByEpochConfig{}, errors.New("wrong test setup")
 		},
 	}
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	require.NotNil(t, ihnc)
 
+	numEpochsToCheck := uint32(100)
+	checksCounter := 0
+	for ep := uint32(0); ep < numEpochsToCheck; ep++ {
+		for _, cfg := range consensusParams {
+			if ep >= cfg.enableEpoch {
+				changeEpochAndTestNewConsensusSizes(&consensusSizeChangeTestArgs{
+					t:                     t,
+					ihnc:                  ihnc,
+					epoch:                 ep,
+					expectedShardMinNodes: cfg.shardMinNodes,
+					expectedMetaMinNodes:  cfg.metaMinNodes,
+				})
+				checksCounter++
+				break
+			}
+		}
+	}
+	require.Equal(t, numEpochsToCheck, uint32(checksCounter))
+}
+
+type consensusSizeChangeTestArgs struct {
+	t                     *testing.T
+	ihnc                  *indexHashedNodesCoordinator
+	epoch                 uint32
+	expectedShardMinNodes uint32
+	expectedMetaMinNodes  uint32
+}
+
+func changeEpochAndTestNewConsensusSizes(args *consensusSizeChangeTestArgs) {
 	header := &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 	}
 
-	// change to epoch 1 - should have 3 eligible per shard, 3 per meta
-	epoch := uint32(1)
-	header.Epoch = epoch
-	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
-	body := createBlockBodyFromNodesCoordinator(ihnc, epoch, ihnc.validatorInfoCacher)
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[0], 2)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[common.MetachainShardId], 3)
-
-	// change to epoch 5 - should have 3 eligible per shard, 3 per meta
-	epoch = 5
-	header.Epoch = epoch
-	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[0]
-	body = createBlockBodyFromNodesCoordinator(ihnc, epoch, ihnc.validatorInfoCacher)
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[0], 3)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[common.MetachainShardId], 3)
-
-	// change to epoch 7 - should have 3 eligible per shard, 2 per meta
-	epoch = 7
-	header.Epoch = epoch
-	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[5]
-	body = createBlockBodyFromNodesCoordinator(ihnc, epoch, ihnc.validatorInfoCacher)
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[0], 3)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[common.MetachainShardId], 2)
-
-	// change to epoch 12 - should have 3 eligible per shard, 3 per meta
-	epoch = 12
-	header.Epoch = epoch
-	ihnc.nodesConfig[epoch] = ihnc.nodesConfig[5]
-	body = createBlockBodyFromNodesCoordinator(ihnc, epoch, ihnc.validatorInfoCacher)
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[0], 3)
-	require.Len(t, ihnc.nodesConfig[epoch].eligibleMap[common.MetachainShardId], 3)
+	header.Epoch = args.epoch
+	epochForPrevConfig := uint32(0)
+	if args.epoch > 0 {
+		epochForPrevConfig = args.epoch - 1
+	}
+	args.ihnc.nodesConfig[args.epoch] = args.ihnc.nodesConfig[epochForPrevConfig]
+	body := createBlockBodyFromNodesCoordinator(args.ihnc, args.epoch, args.ihnc.validatorInfoCacher)
+	args.ihnc.EpochStartPrepare(header, body)
+	args.ihnc.EpochStartAction(header)
+	require.Len(args.t, args.ihnc.nodesConfig[args.epoch].eligibleMap[0], int(args.expectedShardMinNodes))
+	require.Len(args.t, args.ihnc.nodesConfig[args.epoch].eligibleMap[common.MetachainShardId], int(args.expectedMetaMinNodes))
 }
