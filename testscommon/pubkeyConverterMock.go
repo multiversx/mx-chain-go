@@ -2,6 +2,8 @@ package testscommon
 
 import (
 	"encoding/hex"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // PubkeyConverterMock -
@@ -22,8 +24,24 @@ func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
 }
 
 // Encode -
-func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) string {
+func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) (string, error) {
+	return hex.EncodeToString(pkBytes), nil
+}
+
+// SilentEncode -
+func (pcm *PubkeyConverterMock) SilentEncode(pkBytes []byte, log core.Logger) string {
 	return hex.EncodeToString(pkBytes)
+}
+
+// EncodeSlice -
+func (pcm *PubkeyConverterMock) EncodeSlice(pkBytesSlice [][]byte) ([]string, error) {
+	encodedSlice := make([]string, 0)
+
+	for _, pkBytes := range pkBytesSlice {
+		encodedSlice = append(encodedSlice, hex.EncodeToString(pkBytes))
+	}
+
+	return encodedSlice, nil
 }
 
 // Len -

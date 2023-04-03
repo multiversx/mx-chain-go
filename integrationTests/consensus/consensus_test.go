@@ -370,10 +370,12 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
+		encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
+
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			shardID,
 			hex.EncodeToString(skBuff),
-			testPubkeyConverter.Encode(pkBuff),
+			encodedNodePkBuff,
 		)
 	}
 }

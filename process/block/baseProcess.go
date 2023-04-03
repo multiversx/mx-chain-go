@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/display"
@@ -1482,9 +1483,9 @@ func (bp *baseProcessor) applyBodyInfoOnCommonHeader(
 }
 
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
-	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
+	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(hdrHash)
+	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{HeaderHash: hdrHash})
 }
 
 func (bp *baseProcessor) updateStateStorage(

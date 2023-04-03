@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
@@ -38,7 +38,7 @@ func TestNewBlockGroup(t *testing.T) {
 
 type alteredAccountsForBlockResponse struct {
 	Data struct {
-		Accounts []*outport.AlteredAccount `json:"accounts"`
+		Accounts []*alteredAccount.AlteredAccount `json:"accounts"`
 	} `json:"data"`
 	Error string `json:"error"`
 	Code  string `json:"code"`
@@ -442,7 +442,7 @@ func TestGetBlockByRound_WithBlockQueryOptionsShouldWork(t *testing.T) {
 func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedResponse := []*outport.AlteredAccount{
+	expectedResponse := []*alteredAccount.AlteredAccount{
 		{
 			Address: "alice",
 			Balance: "100000",
@@ -450,7 +450,7 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 			require.Equal(t, api.BlockFetchTypeByNonce, options.RequestType)
 			require.Equal(t, uint64(37), options.Nonce)
 
@@ -473,14 +473,14 @@ func TestGetAlteredAccountsByNonce_ShouldWork(t *testing.T) {
 func TestGetAlteredAccountsByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedResponse := []*outport.AlteredAccount{
+	expectedResponse := []*alteredAccount.AlteredAccount{
 		{
 			Address: "alice",
 			Balance: "100000",
 		},
 	}
 	facade := mock.FacadeStub{
-		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 			require.Equal(t, api.BlockFetchTypeByHash, options.RequestType)
 			require.Equal(t, "aabb", hex.EncodeToString(options.Hash))
 
