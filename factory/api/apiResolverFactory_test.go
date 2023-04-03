@@ -59,9 +59,6 @@ func (fs *failingSteps) reset() {
 }
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := componentsMock.GetCoreComponents()
