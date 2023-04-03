@@ -135,7 +135,6 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 0
 	}
-	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
@@ -146,11 +145,11 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		hasher,
 		messenger,
 		shardCoord,
-		privateKey,
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -167,7 +166,6 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return core.MetachainShardId
 	}
-	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
@@ -178,11 +176,11 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		hasher,
 		messenger,
 		shardCoord,
-		privateKey,
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -202,10 +200,10 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		nil,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, bm)
@@ -229,10 +227,10 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		nil,
 		shardCoord,
 		nil,
-		nil,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, bm)

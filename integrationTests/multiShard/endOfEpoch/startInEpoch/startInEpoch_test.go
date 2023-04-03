@@ -206,7 +206,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
-	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.MainKey.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
 	cryptoComponents.TxSig = &mock.SignerMock{}
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
@@ -287,6 +287,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			SnapshotsEnabled:              false,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		},
 	)
 	assert.NoError(t, err)

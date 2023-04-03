@@ -204,6 +204,11 @@ func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
 }
 
+// GetAssociatedPid returns the associated PeerID to the provided public key bytes
+func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
+	return sr.keysHandler.GetAssociatedPid(pkBytes)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	return sr == nil
