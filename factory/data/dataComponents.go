@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -28,6 +29,7 @@ type DataComponentsFactoryArgs struct {
 	EpochStartNotifier            factory.EpochStartNotifier
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	NodeProcessingMode            common.NodeProcessingMode
 }
 
 type dataComponentsFactory struct {
@@ -39,6 +41,7 @@ type dataComponentsFactory struct {
 	statusCore                    factory.StatusCoreComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
+	nodeProcessingMode            common.NodeProcessingMode
 }
 
 // dataComponents struct holds the data components
@@ -84,6 +87,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		epochStartNotifier:            args.EpochStartNotifier,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
+		nodeProcessingMode:            args.NodeProcessingMode,
 	}, nil
 }
 
@@ -172,6 +176,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
+			NodeProcessingMode:            dcf.nodeProcessingMode,
 		})
 	if err != nil {
 		return nil, err
