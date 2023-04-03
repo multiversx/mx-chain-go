@@ -510,16 +510,19 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 	return nil
 }
 
-// LoadDataTrie retrieves and saves the SC data inside accountHandler object.
+// loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler, mainTrie common.Trie) error {
-	if len(accountHandler.GetRootHash()) == 0 {
-		return nil
-	}
+func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
 
 	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
 		accountHandler.SetDataTrie(dataTrie)
+		return nil
+	}
+
+	if len(accountHandler.GetRootHash()) == 0 {
 		return nil
 	}
 
@@ -703,7 +706,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc, mainTrie)
+		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -755,7 +758,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadDataTrie(baseAcc, mainTrie)
+		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
 		}
@@ -785,7 +788,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrie(baseAcc, adb.getMainTrie())
+	err = adb.loadDataTrieConcurrentSafe(baseAcc, adb.getMainTrie())
 	if err != nil {
 		return nil, err
 	}
@@ -1100,7 +1103,10 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 	}
 
 	adb.entries = append(adb.entries, entry)
-	log.Trace("accountsDB.Journalize", "new length", len(adb.entries))
+	log.Trace("accountsDB.Journalize",
+		"new length", len(adb.entries),
+		"entry type", fmt.Sprintf("%T", entry),
+	)
 
 	if len(adb.entries) == 1 {
 		adb.stackDebug = debug.Stack()
@@ -1147,12 +1153,12 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	}
 	stats := newSnapshotStatistics(1, 1)
 
-	accountMetrics := &accountMetrics{
+	accountMetricsInstance := &accountMetrics{
 		snapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
 		lastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
 		snapshotMessage:         userTrieSnapshotMsg,
 	}
-	adb.updateMetricsOnSnapshotStart(accountMetrics)
+	adb.updateMetricsOnSnapshotStart(accountMetricsInstance)
 
 	go func() {
 		stats.NewSnapshotStarted()
@@ -1165,7 +1171,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 
 	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
-	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetrics, epoch)
+	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetricsInstance, epoch)
 
 	adb.waitForCompletionIfAppropriate(stats)
 }

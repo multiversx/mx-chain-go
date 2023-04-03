@@ -216,9 +216,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
+		log.Trace("trying to commit empty trie")
 		return nil
 	}
 	if !tr.root.isDirty() {
+		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
 		return nil
 	}
 	err := tr.root.setRootHash()

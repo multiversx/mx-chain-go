@@ -706,7 +706,7 @@ func TestAccountsDB_LoadDataNilRootShouldRetNil(t *testing.T) {
 	_, account, adb := generateAddressAccountAccountsDB(tr)
 
 	// since root is nil, result should be nil and data trie should be nil
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 	assert.Nil(t, account.DataTrie())
 }
@@ -723,7 +723,7 @@ func TestAccountsDB_LoadDataBadLengthShouldErr(t *testing.T) {
 	account.SetRootHash([]byte("12345"))
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -741,7 +741,7 @@ func TestAccountsDB_LoadDataMalfunctionTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(mockTrie)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -759,7 +759,7 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
@@ -803,7 +803,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should not return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 
 	// verify data
@@ -2966,6 +2966,35 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 	rootHash, _ := adb.Commit()
 
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)
+}
+
+func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+	addr := generateRandomByteArray(32)
+
+	acc, _ := adb.LoadAccount(addr)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(addr)
+	acc.(state.UserAccountHandler).IncreaseNonce(1)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	err := adb.RevertToSnapshot(1)
+	require.Nil(t, err)
+
+	acc, _ = adb.LoadAccount(addr)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	_, err = adb.Commit()
+	require.Nil(t, err)
+
+	acc, err = adb.LoadAccount(addr)
+	require.Nil(t, err)
+	require.NotNil(t, acc)
 }
 
 func testAccountMethodsConcurrency(
