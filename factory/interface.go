@@ -210,7 +210,7 @@ type MiniBlockProvider interface {
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
 	MiniBlocksProvider() MiniBlockProvider

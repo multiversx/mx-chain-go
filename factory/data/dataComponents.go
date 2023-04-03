@@ -62,20 +62,11 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
 	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, errors.ErrNilEpochStartNotifier
 	}
-	if check.IfNil(args.Core.EconomicsData()) {
-		return nil, errors.ErrNilEconomicsHandler
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
 	}
 
 	return &dataComponentsFactory{
