@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -226,7 +227,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -254,7 +255,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		}
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +308,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -326,7 +327,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -479,7 +480,7 @@ func (n *Node) getTokensIDsWithFilter(
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -502,7 +503,7 @@ func (n *Node) getTokensIDsWithFilter(
 		}
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -620,7 +621,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -658,7 +659,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		allESDTs[tokenName] = esdtToken
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
