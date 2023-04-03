@@ -1455,6 +1455,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 		},
 	)
 	if err != nil {
