@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -542,7 +543,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 
 	leaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, 1),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = testContext.Accounts.GetAllLeaves(leaves, context.Background(), roothash)
 	require.Nil(t, err)
@@ -551,6 +552,6 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 		// do nothing, just iterate
 	}
 
-	err = <-leaves.ErrChan
+	err = leaves.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 }
