@@ -218,6 +218,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
+		NodeProcessingMode:            common.Normal,
 	}
 }
 

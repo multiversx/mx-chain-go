@@ -1893,7 +1893,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			},
 			GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 				close(channels.LeavesChan)
-				close(channels.ErrChan)
+				channels.ErrChan.Close()
 				return nil
 			},
 		},
@@ -1937,7 +1937,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 					close(channels.LeavesChan)
-					close(channels.ErrChan)
+					channels.ErrChan.Close()
 					return expectedErr
 				},
 			},
@@ -1974,7 +1974,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 					return rootHash, nil
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-					channels.ErrChan <- expectedErr
+					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 					return nil
 				},
@@ -2034,14 +2034,14 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channels.LeavesChan)
-						close(channels.ErrChan)
+						channels.ErrChan.Close()
 						return nil
 					}
 
 					go func() {
 						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
 						close(channels.LeavesChan)
-						close(channels.ErrChan)
+						channels.ErrChan.Close()
 					}()
 
 					return nil

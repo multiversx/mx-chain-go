@@ -163,3 +163,12 @@ func GetSkBytesFromP2pKey(p2pKeyFilename string) ([]byte, error) {
 
 	return skBytes, nil
 }
+
+// GetNodeProcessingMode returns the node processing mode based on the provided config
+func GetNodeProcessingMode(importDbConfig *config.ImportDbConfig) NodeProcessingMode {
+	if importDbConfig.IsImportDBMode {
+		return ImportDb
+	}
+
+	return Normal
+}
