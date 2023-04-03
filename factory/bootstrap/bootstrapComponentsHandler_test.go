@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -30,7 +29,7 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 
 	mbc, err := bootstrap.NewManagedBootstrapComponents(nil)
 
-	require.True(t, check.IfNil(mbc))
+	require.Nil(t, mbc)
 	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
 }
 
@@ -64,7 +63,7 @@ func TestManagedBootstrapComponents_MethodsCreate(t *testing.T) {
 
 	assert.NotNil(t, mbc.EpochStartBootstrapper())
 	params := mbc.EpochBootstrapParams()
-	assert.False(t, check.IfNil(params))
+	require.NotNil(t, mbc)
 	assert.Equal(t, uint32(0), params.Epoch())
 	assert.Equal(t, uint32(0), params.SelfShardID())
 	assert.Equal(t, uint32(2), params.NumOfShards())
@@ -101,4 +100,16 @@ func TestManagedBootstrapComponents_Close(t *testing.T) {
 
 	_ = mbc.Close()
 	require.Nil(t, mbc.EpochBootstrapParams())
+}
+
+func TestManagedBootstrapComponents_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetBootStrapFactoryArgs()
+	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+	mbc, _ := bootstrap.NewManagedBootstrapComponents(nil)
+	require.True(t, mbc.IsInterfaceNil())
+
+	mbc, _ = bootstrap.NewManagedBootstrapComponents(bcf)
+	require.False(t, mbc.IsInterfaceNil())
 }
