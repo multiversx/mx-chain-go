@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
@@ -55,4 +56,9 @@ type Throttler interface {
 type HealthService interface {
 	io.Closer
 	RegisterComponent(component interface{})
+}
+
+type accountHandlerWithDataTrieMigrationStatus interface {
+	vmcommon.AccountHandler
+	IsDataTrieMigrated() (bool, error)
 }

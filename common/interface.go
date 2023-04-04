@@ -36,6 +36,7 @@ type Trie interface {
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	IsMigratedToLatestVersion() (bool, error)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -63,6 +64,7 @@ type KeyBuilder interface {
 type DataTrieHandler interface {
 	RootHash() ([]byte, error)
 	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
+	IsMigratedToLatestVersion() (bool, error)
 	IsInterfaceNil() bool
 }
 

@@ -228,6 +228,16 @@ func (a *userAccount) GetAllLeaves(
 	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
 }
 
+// IsDataTrieMigrated returns true if the data trie is migrated to the latest version
+func (a *userAccount) IsDataTrieMigrated() (bool, error) {
+	dt := a.dataTrieTracker.DataTrie()
+	if check.IfNil(dt) {
+		return false, ErrNilTrie
+	}
+
+	return dt.IsMigratedToLatestVersion()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (a *userAccount) IsInterfaceNil() bool {
 	return a == nil
