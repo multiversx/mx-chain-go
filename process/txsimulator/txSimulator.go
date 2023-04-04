@@ -17,9 +17,12 @@ import (
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
+
+var log = logger.GetOrCreate("process/txSimulator")
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
 type ArgsTxSimulator struct {
@@ -233,11 +236,12 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	})
 	res := ts.dataFieldParser.Parse(scr.Data, scr.SndAddr, scr.RcvAddr, ts.shardCoordinator.NumberOfShards())
 
+
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:             scr.Nonce,
 		Value:             scr.Value,
-		RcvAddr:           ts.addressPubKeyConverter.Encode(scr.RcvAddr),
-		SndAddr:           ts.addressPubKeyConverter.Encode(scr.SndAddr),
+		RcvAddr:           ts.addressPubKeyConverter.SilentEncode(scr.RcvAddr, log),
+		SndAddr:           ts.addressPubKeyConverter.SilentEncode(scr.SndAddr, log),
 		RelayedValue:      scr.RelayedValue,
 		Code:              hex.EncodeToString(scr.Code),
 		Data:              string(scr.Data),
@@ -259,19 +263,22 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	}
 
 	if scr.OriginalSender != nil {
-		resScr.OriginalSender = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+		resScr.OriginalSender = ts.addressPubKeyConverter.SilentEncode(scr.OriginalSender, log)
 	}
+
 	if scr.RelayerAddr != nil {
-		resScr.RelayerAddr = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+		resScr.RelayerAddr = ts.addressPubKeyConverter.SilentEncode(scr.RelayerAddr, log)
 	}
 
 	return resScr
 }
 
 func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	receiptSenderAddress := ts.addressPubKeyConverter.SilentEncode(rcpt.SndAddr, log)
+
 	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
-		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
+		SndAddr: receiptSenderAddress,
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
 	}

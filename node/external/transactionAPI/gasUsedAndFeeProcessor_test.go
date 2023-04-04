@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
@@ -145,11 +145,14 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 			RcvAddr:  silentDecodeAddress(receiver),
 			Data:     []byte("relayedTx@"),
 		},
+		Sender:   sender,
+		Receiver: receiver,
 		GasLimit: 10_000_000,
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
 				Value:    big.NewInt(66350000000000),
 				IsRefund: true,
+				RcvAddr:  sender,
 			},
 		},
 		Logs: &transaction.ApiLogs{
