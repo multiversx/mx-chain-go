@@ -28,8 +28,8 @@ const (
 )
 
 type createAndProcessMiniBlocksDestMeInfo struct {
-	currMetaHdr                 data.HeaderHandler
-	currMetaHdrHash             []byte
+	currHdr                     data.HeaderHandler
+	currHdrHash                 []byte
 	currProcessedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo
 	allProcessedMiniBlocksInfo  map[string]*processedMb.ProcessedMiniBlockInfo
 	haveTime                    func() bool
@@ -1861,24 +1861,24 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			break
 		}
 
-		createAndProcessInfo.currMetaHdr = orderedMetaBlocks[i]
-		if createAndProcessInfo.currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
+		createAndProcessInfo.currHdr = orderedMetaBlocks[i]
+		if createAndProcessInfo.currHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
 			log.Debug("skip searching",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"last meta hdr nonce", lastMetaHdr.GetNonce(),
-				"curr meta hdr nonce", createAndProcessInfo.currMetaHdr.GetNonce())
+				"curr meta hdr nonce", createAndProcessInfo.currHdr.GetNonce())
 			break
 		}
 
-		createAndProcessInfo.currMetaHdrHash = orderedMetaBlocksHashes[i]
-		if len(createAndProcessInfo.currMetaHdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currMetaHdr, usedInBlock: true}
+		createAndProcessInfo.currHdrHash = orderedMetaBlocksHashes[i]
+		if len(createAndProcessInfo.currHdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
+			sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currHdr, usedInBlock: true}
 			createAndProcessInfo.numHdrsAdded++
-			lastMetaHdr = createAndProcessInfo.currMetaHdr
+			lastMetaHdr = createAndProcessInfo.currHdr
 			continue
 		}
 
-		createAndProcessInfo.currProcessedMiniBlocksInfo = sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(createAndProcessInfo.currMetaHdrHash)
+		createAndProcessInfo.currProcessedMiniBlocksInfo = sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(createAndProcessInfo.currHdrHash)
 		createAndProcessInfo.hdrAdded = false
 
 		shouldContinue, errCreated := sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -1889,7 +1889,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			break
 		}
 
-		lastMetaHdr = createAndProcessInfo.currMetaHdr
+		lastMetaHdr = createAndProcessInfo.currHdr
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1914,7 +1914,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	createAndProcessInfo *createAndProcessMiniBlocksDestMeInfo,
 ) (bool, error) {
 	currMiniBlocksAdded, currNumTxsAdded, hdrProcessFinished, errCreated := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-		createAndProcessInfo.currMetaHdr,
+		createAndProcessInfo.currHdr,
 		createAndProcessInfo.currProcessedMiniBlocksInfo,
 		createAndProcessInfo.haveTime,
 		createAndProcessInfo.haveAdditionalTime,
@@ -1935,7 +1935,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	createAndProcessInfo.numTxsAdded += currNumTxsAdded
 
 	if !createAndProcessInfo.hdrAdded && currNumTxsAdded > 0 {
-		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currMetaHdr, usedInBlock: true}
+		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currHdr, usedInBlock: true}
 		createAndProcessInfo.numHdrsAdded++
 		createAndProcessInfo.hdrAdded = true
 	}
@@ -1943,9 +1943,9 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	if !hdrProcessFinished {
 		log.Debug("meta block cannot be fully processed",
 			"scheduled mode", createAndProcessInfo.scheduledMode,
-			"round", createAndProcessInfo.currMetaHdr.GetRound(),
-			"nonce", createAndProcessInfo.currMetaHdr.GetNonce(),
-			"hash", createAndProcessInfo.currMetaHdrHash,
+			"round", createAndProcessInfo.currHdr.GetRound(),
+			"nonce", createAndProcessInfo.currHdr.GetNonce(),
+			"hash", createAndProcessInfo.currHdrHash,
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 

@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,7 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -75,6 +78,11 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 		return nil, nil, process.ErrNilBlockHeader
 	}
 
+	sovereignChainHeaderHandler, ok := initialHdr.(data.SovereignChainHeaderHandler)
+	if !ok {
+		return nil, nil, fmt.Errorf("%w in sovereignBlockProcessor.CreateBlock", process.ErrWrongTypeAssertion)
+	}
+
 	s.processStatusHandler.SetBusy("sovereignBlockProcessor.CreateBlock")
 	defer s.processStatusHandler.SetIdle()
 
@@ -91,12 +99,263 @@ func (s *sovereignBlockProcessor) CreateBlock(initialHdr data.HeaderHandler, hav
 	}
 
 	s.blockChainHook.SetCurrentHeader(initialHdr)
+
+	var miniBlocks block.MiniBlockSlice
+	//processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+
+	if !haveTime() {
+		log.Debug("sovereignBlockProcessor.CreateBlock", "error", process.ErrTimeIsOut)
+
+		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+		return nil, nil, process.ErrTimeIsOut
+	}
+
 	startTime := time.Now()
-	mbsFromMe := s.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, initialHdr.GetPrevRandSeed())
+	createIncomingMiniBlocksDestMeInfo, err := s.createIncomingMiniBlocksDestMe(haveTime)
 	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
+	if err != nil {
+		log.Debug("createIncomingMiniBlocksDestMe", "error", err.Error())
+	}
+	if createIncomingMiniBlocksDestMeInfo != nil {
+		//processedMiniBlocksDestMeInfo = createIncomingMiniBlocksDestMeInfo.allProcessedMiniBlocksInfo
+		if len(createIncomingMiniBlocksDestMeInfo.miniBlocks) > 0 {
+			miniBlocks = append(miniBlocks, createIncomingMiniBlocksDestMeInfo.miniBlocks...)
+
+			log.Debug("created mini blocks and txs with destination in self shard",
+				"num mini blocks", len(createIncomingMiniBlocksDestMeInfo.miniBlocks),
+				"num txs", createIncomingMiniBlocksDestMeInfo.numTxsAdded,
+				"num extended shard headers", createIncomingMiniBlocksDestMeInfo.numHdrsAdded)
+		}
+	}
+
+	startTime = time.Now()
+	mbsFromMe := s.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, initialHdr.GetPrevRandSeed())
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)
 
-	return initialHdr, &block.Body{MiniBlocks: mbsFromMe}, nil
+	if len(mbsFromMe) > 0 {
+		miniBlocks = append(miniBlocks, mbsFromMe...)
+
+		numTxs := 0
+		for _, mb := range mbsFromMe {
+			numTxs += len(mb.TxHashes)
+		}
+
+		log.Debug("processed miniblocks and txs from self shard",
+			"num miniblocks", len(mbsFromMe),
+			"num txs", numTxs)
+	}
+
+	mainChainShardHeaderHashes := s.sortExtendedShardHeaderHashesForCurrentBlockByNonce(true)
+	err = sovereignChainHeaderHandler.SetMainChainShardHeaderHashes(mainChainShardHeaderHashes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (s *sovereignBlockProcessor) createIncomingMiniBlocksDestMe(haveTime func() bool) (*createAndProcessMiniBlocksDestMeInfo, error) {
+	log.Debug("createIncomingMiniBlocksDestMe has been started")
+
+	sw := core.NewStopWatch()
+	sw.Start("ComputeLongestExtendedShardChainFromLastNotarized")
+	orderedExtendedShardHeaders, orderedExtendedShardHeadersHashes, err := s.extendedShardHeaderTracker.ComputeLongestExtendedShardChainFromLastNotarized()
+	sw.Stop("ComputeLongestExtendedShardChainFromLastNotarized")
+	log.Debug("measurements", sw.GetMeasurements()...)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("extended shard headers ordered",
+		"num extended shard headers", len(orderedExtendedShardHeaders),
+	)
+
+	lastExtendedShardHdr, _, err := s.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	haveAdditionalTimeFalse := func() bool {
+		return false
+	}
+
+	createAndProcessInfo := &createAndProcessMiniBlocksDestMeInfo{
+		haveTime:                   haveTime,
+		haveAdditionalTime:         haveAdditionalTimeFalse,
+		miniBlocks:                 make(block.MiniBlockSlice, 0),
+		allProcessedMiniBlocksInfo: make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		numTxsAdded:                uint32(0),
+		numHdrsAdded:               uint32(0),
+		scheduledMode:              true,
+	}
+
+	// do processing in order
+	s.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	for i := 0; i < len(orderedExtendedShardHeadersHashes); i++ {
+		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
+			log.Debug("time is up in creating incoming mini blocks destination me",
+				"scheduled mode", createAndProcessInfo.scheduledMode,
+				"num txs added", createAndProcessInfo.numTxsAdded,
+			)
+			break
+		}
+
+		if createAndProcessInfo.numHdrsAdded >= process.MaxExtendedShardHeadersAllowedInOneSovereignBlock {
+			log.Debug("maximum extended shard headers allowed to be included in one sovereign block has been reached",
+				"scheduled mode", createAndProcessInfo.scheduledMode,
+				"extended shard headers added", createAndProcessInfo.numHdrsAdded,
+			)
+			break
+		}
+
+		extendedShardHeader, ok := orderedExtendedShardHeaders[i].(data.ShardHeaderExtendedHandler)
+		if !ok {
+			log.Debug("wrong type assertion from data.HeaderHandler to data.ShardHeaderExtendedHandler",
+				"hash", orderedExtendedShardHeadersHashes[i],
+				"shard", orderedExtendedShardHeaders[i].GetShardID(),
+				"round", orderedExtendedShardHeaders[i].GetRound(),
+				"nonce", orderedExtendedShardHeaders[i].GetNonce())
+			break
+		}
+
+		createAndProcessInfo.currHdr = orderedExtendedShardHeaders[i]
+		if createAndProcessInfo.currHdr.GetNonce() > lastExtendedShardHdr.GetNonce()+1 {
+			log.Debug("skip searching",
+				"scheduled mode", createAndProcessInfo.scheduledMode,
+				"last extended shard hdr nonce", lastExtendedShardHdr.GetNonce(),
+				"curr extended shard hdr nonce", createAndProcessInfo.currHdr.GetNonce())
+			break
+		}
+
+		createAndProcessInfo.currHdrHash = orderedExtendedShardHeadersHashes[i]
+		if len(extendedShardHeader.GetIncomingMiniBlockHandlers()) == 0 {
+			s.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currHdr, usedInBlock: true}
+			createAndProcessInfo.numHdrsAdded++
+			lastExtendedShardHdr = createAndProcessInfo.currHdr
+			continue
+		}
+
+		createAndProcessInfo.currProcessedMiniBlocksInfo = s.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(createAndProcessInfo.currHdrHash)
+		createAndProcessInfo.hdrAdded = false
+
+		shouldContinue, errCreated := s.createIncomingMiniBlocksAndTransactionsDestMe(createAndProcessInfo)
+		if errCreated != nil {
+			return nil, errCreated
+		}
+		if !shouldContinue {
+			break
+		}
+
+		lastExtendedShardHdr = createAndProcessInfo.currHdr
+	}
+	s.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	go s.requestExtendedShardHeadersIfNeeded(createAndProcessInfo.numHdrsAdded, lastExtendedShardHdr)
+
+	for _, miniBlock := range createAndProcessInfo.miniBlocks {
+		log.Debug("mini block info",
+			"type", miniBlock.Type,
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"txs added", len(miniBlock.TxHashes))
+	}
+
+	log.Debug("createIncomingMiniBlocksDestMe has been finished",
+		"num txs added", createAndProcessInfo.numTxsAdded,
+		"num hdrs added", createAndProcessInfo.numHdrsAdded)
+
+	return createAndProcessInfo, nil
+}
+
+//TODO: This mock should be removed when real functionality will be implemented
+var txCoordinatorMock = testscommon.TransactionCoordinatorMock{
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error) {
+		return make(block.MiniBlockSlice, 0), 0, false, nil
+	},
+}
+
+func (s *sovereignBlockProcessor) createIncomingMiniBlocksAndTransactionsDestMe(
+	createAndProcessInfo *createAndProcessMiniBlocksDestMeInfo,
+) (bool, error) {
+	//TODO: Replace this mock object with transaction coordinator object, when real functionality will be implemented
+	currMiniBlocksAdded, currNumTxsAdded, hdrProcessFinished, errCreated := txCoordinatorMock.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		createAndProcessInfo.currHdr,
+		createAndProcessInfo.currProcessedMiniBlocksInfo,
+		createAndProcessInfo.haveTime,
+		createAndProcessInfo.haveAdditionalTime,
+		createAndProcessInfo.scheduledMode)
+	if errCreated != nil {
+		return false, errCreated
+	}
+
+	for miniBlockHash, processedMiniBlockInfo := range createAndProcessInfo.currProcessedMiniBlocksInfo {
+		createAndProcessInfo.allProcessedMiniBlocksInfo[miniBlockHash] = &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed:         processedMiniBlockInfo.FullyProcessed,
+			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
+		}
+	}
+
+	// all txs processed, add to processed miniblocks
+	createAndProcessInfo.miniBlocks = append(createAndProcessInfo.miniBlocks, currMiniBlocksAdded...)
+	createAndProcessInfo.numTxsAdded += currNumTxsAdded
+
+	if !createAndProcessInfo.hdrAdded && currNumTxsAdded > 0 {
+		s.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currHdr, usedInBlock: true}
+		createAndProcessInfo.numHdrsAdded++
+		createAndProcessInfo.hdrAdded = true
+	}
+
+	if !hdrProcessFinished {
+		log.Debug("extended shard header cannot be fully processed",
+			"scheduled mode", createAndProcessInfo.scheduledMode,
+			"round", createAndProcessInfo.currHdr.GetRound(),
+			"nonce", createAndProcessInfo.currHdr.GetNonce(),
+			"hash", createAndProcessInfo.currHdrHash,
+			"num mbs added", len(currMiniBlocksAdded),
+			"num txs added", currNumTxsAdded)
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *sovereignBlockProcessor) requestExtendedShardHeadersIfNeeded(hdrsAdded uint32, lastExtendedShardHdr data.HeaderHandler) {
+	log.Debug("extended shard headers added",
+		"num", hdrsAdded,
+		"highest nonce", lastExtendedShardHdr.GetNonce(),
+	)
+	//TODO: A request mechanism should be implemented if extended shard header(s) is(are) needed
+}
+
+func (s *sovereignBlockProcessor) sortExtendedShardHeaderHashesForCurrentBlockByNonce(usedInBlock bool) [][]byte {
+	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
+
+	s.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for headerHash, headerInfo := range s.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo,
+			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(headerHash)})
+	}
+	s.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	if len(hdrsForCurrentBlockInfo) > 1 {
+		sort.Slice(hdrsForCurrentBlockInfo, func(i, j int) bool {
+			return hdrsForCurrentBlockInfo[i].nonce < hdrsForCurrentBlockInfo[j].nonce
+		})
+	}
+
+	hdrsHashesForCurrentBlock := make([][]byte, len(hdrsForCurrentBlockInfo))
+	for index, hdrForCurrentBlockInfo := range hdrsForCurrentBlockInfo {
+		hdrsHashesForCurrentBlock[index] = hdrForCurrentBlockInfo.hash
+	}
+
+	return hdrsHashesForCurrentBlock
 }
 
 // ProcessBlock actually processes the selected transaction and will create the final block body
