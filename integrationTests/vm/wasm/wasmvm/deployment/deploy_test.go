@@ -30,8 +30,8 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		config.EnableEpochs{
-			IsPayableBySCEnableEpoch:       1,
-			GuardAccountFeatureEnableEpoch: 1,
+			IsPayableBySCEnableEpoch: 1,
+			SetGuardianEnableEpoch:   1,
 		},
 	)
 	require.Nil(t, err)
