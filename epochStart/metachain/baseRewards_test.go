@@ -1165,7 +1165,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 
 	return BaseRewardsCreatorArgs{
 		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
+		PubkeyConverter:               testscommon.NewPubkeyConverterMock(32),
 		RewardsStorage:                mock.NewStorerMock(),
 		MiniBlockStorage:              mock.NewStorerMock(),
 		Hasher:                        &hashingMocks.HasherMock{},

@@ -30,7 +30,7 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:  mock.NewPubkeyConverterMock(32),
+		PubkeyConv:  testscommon.NewPubkeyConverterMock(32),
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerStub{},
 		PeerState:   &stateMock.AccountsStub{},

@@ -251,7 +251,9 @@ func checkUserNamesAreSetCorrectly(
 			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
 			bech32c := integrationTests.TestAddressPubkeyConverter
-			usernameReportedByNode, _, err := node.Node.GetUsername(bech32c.Encode(player.Address), api.AccountQueryOptions{})
+			playerAddress, err := bech32c.Encode(player.Address)
+			require.NoError(t, err)
+			usernameReportedByNode, _, err := node.Node.GetUsername(playerAddress, api.AccountQueryOptions{})
 			require.NoError(t, err)
 			require.Equal(t, userNames[i], usernameReportedByNode)
 		}

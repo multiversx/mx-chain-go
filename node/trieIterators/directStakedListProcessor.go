@@ -9,7 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("node/trieIterators")
 
 type directStakedListProcessor struct {
 	*commonStakingProcessor
@@ -74,8 +77,10 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 
 		baseStaked := big.NewInt(0).Set(info.totalStakedValue)
 		baseStaked.Sub(baseStaked, info.topUpValue)
+		encodedLeafKey := dslp.publicKeyConverter.SilentEncode(leafKey, log)
+
 		val := &api.DirectStakedValue{
-			Address:    dslp.publicKeyConverter.Encode(leafKey),
+			Address:    encodedLeafKey,
 			BaseStaked: baseStaked.String(),
 			TopUp:      info.topUpValue.String(),
 			Total:      info.totalStakedValue.String(),
