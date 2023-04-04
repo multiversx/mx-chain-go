@@ -85,7 +85,7 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	require.Nil(t, err)
 	networkComponents := componentsMock.GetNetworkComponents(componentsMock.GetCryptoComponents(coreComponents))
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := componentsMock.GetStateComponents(coreComponents)
 
 	statusArgs := statusComp.StatusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),

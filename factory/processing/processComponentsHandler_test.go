@@ -46,7 +46,7 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := componentsMock.GetStateComponents(coreComponents)
 	processArgs := componentsMock.GetProcessArgs(
 		shardCoordinator,
 		coreComponents,
