@@ -117,7 +117,6 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
-	IsGuardAccountEnabledField                                   bool
 	IsSetGuardianEnabledField                                    bool
 }
 
@@ -1014,14 +1013,6 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
-}
-
-// IsGuardAccountEnabled -
-func (stub *EnableEpochsHandlerStub) IsGuardAccountEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsGuardAccountEnabledField
 }
 
 // IsSetGuardianEnabled -

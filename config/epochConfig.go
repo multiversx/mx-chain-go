@@ -94,7 +94,6 @@ type EnableEpochs struct {
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
-	GuardAccountFeatureEnableEpoch                    uint32
 	SetGuardianEnableEpoch                            uint32
 }
 
