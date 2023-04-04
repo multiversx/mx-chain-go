@@ -690,7 +690,7 @@ func TestEnableEpochConfig(t *testing.T) {
     RuntimeMemStoreLimitEnableEpoch = 63
 
 	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
-	SetGuardianEnableEpoch = 10
+	SetGuardianEnableEpoch = 64
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -787,7 +787,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
-			SetGuardianEnableEpoch:                      10,
+			SetGuardianEnableEpoch:                      64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
