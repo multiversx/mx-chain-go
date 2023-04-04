@@ -1,0 +1,429 @@
+{
+    "buildInfo": {
+        "rustc": {
+            "version": "1.70.0-nightly",
+            "commitHash": "db0cbc48d4aaa300713a95d9b317a365a474490c",
+            "commitDate": "2023-03-26",
+            "channel": "Nightly",
+            "short": "rustc 1.70.0-nightly (db0cbc48d 2023-03-26)"
+        },
+        "contractCrate": {
+            "name": "forwarder-queue",
+            "version": "0.0.0",
+            "gitVersion": "v0.39.6-139-gc8a1904ad"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.39.6"
+        }
+    },
+    "docs": [
+        "Testing multiple calls per transaction."
+    ],
+    "name": "ForwarderQueue",
+    "constructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "name": "queued_calls",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "variadic<QueuedCall>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "add_queued_call_sync",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "add_queued_call_legacy_async",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "add_queued_call_transfer_execute",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas_limit",
+                    "type": "u64"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "add_queued_call_transfer_esdt",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas_limit",
+                    "type": "u64"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "token",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "add_queued_call_promise",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas_limit",
+                    "type": "u64"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "add_queued_call",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas_limit",
+                    "type": "u64"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "forward_queued_calls",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "callback_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "forward_queued_callback",
+            "inputs": []
+        },
+        {
+            "identifier": "forward_queued_call_egld",
+            "inputs": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "egld_value",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "forward_queued_call_esdt",
+            "inputs": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "multi_esdt",
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "add_queued_call_egld",
+            "inputs": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "egld_value",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "add_queued_call_esdt",
+            "inputs": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes",
+                    "indexed": true
+                },
+                {
+                    "name": "multi_esdt",
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "hasCallback": false,
+    "types": {
+        "EgldOrMultiEsdtPayment": {
+            "type": "enum",
+            "docs": [
+                "Encodes any type of payment, which either:",
+                "- EGLD (can be zero in case of no payment whatsoever);",
+                "- Multi-ESDT (one or more ESDT transfers)."
+            ],
+            "variants": [
+                {
+                    "name": "Egld",
+                    "discriminant": 0,
+                    "fields": [
+                        {
+                            "name": "0",
+                            "type": "BigUint"
+                        }
+                    ]
+                },
+                {
+                    "name": "MultiEsdt",
+                    "discriminant": 1,
+                    "fields": [
+                        {
+                            "name": "0",
+                            "type": "List<EsdtTokenPayment>"
+                        }
+                    ]
+                }
+            ]
+        },
+        "EsdtTokenPayment": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "token_identifier",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "token_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "QueuedCall": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "call_type",
+                    "type": "QueuedCallType"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                },
+                {
+                    "name": "gas_limit",
+                    "type": "u64"
+                },
+                {
+                    "name": "endpoint_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "args",
+                    "type": "List<bytes>"
+                },
+                {
+                    "name": "payments",
+                    "type": "EgldOrMultiEsdtPayment"
+                }
+            ]
+        },
+        "QueuedCallType": {
+            "type": "enum",
+            "variants": [
+                {
+                    "name": "Sync",
+                    "discriminant": 0
+                },
+                {
+                    "name": "LegacyAsync",
+                    "discriminant": 1
+                },
+                {
+                    "name": "TransferExecute",
+                    "discriminant": 2
+                },
+                {
+                    "name": "Promise",
+                    "discriminant": 3
+                }
+            ]
+        }
+    }
+}

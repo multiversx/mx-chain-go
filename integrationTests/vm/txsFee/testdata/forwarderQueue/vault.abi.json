@@ -1,0 +1,298 @@
+{
+    "buildInfo": {
+        "rustc": {
+            "version": "1.70.0-nightly",
+            "commitHash": "db0cbc48d4aaa300713a95d9b317a365a474490c",
+            "commitDate": "2023-03-26",
+            "channel": "Nightly",
+            "short": "rustc 1.70.0-nightly (db0cbc48d 2023-03-26)"
+        },
+        "contractCrate": {
+            "name": "vault",
+            "version": "0.0.0",
+            "gitVersion": "v0.39.6-139-gc8a1904ad"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.39.6"
+        }
+    },
+    "docs": [
+        "General test contract.",
+        "Used especially for investigating async calls and contract interaction in general."
+    ],
+    "name": "Vault",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "opt_arg_to_echo",
+                "type": "optional<bytes>",
+                "multi_arg": true
+            }
+        ],
+        "outputs": [
+            {
+                "type": "optional<bytes>",
+                "multi_result": true
+            }
+        ]
+    },
+    "endpoints": [
+        {
+            "name": "echo_arguments",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "echo_arguments_without_storage",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "args",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<bytes>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "echo_caller",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "accept_funds",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "accept_funds_echo_payment",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                },
+                {
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "accept_funds_single_esdt_transfer",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "reject_funds",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "retrieve_funds_with_transfer_exec",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenIdentifier"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "opt_receive_func",
+                    "type": "optional<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "retrieve_funds_promises",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "retrieve_funds",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier"
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "retrieve_multi_funds_async",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token_payments",
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "burn_and_create_retrive_async",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "get_owner_address",
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "We already leave a trace of the calls using the event logs;",
+                "this additional counter has the role of showing that storage also gets saved correctly."
+            ],
+            "name": "call_counts",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "endpoint",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "num_called_retrieve_funds_promises",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "docs": [
+                "TODO: invert token_payment and token_nonce, for consistency."
+            ],
+            "identifier": "accept_funds",
+            "inputs": [
+                {
+                    "name": "egld_value",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "multi_esdt",
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "reject_funds",
+            "inputs": [
+                {
+                    "name": "egld_value",
+                    "type": "BigUint",
+                    "indexed": true
+                },
+                {
+                    "name": "multi_esdt",
+                    "type": "variadic<multi<TokenIdentifier,u64,BigUint>>",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "retrieve_funds",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "EgldOrEsdtTokenIdentifier",
+                    "indexed": true
+                },
+                {
+                    "name": "nonce",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        }
+    ],
+    "hasCallback": false,
+    "types": {}
+}
