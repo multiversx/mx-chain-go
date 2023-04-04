@@ -7,8 +7,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -17,8 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+var log = logger.GetOrCreate("node/external")
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
@@ -194,7 +197,7 @@ func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQuery
 }
 
 // GetAlteredAccountsForBlock will return the altered accounts for the desired block
-func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
 }
 
@@ -294,7 +297,11 @@ func bigInToString(input *big.Int) string {
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	eligibleNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
+	waitingNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes
 }
 
 func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
@@ -302,7 +309,8 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
+			validatorPubKey := nar.validatorPubKeyConverter.SilentEncode(ni[i].PubKeyBytes(), log)
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], validatorPubKey)
 		}
 	}
 

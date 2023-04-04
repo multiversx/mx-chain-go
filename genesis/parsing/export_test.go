@@ -43,7 +43,7 @@ func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler
 func (ap *accountsParser) SetScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*outport.Pool,
+	txsPoolPerShard map[uint32]*outport.TransactionPool,
 ) {
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 }

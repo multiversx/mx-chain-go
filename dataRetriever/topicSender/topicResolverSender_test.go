@@ -163,7 +163,7 @@ func TestTopicResolverSender_Topic(t *testing.T) {
 	arg := createMockArgTopicResolverSender()
 	trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	assert.Equal(t, arg.TopicName+topicsender.TopicRequestSuffix, trs.RequestTopic())
+	assert.Equal(t, arg.TopicName+core.TopicRequestSuffix, trs.RequestTopic())
 }
 
 func TestTopicResolverSender_DebugHandler(t *testing.T) {

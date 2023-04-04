@@ -9,7 +9,7 @@ import (
 )
 
 func TestLogsConverter_TxLogToApiResourceShouldWork(t *testing.T) {
-	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	logsConverter := newLogsConverter(pkConverter)
 
 	contractAddressBech32 := "erd1qqqqqqqqqqqqqpgqxwakt2g7u9atsnr03gqcgmhcv38pt7mkd94q6shuwt"

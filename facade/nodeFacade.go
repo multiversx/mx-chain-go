@@ -12,9 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -479,6 +479,11 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
+// GetConnectedPeersRatings returns the connected peers ratings
+func (nf *nodeFacade) GetConnectedPeersRatings() string {
+	return nf.node.GetConnectedPeersRatings()
+}
+
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
 func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
 	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
@@ -507,7 +512,7 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for a given block
-func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nf.apiResolver.GetAlteredAccountsForBlock(options)
 }
 
@@ -680,6 +685,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nf *nodeFacade) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string, error) {
 	eligible, waiting := nf.apiResolver.GetGenesisNodesPubKeys()
+
 	if eligible == nil && waiting == nil {
 		return nil, nil, ErrNilGenesisNodes
 	}

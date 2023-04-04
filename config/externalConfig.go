@@ -27,6 +27,7 @@ type EventNotifierConfig struct {
 	Username          string
 	Password          string
 	RequestTimeoutSec int
+	MarshallerType    string
 }
 
 // CovalentConfig will hold the configurations for covalent indexer

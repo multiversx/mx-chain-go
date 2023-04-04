@@ -19,9 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-p2p-go/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1370,7 +1371,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		invalidSigners := []p2p.MessageP2P{&message.Message{
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField: []byte("from"),
 		}}
 		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
@@ -1406,7 +1407,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		}
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 
-		invalidSigners := []p2p.MessageP2P{&message.Message{
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField: []byte("from"),
 			DataField: consensusMsgBytes,
 		}}
@@ -1449,7 +1450,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		}
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 
-		invalidSigners := []p2p.MessageP2P{&message.Message{
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField: []byte("from"),
 			DataField: consensusMsgBytes,
 		}}
@@ -1537,8 +1538,8 @@ func TestGetFullMessagesForInvalidSigners(t *testing.T) {
 		container.SetMessageSigningHandler(messageSigningHandler)
 
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
-		sr.AddMessageWithSignature("B", &mock.P2PMessageMock{})
-		sr.AddMessageWithSignature("C", &mock.P2PMessageMock{})
+		sr.AddMessageWithSignature("B", &p2pmocks.P2PMessageMock{})
+		sr.AddMessageWithSignature("C", &p2pmocks.P2PMessageMock{})
 
 		invalidSigners := []string{"B", "C"}
 
