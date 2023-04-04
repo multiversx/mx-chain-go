@@ -120,11 +120,6 @@ func TestManagedCoreComponents(t *testing.T) {
 		require.Nil(t, managedCoreComponents.SetInternalMarshalizer(&testscommon.MarshalizerStub{}))
 
 		require.Equal(t, factory.CoreComponentsName, managedCoreComponents.String())
-
-		err = managedCoreComponents.Close()
-		require.NoError(t, err)
-		err = managedCoreComponents.Create()
-		require.NoError(t, err)
 	})
 }
 
@@ -140,6 +135,18 @@ func TestManagedCoreComponents_CheckSubcomponents(t *testing.T) {
 	err = managedCoreComponents.Create()
 	require.NoError(t, err)
 	require.Nil(t, managedCoreComponents.CheckSubcomponents())
+}
+func TestManagedCoreComponents_Close(t *testing.T) {
+	t.Parallel()
+
+	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(componentsMock.GetCoreArgs())
+	managedCoreComponents, _ := coreComp.NewManagedCoreComponents(coreComponentsFactory)
+	err := managedCoreComponents.Close()
+	require.NoError(t, err)
+	err = managedCoreComponents.Create()
+	require.NoError(t, err)
+	err = managedCoreComponents.Close()
+	require.NoError(t, err)
 }
 
 func TestManagedCoreComponents_IsInterfaceNil(t *testing.T) {
