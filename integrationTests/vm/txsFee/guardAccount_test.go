@@ -14,6 +14,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -382,6 +383,17 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
 
+	allLogs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+	require.NotNil(t, allLogs)
+
+	event := allLogs[0].LogHandler.GetLogEvents()[0]
+	require.Equal(t, &transaction.Event{
+		Address:    alice,
+		Identifier: []byte(core.BuiltInFunctionSetGuardian),
+		Topics:     [][]byte{bob, uuid},
+	}, event)
+	testContext.TxsLogsProcessor.Clean()
+
 	// can not activate guardian now
 	returnCode, err = guardAccount(testContext, alice)
 	require.Equal(t, process.ErrFailedTransaction, err)
@@ -401,6 +413,18 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
 
+	allLogs = testContext.TxsLogsProcessor.GetAllCurrentLogs()
+	require.NotNil(t, allLogs)
+
+	event = allLogs[0].LogHandler.GetLogEvents()[0]
+	require.Equal(t, &transaction.Event{
+		Address:    alice,
+		Identifier: []byte(core.SignalErrorOperation),
+		Topics:     [][]byte{alice, []byte("account has no active guardian")},
+		Data:       []byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e"),
+	}, event)
+	testContext.TxsLogsProcessor.Clean()
+
 	// can activate guardian now
 	returnCode, err = guardAccount(testContext, alice)
 	require.Nil(t, err)
@@ -416,6 +440,16 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 		pending: nil,
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
+
+	allLogs = testContext.TxsLogsProcessor.GetAllCurrentLogs()
+	require.NotNil(t, allLogs)
+
+	event = allLogs[0].LogHandler.GetLogEvents()[0]
+	require.Equal(t, &transaction.Event{
+		Address:    alice,
+		Identifier: []byte(core.BuiltInFunctionGuardAccount),
+	}, event)
+	testContext.TxsLogsProcessor.Clean()
 }
 
 func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
