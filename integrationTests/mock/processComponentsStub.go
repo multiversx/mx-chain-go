@@ -18,6 +18,7 @@ import (
 type ProcessComponentsStub struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
+	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResFinder                            dataRetriever.ResolversFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -77,6 +78,9 @@ func (pcs *ProcessComponentsStub) NodesCoordinator() nodesCoordinator.NodesCoord
 
 // ShardCoordinator -
 func (pcs *ProcessComponentsStub) ShardCoordinator() sharding.Coordinator {
+	if pcs.ShardCoordinatorCalled != nil {
+		return pcs.ShardCoordinatorCalled()
+	}
 	return pcs.ShardCoord
 }
 

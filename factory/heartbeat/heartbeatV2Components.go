@@ -90,8 +90,14 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.DataComponents) {
 		return errors.ErrNilDataComponentsHolder
 	}
+	if check.IfNil(args.DataComponents.Datapool()) {
+		return errors.ErrNilDataPoolsHolder
+	}
 	if check.IfNil(args.NetworkComponents) {
 		return errors.ErrNilNetworkComponentsHolder
+	}
+	if check.IfNil(args.NetworkComponents.NetworkMessenger()) {
+		return errors.ErrNilMessenger
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return errors.ErrNilCryptoComponentsHolder
@@ -99,15 +105,11 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
 	}
+	if check.IfNil(args.ProcessComponents.EpochStartTrigger()) {
+		return errors.ErrNilEpochStartTrigger
+	}
 	if check.IfNil(args.StatusCoreComponents) {
 		return errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return errors.ErrNilAppStatusHandler
-	}
-	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
-	if check.IfNil(hardforkTrigger) {
-		return errors.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -231,7 +233,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatMonitor:                    heartbeatsMonitor,
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.statusCoreComponents.AppStatusHandler(),
-		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
+		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(cfg.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {
@@ -239,7 +241,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
-		TimeToReadDirectConnections: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeToReadDirectConnectionsInSec),
+		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
 		Messenger:                   hcf.networkComponents.NetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
