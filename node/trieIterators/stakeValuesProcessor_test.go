@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -36,7 +37,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
 		Accounts:           createAccountsWrapper(),
 		QueryService:       &mock.SCQueryServiceStub{},
-		PublicKeyConverter: &mock.PubkeyConverterMock{},
+		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -367,7 +368,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 			}
 		},
 	}
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	stakeValues, err := totalStakedProc.GetTotalStakedValue(context.Background())

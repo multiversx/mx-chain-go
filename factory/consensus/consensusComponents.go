@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-storage-go/timecache"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -30,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -178,11 +178,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.coreComponents.Hasher(),
 		ccf.networkComponents.NetworkMessenger(),
 		ccf.processComponents.ShardCoordinator(),
-		ccf.cryptoComponents.PrivateKey(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
+		ccf.cryptoComponents.KeysHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -258,9 +258,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ChronologyHandler:             cc.chronology,
 		Hasher:                        ccf.coreComponents.Hasher(),
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
-		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
-		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
-		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -275,7 +272,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
-		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
+		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -399,11 +396,16 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 		return nil, err
 	}
 
-	roundConsensus := spos.NewRoundConsensus(
+	roundConsensus, err := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		// TODO: move the consensus data from nodesSetup json to config
 		consensusGroupSize,
-		string(selfId))
+		string(selfId),
+		ccf.cryptoComponents.KeysHandler(),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	roundConsensus.ResetRoundState()
 

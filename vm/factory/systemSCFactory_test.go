@@ -68,7 +68,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 		},
-		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
