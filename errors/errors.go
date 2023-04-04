@@ -556,3 +556,9 @@ var ErrUnimplementedChainRunType = errors.New("unimplemented chain run type")
 
 // ErrIncompatibleArgumentsProvided signals that incompatible arguments were provided
 var ErrIncompatibleArgumentsProvided = errors.New("incompatible arguments provided")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
+var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")

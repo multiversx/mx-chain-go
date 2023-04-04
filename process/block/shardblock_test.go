@@ -48,8 +48,8 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewShardProcessor
@@ -2234,16 +2234,24 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportcore.OutportBlockWithHeaderAndBody) error {
 			called = true
+			return nil
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
 	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
-		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
-			return &outportcore.ArgsSaveBlockData{}, nil
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+					Body:       &block.Body{},
+					Header:     &block.HeaderV2{},
+					HeaderHash: []byte("hash"),
+				},
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
 		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts

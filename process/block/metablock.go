@@ -617,15 +617,24 @@ func (mp *metaProcessor) indexBlock(
 		HeaderHash:             headerHash,
 		Header:                 metaBlock,
 		Body:                   body,
+		PreviousHeader:         lastMetaBlock,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		PreviousHeader:         lastMetaBlock,
+		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
+		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 		return
 	}
-	mp.outportHandler.SaveBlock(argSaveBlock)
+	err = mp.outportHandler.SaveBlock(argSaveBlock)
+	if err != nil {
+		log.Error("metaProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
+		return
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)

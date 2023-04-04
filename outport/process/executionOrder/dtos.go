@@ -17,13 +17,13 @@ type ArgSorter struct {
 }
 
 type resultsTransactionsToMe struct {
-	transactionsToMe          []data.TransactionHandlerWithGasUsedAndFee
-	scheduledTransactionsToMe []data.TransactionHandlerWithGasUsedAndFee
-	scrsToMe                  map[string]data.TransactionHandlerWithGasUsedAndFee
+	transactionsToMe          []data.TxWithExecutionOrderHandler
+	scheduledTransactionsToMe []data.TxWithExecutionOrderHandler
+	scrsToMe                  map[string]data.TxWithExecutionOrderHandler
 }
 
 type resultsTransactionsFromMe struct {
-	transactionsFromMe                         []data.TransactionHandlerWithGasUsedAndFee
-	scheduledTransactionsFromMe                []data.TransactionHandlerWithGasUsedAndFee
+	transactionsFromMe                         []data.TxWithExecutionOrderHandler
+	scheduledTransactionsFromMe                []data.TxWithExecutionOrderHandler
 	scheduledExecutedInvalidTxsHashesPrevBlock []string
 }

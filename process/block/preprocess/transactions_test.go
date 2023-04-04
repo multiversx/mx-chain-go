@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -207,8 +206,8 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	return sdp
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
@@ -1831,11 +1830,12 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 		"erd1hshz86ke95z58920xl59jnakv5ppmsfarwtump6scjjcyfr9zxwsd0cy8y",
 		"erd13l5pgsz32u2t7mpanr9hyalahn2newj6ew85s8pgaln5kglm5s3s7w657h",
 	}
-	bch32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	bech32 := testscommon.RealWorldBech32PubkeyConverter
+
 	txs := make([]*txcache.WrappedTransaction, 0)
 
 	for idx, addr := range addresses {
-		addrBytes, _ := bch32.Decode(addr)
+		addrBytes, _ := bech32.Decode(addr)
 		txs = append(txs, &txcache.WrappedTransaction{
 			Tx: &transaction.Transaction{Nonce: 2, SndAddr: addrBytes}, TxHash: []byte(fmt.Sprintf("hash%d", idx)),
 		})
@@ -1847,8 +1847,9 @@ func TestSortTransactionsBySenderAndNonceWithFrontRunningProtection_TestnetBids(
 		randomness := make([]byte, 32)
 		_, _ = rand.Read(randomness)
 		txPreproc.sortTransactionsBySenderAndNonceWithFrontRunningProtection(txs, randomness)
-		winner := bch32.Encode(txs[0].Tx.GetSndAddr())
-		numWinsForAddresses[winner]++
+		encodedWinnerAddr, err := bech32.Encode(txs[0].Tx.GetSndAddr())
+		assert.Nil(t, err)
+		numWinsForAddresses[encodedWinnerAddr]++
 	}
 
 	expectedWinsPerSender := numCalls / len(addresses)
