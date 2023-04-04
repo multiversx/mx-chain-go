@@ -27,7 +27,7 @@ import (
 func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
 	return ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		PubkeyConv:          mock.NewPubkeyConverterMock(32),
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
@@ -287,7 +287,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		PubkeyConv:          mock.NewPubkeyConverterMock(32),
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         makeGasSchedule(),

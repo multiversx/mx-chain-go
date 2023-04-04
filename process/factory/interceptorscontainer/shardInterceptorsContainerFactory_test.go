@@ -639,7 +639,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	}
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	coreComp.AddrPubKeyConv = mock.NewPubkeyConverterMock(32)
+	coreComp.AddrPubKeyConv = testscommon.NewPubkeyConverterMock(32)
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
@@ -676,7 +676,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxSignHasherField:   &hashingMocks.HasherMock{},
 		Hash:                &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
-		AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 		ChainIdCalled: func() string {
 			return chainID
 		},

@@ -12,6 +12,7 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -33,8 +34,8 @@ func createMockArguments() ArgNewTxTypeHandler {
 	}
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
@@ -285,7 +286,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -311,7 +312,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -340,7 +341,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveMoveBalance(t *
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -371,7 +372,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveSCCall(t *testi
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -402,7 +403,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -428,7 +429,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -455,7 +456,7 @@ func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},

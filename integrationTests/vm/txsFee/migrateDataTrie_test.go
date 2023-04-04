@@ -77,42 +77,42 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		// migrate first 2 leaves, return when loading the third leaf (not enough gas for the migration)
 		// 5 loads + 2 stores = 200k gas
 		gasLimit := uint64(220000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 200000)
 
 		// migrate 2 leaves, 4 loads + 2 stores = 180k gas
 		gasLimit = uint64(200000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 180000)
 
-		// return after loading an extension node, not enough gas for the migration
+		// do not start the migration process, not enough gas for at least one migration
 		gasLimit = uint64(50000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
-		testGasConsumed(t, testContext, gasLimit, 40000)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.UserError)
+		testGasConsumed(t, testContext, gasLimit, 50000)
 
 		// return after loading a branch node, not enough gas for the migration
 		gasLimit = uint64(70000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 60000)
 
 		// migrate 2 leaves, 5 loads + 2 stores = 200k gas
 		gasLimit = uint64(200000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 200000)
 
 		// migrate 2 leaves, 3 loads + 2 stores = 160k gas
 		gasLimit = uint64(200000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 160000)
 
 		// migrate 1 leaf, 2 loads + 1 store = 90k gas
 		gasLimit = uint64(200000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 90000)
 
 		// no leaf left to migrate, 1 load = 20k gas
 		gasLimit = uint64(200000)
-		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 20000)
 
 		err = dtr.Commit()
@@ -164,7 +164,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		numMigrateDataTrieCalls := 0
 		maxExpectedNumCalls := 15
 		for numNonMigratedLeaves > 0 {
-			migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit)
+			migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 			numMigrateDataTrieCalls++
 
 			err = dtr.Commit()
@@ -269,6 +269,7 @@ func migrateDataTrie(
 	sndAddr []byte,
 	gasPrice uint64,
 	gasLimit uint64,
+	expectedReturnCode vmcommon.ReturnCode,
 ) {
 	testContext.CleanIntermediateTransactions(t)
 
@@ -285,9 +286,13 @@ func migrateDataTrie(
 		CallType: 1,
 	}
 	returnCode, errProcess := testContext.ScProcessor.ProcessSmartContractResult(scr)
-	require.Nil(t, errProcess)
-	require.Equal(t, vmcommon.Ok, returnCode)
+	if expectedReturnCode == vmcommon.Ok {
+		require.Nil(t, errProcess)
+	} else {
+		require.NotNil(t, errProcess)
+	}
 
+	require.Equal(t, expectedReturnCode, returnCode)
 }
 
 func testGasConsumed(

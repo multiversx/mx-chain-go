@@ -84,7 +84,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 		nil,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -101,7 +101,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 		adb,
 		nil,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -119,7 +119,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		adb,
 		shardCoordinator,
 		nil,
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -155,7 +155,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -177,7 +177,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -202,7 +202,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -228,7 +228,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -256,7 +256,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 	assert.Nil(t, err)
@@ -283,7 +283,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		accDB,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -312,7 +312,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 				return true
 			},
 		},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -346,7 +346,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		accDB,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -370,7 +370,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -393,7 +393,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		100,
 	)
 	_ = txValidator
