@@ -148,7 +148,7 @@ func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.Simulatio
 
 	for _, entry := range vmOutput.Logs {
 		results.Logs.Events = append(results.Logs.Events, &transaction.Events{
-			Address:    ts.addressPubKeyConverter.Encode(entry.Address),
+			Address:    ts.addressPubKeyConverter.SilentEncode(entry.Address, log),
 			Identifier: string(entry.Identifier),
 			Topics:     entry.Topics,
 			Data:       entry.Data,
@@ -236,6 +236,10 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	})
 	res := ts.dataFieldParser.Parse(scr.Data, scr.SndAddr, scr.RcvAddr, ts.shardCoordinator.NumberOfShards())
 
+	receiversEncoded, err := ts.addressPubKeyConverter.EncodeSlice(res.Receivers)
+	if err != nil {
+		log.Warn("transactionSimulator.adaptSmartContractResult: cannot encode receivers slice", "error", err)
+	}
 
 	resScr := &transaction.ApiSmartContractResult{
 		Nonce:             scr.Nonce,
@@ -257,7 +261,7 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		Function:          res.Function,
 		ESDTValues:        res.ESDTValues,
 		Tokens:            res.Tokens,
-		Receivers:         datafield.EncodeBytesSlice(ts.addressPubKeyConverter.Encode, res.Receivers),
+		Receivers:         receiversEncoded,
 		ReceiversShardIDs: res.ReceiversShardID,
 		IsRelayed:         res.IsRelayed,
 	}
