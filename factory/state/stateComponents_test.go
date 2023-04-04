@@ -102,7 +102,6 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		sc, err := scf.Create()
 		require.Error(t, err)
 		require.Nil(t, sc)
-		require.NoError(t, sc.Close())
 	})
 	t.Run("CreateAccountsAdapterAPIOnFinal fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -125,7 +124,6 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		sc, err := scf.Create()
 		require.Error(t, err)
 		require.Nil(t, sc)
-		require.NoError(t, sc.Close())
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

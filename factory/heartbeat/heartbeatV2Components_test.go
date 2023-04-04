@@ -292,7 +292,6 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
 		assert.Error(t, err)
-		assert.NoError(t, hc.Close())
 	})
 	t.Run("NewSender fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -400,7 +399,6 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
 		assert.Error(t, err)
-		assert.NoError(t, hc.Close())
 	})
 	t.Run("AddPeerTopicNotifier fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -420,7 +418,6 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
 		assert.Equal(t, expectedErr, err)
-		assert.NoError(t, hc.Close())
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
