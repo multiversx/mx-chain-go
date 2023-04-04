@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
-	erdErrors "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -27,7 +27,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)
-		require.Equal(t, erdErrors.ErrNilShardCoordinator, err)
+		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
 	})
 	t.Run("nil core components should error", func(t *testing.T) {
 		t.Parallel()
@@ -38,7 +38,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)
-		require.Equal(t, erdErrors.ErrNilCoreComponents, err)
+		require.Equal(t, errorsMx.ErrNilCoreComponents, err)
 	})
 	t.Run("nil epoch start notifier should error", func(t *testing.T) {
 		t.Parallel()
@@ -50,7 +50,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)
-		require.Equal(t, erdErrors.ErrNilEpochStartNotifier, err)
+		require.Equal(t, errorsMx.ErrNilEpochStartNotifier, err)
 	})
 	t.Run("nil status core components should error", func(t *testing.T) {
 		t.Parallel()
@@ -62,7 +62,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)
-		require.Equal(t, erdErrors.ErrNilStatusCoreComponents, err)
+		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -126,7 +126,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		dc, err := dcf.Create()
-		require.Equal(t, erdErrors.ErrBlockchainCreation, err)
+		require.Equal(t, errorsMx.ErrBlockchainCreation, err)
 		require.Nil(t, dc)
 	})
 	t.Run("NewStorageServiceFactory returns error", func(t *testing.T) {
@@ -176,7 +176,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		dc, err := dcf.Create()
-		require.Equal(t, erdErrors.ErrDataStoreCreation, err)
+		require.Equal(t, errorsMx.ErrDataStoreCreation, err)
 		require.Nil(t, dc)
 	})
 	t.Run("NewDataPoolFromConfig fails should error", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		require.NoError(t, err)
 
 		dc, err := dcf.Create()
-		require.True(t, errors.Is(err, erdErrors.ErrDataPoolCreation))
+		require.True(t, errors.Is(err, errorsMx.ErrDataPoolCreation))
 		require.Nil(t, dc)
 	})
 	t.Run("should work for shard", func(t *testing.T) {

@@ -165,7 +165,6 @@ type CryptoParamsHolder interface {
 	PrivateKey() crypto.PrivateKey
 	PublicKeyString() string
 	PublicKeyBytes() []byte
-	PrivateKeyBytes() []byte
 }
 
 // CryptoComponentsHolder holds the crypto components

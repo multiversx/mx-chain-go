@@ -17,7 +17,6 @@ type CryptoComponentsMock struct {
 	P2pPrivKey        crypto.PrivateKey
 	P2pSig            crypto.SingleSigner
 	PubKeyString      string
-	PrivKeyBytes      []byte
 	PubKeyBytes       []byte
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
@@ -63,11 +62,6 @@ func (ccm *CryptoComponentsMock) PublicKeyString() string {
 // PublicKeyBytes -
 func (ccm *CryptoComponentsMock) PublicKeyBytes() []byte {
 	return ccm.PubKeyBytes
-}
-
-// PrivateKeyBytes -
-func (ccm *CryptoComponentsMock) PrivateKeyBytes() []byte {
-	return ccm.PrivKeyBytes
 }
 
 // BlockSigner -
@@ -143,7 +137,6 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		PubKey:            ccm.PubKey,
 		PrivKey:           ccm.PrivKey,
 		PubKeyString:      ccm.PubKeyString,
-		PrivKeyBytes:      ccm.PrivKeyBytes,
 		PubKeyBytes:       ccm.PubKeyBytes,
 		BlockSig:          ccm.BlockSig,
 		TxSig:             ccm.TxSig,

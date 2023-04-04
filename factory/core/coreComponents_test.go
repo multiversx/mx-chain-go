@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -35,7 +35,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *te
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(t *testing.T) {
@@ -55,7 +55,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigShouldErr(t *testing.T) {
@@ -71,7 +71,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigSho
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConfigShouldErr(t *testing.T) {
@@ -91,7 +91,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConf
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr(t *testing.T) {
@@ -111,7 +111,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShouldErr(t *testing.T) {
@@ -134,7 +134,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShou
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShouldErr(t *testing.T) {
@@ -157,7 +157,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShoul
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfigShouldErr(t *testing.T) {
@@ -183,7 +183,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfig
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignHasherConfigShouldErr(t *testing.T) {
@@ -197,7 +197,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignHasherConfigShou
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {

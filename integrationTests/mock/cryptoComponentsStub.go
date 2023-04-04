@@ -17,7 +17,6 @@ type CryptoComponentsStub struct {
 	P2pPrivKey        crypto.PrivateKey
 	P2pSig            crypto.SingleSigner
 	PubKeyString      string
-	PrivKeyBytes      []byte
 	PubKeyBytes       []byte
 	BlockSig          crypto.SingleSigner
 	TxSig             crypto.SingleSigner
@@ -73,11 +72,6 @@ func (ccs *CryptoComponentsStub) PublicKeyString() string {
 // PublicKeyBytes -
 func (ccs *CryptoComponentsStub) PublicKeyBytes() []byte {
 	return ccs.PubKeyBytes
-}
-
-// PrivateKeyBytes -
-func (ccs *CryptoComponentsStub) PrivateKeyBytes() []byte {
-	return ccs.PrivKeyBytes
 }
 
 // BlockSigner -
@@ -160,7 +154,6 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PrivKey:           ccs.PrivKey,
 		P2pPrivKey:        ccs.P2pPrivKey,
 		PubKeyString:      ccs.PubKeyString,
-		PrivKeyBytes:      ccs.PrivKeyBytes,
 		PubKeyBytes:       ccs.PubKeyBytes,
 		BlockSig:          ccs.BlockSig,
 		TxSig:             ccs.TxSig,

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func TestNewBootstrapComponentsFactory_NilCoreComponents(t *testing.T) {
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
 
 	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilCoreComponentsHolder, err)
+	require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
 }
 
 func TestNewBootstrapComponentsFactory_NilCryptoComponents(t *testing.T) {
@@ -43,7 +43,7 @@ func TestNewBootstrapComponentsFactory_NilCryptoComponents(t *testing.T) {
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
 
 	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilCryptoComponentsHolder, err)
+	require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, err)
 }
 
 func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
@@ -55,7 +55,7 @@ func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
 
 	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilNetworkComponentsHolder, err)
+	require.Equal(t, errorsMx.ErrNilNetworkComponentsHolder, err)
 }
 
 func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
 
 	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
+	require.Equal(t, errorsMx.ErrInvalidWorkingDir, err)
 }
 
 func TestBootstrapComponentsFactory_CreateShouldWork(t *testing.T) {
@@ -96,7 +96,7 @@ func TestBootstrapComponentsFactory_CreateBootstrapDataProviderCreationFail(t *t
 	bc, err := bcf.Create()
 
 	require.Nil(t, bc)
-	require.True(t, errors.Is(err, errorsErd.ErrNewBootstrapDataProvider))
+	require.True(t, errors.Is(err, errorsMx.ErrNewBootstrapDataProvider))
 }
 
 func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *testing.T) {
@@ -112,5 +112,5 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapCreationFail(t *tes
 	bc, err := bcf.Create()
 
 	require.Nil(t, bc)
-	require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
+	require.True(t, errors.Is(err, errorsMx.ErrNewEpochStartBootstrap))
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -20,7 +20,7 @@ func TestNewManagedDataComponents(t *testing.T) {
 		t.Parallel()
 
 		managedDataComponents, err := dataComp.NewManagedDataComponents(nil)
-		require.Equal(t, errErd.ErrNilDataComponentsFactory, err)
+		require.Equal(t, errorsMx.ErrNilDataComponentsFactory, err)
 		require.Nil(t, managedDataComponents)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -62,7 +62,6 @@ func TestManagedDataComponents_Create(t *testing.T) {
 		dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 		managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
 		require.NoError(t, err)
-		require.Equal(t, errErd.ErrNilDataComponents, managedDataComponents.CheckSubcomponents())
 		require.Nil(t, managedDataComponents.Blockchain())
 		require.Nil(t, managedDataComponents.StorageService())
 		require.Nil(t, managedDataComponents.Datapool())
@@ -74,13 +73,40 @@ func TestManagedDataComponents_Create(t *testing.T) {
 		require.NotNil(t, managedDataComponents.StorageService())
 		require.NotNil(t, managedDataComponents.Datapool())
 		require.NotNil(t, managedDataComponents.MiniBlocksProvider())
-		require.Nil(t, managedDataComponents.CheckSubcomponents())
-
-		require.Equal(t, errErd.ErrNilBlockChainHandler, managedDataComponents.SetBlockchain(nil))
-		require.Nil(t, managedDataComponents.SetBlockchain(&testscommon.ChainHandlerMock{}))
 
 		require.Equal(t, factory.DataComponentsName, managedDataComponents.String())
 	})
+}
+
+func TestManagedDataComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := componentsMock.GetCoreComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
+	managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	require.NoError(t, err)
+	require.Equal(t, errorsMx.ErrNilDataComponents, managedDataComponents.CheckSubcomponents())
+
+	err = managedDataComponents.Create()
+	require.NoError(t, err)
+	require.Nil(t, managedDataComponents.CheckSubcomponents())
+}
+
+func TestManagedDataComponents_SetBlockchain(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := componentsMock.GetCoreComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
+	managedDataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
+
+	_ = managedDataComponents.Create()
+
+	require.Equal(t, errorsMx.ErrNilBlockChainHandler, managedDataComponents.SetBlockchain(nil))
+	require.Nil(t, managedDataComponents.SetBlockchain(&testscommon.ChainHandlerMock{}))
 }
 
 func TestManagedDataComponents_Close(t *testing.T) {
@@ -125,15 +151,13 @@ func TestManagedDataComponents_Clone(t *testing.T) {
 func TestManagedDataComponents_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	managedDataComponents, err := dataComp.NewManagedDataComponents(nil)
-	require.Equal(t, errErd.ErrNilDataComponentsFactory, err)
+	managedDataComponents, _ := dataComp.NewManagedDataComponents(nil)
 	require.True(t, managedDataComponents.IsInterfaceNil())
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
-	managedDataComponents, err = dataComp.NewManagedDataComponents(dataComponentsFactory)
-	require.NoError(t, err)
+	managedDataComponents, _ = dataComp.NewManagedDataComponents(dataComponentsFactory)
 	require.False(t, managedDataComponents.IsInterfaceNil())
 }

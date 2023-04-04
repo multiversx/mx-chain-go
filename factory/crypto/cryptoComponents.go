@@ -69,7 +69,6 @@ type cryptoParams struct {
 	privateKey      crypto.PrivateKey
 	publicKeyString string
 	publicKeyBytes  []byte
-	privateKeyBytes []byte
 }
 
 // p2pCryptoParams holds the p2p public/private key data
@@ -271,11 +270,6 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
-	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -307,11 +301,6 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 
 	var err error
-	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
 	if err != nil {
 		return nil, err

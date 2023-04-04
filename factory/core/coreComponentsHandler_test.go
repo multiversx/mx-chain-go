@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -20,7 +20,7 @@ func TestManagedCoreComponents(t *testing.T) {
 		t.Parallel()
 
 		managedCoreComponents, err := coreComp.NewManagedCoreComponents(nil)
-		require.Equal(t, errErd.ErrNilCoreComponentsFactory, err)
+		require.Equal(t, errorsMx.ErrNilCoreComponentsFactory, err)
 		require.Nil(t, managedCoreComponents)
 	})
 	t.Run("invalid args should error", func(t *testing.T) {
@@ -45,7 +45,6 @@ func TestManagedCoreComponents(t *testing.T) {
 		coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 		managedCoreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 		require.NoError(t, err)
-		require.Equal(t, errErd.ErrNilCoreComponents, managedCoreComponents.CheckSubcomponents())
 		require.Nil(t, managedCoreComponents.Hasher())
 		require.Nil(t, managedCoreComponents.InternalMarshalizer())
 		require.Nil(t, managedCoreComponents.VmMarshalizer())
@@ -83,7 +82,6 @@ func TestManagedCoreComponents(t *testing.T) {
 
 		err = managedCoreComponents.Create()
 		require.NoError(t, err)
-		require.Nil(t, managedCoreComponents.CheckSubcomponents())
 		require.NotNil(t, managedCoreComponents.Hasher())
 		require.NotNil(t, managedCoreComponents.InternalMarshalizer())
 		require.NotNil(t, managedCoreComponents.VmMarshalizer())
@@ -130,16 +128,28 @@ func TestManagedCoreComponents(t *testing.T) {
 	})
 }
 
+func TestManagedCoreComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
+	coreArgs := componentsMock.GetCoreArgs()
+	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
+	managedCoreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
+	require.NoError(t, err)
+	require.Equal(t, errorsMx.ErrNilCoreComponents, managedCoreComponents.CheckSubcomponents())
+
+	err = managedCoreComponents.Create()
+	require.NoError(t, err)
+	require.Nil(t, managedCoreComponents.CheckSubcomponents())
+}
+
 func TestManagedCoreComponents_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	managedCoreComponents, err := coreComp.NewManagedCoreComponents(nil)
-	require.Equal(t, errErd.ErrNilCoreComponentsFactory, err)
+	managedCoreComponents, _ := coreComp.NewManagedCoreComponents(nil)
 	require.True(t, managedCoreComponents.IsInterfaceNil())
 
 	coreArgs := componentsMock.GetCoreArgs()
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
-	managedCoreComponents, err = coreComp.NewManagedCoreComponents(coreComponentsFactory)
-	require.NoError(t, err)
+	managedCoreComponents, _ = coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	require.False(t, managedCoreComponents.IsInterfaceNil())
 }

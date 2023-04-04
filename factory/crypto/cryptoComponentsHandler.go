@@ -194,18 +194,6 @@ func (mcc *managedCryptoComponents) PublicKeyBytes() []byte {
 	return mcc.cryptoParams.publicKeyBytes
 }
 
-// PrivateKeyBytes returns the configured validator private key bytes
-func (mcc *managedCryptoComponents) PrivateKeyBytes() []byte {
-	mcc.mutCryptoComponents.RLock()
-	defer mcc.mutCryptoComponents.RUnlock()
-
-	if mcc.cryptoComponents == nil {
-		return nil
-	}
-
-	return mcc.cryptoParams.privateKeyBytes
-}
-
 // TxSingleSigner returns the transaction signer
 func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 	mcc.mutCryptoComponents.RLock()
