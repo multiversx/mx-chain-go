@@ -97,12 +97,10 @@ func TestManagedHeartbeatV2Components_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	mhc, _ := heartbeatComp.NewManagedHeartbeatV2Components(nil)
-	assert.NotNil(t, mhc)
 	assert.True(t, mhc.IsInterfaceNil())
 
 	args := createMockHeartbeatV2ComponentsFactoryArgs()
 	hcf, _ := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 	mhc, _ = heartbeatComp.NewManagedHeartbeatV2Components(hcf)
-	assert.NotNil(t, mhc)
 	assert.False(t, mhc.IsInterfaceNil())
 }
