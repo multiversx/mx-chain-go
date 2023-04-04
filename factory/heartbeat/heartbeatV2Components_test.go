@@ -243,10 +243,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
 			Messenger: &p2pmocks.MessengerStub{
 				HasTopicCalled: func(name string) bool {
-					if name == common.HeartbeatV2Topic {
-						return false
-					}
-					return true
+					return name != common.HeartbeatV2Topic
 				},
 				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 					if name == common.HeartbeatV2Topic {
