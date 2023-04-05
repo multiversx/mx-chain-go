@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
-	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/nodeSovereign"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
@@ -132,12 +132,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
-	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
-	if errRunner != nil {
-		return errRunner
-	}
-
-	sovereignNodeRunner, errSovereignNodeRunner := node.NewSovereignNodeRunner(nodeRunner)
+	sovereignNodeRunner, errSovereignNodeRunner := nodeSovereign.NewSovereignNodeRunner(cfgs)
 	if errSovereignNodeRunner != nil {
 		return errSovereignNodeRunner
 	}
