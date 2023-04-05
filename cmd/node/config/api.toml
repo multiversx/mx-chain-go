@@ -61,6 +61,9 @@
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
+        # /:address/guardian-data will return the guardian data for the given account
+        { Name = "/:address/guardian-data", Open = true},
+
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 

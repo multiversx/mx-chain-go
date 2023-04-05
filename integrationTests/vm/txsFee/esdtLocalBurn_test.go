@@ -26,7 +26,6 @@ func TestESDTLocalBurnShouldWork(t *testing.T) {
 	roles := [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}
 	utils.CreateAccountWithESDTBalanceAndRoles(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, roles)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	tx := utils.CreateESDTLocalBurnTx(0, sndAddr, sndAddr, token, big.NewInt(100), gasPrice, gasLimit)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -57,7 +56,6 @@ func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
 	roles := [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}
 	utils.CreateAccountWithESDTBalanceAndRoles(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, roles)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(60)
 	tx := utils.CreateESDTLocalBurnTx(0, sndAddr, sndAddr, token, big.NewInt(100000001), gasPrice, gasLimit)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -87,7 +85,6 @@ func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
 	token := []byte("miiutoken")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	tx := utils.CreateESDTLocalBurnTx(0, sndAddr, sndAddr, token, big.NewInt(100), gasPrice, gasLimit)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
