@@ -301,7 +301,7 @@ const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
-//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
 // processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 // subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
@@ -601,8 +601,8 @@ const (
 	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
 
-	// MetricGuardAccountFeatureEnableEpoch represents the epoch when the guard account feature is enabled
-	MetricGuardAccountFeatureEnableEpoch = "erd_guard_account_feature_enable_epoch"
+	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
+	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
 )
 
 const (

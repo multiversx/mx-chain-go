@@ -566,11 +566,6 @@ func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
 }
 
-// IsGuardAccountEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsGuardAccountEnabled() bool {
-	return false
-}
-
 // IsSetGuardianEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false

@@ -248,8 +248,7 @@
         { EnableEpoch = 1, Type = "KOSK"}
     ]
 
-    # GuardAccountFeatureEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    GuardAccountFeatureEnableEpoch = 2
+    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch

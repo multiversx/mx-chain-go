@@ -98,7 +98,6 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 			WaitingListFixEnableEpoch:               unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
-			GuardAccountFeatureEnableEpoch:          0,
 		},
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -560,23 +559,23 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 }
 
 // Scenario 1 description:
-// 1.  create & mint 4 addresses: alice, bob, charlie and david
-// 2.  alice sets bob as guardian (test if pending)
-// 3.  alice can not set bob as guardian again (test if pending & same activation epoch)
-//   3.1 alice can not set bob as guardian again even if one epoch past
-// 4.  alice activates the guardian (test if active)
-// 5.  alice sets charlie as pending guardian (test if pending & different activation epoch)
-//   5.1. alice wants to set david as pending guardian (transaction is not executable, will not be included in a miniblock)
-// 6.  alice sets charlie as guardian immediately through a cosigned transaction (test active & pending guardians)
-// 7.  alice immediately sets bob as guardian through a cosigned transaction (test active & pending guardians)
-// 8.  alice adds charlie as a pending guardian (test if pending & different activation epoch)
+//  1. create & mint 4 addresses: alice, bob, charlie and david
+//  2. alice sets bob as guardian (test if pending)
+//  3. alice can not set bob as guardian again (test if pending & same activation epoch)
+//     3.1 alice can not set bob as guardian again even if one epoch past
+//  4. alice activates the guardian (test if active)
+//  5. alice sets charlie as pending guardian (test if pending & different activation epoch)
+//     5.1. alice wants to set david as pending guardian (transaction is not executable, will not be included in a miniblock)
+//  6. alice sets charlie as guardian immediately through a cosigned transaction (test active & pending guardians)
+//  7. alice immediately sets bob as guardian through a cosigned transaction (test active & pending guardians)
+//  8. alice adds charlie as a pending guardian (test if pending & different activation epoch)
 //     wait until charlie becomes active, no more pending guardians
-// 9.  alice adds bob as a pending guardian and calls set charlie immediately cosigned and should remove the pending guardian
-// 10. alice un-guards the account immediately by using a cosigned transaction
-// 11. alice guards the account immediately by calling the GuardAccount function
-// 13. alice sends a guarded transaction, while account is guarded -> should work
-// 14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
-//   14.1 alice sends unguarded transaction -> should work
+//  9. alice adds bob as a pending guardian and calls set charlie immediately cosigned and should remove the pending guardian
+//  10. alice un-guards the account immediately by using a cosigned transaction
+//  11. alice guards the account immediately by calling the GuardAccount function
+//  13. alice sends a guarded transaction, while account is guarded -> should work
+//  14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
+//     14.1 alice sends unguarded transaction -> should work
 func TestGuardAccount_Scenario1(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
@@ -854,11 +853,11 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	require.Nil(t, err)
 }
 
-// 1. create & mint 4 addresses: alice, bob, charlie and david
-// 2. alice sets bob as guardian and the account becomes guarded
-// 3. test that charlie can send a relayed transaction v1 on the behalf of alice to david
-//   3.1 cosigned transaction should work
-//   3.2 single signed transaction should not work
+//  1. create & mint 4 addresses: alice, bob, charlie and david
+//  2. alice sets bob as guardian and the account becomes guarded
+//  3. test that charlie can send a relayed transaction v1 on the behalf of alice to david
+//     3.1 cosigned transaction should work
+//     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
@@ -974,11 +973,11 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 	assert.Equal(t, davidCurrentBalance, getBalance(testContext, david))
 }
 
-// 1. create & mint 4 addresses: alice, bob, charlie and david
-// 2. alice sets bob as guardian and the account becomes guarded
-// 3. test that charlie can not send a relayed transaction v2 on the behalf of alice to david
-//   3.1 cosigned transaction should not work
-//   3.2 single signed transaction should not work
+//  1. create & mint 4 addresses: alice, bob, charlie and david
+//  2. alice sets bob as guardian and the account becomes guarded
+//  3. test that charlie can not send a relayed transaction v2 on the behalf of alice to david
+//     3.1 cosigned transaction should not work
+//     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()

@@ -664,11 +664,6 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
 }
 
-// IsGuardAccountEnabled returns true if GuardAccountFlag is enabled
-func (holder *epochFlagsHolder) IsGuardAccountEnabled() bool {
-	return holder.guardAccountFlag.IsSet()
-}
-
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled
 func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
