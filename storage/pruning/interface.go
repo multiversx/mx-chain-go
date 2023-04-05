@@ -2,6 +2,7 @@ package pruning
 
 import (
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -16,6 +17,7 @@ type EpochStartNotifier interface {
 type DbFactoryHandler interface {
 	Create(filePath string) (storage.Persister, error)
 	CreateDisabled() storage.Persister
+	DBConfigWithoutPath() config.DBConfig
 	IsInterfaceNil() bool
 }
 

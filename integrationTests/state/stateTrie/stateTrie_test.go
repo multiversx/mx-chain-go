@@ -1047,7 +1047,7 @@ func createAccounts(
 	persist storage.Persister,
 ) (*state.AccountsDB, [][]byte, common.Trie) {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
-	store, _ := storageunit.NewStorageUnit(cache, persist)
+	store, _ := storageunit.NewStorageUnit(cache, persist, storageunit.MemDBNewDBArgsType)
 	evictionWaitListSize := uint(100)
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{

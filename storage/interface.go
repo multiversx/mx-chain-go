@@ -120,6 +120,7 @@ type PathManagerHandler interface {
 // PersisterFactory defines which actions should be done for creating a persister
 type PersisterFactory interface {
 	Create(path string) (Persister, error)
+	DBConfigWithoutPath() config.DBConfig
 	IsInterfaceNil() bool
 }
 

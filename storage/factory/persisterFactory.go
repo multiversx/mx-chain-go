@@ -50,6 +50,16 @@ func (pf *PersisterFactory) CreateDisabled() storage.Persister {
 	return &disabledPersister{}
 }
 
+// DBConfigWithoutPath returns the configuration used by the factory, without setting the path
+func (pf *PersisterFactory) DBConfigWithoutPath() config.DBConfig {
+	return config.DBConfig{
+		Type:              pf.dbType,
+		BatchDelaySeconds: pf.batchDelaySeconds,
+		MaxBatchSize:      pf.maxBatchSize,
+		MaxOpenFiles:      pf.maxOpenFiles,
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (pf *PersisterFactory) IsInterfaceNil() bool {
 	return pf == nil

@@ -72,7 +72,14 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	storer, err := storageunit.NewStorageUnit(cacher, persister)
+	newDBConfig := dbConfig
+	newDBConfig.FilePath = persisterPath
+
+	storer, err := storageunit.NewStorageUnit(
+		cacher,
+		persister,
+		storageunit.DBConfigToNewDBArgs(newDBConfig),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +119,13 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 		return nil, err
 	}
 
-	return storageunit.NewStorageUnit(lruCache, persister)
+	newDBConfig := dbConfig
+	newDBConfig.FilePath = persisterPath
+	return storageunit.NewStorageUnit(
+		lruCache,
+		persister,
+		storageunit.DBConfigToNewDBArgs(newDBConfig),
+	)
 }
 
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {

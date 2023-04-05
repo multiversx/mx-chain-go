@@ -31,7 +31,7 @@ func createMemUnit() storage.Storer {
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(100000)
-	unit, _ := storageunit.NewStorageUnit(cache, persist)
+	unit, _ := storageunit.NewStorageUnit(cache, persist, storageunit.MemDBNewDBArgsType)
 
 	return unit
 }
@@ -70,7 +70,7 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	unit, _ := storageunit.NewStorageUnit(cache, db)
+	unit, _ := storageunit.NewStorageUnit(cache, db, storageunit.MemDBNewDBArgsType)
 
 	tsm, _ := createTrieStorageManager(unit)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, 6)

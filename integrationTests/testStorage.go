@@ -82,6 +82,13 @@ func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
 	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
+		storageunit.NewDBArgsType{
+			DBType:            "LvlDB",
+			Path:              "Transactions",
+			BatchDelaySeconds: batchDelaySeconds,
+			MaxBatchSize:      maxBatchSize,
+			MaxOpenFiles:      maxOpenFiles,
+		},
 	)
 
 	return store
@@ -94,6 +101,13 @@ func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
 	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
+		storageunit.NewDBArgsType{
+			DBType:            "LvlDB",
+			Path:              "Transactions",
+			BatchDelaySeconds: batchDelaySeconds,
+			MaxBatchSize:      maxBatchSize,
+			MaxOpenFiles:      maxOpenFiles,
+		},
 	)
 
 	return store

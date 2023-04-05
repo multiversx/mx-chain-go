@@ -91,6 +91,7 @@ func generateStorageUnit() storage.Storer {
 	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
 		memDB,
+		storageunit.MemDBNewDBArgsType,
 	)
 
 	return storer

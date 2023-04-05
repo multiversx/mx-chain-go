@@ -30,6 +30,7 @@ func generateTestUnit() storage.Storer {
 	storer, _ := storageunit.NewStorageUnit(
 		generateTestCache(),
 		database.NewMemDB(),
+		storageunit.MemDBNewDBArgsType,
 	)
 
 	return storer

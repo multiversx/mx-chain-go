@@ -86,7 +86,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 
 	cache, _ := storageunit.NewCache(cacheConfig)
 	persist, _ := storageunit.NewDB(persisterConfig)
-	unit, _ := storageunit.NewStorageUnit(cache, persist)
+	unit, _ := storageunit.NewStorageUnit(cache, persist, storageunit.MemDBNewDBArgsType)
 
 	return unit, dir
 }

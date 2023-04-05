@@ -3,13 +3,15 @@ package mock
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // PersisterFactoryStub -
 type PersisterFactoryStub struct {
-	CreateCalled         func(path string) (storage.Persister, error)
-	CreateDisabledCalled func() storage.Persister
+	CreateCalled              func(path string) (storage.Persister, error)
+	CreateDisabledCalled      func() storage.Persister
+	DBConfigWithoutPathCalled func() config.DBConfig
 }
 
 // Create -
@@ -27,6 +29,15 @@ func (pfs *PersisterFactoryStub) CreateDisabled() storage.Persister {
 		return pfs.CreateDisabledCalled()
 	}
 	return nil
+}
+
+// DBConfigWithoutPath -
+func (pfs *PersisterFactoryStub) DBConfigWithoutPath() config.DBConfig {
+	if pfs.DBConfigWithoutPathCalled != nil {
+		return pfs.DBConfigWithoutPathCalled()
+	}
+
+	return config.DBConfig{}
 }
 
 // IsInterfaceNil -

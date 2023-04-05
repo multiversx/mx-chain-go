@@ -198,6 +198,13 @@ func getNewTrieStorage() storage.Storer {
 	store, _ := storageunit.NewStorageUnit(
 		cacher,
 		db,
+		storageunit.NewDBArgsType{
+			DBType:            "LvlDBSerial",
+			Path:              "Transactions",
+			BatchDelaySeconds: batchDelaySeconds,
+			MaxBatchSize:      maxBatchSize,
+			MaxOpenFiles:      maxNumOpenedFiles,
+		},
 	)
 
 	return store

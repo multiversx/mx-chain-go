@@ -27,7 +27,17 @@ func TestPutRemove(t *testing.T) {
 		_ = lvdb1.Close()
 	}()
 
-	store, err := storageunit.NewStorageUnit(cache, lvdb1)
+	store, err := storageunit.NewStorageUnit(
+		cache,
+		lvdb1,
+		storageunit.NewDBArgsType{
+			DBType:            "LvlDBSerial",
+			Path:              dir,
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      1000,
+			MaxOpenFiles:      10,
+		},
+	)
 	log.LogIfError(err)
 
 	numPuts := 800
