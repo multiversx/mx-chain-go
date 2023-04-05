@@ -30,6 +30,7 @@ const (
 	getESDTsRolesPath         = "/:address/esdts/roles"
 	getRegisteredNFTsPath     = "/:address/registered-nfts"
 	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
+	getGuardianData           = "/:address/guardian-data"
 	urlParamOnFinalBlock      = "onFinalBlock"
 	urlParamOnStartOfEpoch    = "onStartOfEpoch"
 	urlParamBlockNonce        = "blockNonce"
@@ -52,6 +53,7 @@ type addressFacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -156,6 +158,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getESDTsRolesPath,
 			Method:  http.MethodGet,
 			Handler: ag.getESDTsRoles,
+		},
+		{
+			Path:    getGuardianData,
+			Method:  http.MethodGet,
+			Handler: ag.getGuardianData,
 		},
 	}
 	ag.endpoints = endpoints
@@ -307,6 +314,29 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"value": value, "blockInfo": blockInfo})
+}
+
+// getGuardianData returns the guardian data and guarded state for a given account
+func (ag *addressGroup) getGuardianData(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrGetGuardianData, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrGetGuardianData, err)
+		return
+	}
+
+	guardianData, blockInfo, err := ag.getFacade().GetGuardianData(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetGuardianData, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"guardianData": guardianData, "blockInfo": blockInfo})
 }
 
 // addressGroup returns all the key-value pairs for the given address

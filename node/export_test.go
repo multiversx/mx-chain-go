@@ -3,8 +3,10 @@ package node
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // GetClosableComponentName -
@@ -40,4 +42,15 @@ func MergeAccountQueryOptionsIntoBlockInfo(options api.AccountQueryOptions, info
 // ExtractApiBlockInfoIfErrAccountNotFoundAtBlock -
 func ExtractApiBlockInfoIfErrAccountNotFoundAtBlock(err error) (api.BlockInfo, bool) {
 	return extractApiBlockInfoIfErrAccountNotFoundAtBlock(err)
+}
+
+// SetTxGuardianData -
+func (n *Node) SetTxGuardianData(guardian string, guardianSigHex string, tx *transaction.Transaction) error {
+	return n.setTxGuardianData(guardian, guardianSigHex, tx)
+}
+
+func (n *Node) GetPendingAndActiveGuardians(
+	userAccount state.UserAccountHandler,
+) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
+	return n.getPendingAndActiveGuardians(userAccount)
 }

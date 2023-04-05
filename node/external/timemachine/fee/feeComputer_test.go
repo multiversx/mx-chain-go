@@ -14,41 +14,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewFeeComputer(t *testing.T) {
-	t.Run("NilBuiltInFunctionsCostHandler", func(t *testing.T) {
-		arguments := ArgsNewFeeComputer{
-			BuiltInFunctionsCostHandler: nil,
-			EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		}
-
-		computer, err := NewFeeComputer(arguments)
-		require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
-		require.Nil(t, computer)
-	})
-
-	t.Run("AllArgumentsProvided", func(t *testing.T) {
-		arguments := ArgsNewFeeComputer{
-			BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-			EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		}
-
-		computer, err := NewFeeComputer(arguments)
-		require.Nil(t, err)
-		require.NotNil(t, computer)
-	})
-}
-
-func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
+func createMockFeeComputerArgs() ArgsNewFeeComputer {
+	return ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		EnableEpochsConfig: config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: 124,
 			GasPriceModifierEnableEpoch:    180,
 		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
+}
 
-	computer, _ := NewFeeComputer(arguments)
+func TestNewFeeComputer(t *testing.T) {
+	t.Run("nil builtin function cost handler should error", func(t *testing.T) {
+		args := createMockFeeComputerArgs()
+		args.BuiltInFunctionsCostHandler = nil
+		computer, err := NewFeeComputer(args)
+		require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
+		require.Nil(t, computer)
+	})
+	t.Run("nil tx version checker should error", func(t *testing.T) {
+		args := createMockFeeComputerArgs()
+		args.TxVersionChecker = nil
+		computer, err := NewFeeComputer(args)
+		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
+		require.Nil(t, computer)
+	})
+	t.Run("AllArgumentsProvided", func(t *testing.T) {
+		args := createMockFeeComputerArgs()
+		computer, err := NewFeeComputer(args)
+		require.Nil(t, err)
+		require.NotNil(t, computer)
+	})
+}
+
+func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
+	args := createMockFeeComputerArgs()
+	computer, _ := NewFeeComputer(args)
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -75,16 +78,8 @@ func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	args := createMockFeeComputerArgs()
+	computer, _ := NewFeeComputer(args)
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -109,16 +104,8 @@ func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeGasLimit(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	args := createMockFeeComputerArgs()
+	computer, _ := NewFeeComputer(args)
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -142,18 +129,10 @@ func TestFeeComputer_ComputeGasLimit(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
+	args := createMockFeeComputerArgs()
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(args)
 
 	checkComputedFee(t, "50000000000000", computer, 0, 80000, 1000000000, "", nil)
 	checkComputedFee(t, "57500000000000", computer, 0, 80000, 1000000000, "hello", nil)
@@ -184,16 +163,8 @@ func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, e
 }
 
 func TestFeeComputer_InHighConcurrency(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	args := createMockFeeComputerArgs()
+	computer, _ := NewFeeComputer(args)
 
 	n := 1000
 	wg := sync.WaitGroup{}
@@ -222,11 +193,7 @@ func TestFeeComputer_IsInterfaceNil(t *testing.T) {
 	var fc *feeComputer
 	require.True(t, fc.IsInterfaceNil())
 
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	}
-
-	fc, _ = NewFeeComputer(arguments)
+	args := createMockFeeComputerArgs()
+	fc, _ = NewFeeComputer(args)
 	require.False(t, fc.IsInterfaceNil())
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -24,6 +25,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +61,6 @@ func (fs *failingSteps) reset() {
 }
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
-
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	coreComponents := componentsMock.GetCoreComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
@@ -327,18 +328,28 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				return gasSchedule
 			},
 		},
-		MessageSigVerifier: &testscommon.MessageSignVerifierMock{},
-		SystemSCConfig:     &config.SystemSmartContractsConfig{},
-		Bootstrapper:       testsMocks.NewTestBootstrapperMock(),
-		AllowVMQueriesChan: make(chan struct{}, 1),
-		WorkingDir:         "",
-		Index:              0,
+		MessageSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		SystemSCConfig:        &config.SystemSmartContractsConfig{},
+		Bootstrapper:          testsMocks.NewTestBootstrapperMock(),
+		AllowVMQueriesChan:    make(chan struct{}, 1),
+		WorkingDir:            "",
+		Index:                 0,
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }
 
 func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Parallel()
 
+	t.Run("nil guardian handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSCQueryElementArgs()
+		args.GuardedAccountHandler = nil
+		scQueryService, err := api.CreateScQueryElement(args)
+		require.Equal(t, process.ErrNilGuardedAccountHandler, err)
+		require.Nil(t, scQueryService)
+	})
 	t.Run("DecodeAddresses fails", func(t *testing.T) {
 		t.Parallel()
 
