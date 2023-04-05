@@ -1969,7 +1969,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 			go func() {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				close(ch.LeavesChan)
-				close(ch.ErrChan)
+				ch.ErrChan.Close()
 			}()
 
 			return nil
@@ -2032,7 +2032,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 				close(ch.LeavesChan)
-				close(ch.ErrChan)
+				ch.ErrChan.Close()
 			}()
 
 			return nil
@@ -2078,7 +2078,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {
-					ch.ErrChan <- expectedErr
+					ch.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(ch.LeavesChan)
 				}()
 
@@ -2108,7 +2108,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 					close(ch.LeavesChan)
-					close(ch.ErrChan)
+					ch.ErrChan.Close()
 				}()
 
 				return nil
@@ -2555,7 +2555,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 			close(ch.LeavesChan)
-			close(ch.ErrChan)
+			ch.ErrChan.Close()
 		}()
 
 		return nil

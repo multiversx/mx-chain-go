@@ -41,6 +41,7 @@ import (
 	nodeMockFactory "github.com/multiversx/mx-chain-go/node/mock/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -53,7 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	mockStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -132,7 +133,7 @@ func TestNewNode(t *testing.T) {
 	n, err := node.NewNode()
 
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(n))
+	assert.NotNil(t, n)
 }
 
 func TestNewNode_NilOptionShouldError(t *testing.T) {
@@ -443,7 +444,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					leavesChannels.LeavesChan <- trieLeaf2
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -502,7 +503,7 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
-					leavesChannels.ErrChan <- expectedErr
+					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(leavesChannels.LeavesChan)
 				}()
 
@@ -557,7 +558,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -838,7 +839,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -894,7 +895,7 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
 				go func() {
-					leavesChannels.ErrChan <- expectedErr
+					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(leavesChannels.LeavesChan)
 				}()
 
@@ -951,7 +952,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -1083,7 +1084,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 					leavesChannels.LeavesChan <- trieLeaf
 					wg.Done()
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				wg.Wait()
@@ -1169,7 +1170,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 					trieLeaf = keyValStorage.NewKeyValStorage(nftToken, append(nftMarshalledData, nftSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -1255,7 +1256,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -1335,7 +1336,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -1400,7 +1401,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -1457,7 +1458,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -4142,6 +4143,206 @@ func TestNode_GetHeartbeats(t *testing.T) {
 	assert.True(t, sameMessages(providedMessages, receivedMessages))
 }
 
+func TestNode_Getters(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
+		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
+	}
+	cryptoComponents := getDefaultCryptoComponents()
+	stateComponents := getDefaultStateComponents()
+	bootstrapComponents := getDefaultBootstrapComponents()
+	dataComponents := getDefaultDataComponents()
+	heartbeatComponents := &factoryMock.HeartbeatV2ComponentsStub{}
+	networkComponents := getDefaultNetworkComponents()
+	processComponents := getDefaultProcessComponents()
+	consensusGroupSize := 10
+
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStatusCoreComponents(statusCoreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithHeartbeatV2Components(heartbeatComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithConsensusGroupSize(consensusGroupSize),
+		node.WithImportMode(true),
+	)
+	require.Nil(t, err)
+
+	//pointer testing
+	assert.True(t, n.GetCoreComponents() == coreComponents)
+	assert.True(t, n.GetStatusCoreComponents() == statusCoreComponents)
+	assert.True(t, n.GetCryptoComponents() == cryptoComponents)
+	assert.True(t, n.GetStateComponents() == stateComponents)
+	assert.True(t, n.GetBootstrapComponents() == bootstrapComponents)
+	assert.True(t, n.GetDataComponents() == dataComponents)
+	assert.True(t, n.GetHeartbeatV2Components() == heartbeatComponents)
+	assert.True(t, n.GetNetworkComponents() == networkComponents)
+	assert.True(t, n.GetProcessComponents() == processComponents)
+	assert.Equal(t, consensusGroupSize, n.GetConsensusGroupSize())
+	assert.True(t, n.IsInImportMode())
+}
+
+func TestNode_GetEpochStartDataAPI(t *testing.T) {
+	t.Parallel()
+
+	prevHash := []byte("prevHash")
+	rootHash := []byte("rootHash")
+	accumulatedFees := big.NewInt(100)
+	developerFees := big.NewInt(200)
+
+	dataComponents := getDefaultDataComponents()
+	blockchain := dataComponents.BlockChain.(*testscommon.ChainHandlerStub)
+	timestamp := uint64(778899)
+	shardID := uint32(2)
+	blockchain.GetGenesisHeaderCalled = func() data.HeaderHandler {
+		return &block.Header{
+			TimeStamp:       timestamp,
+			ShardID:         shardID,
+			PrevHash:        prevHash,
+			RootHash:        rootHash,
+			AccumulatedFees: accumulatedFees,
+			DeveloperFees:   developerFees,
+		}
+	}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	shardCoordinator := bootstrapComponents.ShardCoordinator().(*mock.ShardCoordinatorMock)
+
+	coreComponents := getDefaultCoreComponents()
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+	)
+	epoch := uint32(37)
+	nonce := uint64(112233)
+	round := uint64(445566)
+
+	t.Run("genesis block should work", func(t *testing.T) {
+		result, err := n.GetEpochStartDataAPI(0)
+		assert.Nil(t, err)
+		expectedResult := &common.EpochStartDataAPI{
+			Nonce:             0,
+			Round:             0,
+			Timestamp:         int64(timestamp),
+			Epoch:             0,
+			Shard:             shardID,
+			PrevBlockHash:     hex.EncodeToString(prevHash),
+			StateRootHash:     hex.EncodeToString(rootHash),
+			ScheduledRootHash: "",
+			AccumulatedFees:   accumulatedFees.String(),
+			DeveloperFees:     developerFees.String(),
+		}
+		assert.Equal(t, expectedResult, result)
+	})
+	t.Run("should work for metachain", func(t *testing.T) {
+		shardCoordinator.SelfShardId = core.MetachainShardId
+
+		returnedHeader := &block.MetaBlock{
+			Nonce:           nonce,
+			Epoch:           epoch,
+			Round:           round,
+			TimeStamp:       timestamp,
+			PrevHash:        prevHash,
+			RootHash:        rootHash,
+			AccumulatedFees: accumulatedFees,
+			DeveloperFees:   developerFees,
+		}
+
+		headerBytes, err := coreComponents.IntMarsh.Marshal(returnedHeader)
+		require.Nil(t, err)
+
+		unit := &mockStorage.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				expectedIdentifier := core.EpochStartIdentifier(epoch)
+				require.Equal(t, expectedIdentifier, string(key))
+
+				return headerBytes, nil
+			},
+		}
+
+		storageService := dataComponents.StorageService().(*mockStorage.ChainStorerStub)
+		storageService.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			require.Equal(t, dataRetriever.MetaBlockUnit, unitType)
+			return unit, nil
+		}
+
+		result, err := n.GetEpochStartDataAPI(epoch)
+		assert.Nil(t, err)
+
+		expectedResult := &common.EpochStartDataAPI{
+			Nonce:             nonce,
+			Round:             round,
+			Timestamp:         int64(timestamp),
+			Epoch:             epoch,
+			Shard:             core.MetachainShardId,
+			PrevBlockHash:     hex.EncodeToString(prevHash),
+			StateRootHash:     hex.EncodeToString(rootHash),
+			ScheduledRootHash: "",
+			AccumulatedFees:   accumulatedFees.String(),
+			DeveloperFees:     developerFees.String(),
+		}
+		assert.Equal(t, expectedResult, result)
+	})
+	t.Run("should work for shard chain", func(t *testing.T) {
+		shardCoordinator.SelfShardId = 0
+
+		returnedHeader := &block.Header{
+			Nonce:           nonce,
+			Epoch:           epoch,
+			Round:           round,
+			ShardID:         shardID,
+			TimeStamp:       timestamp,
+			PrevHash:        prevHash,
+			RootHash:        rootHash,
+			AccumulatedFees: accumulatedFees,
+			DeveloperFees:   developerFees,
+		}
+
+		headerBytes, err := coreComponents.IntMarsh.Marshal(returnedHeader)
+		require.Nil(t, err)
+
+		unit := &mockStorage.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				expectedIdentifier := core.EpochStartIdentifier(epoch)
+				require.Equal(t, expectedIdentifier, string(key))
+
+				return headerBytes, nil
+			},
+		}
+
+		storageService := dataComponents.StorageService().(*mockStorage.ChainStorerStub)
+		storageService.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			require.Equal(t, dataRetriever.BlockHeaderUnit, unitType)
+			return unit, nil
+		}
+
+		result, err := n.GetEpochStartDataAPI(epoch)
+		assert.Nil(t, err)
+
+		expectedResult := &common.EpochStartDataAPI{
+			Nonce:             nonce,
+			Round:             round,
+			Timestamp:         int64(timestamp),
+			Epoch:             epoch,
+			Shard:             shardID,
+			PrevBlockHash:     hex.EncodeToString(prevHash),
+			StateRootHash:     hex.EncodeToString(rootHash),
+			ScheduledRootHash: "",
+			AccumulatedFees:   accumulatedFees.String(),
+			DeveloperFees:     developerFees.String(),
+		}
+		assert.Equal(t, expectedResult, result)
+	})
+}
+
 func createMockHeartbeatV2Components(providedMessages []heartbeatData.PubKeyHeartbeat) *factoryMock.HeartbeatV2ComponentsStub {
 	heartbeatV2Components := &factoryMock.HeartbeatV2ComponentsStub{}
 	heartbeatV2Components.MonitorField = &integrationTestsMock.HeartbeatMonitorStub{
@@ -4284,7 +4485,7 @@ func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
 
 	return &nodeMockFactory.DataComponentsMock{
 		BlockChain: chainHandler,
-		Store:      &storage.ChainStorerStub{},
+		Store:      &mockStorage.ChainStorerStub{},
 		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
@@ -4302,4 +4503,14 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		ShCoordinator:        &mock.ShardCoordinatorMock{},
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
+}
+
+func TestNode_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var n *node.Node
+	require.True(t, n.IsInterfaceNil())
+
+	n, _ = node.NewNode()
+	require.False(t, n.IsInterfaceNil())
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -48,6 +49,7 @@ type StorageServiceFactory struct {
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
+	nodeProcessingMode            common.NodeProcessingMode
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -61,6 +63,7 @@ type StorageServiceFactoryArgs struct {
 	StorageType                   StorageServiceType
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	NodeProcessingMode            common.NodeProcessingMode
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -91,6 +94,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
+		nodeProcessingMode:            args.NodeProcessingMode,
 	}, nil
 }
 
@@ -364,7 +368,7 @@ func (psf *StorageServiceFactory) createTriePruningStorer(
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
 ) (storage.Storer, error) {
 	accountsUnitArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
-	if psf.storageType == ProcessStorageService {
+	if psf.storageType == ProcessStorageService && psf.nodeProcessingMode == common.Normal {
 		accountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(accountsUnitArgs.EpochsData)
 	}
 
