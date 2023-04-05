@@ -867,8 +867,8 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        nr.GetConsensusModel(),
-		ChainRunType:          nr.GetChainRunType(),
+		ConsensusModel:        nr.getConsensusModel(),
+		ChainRunType:          nr.getChainRunType(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1228,7 +1228,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
 		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
-		ChainRunType:           nr.GetChainRunType(),
+		ChainRunType:           nr.getChainRunType(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1360,7 +1360,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         nr.GetChainRunType(),
+		ChainRunType:         nr.getChainRunType(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1704,10 +1704,10 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func (nr *nodeRunner) GetConsensusModel() consensus.ConsensusModel {
+func (nr *nodeRunner) getConsensusModel() consensus.ConsensusModel {
 	return consensus.ConsensusModelV1
 }
 
-func (nr *nodeRunner) GetChainRunType() common.ChainRunType {
+func (nr *nodeRunner) getChainRunType() common.ChainRunType {
 	return common.ChainRunTypeRegular
 }

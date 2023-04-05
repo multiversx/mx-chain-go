@@ -96,11 +96,11 @@ func NewSovereignNodeRunner(cfgs *config.Configs) (*sovereignNodeRunner, error) 
 	}, nil
 }
 
-func (snr *sovereignNodeRunner) GetConsensusModel() consensus.ConsensusModel {
+func (snr *sovereignNodeRunner) getConsensusModel() consensus.ConsensusModel {
 	return consensus.ConsensusModelV2
 }
 
-func (snr *sovereignNodeRunner) GetChainRunType() common.ChainRunType {
+func (snr *sovereignNodeRunner) getChainRunType() common.ChainRunType {
 	return common.ChainRunTypeSovereign
 }
 
@@ -877,8 +877,8 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        snr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        snr.GetConsensusModel(),
-		ChainRunType:          snr.GetChainRunType(),
+		ConsensusModel:        snr.getConsensusModel(),
+		ChainRunType:          snr.getChainRunType(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1238,7 +1238,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
 		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
-		ChainRunType:           snr.GetChainRunType(),
+		ChainRunType:           snr.getChainRunType(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1370,7 +1370,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         snr.GetChainRunType(),
+		ChainRunType:         snr.getChainRunType(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
