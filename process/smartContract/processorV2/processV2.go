@@ -2320,12 +2320,6 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 		result.Value.Set(outputTransfer.Value)
 	}
 
-	result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
-		outputTransfer.Data,
-		outputTransfer.AsyncData,
-		sc.argsParser.ParseArguments,
-	)
-
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
@@ -2388,6 +2382,12 @@ func (sc *scProcessor) createSmartContractResults(
 		if !createdAsyncCallBack && isLastOutTransfer && isOutTransferTxRcvAddr &&
 			sc.useLastTransferAsAsyncCallBackWhenNeeded(vmInput, outAcc, &outputTransferCopy, vmOutput, tx, result, isCrossShard) {
 			createdAsyncCallBack = true
+		} else {
+			result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
+				outputTransfer.Data,
+				outputTransfer.AsyncData,
+				sc.argsParser.ParseArguments,
+			)
 		}
 
 		if result.CallType == vmData.AsynchronousCall {
@@ -2433,19 +2433,18 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 
 	var err error
 	asyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments)
-	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, result.Data)
+	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, outputTransfer.Data, int(vmOutput.ReturnCode))
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
 	}
 
-	dataBuilder.Int(int(vmOutput.ReturnCode))
 	result.Data = dataBuilder.ToBytes()
 
 	return true
 }
 
-func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) (*txDataBuilder.TxDataBuilder, error) {
+func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte, returnCode int) (*txDataBuilder.TxDataBuilder, error) {
 	var args [][]byte
 	var err error
 
@@ -2468,6 +2467,8 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 	for _, arg := range args {
 		callData.Bytes(arg)
 	}
+
+	callData.Int(returnCode)
 
 	for _, asyncParam := range asyncParams {
 		callData.Bytes(asyncParam)

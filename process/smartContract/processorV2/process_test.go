@@ -4194,7 +4194,7 @@ func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
 
 	t.Run("NilAsyncParams", func(t *testing.T) {
 		asyncParams := [][]byte(nil)
-		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data, 0)
 		require.Nil(t, err)
 		require.Equal(t, data, dataWithAsyncParams)
 	})
@@ -4212,7 +4212,7 @@ func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
 				"@" +
 				hex.EncodeToString(ok),
 		)
-		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, data, 0)
 		require.Nil(t, err)
 		require.Equal(t, expectedData, dataWithAsyncParams)
 	})
