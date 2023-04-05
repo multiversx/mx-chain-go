@@ -185,4 +185,3 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
-
