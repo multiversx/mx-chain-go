@@ -180,6 +180,36 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	assert.Equal(t, expectedErr.Error(), response.Error)
 }
 
+func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := common.MetricExtraGasLimitGuardedTx
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/config", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 

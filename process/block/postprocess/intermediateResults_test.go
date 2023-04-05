@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -56,7 +57,7 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -74,7 +75,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -92,7 +93,7 @@ func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -110,7 +111,7 @@ func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 		nil,
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -128,7 +129,7 @@ func TestNewIntermediateResultsProcessor_NilTxForCurrentBlockHandler(t *testing.
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		nil,
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -164,7 +165,7 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -183,7 +184,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -208,7 +209,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -230,7 +231,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -255,7 +256,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *te
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -288,7 +289,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -328,7 +329,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -362,7 +363,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -402,7 +403,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -436,7 +437,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -483,7 +484,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -509,7 +510,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -547,7 +548,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -610,7 +611,7 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	txs := make([]data.TransactionHandler, 0)
@@ -645,7 +646,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -669,7 +670,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -698,7 +699,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -725,7 +726,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -775,11 +776,11 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockCalled: func() uint64 {
 				return maxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return maxGasLimitPerBlock
 			},
 		},
@@ -849,7 +850,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 		},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -893,7 +894,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -925,7 +926,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -993,7 +994,7 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -1037,7 +1038,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 		&storage.ChainStorerStub{},
 		block.SmartContractResultBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return gasLimit
 			},
@@ -1092,7 +1093,7 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 		&storage.ChainStorerStub{},
 		block.TxBlock,
 		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	key := []byte("key")
