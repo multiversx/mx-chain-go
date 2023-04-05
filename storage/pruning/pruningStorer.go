@@ -656,6 +656,13 @@ func (ps *PruningStorer) ClearCache() {
 	ps.cacher.Clear()
 }
 
+// ClearStorage will return an error since the entire deletion of a split-by-epoch persister is not possible at the moment
+func (ps *PruningStorer) ClearStorage() error {
+	// this isn't supported at the moment since PruningStorer only holds the latest epochs open. A functional implementation
+	// would remove the entire database (remove all `Epoch_{[0-9]+}/Shard_{[0-9]+}/Transactions` directories)
+	return storage.ErrClearStorageNotSupportedForPruningStorer
+}
+
 // GetOldestEpoch returns the oldest epoch from current configuration
 func (ps *PruningStorer) GetOldestEpoch() (uint32, error) {
 	ps.lock.RLock()
@@ -684,6 +691,7 @@ func (ps *PruningStorer) DestroyUnit() error {
 
 	ps.cacher.Clear()
 
+	// TODO: analyze if this functions behaves as expected, since it will only remove the DBs open by the PruningStorer, not all of them
 	var err error
 	numOfPersistersRemoved := 0
 	totalNumOfPersisters := len(ps.persistersMapByEpoch)

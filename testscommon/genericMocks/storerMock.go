@@ -195,6 +195,11 @@ func (sm *StorerMock) ClearAll() {
 func (sm *StorerMock) ClearCache() {
 }
 
+// ClearStorage -
+func (sm *StorerMock) ClearStorage() error {
+	return nil
+}
+
 // DestroyUnit -
 func (sm *StorerMock) DestroyUnit() error {
 	return nil

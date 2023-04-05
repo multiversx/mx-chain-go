@@ -55,7 +55,7 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
+func (sm *StorerMock) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -83,6 +83,11 @@ func (sm *StorerMock) Remove(key []byte) error {
 
 // ClearCache -
 func (sm *StorerMock) ClearCache() {
+}
+
+// ClearStorage -
+func (sm *StorerMock) ClearStorage() error {
+	return nil
 }
 
 // DestroyUnit -

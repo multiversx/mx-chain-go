@@ -51,6 +51,11 @@ func (s *storer) Remove(_ []byte) error {
 func (s *storer) ClearCache() {
 }
 
+// ClearStorage returns nil
+func (s *storer) ClearStorage() error {
+	return nil
+}
+
 // DestroyUnit returns nil
 func (s *storer) DestroyUnit() error {
 	return nil

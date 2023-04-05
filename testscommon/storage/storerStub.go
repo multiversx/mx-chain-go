@@ -14,6 +14,7 @@ type StorerStub struct {
 	RemoveFromCurrentEpochCalled func(key []byte) error
 	RemoveCalled                 func(key []byte) error
 	ClearCacheCalled             func()
+	ClearStorageCalled           func() error
 	DestroyUnitCalled            func() error
 	GetFromEpochCalled           func(key []byte, epoch uint32) ([]byte, error)
 	GetBulkFromEpochCalled       func(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
@@ -83,6 +84,15 @@ func (ss *StorerStub) ClearCache() {
 	if ss.ClearCacheCalled != nil {
 		ss.ClearCacheCalled()
 	}
+}
+
+// ClearStorage -
+func (ss *StorerStub) ClearStorage() error {
+	if ss.ClearStorageCalled != nil {
+		return ss.ClearStorageCalled()
+	}
+
+	return nil
 }
 
 // DestroyUnit -

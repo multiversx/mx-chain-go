@@ -91,6 +91,9 @@ var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
+// ErrClearStorageNotSupportedForPruningStorer signals that an invalid operation was tried against PruningStorer
+var ErrClearStorageNotSupportedForPruningStorer = errors.New("pruning storer cannot clear all storage")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.
