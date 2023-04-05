@@ -541,3 +541,9 @@ type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
 }
+
+// BlockTrackerCreator is able to create block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker() (process.BlockTracker, error)
+	IsInterfaceNil() bool
+}
