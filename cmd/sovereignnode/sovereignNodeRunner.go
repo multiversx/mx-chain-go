@@ -1,4 +1,4 @@
-package nodeSovereign
+package main
 
 import (
 	"fmt"
