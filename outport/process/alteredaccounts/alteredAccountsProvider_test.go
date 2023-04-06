@@ -440,7 +440,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	}
 	args.AccountsDB = &state.AccountsStub{
 		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{}, nil
+			return  &state.StateUserAccountHandlerStub{}, nil
 		},
 	}
 	aap, _ := NewAlteredAccountsProvider(args)

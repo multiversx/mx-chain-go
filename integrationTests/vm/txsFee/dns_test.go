@@ -30,7 +30,6 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(200000)
 
 	rcvAddr := []byte("12345678901234567890123456789113")

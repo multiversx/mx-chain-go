@@ -38,11 +38,13 @@ func GetEconomicsConfig() config.EconomicsConfig {
 					MaxGasLimitPerMetaMiniBlock: "1500000000",
 					MaxGasLimitPerTx:            "600000000",
 					MinGasLimit:                 "50000",
+					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
-			MinGasPrice:      "1000000000",
-			GasPerDataByte:   "1500",
-			GasPriceModifier: 0.01,
+			MinGasPrice:            "1000000000",
+			GasPerDataByte:         "1500",
+			GasPriceModifier:       0.01,
+			MaxGasPriceSetGuardian: "2000000000",
 		},
 	}
 }
