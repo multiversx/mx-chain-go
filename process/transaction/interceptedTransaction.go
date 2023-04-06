@@ -225,7 +225,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 
 	err = inTx.verifySig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while checking inner transaction's signature", err)
 	}
 
 	err = inTx.VerifyGuardianSig(userTx)
@@ -275,7 +275,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 	err = inTx.verifySig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while checking inner transaction's signature", err)
 	}
 
 	err = inTx.VerifyGuardianSig(userTx)
