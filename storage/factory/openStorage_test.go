@@ -234,6 +234,6 @@ func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	var osu *openStorageUnits
 	require.True(t, osu.IsInterfaceNil())
 
-	osu = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	osu, _ = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
 	require.False(t, osu.IsInterfaceNil())
 }
