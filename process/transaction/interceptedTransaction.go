@@ -397,7 +397,12 @@ func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transactio
 		return err
 	}
 
-	return inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+	errVerifySig := inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+	if errVerifySig != nil {
+		return fmt.Errorf("%w when checking the guardian's signature", errVerifySig)
+	}
+
+	return nil
 }
 
 func verifyConsistencyForNotGuardedTx(tx *transaction.Transaction) error {

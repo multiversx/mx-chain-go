@@ -1812,7 +1812,8 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
-		require.Equal(t, errSignerMockVerifySigFails, err)
+		require.ErrorIs(t, err, errSignerMockVerifySigFails)
+		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("normal TX with not empty guardian address", func(t *testing.T) {
 		tx := tx
@@ -1848,7 +1849,8 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
-		require.Equal(t, errSignerMockVerifySigFails, err)
+		require.ErrorIs(t, err, errSignerMockVerifySigFails)
+		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("correct guardian sig", func(t *testing.T) {
 		tx := tx
