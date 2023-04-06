@@ -1394,7 +1394,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrNilValue, err)
+	assert.ErrorIs(t, err, data.ErrNilValue)
 
 	userTx.Value = big.NewInt(0)
 	userTxData, _ = marshalizer.Marshal(userTx)
@@ -1409,7 +1409,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.ErrorIs(t, err, errSignerMockVerifySigFails)
-	assert.Contains(t, err.Error(), "inner transaction's signature")
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1479,7 +1479,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.ErrorIs(t, err, errSignerMockVerifySigFails)
-	assert.Contains(t, err.Error(), "inner transaction's signature")
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
