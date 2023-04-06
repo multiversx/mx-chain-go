@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 		},
 	}
 
-	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
+	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -49,7 +50,7 @@ func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 		},
 	}
 
-	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
+	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -75,7 +76,7 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 		},
 	}
 
-	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
+	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSystemBusy))
 	assert.True(t, canProcessWasCalled)
@@ -102,7 +103,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 		},
 	}
 
-	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
+	err := mp.canProcessMessage(&p2pmocks.P2PMessageMock{}, "")
 
 	assert.Nil(t, err)
 	assert.True(t, canProcessWasCalled)
@@ -134,7 +135,7 @@ func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testi
 			},
 		},
 	}
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: make([]byte, 0),
 		PeerField: originatorPid,
 	}
@@ -157,7 +158,7 @@ func TestMessageProcessor_ParseReceivedMessageNilValueFieldShouldErr(t *testing.
 		},
 	}
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
 	rd, err := mp.parseReceivedMessage(msg, fromConnectedPeer)
@@ -181,7 +182,7 @@ func TestMessageProcessor_ParseReceivedMessageShouldWork(t *testing.T) {
 		},
 	}
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
 	rd, err := mp.parseReceivedMessage(msg, fromConnectedPeer)

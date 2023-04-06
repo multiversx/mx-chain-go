@@ -215,9 +215,10 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
 		StatusCore:                    GetStatusCoreComponents(),
-		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
+		Crypto:                        GetCryptoComponents(coreComponents),
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
+		SnapshotsEnabled:              false,
 	}
 }
 
@@ -452,6 +453,7 @@ func GetProcessArgs(
 					Length:          32,
 					Type:            "bech32",
 					SignatureLength: 0,
+					Hrp:             "erd",
 				})
 				balance := big.NewInt(0)
 				acc1 := data.InitialAccount{
@@ -564,8 +566,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
-		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		Version:          "v1.0.0",
+		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
+		SnapshotsEnabled: false,
 	}
 }
 

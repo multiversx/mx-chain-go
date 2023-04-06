@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -111,7 +112,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	options shared.AlteredAccountsOptions,
 ) error {
 	addressBytes := []byte(addressStr)
-	encodedAddress := aap.addressConverter.Encode(addressBytes)
+	encodedAddress := aap.addressConverter.SilentEncode(addressBytes, log)
 
 	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {
@@ -143,7 +144,7 @@ func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc
 
 	ownerAddressBytes := userAccount.GetOwnerAddress()
 	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
-		alteredAccount.AdditionalData.CurrentOwner = aap.addressConverter.Encode(ownerAddressBytes)
+		alteredAccount.AdditionalData.CurrentOwner = aap.addressConverter.SilentEncode(ownerAddressBytes, log)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
 	if developerRewards != nil {
@@ -214,7 +215,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
-		Properties: string(esdtToken.Properties),
+		Properties: hex.EncodeToString(esdtToken.Properties),
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
@@ -234,10 +235,12 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *ou
 		return nil
 	}
 
+	metaDataCreatorAddr := aap.addressConverter.SilentEncode(metaData.Creator, log)
+
 	return &outportcore.TokenMetaData{
 		Nonce:      metaData.Nonce,
 		Name:       string(metaData.Name),
-		Creator:    aap.addressConverter.Encode(metaData.Creator),
+		Creator:    metaDataCreatorAddr,
 		Royalties:  metaData.Royalties,
 		Hash:       metaData.Hash,
 		URIs:       metaData.URIs,

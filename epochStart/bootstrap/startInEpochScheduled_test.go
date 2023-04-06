@@ -75,7 +75,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledNotE
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
@@ -96,7 +96,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetRequiredHe
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
@@ -118,10 +118,43 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocks
 	notarizedShardHeader := createTestHeader()
 	notarizedShardHeader.Epoch = 2
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Nil(t, headersMap)
 	require.Equal(t, notarizedShardHeader, header)
+}
+
+func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocksSyncedMiniblocksShouldBeReturned(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultDataSyncerFactoryArgs()
+	notarizedShardHeader := createTestHeader()
+	notarizedShardHeader.Epoch = 2
+	prevHeader := &block.Header{Nonce: 2}
+	expectedHeadersMap := map[string]data.HeaderHandler{
+		"hash1": notarizedShardHeader,
+		string(notarizedShardHeader.GetPrevHash()): prevHeader,
+	}
+	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+			return expectedHeadersMap, nil
+		},
+	}
+	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
+			return map[string]*block.MiniBlock{
+				"mb": {},
+			}, nil
+		},
+	}
+
+	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
+
+	header, headersMap, mbs, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	require.Nil(t, err)
+	require.Equal(t, expectedHeadersMap, headersMap)
+	require.Equal(t, prevHeader, header)
+	require.Equal(t, 1, len(mbs))
 }
 
 func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnabled(t *testing.T) {
@@ -143,7 +176,7 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnab
 
 	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
 
-	header, headersMap, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
+	header, headersMap, _, err := ds.UpdateSyncDataIfNeeded(notarizedShardHeader)
 	require.Nil(t, err)
 	require.Equal(t, expectedHeadersMap, headersMap)
 	require.Equal(t, prevHeader, header)
@@ -597,9 +630,10 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledTransactionHashesWithDe
 		},
 	}
 
-	scheduledTxHashes, err := sds.getScheduledTransactionHashes(header)
+	scheduledTxHashes, scheduledMBs, err := sds.getScheduledTransactionHashes(header)
 	require.Nil(t, err)
 	require.Equal(t, expectedScheduledTxHashes, scheduledTxHashes)
+	require.Len(t, scheduledMBs, 2)
 }
 
 func Test_getShardIDAndHashesForIncludedMetaBlocks(t *testing.T) {
