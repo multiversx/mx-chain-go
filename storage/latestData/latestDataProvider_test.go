@@ -49,6 +49,14 @@ func TestNewLatestDataProvider_ShouldWork(t *testing.T) {
 	})
 }
 
+func TestLatestDataProvider_GetParentDirectory(t *testing.T) {
+	t.Parallel()
+
+	args := getLatestDataProviderArgs()
+	ldp, _ := NewLatestDataProvider(args)
+	require.Equal(t, args.ParentDir, ldp.GetParentDirectory())
+}
+
 func TestGetShardsFromDirectory(t *testing.T) {
 	t.Parallel()
 
@@ -392,8 +400,8 @@ func TestLatestDataProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var ldp *latestDataProvider
-	assert.True(t, ldp.IsInterfaceNil())
+	require.True(t, ldp.IsInterfaceNil())
 
 	ldp, _ = NewLatestDataProvider(getLatestDataProviderArgs())
-	assert.False(t, ldp.IsInterfaceNil())
+	require.False(t, ldp.IsInterfaceNil())
 }

@@ -180,47 +180,60 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 	assert.NotNil(t, storer)
 }
 
-func TestOpenStorageUnits_OpenDB(t *testing.T) {
+func TestStorageUnitOpenHandler_OpenDB(t *testing.T) {
 	t.Parallel()
 
+	tempDir := t.TempDir()
+	args := createMockArgsOpenStorageUnits()
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string {
+			return tempDir
+		},
+	}
+	suoh, _ := NewStorageUnitOpenHandler(args)
+
+	// do not run these in parallel as they are using the same temp dir
+	t.Run("create DB fails, should error", func(t *testing.T) {
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "invalid DB type",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
+		}
+
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.NotNil(t, err)
+		expectedErrorString := "not supported db type"
+		assert.Equal(t, expectedErrorString, err.Error())
+		assert.Nil(t, storerInstance)
+	})
 	t.Run("should work", func(t *testing.T) {
-		args := createMockArgsOpenStorageUnits()
-		suoh, _ := NewStorageUnitOpenHandler(args)
-
-		cfg := config.DBConfig{
-			FilePath:          t.TempDir(),
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 1,
-			MaxBatchSize:      1,
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
 			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
 		}
-		db, err := suoh.OpenDB(cfg, 0, 0)
-		require.Nil(t, err)
-		require.Nil(t, db.Close())
-	})
-	t.Run("invalid config should error", func(t *testing.T) {
-		args := createMockArgsOpenStorageUnits()
-		suoh, _ := NewStorageUnitOpenHandler(args)
 
-		cfg := config.DBConfig{
-			FilePath:          t.TempDir(),
-			Type:              "invalid",
-			BatchDelaySeconds: 1,
-			MaxBatchSize:      1,
-			MaxOpenFiles:      10,
-		}
-		db, err := suoh.OpenDB(cfg, 0, 0)
-		require.NotNil(t, err)
-		require.Nil(t, db)
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.Nil(t, err)
+		assert.NotNil(t, storerInstance)
+
+		_ = storerInstance.Close()
 	})
+
 }
 
-func TestOpenStorageUnits_IsInterfaceNil(t *testing.T) {
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var osu *openStorageUnits
-	assert.True(t, osu.IsInterfaceNil())
+	require.True(t, osu.IsInterfaceNil())
 
-	osu, _ = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
-	assert.False(t, osu.IsInterfaceNil())
+	osu = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	require.False(t, osu.IsInterfaceNil())
 }
