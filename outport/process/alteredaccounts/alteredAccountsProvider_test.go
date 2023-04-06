@@ -312,11 +312,21 @@ func testExtractAlteredAccountsFromPoolBothSenderAndReceiverShards(t *testing.T)
 		decodedKey, _ := args.AddressConverter.Decode(key)
 		require.True(t, strings.HasPrefix(string(decodedKey), "shard0"))
 	}
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx0  ")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 2 - tx0")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr 3 - tx1")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx2  ")))
-	require.Contains(t, res, args.AddressConverter.Encode([]byte("shard0 addr - tx3  ")))
+
+	shard0AddrTx0, _ := args.AddressConverter.Encode([]byte("shard0 addr - tx0  "))
+	require.Contains(t, res, shard0AddrTx0)
+
+	shard0Addr2Tx0, _ := args.AddressConverter.Encode([]byte("shard0 addr 2 - tx0"))
+	require.Contains(t, res, shard0Addr2Tx0)
+
+	shard0Addr3Tx1, _ := args.AddressConverter.Encode([]byte("shard0 addr 3 - tx1"))
+	require.Contains(t, res, shard0Addr3Tx1)
+
+	shard0AddrTx2, _ := args.AddressConverter.Encode([]byte("shard0 addr - tx2  "))
+	require.Contains(t, res, shard0AddrTx2)
+
+	shard0AddrTx3, _ := args.AddressConverter.Encode([]byte("shard0 addr - tx3  "))
+	require.Contains(t, res, shard0AddrTx3)
 }
 
 func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
@@ -359,7 +369,8 @@ func testExtractAlteredAccountsFromPoolTrieDataChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedAddressKey := args.AddressConverter.Encode([]byte(receiverInSelfShard))
+	expectedAddressKey, err := args.AddressConverter.Encode([]byte(receiverInSelfShard))
+	require.Nil(t, err)
 	actualAccount, found := res[expectedAddressKey]
 	require.True(t, found)
 	require.Equal(t, expectedAddressKey, actualAccount.Address)
@@ -525,15 +536,14 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
-	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
-
+	encodedAddr, _ := args.AddressConverter.Encode([]byte("addr"))
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 1)
 	require.Equal(t, &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
 		Nonce:      0,
-		Properties: "ok",
+		Properties: "6f6b",
 		MetaData:   nil,
 	}, res[encodedAddr].Tokens[0])
 }
@@ -581,7 +591,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
-	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
+	encodedAddr, _ := args.AddressConverter.Encode([]byte("addr"))
 	require.Equal(t, &outportcore.AccountTokenData{
 		Identifier: "token0",
 		Balance:    expectedToken.Value.String(),
@@ -647,13 +657,15 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 	})
 	require.NoError(t, err)
 
-	sndAddrEncoded := args.AddressConverter.Encode(sendAddrShard0)
+	sndAddrEncoded, err := args.AddressConverter.Encode(sendAddrShard0)
+	require.Nil(t, err)
 	require.Len(t, res, 1)
 	require.True(t, res[sndAddrEncoded].Tokens[0].AdditionalData.IsNFTCreate)
 	require.True(t, res[sndAddrEncoded].AdditionalData.BalanceChanged)
 	require.True(t, res[sndAddrEncoded].AdditionalData.IsSender)
 
-	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
+	mapKeyToSearch, err := args.AddressConverter.Encode(receiverOnDestination)
+	require.Nil(t, err)
 	require.Nil(t, res[mapKeyToSearch])
 }
 
@@ -711,8 +723,10 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 
 	require.Len(t, res, 2)
 
-	mapKeyToSearch := args.AddressConverter.Encode(receiverOnDestination)
-	creator := args.AddressConverter.Encode(expectedToken.TokenMetaData.Creator)
+	mapKeyToSearch, err := args.AddressConverter.Encode(receiverOnDestination)
+	require.Nil(t, err)
+	creator, err := args.AddressConverter.Encode(expectedToken.TokenMetaData.Creator)
+	require.Nil(t, err)
 	require.Len(t, res[mapKeyToSearch].Tokens, 1)
 	require.Equal(t, res[mapKeyToSearch].Tokens[0], &outportcore.AccountTokenData{
 		Identifier: "token0",
@@ -788,7 +802,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
-	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
+	encodedAddr, _ := args.AddressConverter.Encode([]byte("addr"))
 	require.Len(t, res[encodedAddr].Tokens, 2)
 }
 
@@ -906,7 +920,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	}, shared.AlteredAccountsOptions{})
 	require.NoError(t, err)
 
-	encodedAddr := args.AddressConverter.Encode([]byte("addr"))
+	encodedAddr, _ := args.AddressConverter.Encode([]byte("addr"))
 	require.Len(t, res, 1)
 	require.Len(t, res[encodedAddr].Tokens, 3)
 
@@ -991,8 +1005,8 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 	})
 	require.NoError(t, err)
 
-	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
-	encodedAddrRcv := args.AddressConverter.Encode([]byte("rcv"))
+	encodedAddrSnd, _ := args.AddressConverter.Encode([]byte("snd"))
+	encodedAddrRcv, _ := args.AddressConverter.Encode([]byte("rcv"))
 	require.Equal(t, map[string]*outportcore.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
@@ -1002,7 +1016,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
@@ -1022,7 +1036,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
@@ -1069,8 +1083,10 @@ func testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged(t *testi
 
 	require.NoError(t, err)
 
-	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
-	encodedAddrRcv := args.AddressConverter.Encode([]byte("rcv"))
+	encodedAddrSnd, _ := args.AddressConverter.Encode([]byte("snd"))
+
+	encodedAddrRcv, _ := args.AddressConverter.Encode([]byte("rcv"))
+
 	require.Equal(t, map[string]*outportcore.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
@@ -1116,7 +1132,7 @@ func testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged(t *tes
 	})
 	require.NoError(t, err)
 
-	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
+	encodedAddrSnd, _ := args.AddressConverter.Encode([]byte("snd"))
 	require.Equal(t, map[string]*outportcore.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
@@ -1181,7 +1197,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
+	encodedAddrSnd, _ := args.AddressConverter.Encode([]byte("snd"))
 	require.Equal(t, map[string]*outportcore.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
@@ -1191,7 +1207,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 					Identifier: "token0",
 					Balance:    expectedToken.Value.String(),
 					Nonce:      0,
-					Properties: "ok",
+					Properties: "6f6b",
 					MetaData:   nil,
 					AdditionalData: &outportcore.AdditionalAccountTokenData{
 						IsNFTCreate: true,
@@ -1234,7 +1250,7 @@ func textExtractAlteredAccountsFromPoolTransactionValueNil(t *testing.T) {
 
 	require.NoError(t, err)
 
-	encodedAddrSnd := args.AddressConverter.Encode([]byte("snd"))
+	encodedAddrSnd, _ := args.AddressConverter.Encode([]byte("snd"))
 	require.Equal(t, map[string]*outportcore.AlteredAccount{
 		encodedAddrSnd: {
 			Address: encodedAddrSnd,
