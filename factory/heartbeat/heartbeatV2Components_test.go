@@ -4,82 +4,120 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2ComponentsFactory {
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	bootStrapArgs := componentsMock.GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootStrapArgs)
-	bootstrapC, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapC.Create()
-
-	_ = bootstrapC.SetShardCoordinator(shardCoordinator)
-
-	statusCoreC := componentsMock.GetStatusCoreComponents()
-	coreC := componentsMock.GetCoreComponents()
-	cryptoC := componentsMock.GetCryptoComponents(coreC)
-	networkC := componentsMock.GetNetworkComponents(cryptoC)
-	dataC := componentsMock.GetDataComponents(coreC, shardCoordinator)
-	stateC := componentsMock.GetStateComponents(coreC)
-	processC := componentsMock.GetProcessComponents(shardCoordinator, coreC, networkC, dataC, cryptoC, stateC)
 	return heartbeatComp.ArgHeartbeatV2ComponentsFactory{
-		Config: config.Config{
-			HeartbeatV2: config.HeartbeatV2Config{
-				PeerAuthenticationTimeBetweenSendsInSec:          1,
-				PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-				PeerAuthenticationThresholdBetweenSends:          0.1,
-				HeartbeatTimeBetweenSendsInSec:                   1,
-				HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
-				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-				HeartbeatThresholdBetweenSends:                   0.1,
-				HeartbeatExpiryTimespanInSec:                     30,
-				MinPeersThreshold:                                0.8,
-				DelayBetweenRequestsInSec:                        10,
-				MaxTimeoutInSec:                                  60,
-				PeerShardTimeBetweenSendsInSec:                   5,
-				PeerShardThresholdBetweenSends:                   0.1,
-				MaxMissingKeysInRequest:                          100,
-				MaxDurationPeerUnresponsiveInSec:                 10,
-				HideInactiveValidatorIntervalInSec:               60,
-				HardforkTimeBetweenSendsInSec:                    5,
-				TimeBetweenConnectionsMetricsUpdateInSec:         10,
-				TimeToReadDirectConnectionsInSec:                 15,
-				HeartbeatPool: config.CacheConfig{
-					Type:     "LRU",
-					Capacity: 1000,
-					Shards:   1,
-				},
-			},
-			Hardfork: config.HardforkConfig{
-				PublicKeyToListenFrom: componentsMock.DummyPk,
-			},
-		},
+		Config: createMockConfig(),
 		Prefs: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				NodeDisplayName: "node",
 				Identity:        "identity",
 			},
 		},
-		AppVersion:           "test",
-		BootstrapComponents:  bootstrapC,
-		CoreComponents:       coreC,
-		DataComponents:       dataC,
-		NetworkComponents:    networkC,
-		CryptoComponents:     cryptoC,
-		ProcessComponents:    processC,
-		StatusCoreComponents: statusCoreC,
+		AppVersion: "test",
+		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
+			ShCoordinator:   &testscommon.ShardsCoordinatorMock{},
+			BootstrapParams: &bootstrapMocks.BootstrapParamsHandlerMock{},
+		},
+		CoreComponents: &factory.CoreComponentsHolderStub{
+			InternalMarshalizerCalled: func() marshal.Marshalizer {
+				return &testscommon.MarshalizerStub{}
+			},
+			HardforkTriggerPubKeyCalled: func() []byte {
+				return []byte("hardfork pub key")
+			},
+			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
+				return &mock.PubkeyConverterStub{}
+			},
+		},
+		DataComponents: &testsMocks.DataComponentsStub{
+			DataPool: &dataRetriever.PoolsHolderStub{
+				PeerAuthenticationsCalled: func() storage.Cacher {
+					return &testscommon.CacherStub{}
+				},
+				HeartbeatsCalled: func() storage.Cacher {
+					return &testscommon.CacherStub{}
+				},
+			},
+			BlockChain: &testscommon.ChainHandlerStub{},
+		},
+		NetworkComponents: &testsMocks.NetworkComponentsStub{
+			Messenger: &p2pmocks.MessengerStub{},
+		},
+		CryptoComponents: &testsMocks.CryptoComponentsStub{
+			PrivKey:         &cryptoMocks.PrivateKeyStub{},
+			PeerSignHandler: &testsMocks.PeerSignatureHandler{},
+		},
+		ProcessComponents: &testsMocks.ProcessComponentsStub{
+			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
+			EpochNotifier:                 &testsMocks.EpochStartNotifierStub{},
+			NodesCoord:                    &shardingMocks.NodesCoordinatorStub{},
+			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
+			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
+			ReqHandler:                    &testscommon.RequestHandlerStub{},
+			PeerMapper:                    &testsMocks.PeerShardMapperStub{},
+			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
+		},
+		StatusCoreComponents: &factory.StatusCoreComponentsStub{
+			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+		},
+	}
+}
+
+func createMockConfig() config.Config {
+	return config.Config{
+		HeartbeatV2: config.HeartbeatV2Config{
+			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
+			PeerAuthenticationThresholdBetweenSends:          0.1,
+			HeartbeatTimeBetweenSendsInSec:                   1,
+			HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
+			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
+			HeartbeatThresholdBetweenSends:                   0.1,
+			HeartbeatExpiryTimespanInSec:                     30,
+			MinPeersThreshold:                                0.8,
+			DelayBetweenRequestsInSec:                        10,
+			MaxTimeoutInSec:                                  60,
+			PeerShardTimeBetweenSendsInSec:                   5,
+			PeerShardThresholdBetweenSends:                   0.1,
+			MaxMissingKeysInRequest:                          100,
+			MaxDurationPeerUnresponsiveInSec:                 10,
+			HideInactiveValidatorIntervalInSec:               60,
+			HardforkTimeBetweenSendsInSec:                    5,
+			TimeBetweenConnectionsMetricsUpdateInSec:         10,
+			TimeToReadDirectConnectionsInSec:                 15,
+			HeartbeatPool: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
+			},
+		},
+		Hardfork: config.HardforkConfig{
+			PublicKeyToListenFrom: componentsMock.DummyPk,
+		},
 	}
 }
 
