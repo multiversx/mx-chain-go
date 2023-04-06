@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
@@ -112,7 +112,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 		return err
 	}
 
-	topicToSendRequest := trs.topicName + topicRequestSuffix
+	topicToSendRequest := trs.topicName + core.TopicRequestSuffix
 
 	var numSentIntra, numSentCross int
 	var intraPeers, crossPeers []core.PeerID
@@ -193,6 +193,7 @@ func (trs *topicRequestSender) sendOnTopic(
 		if err != nil {
 			continue
 		}
+		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())

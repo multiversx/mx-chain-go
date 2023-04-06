@@ -1,6 +1,6 @@
 package epochStart
 
-import "github.com/ElrondNetwork/elrond-go-core/data"
+import "github.com/multiversx/mx-chain-core-go/data"
 
 // EpochStartShardDataStub -
 type EpochStartShardDataStub struct {

@@ -3,33 +3,33 @@ package consensus
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/disabled"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
-	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/core/watchdog"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/blacklist"
+	"github.com/multiversx/mx-chain-go/consensus/chronology"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state/syncer"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	"github.com/multiversx/mx-chain-go/update"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -178,11 +178,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.coreComponents.Hasher(),
 		ccf.networkComponents.NetworkMessenger(),
 		ccf.processComponents.ShardCoordinator(),
-		ccf.cryptoComponents.PrivateKey(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
+		ccf.cryptoComponents.KeysHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -258,9 +258,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ChronologyHandler:             cc.chronology,
 		Hasher:                        ccf.coreComponents.Hasher(),
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
-		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
-		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
-		KeyGenerator:                  ccf.cryptoComponents.BlockSignKeyGen(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -275,7 +272,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
-		SignatureHandler:              ccf.cryptoComponents.ConsensusSigHandler(),
+		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -399,11 +396,16 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 		return nil, err
 	}
 
-	roundConsensus := spos.NewRoundConsensus(
+	roundConsensus, err := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		// TODO: move the consensus data from nodesSetup json to config
 		consensusGroupSize,
-		string(selfId))
+		string(selfId),
+		ccf.cryptoComponents.KeysHandler(),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	roundConsensus.ResetRoundState()
 

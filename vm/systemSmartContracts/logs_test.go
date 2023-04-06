@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,11 +89,12 @@ func TestCreateAndAddLogEntryForWithdraw(t *testing.T) {
 		},
 		1,
 		false,
+		[][]byte{[]byte("fund-id-1"), []byte("fund-id-2")},
 	)
 
 	require.Equal(t, &vmcommon.LogEntry{
 		Identifier: []byte("withdraw"),
 		Address:    []byte("caller"),
-		Topics:     [][]byte{actualUserUnBond.Bytes(), big.NewInt(5000).Bytes(), big.NewInt(1).Bytes(), big.NewInt(1000000).Bytes(), []byte(strconv.FormatBool(false))},
+		Topics:     [][]byte{actualUserUnBond.Bytes(), big.NewInt(5000).Bytes(), big.NewInt(1).Bytes(), big.NewInt(1000000).Bytes(), []byte(strconv.FormatBool(false)), []byte("fund-id-1"), []byte("fund-id-2")},
 	}, res)
 }

@@ -3,8 +3,8 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -111,6 +111,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
+	}
+	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
 	}
 
 	return nil

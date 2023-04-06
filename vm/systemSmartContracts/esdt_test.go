@@ -10,16 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreMock "github.com/ElrondNetwork/elrond-go-core/core/mock"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +32,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		ESDTSCAddress:          []byte("address"),
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
-		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
+		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsESDTFlagEnabledField:                          true,
@@ -1113,8 +1111,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1127,7 +1124,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
 	args.Eei = eei
 
 	addressToFreezeBech32 := "erd158tgst07d6rt93td6nh5cd2mmpfhtp7hr24l4wfgtlggqpnp6kjsnpvdqj"
-	addressToFreeze, err := bech32C.Decode(addressToFreezeBech32)
+	addressToFreeze, err := args.AddressPubKeyConverter.Decode(addressToFreezeBech32)
 	assert.NoError(t, err)
 
 	e, _ := NewESDTSmartContract(args)
@@ -1161,8 +1158,7 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 	args := createMockArgumentsForESDT()
 	eei := createDefaultEei()
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
@@ -1843,6 +1839,12 @@ func TestEsdt_ExecuteTogglePauseSavesTokenWithPausedFlagSet(t *testing.T) {
 	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, true, esdtData.IsPaused)
+
+	require.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionESDTPause),
+		Topics:     [][]byte{[]byte("esdtToken")},
+		Address:    []byte("owner"),
+	}, eei.logs[0])
 }
 
 func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
@@ -1940,6 +1942,12 @@ func TestEsdt_ExecuteUnPauseSavesTokenWithPausedFlagSetToFalse(t *testing.T) {
 	esdtData := &ESDTDataV2{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, false, esdtData.IsPaused)
+
+	require.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionESDTUnPause),
+		Topics:     [][]byte{[]byte("esdtToken")},
+		Address:    []byte("owner"),
+	}, eei.logs[0])
 }
 
 func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
@@ -2476,13 +2484,11 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
-
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
-	addr1Bytes, _ := bech32C.Decode(addr1)
+	addr1Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr1)
 
 	addr2 := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
-	addr2Bytes, _ := bech32C.Decode(addr2)
+	addr2Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr2)
 
 	specialRoles := []*ESDTRoles{
 		{
@@ -2509,7 +2515,7 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	e, _ := NewESDTSmartContract(args)
 
@@ -2531,16 +2537,14 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &coreMock.LoggerMock{})
-
 	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
-	ownerBytes, _ := bech32C.Decode(owner)
+	ownerBytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(owner)
 
 	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
-	addr1Bytes, _ := bech32C.Decode(addr1)
+	addr1Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr1)
 
 	addr2 := "erd1rsq30t33aqeg8cuc3q4kfnx0jukzsx52yfua92r233zhhmndl3uszcs5qj"
-	addr2Bytes, _ := bech32C.Decode(addr2)
+	addr2Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr2)
 
 	specialRoles := []*ESDTRoles{
 		{
@@ -2568,7 +2572,7 @@ func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
-	args.AddressPubKeyConverter = bech32C
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
 
 	e, _ := NewESDTSmartContract(args)
 

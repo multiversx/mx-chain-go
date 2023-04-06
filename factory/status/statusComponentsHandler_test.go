@@ -3,11 +3,11 @@ package status_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	statusComp "github.com/ElrondNetwork/elrond-go/factory/status"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
-	"github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 

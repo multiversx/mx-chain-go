@@ -1,9 +1,9 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 type resolver struct {
@@ -21,6 +21,11 @@ func (r *resolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error
 
 // SetDebugHandler returns nil as it is disabled
 func (r *resolver) SetDebugHandler(_ dataRetriever.DebugHandler) error {
+	return nil
+}
+
+// SetEpochHandler does nothing and returns nil
+func (r *resolver) SetEpochHandler(_ dataRetriever.EpochHandler) error {
 	return nil
 }
 

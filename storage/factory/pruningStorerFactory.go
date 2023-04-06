@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
-	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/factory"
-	storageDisabled "github.com/ElrondNetwork/elrond-go/storage/disabled"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/clean"
+	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
+	"github.com/multiversx/mx-chain-go/storage/databaseremover/factory"
+	storageDisabled "github.com/multiversx/mx-chain-go/storage/disabled"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("storage/factory")
@@ -48,6 +48,7 @@ type StorageServiceFactory struct {
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
+	snapshotsEnabled              bool
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -59,8 +60,10 @@ type StorageServiceFactoryArgs struct {
 	EpochStartNotifier            epochStart.EpochStartNotifier
 	NodeTypeProvider              NodeTypeProviderHandler
 	StorageType                   StorageServiceType
+	ManagedPeersHolder            storage.ManagedPeersHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	SnapshotsEnabled              bool
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -70,10 +73,12 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		return nil, err
 	}
 
-	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(
-		args.NodeTypeProvider,
-		args.Config.StoragePruning,
-	)
+	argsOldDataCleanerProvider := clean.ArgOldDataCleanerProvider{
+		NodeTypeProvider:    args.NodeTypeProvider,
+		PruningStorerConfig: args.Config.StoragePruning,
+		ManagedPeersHolder:  args.ManagedPeersHolder,
+	}
+	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(argsOldDataCleanerProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +96,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
+		snapshotsEnabled:              args.SnapshotsEnabled,
 	}, nil
 }
 
@@ -375,7 +381,7 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
-	if !psf.generalConfig.StateTriesConfig.SnapshotsEnabled {
+	if !psf.snapshotsEnabled {
 		return psf.createTriePersister(storageConfig)
 	}
 

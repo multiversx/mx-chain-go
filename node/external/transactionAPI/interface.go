@@ -3,12 +3,20 @@ package transactionAPI
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type feeComputer interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx *transaction.ApiTransactionResult, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
+	ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64
 	ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int
+	IsInterfaceNil() bool
+}
+
+// FeesProcessorHandler defines the interface for the transaction fees processor
+type FeesProcessorHandler interface {
 	IsInterfaceNil() bool
 }
 

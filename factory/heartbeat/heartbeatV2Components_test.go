@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	bootstrapComp "github.com/ElrondNetwork/elrond-go/factory/bootstrap"
-	heartbeatComp "github.com/ElrondNetwork/elrond-go/factory/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,6 +37,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 				PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 				HeartbeatTimeBetweenSendsInSec:                   1,
+				HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 				HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
 				HeartbeatTimeThresholdBetweenSends:               0.1,
 				HeartbeatExpiryTimespanInSec:                     30,
@@ -51,6 +52,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				HardforkTimeBetweenSendsInSec:                    5,
 				TimeBetweenConnectionsMetricsUpdateInSec:         10,
 				TimeToReadDirectConnectionsInSec:                 15,
+				PeerAuthenticationTimeBetweenChecksInSec:         6,
 				HeartbeatPool: config.CacheConfig{
 					Type:     "LRU",
 					Capacity: 1000,
@@ -67,6 +69,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				Identity:        "identity",
 			},
 		},
+		BaseVersion:        "test-base",
 		AppVersion:           "test",
 		BootstrapComponents:  bootstrapC,
 		CoreComponents:       coreC,

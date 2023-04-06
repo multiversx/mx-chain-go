@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	arwenVersions := []ArwenVersionByEpoch{
+	wasmVMVersions := []WasmVMVersionByEpoch{
 		{StartEpoch: 12, Version: "v0.3"},
 		{StartEpoch: 88, Version: "v1.2"},
 	}
@@ -99,13 +99,13 @@ func TestTomlParser(t *testing.T) {
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
 			Execution: VirtualMachineConfig{
-				ArwenVersions:                       arwenVersions,
+				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
+				VirtualMachineConfig: VirtualMachineConfig{WasmVMVersions: wasmVMVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
 				ShardMaxGasPerVmQuery: 1_500_000_000,
@@ -139,7 +139,7 @@ func TestTomlParser(t *testing.T) {
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
         Type = "` + txBlockBodyStorageType + `"
-		Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
+        Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
     [MiniBlocksStorage.DB]
         FilePath = "` + txBlockBodyStorageFile + `"
         Type = "` + txBlockBodyStorageTypeDB + `"
@@ -173,39 +173,39 @@ func TestTomlParser(t *testing.T) {
         Type = "` + accountsStorageTypeDB + `"
 
 [Hasher]
-	Type = "` + hasherType + `"
+    Type = "` + hasherType + `"
 
 [MultisigHasher]
-	Type = "` + multiSigHasherType + `"
+    Type = "` + multiSigHasherType + `"
 
 [Consensus]
-	Type = "` + consensusType + `"
+    Type = "` + consensusType + `"
 
 [VirtualMachine]
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = true
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
 
-	[VirtualMachine.GasConfig]
-		ShardMaxGasPerVmQuery = 1500000000
-		MetaMaxGasPerVmQuery = 0
+    [VirtualMachine.GasConfig]
+        ShardMaxGasPerVmQuery = 1500000000
+        MetaMaxGasPerVmQuery = 0
 
 [Debug]
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
@@ -277,22 +277,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-	[[RewardsSettings.RewardsConfigByEpoch]]
-	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
-   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
-   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
-   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
-   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+    [[RewardsSettings.RewardsConfigByEpoch]]
+    EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
-	[[RewardsSettings.RewardsConfigByEpoch]]
-	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
-	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    [[RewardsSettings.RewardsConfigByEpoch]]
+    EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
     DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
     ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
+    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
     MinGasPrice = "` + minGasPrice + `"
 `
 	cfg := EconomicsConfig{}
@@ -323,14 +323,14 @@ func TestTomlPreferencesParser(t *testing.T) {
 
 	testString := `
 [Preferences]
-	NodeDisplayName = "` + nodeDisplayName + `"
-	DestinationShardAsObserver = "` + destinationShardAsObs + `"
-	Identity = "` + identity + `"
-	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
-	PreferredConnections = [
-		"` + prefPubKey0 + `",
-		"` + prefPubKey1 + `"
-	]
+    NodeDisplayName = "` + nodeDisplayName + `"
+    DestinationShardAsObserver = "` + destinationShardAsObs + `"
+    Identity = "` + identity + `"
+    RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
+    PreferredConnections = [
+        "` + prefPubKey0 + `",
+        "` + prefPubKey1 + `"
+    ]
 `
 	cfg := Preferences{}
 
@@ -408,16 +408,16 @@ func TestAPIRoutesToml(t *testing.T) {
 [APIPackages]
 
 [APIPackages.` + package0 + `]
-	Routes = [
+    Routes = [
         # test comment
         { Name = "` + route0 + `", Open = true },
 
         # test comment
         { Name = "` + route1 + `", Open = true },
-	]
+    ]
 
 [APIPackages.` + package1 + `]
-	Routes = [
+    Routes = [
          # test comment
         { Name = "` + route2 + `", Open = false }
     ]
@@ -611,7 +611,7 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
-
+	
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     MetaESDTSetEnableEpoch = 40
 
@@ -639,38 +639,50 @@ func TestEnableEpochConfig(t *testing.T) {
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
     IsPayableBySCEnableEpoch = 48
 
-	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
-	CleanUpInformativeSCRsEnableEpoch = 49
+    # CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
+    CleanUpInformativeSCRsEnableEpoch = 49
 
-    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 50
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-	TransformToMultiShardCreateEnableEpoch = 51
+    TransformToMultiShardCreateEnableEpoch = 51
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 52
 
-	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-	FailExecutionOnEveryAPIErrorEnableEpoch = 53
+    # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+    FailExecutionOnEveryAPIErrorEnableEpoch = 53
 
-	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
-	ManagedCryptoAPIsEnableEpoch = 54
+    # ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
+    ManagedCryptoAPIsEnableEpoch = 54
 
-	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-	ESDTMetadataContinuousCleanupEnableEpoch = 55
+    # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+    ESDTMetadataContinuousCleanupEnableEpoch = 55
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
     FixAsyncCallBackArgsListEnableEpoch = 56
 
-	# FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-	FixOldTokenLiquidityEnableEpoch = 57
+    # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+    FixOldTokenLiquidityEnableEpoch = 57
 
-	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
+    # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
     SetSenderInEeiOutputTransferEnableEpoch = 58
 
-	# MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-	MaxBlockchainHookCountersEnableEpoch = 59
+    # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
+    MaxBlockchainHookCountersEnableEpoch = 59
+
+    # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 60
+
+    # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
+    AlwaysSaveTokenMetaDataEnableEpoch = 61
+
+    # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
+    RuntimeCodeSizeFixEnableEpoch = 62
+
+    # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
+    RuntimeMemStoreLimitEnableEpoch = 63
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -678,11 +690,11 @@ func TestEnableEpochConfig(t *testing.T) {
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
-	BLSMultiSignerEnableEpoch = [
-		{EnableEpoch = 0, Type = "no-KOSK"},
-		{EnableEpoch = 3, Type = "KOSK"}
-	]
-
+    BLSMultiSignerEnableEpoch = [
+        {EnableEpoch = 0, Type = "no-KOSK"},
+        {EnableEpoch = 3, Type = "KOSK"}
+    ]
+	
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -763,6 +775,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOldTokenLiquidityEnableEpoch:             57,
 			SetSenderInEeiOutputTransferEnableEpoch:     58,
 			MaxBlockchainHookCountersEnableEpoch:        59,
+			WipeSingleNFTLiquidityDecreaseEnableEpoch:   60,
+			AlwaysSaveTokenMetaDataEnableEpoch:          61,
+			RuntimeCodeSizeFixEnableEpoch:               62,
+			RuntimeMemStoreLimitEnableEpoch:             63,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

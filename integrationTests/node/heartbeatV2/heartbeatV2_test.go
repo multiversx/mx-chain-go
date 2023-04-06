@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,7 +114,7 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 
 	requestHashes := make([][]byte, 0)
 	for i := 1; i < len(nodes); i++ {
-		pkBytes, err := nodes[i].NodeKeys.Pk.ToByteArray()
+		pkBytes, err := nodes[i].NodeKeys.MainKey.Pk.ToByteArray()
 		assert.Nil(t, err)
 
 		requestHashes = append(requestHashes, pkBytes)
@@ -151,7 +151,7 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, ma
 
 		// Check this node received messages from all peers
 		for _, node := range nodes {
-			pkBytes, err := node.NodeKeys.Pk.ToByteArray()
+			pkBytes, err := node.NodeKeys.MainKey.Pk.ToByteArray()
 			assert.Nil(t, err)
 
 			assert.True(t, paCache.Has(pkBytes))

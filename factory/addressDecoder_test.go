@@ -4,10 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-
-	elrondError "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	chainError "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,12 +18,12 @@ func Test_DecodeAddressesError(t *testing.T) {
 
 		addresses, err := factory.DecodeAddresses(nil, make([]string, 0))
 		assert.Nil(t, addresses)
-		assert.Equal(t, elrondError.ErrNilPubKeyConverter, err)
+		assert.Equal(t, chainError.ErrNilPubKeyConverter, err)
 	})
 	t.Run("decode error", func(t *testing.T) {
 		t.Parallel()
 		pkError := errors.New("pkerror")
-		pkConverter := &mock.PubkeyConverterStub{
+		pkConverter := &testscommon.PubkeyConverterStub{
 			DecodeCalled: func(humanReadable string) ([]byte, error) {
 				return nil, pkError
 			}}
@@ -46,7 +45,7 @@ func Test_DecodeAddressesShouldWork(t *testing.T) {
 	decodeMap["addr1"] = decodedAddr1
 	decodeMap["addr2"] = decodedAddr2
 
-	pkConverter := &mock.PubkeyConverterStub{
+	pkConverter := &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return decodeMap[humanReadable], nil
 		}}

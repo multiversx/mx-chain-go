@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
@@ -221,7 +221,8 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	newCache := make(map[string]*state.ValidatorApiResponse)
 	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
+			strKey := vp.pubkeyConverter.SilentEncode(validatorInfo.PublicKey, log)
+
 			newCache[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
 				NumLeaderFailure:                   validatorInfo.LeaderFailure,
@@ -252,8 +253,10 @@ func (vp *validatorsProvider) aggregateLists(
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			encodedKey := vp.pubkeyConverter.Encode(val)
+			encodedKey := vp.pubkeyConverter.SilentEncode(val, log)
+
 			foundInTrieValidator, ok := newCache[encodedKey]
+
 			peerType := string(currentList)
 
 			if !ok || foundInTrieValidator == nil {

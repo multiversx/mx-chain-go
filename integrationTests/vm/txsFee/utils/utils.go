@@ -11,21 +11,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,8 +45,8 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
 
-	scCode := arwen.GetSCCode(pathToContract)
-	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
+	scCode := wasm.GetSCCode(pathToContract)
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -62,7 +62,7 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(10970), accumulatedFees)
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
@@ -80,13 +80,15 @@ func DoDeployWithCustomParams(
 	contractHexParams []string,
 ) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
-	senderNonce := uint64(0)
+	account, err := testContext.Accounts.LoadAccount(owner)
+	require.Nil(tb, err)
+	senderNonce := account.GetNonce()
 	gasPrice := uint64(10)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
 
-	scCode := arwen.GetSCCode(pathToContract)
-	txData := arwen.CreateDeployTxData(scCode)
+	scCode := wasm.GetSCCode(pathToContract)
+	txData := wasm.CreateDeployTxData(scCode)
 	if len(contractHexParams) > 0 {
 		txData = strings.Join(append([]string{txData}, contractHexParams...), "@")
 	}
@@ -99,7 +101,7 @@ func DoDeployWithCustomParams(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(tb, err)
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 
 	return scAddr, owner
 }
@@ -114,8 +116,8 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
 
-	scCode := arwen.GetSCCode(pathToContract)
-	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
+	scCode := wasm.GetSCCode(pathToContract)
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -124,7 +126,7 @@ func DoDeployNoChecks(t *testing.T, testContext *vm.VMTestContext, pathToContrac
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 
 	return scAddr, owner
 }
@@ -141,14 +143,14 @@ func DoColdDeploy(
 	senderNonce := uint64(0)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, senderNonce, senderBalance)
-	scCode := arwen.GetSCCode(pathToContract)
+	scCode := wasm.GetSCCode(pathToContract)
 	scCodeBytes, err := hex.DecodeString(scCode)
 	require.Nil(tb, err)
 
 	codeMetadataBytes, err := hex.DecodeString(codeMetadata)
 	require.Nil(tb, err)
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, senderNonce, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, senderNonce, factory.WasmVirtualMachine)
 	account, err := testContext.Accounts.LoadAccount(scAddr)
 	require.Nil(tb, err)
 
@@ -177,7 +179,7 @@ func DoDeploySecond(
 	args [][]byte,
 	value *big.Int,
 ) (scAddr []byte) {
-	return DoDeployWithMetadata(t, testContext, pathToContract, senderAccount, gasPrice, gasLimit, []byte(arwen.DummyCodeMetadataHex), args, value)
+	return DoDeployWithMetadata(t, testContext, pathToContract, senderAccount, gasPrice, gasLimit, []byte(wasm.DummyCodeMetadataHex), args, value)
 }
 
 // DoDeployWithMetadata -
@@ -194,9 +196,9 @@ func DoDeployWithMetadata(
 ) (scAddr []byte) {
 	ownerNonce := senderAccount.GetNonce()
 	owner := senderAccount.AddressBytes()
-	scCode := []byte(arwen.GetSCCode(pathToContract))
+	scCode := []byte(wasm.GetSCCode(pathToContract))
 
-	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), metadata}, []byte("@"))
+	txData := bytes.Join([][]byte{scCode, []byte(wasm.VMTypeHex), metadata}, []byte("@"))
 	if args != nil {
 		txData = []byte(string(txData) + "@" + string(bytes.Join(args, []byte("@"))))
 	}
@@ -213,7 +215,7 @@ func DoDeployWithMetadata(
 	acc, _ := testContext.Accounts.LoadAccount(owner)
 	require.Equal(t, ownerNonce+1, acc.GetNonce())
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, ownerNonce, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, ownerNonce, factory.WasmVirtualMachine)
 
 	return scAddr
 }
@@ -229,8 +231,8 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
 
 	initParameter := hex.EncodeToString(big.NewInt(1000).Bytes())
-	scCode := []byte(arwen.GetSCCode(pathToContract))
-	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte(initParameter), []byte("00")}, []byte("@"))
+	scCode := []byte(wasm.GetSCCode(pathToContract))
+	txData := bytes.Join([][]byte{scCode, []byte(wasm.VMTypeHex), []byte(initParameter), []byte("00")}, []byte("@"))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -250,7 +252,7 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 
 	testContext.TxFeeHandler.CreateBlockStarted(gasAndFees)
 
-	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddr))
 	return scAddr, owner
 }
@@ -325,7 +327,7 @@ func CreateSmartContractCall(
 
 // ProcessSCRResult -
 func ProcessSCRResult(
-	t *testing.T,
+	tb testing.TB,
 	testContext *vm.VMTestContext,
 	tx data.TransactionHandler,
 	expectedCode vmcommon.ReturnCode,
@@ -335,11 +337,11 @@ func ProcessSCRResult(
 	require.NotNil(nil, scProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	retCode, err := scProcessor.ProcessSmartContractResult(scr)
-	require.Equal(t, expectedCode, retCode)
-	require.Equal(t, expectedErr, err)
+	require.Equal(tb, expectedCode, retCode)
+	require.Equal(tb, expectedErr, err)
 }
 
 // CleanAccumulatedIntermediateTransactions -

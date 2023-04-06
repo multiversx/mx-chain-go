@@ -4,19 +4,19 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -42,6 +42,7 @@ type FacadeStub struct {
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatingsCalled              func() string
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -369,6 +370,11 @@ func (f *FacadeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
 // GetPeerInfo -
 func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
+}
+
+// GetConnectedPeersRatings -
+func (f *FacadeStub) GetConnectedPeersRatings() string {
+	return f.GetConnectedPeersRatingsCalled()
 }
 
 // GetEpochStartDataAPI -

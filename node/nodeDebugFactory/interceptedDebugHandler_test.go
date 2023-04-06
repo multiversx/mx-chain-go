@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dataRetrieverMocks "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverTests "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func TestCreateInterceptedDebugHandler_NilNodeWrapperShouldErr(t *testing.T) {
 	err := CreateInterceptedDebugHandler(
 		nil,
 		&testscommon.InterceptorsContainerStub{},
-		&dataRetrieverMocks.ResolversContainerStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
 		&dataRetrieverTests.RequestersContainerStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
@@ -36,7 +36,7 @@ func TestCreateInterceptedDebugHandler_NilInterceptorsShouldErr(t *testing.T) {
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		nil,
-		&dataRetrieverMocks.ResolversContainerStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{},
 	)
@@ -64,7 +64,7 @@ func TestCreateInterceptedDebugHandler_NilRequestersShouldErr(t *testing.T) {
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		&testscommon.InterceptorsContainerStub{},
-		&dataRetrieverMocks.ResolversContainerStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
 		nil,
 		config.InterceptorResolverDebugConfig{},
 	)
@@ -78,7 +78,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{},
 		&testscommon.InterceptorsContainerStub{},
-		&dataRetrieverMocks.ResolversContainerStub{},
+		&dataRetrieverTests.ResolversContainerStub{},
 		&dataRetrieverTests.RequestersFinderStub{},
 		config.InterceptorResolverDebugConfig{
 			Enabled:   true,
@@ -87,7 +87,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 	)
 
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), "Must provide a positive size"))
+	assert.True(t, strings.Contains(err.Error(), "must provide a positive size"))
 }
 
 func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *testing.T) {
@@ -115,7 +115,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 				interceptorsIterateCalled = true
 			},
 		},
-		&dataRetrieverMocks.ResolversContainerStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
 				resolversIterateCalled = true
 			},
@@ -158,7 +158,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 				interceptorsIterateCalled = true
 			},
 		},
-		&dataRetrieverMocks.ResolversContainerStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
 				handler("key", &dataRetrieverMocks.HeaderResolverStub{
 					SetDebugHandlerCalled: func(handler dataRetriever.DebugHandler) error {
@@ -205,7 +205,7 @@ func TestCreateInterceptedDebugHandler_ShouldWork(t *testing.T) {
 				interceptorsIterateCalled = true
 			},
 		},
-		&dataRetrieverMocks.ResolversContainerStub{
+		&dataRetrieverTests.ResolversContainerStub{
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
 				handler("key", &dataRetrieverMocks.HeaderResolverStub{})
 				resolversIterateCalled = true

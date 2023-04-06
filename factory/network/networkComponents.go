@@ -5,24 +5,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
-	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/debug/antiflood"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/rating/peerHonesty"
+	antifloodFactory "github.com/multiversx/mx-chain-go/process/throttle/antiflood/factory"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
@@ -68,6 +68,7 @@ type networkComponents struct {
 	peerHonestyHandler     consensus.PeerHonestyHandler
 	peersHolder            factory.PreferredPeersHolderHandler
 	peersRatingHandler     p2p.PeersRatingHandler
+	peersRatingMonitor     p2p.PeersRatingMonitor
 	closeFunc              context.CancelFunc
 }
 
@@ -113,11 +114,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	topRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.TopRatedCacheCapacity)
+	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
+	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
 	if err != nil {
 		return nil, err
 	}
-	badRatedCache, err := cache.NewLRUCache(ncf.mainConfig.PeersRatingConfig.BadRatedCacheCapacity)
+	badRatedCache, err := cache.NewLRUCache(peersRatingCfg.BadRatedCacheCapacity)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +133,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	}
 
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           ncf.marshalizer,
+		Marshaller:            ncf.marshalizer,
 		ListenAddress:         ncf.listenAddress,
 		P2pConfig:             ncf.p2pConfig,
 		SyncTimer:             ncf.syncer,
@@ -154,6 +156,16 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 			cancelFunc()
 		}
 	}()
+
+	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
+		TopRatedCache:       topRatedCache,
+		BadRatedCache:       badRatedCache,
+		ConnectionsProvider: netMessenger,
+	}
+	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
+	if err != nil {
+		return nil, err
+	}
 
 	var antiFloodComponents *antifloodFactory.AntiFloodComponents
 	antiFloodComponents, err = antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
@@ -222,6 +234,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peerHonestyHandler:     peerHonestyHandler,
 		peersHolder:            ph,
 		peersRatingHandler:     peersRatingHandler,
+		peersRatingMonitor:     peersRatingMonitor,
 		closeFunc:              cancelFunc,
 	}, nil
 }

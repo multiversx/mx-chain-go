@@ -3,9 +3,11 @@ package trie
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
+	"math/rand"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 const faultyChance = 1000000
@@ -21,4 +23,15 @@ func shouldTestNode(n node, key []byte) bool {
 	}
 
 	return false
+}
+
+func snapshotGetTestPoint(key []byte, faultyChance int) error {
+	rand.Seed(time.Now().UnixNano())
+	checkVal := rand.Intn(math.MaxInt)
+	if checkVal%faultyChance == 0 {
+		log.Debug("deliberately not returning hash", "hash", key)
+		return fmt.Errorf("snapshot get error")
+	}
+
+	return nil
 }

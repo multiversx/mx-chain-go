@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -70,7 +70,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerAccountsMetrics, epoch)
 
@@ -96,7 +96,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	}
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var

@@ -8,70 +8,70 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/outport"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	disabledResolversContainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageRequestersContainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	errErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/disabled"
-	"github.com/ElrondNetwork/elrond-go/fallback"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/checking"
-	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
-	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/receipts"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/track"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	"github.com/ElrondNetwork/elrond-go/process/txsSender"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/update"
-	updateDisabled "github.com/ElrondNetwork/elrond-go/update/disabled"
-	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
-	"github.com/ElrondNetwork/elrond-go/update/trigger"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/epochProviders"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	disabledResolversContainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer/disabled"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
+	"github.com/multiversx/mx-chain-go/fallback"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/receipts"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	"github.com/multiversx/mx-chain-go/process/txsSender"
+	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/redundancy"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/networksharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/update"
+	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
+	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
+	"github.com/multiversx/mx-chain-go/update/trigger"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
@@ -143,6 +143,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportStartHandler     update.ImportStartHandler
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
+	SnapshotsEnabled       bool
 
 	Data                 factory.DataComponentsHolder
 	CoreData             factory.CoreComponentsHolder
@@ -175,6 +176,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	snapshotsEnabled       bool
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                 factory.DataComponentsHolder
@@ -221,6 +223,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
+		snapshotsEnabled:       args.SnapshotsEnabled,
 	}, nil
 }
 
@@ -398,6 +401,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+	err = dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -600,7 +607,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
-		pcf.coreData.ArwenChangeLocker(),
+		pcf.coreData.WasmVMChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
@@ -904,7 +911,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			continue
 		}
 
-		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		if err != nil {
+			return nil, err
+		}
+
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
 			AdditionalData: &outport.AdditionalAccountData{
 				BalanceChanged: true,
@@ -1115,6 +1126,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+
 		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
@@ -1491,6 +1503,8 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -1543,6 +1557,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
@@ -1575,6 +1590,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
@@ -1921,6 +1937,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManagedPeersHolder)
 	}
 
 	return nil

@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // NetworkComponentsMock -
@@ -14,6 +14,7 @@ type NetworkComponentsMock struct {
 	PeerBlackList           process.PeerBlackListCacher
 	PreferredPeersHolder    factory.PreferredPeersHolderHandler
 	PeersRatingHandlerField p2p.PeersRatingHandler
+	PeersRatingMonitorField p2p.PeersRatingMonitor
 }
 
 // PubKeyCacher -
@@ -69,6 +70,11 @@ func (ncm *NetworkComponentsMock) PreferredPeersHolderHandler() factory.Preferre
 // PeersRatingHandler -
 func (ncm *NetworkComponentsMock) PeersRatingHandler() p2p.PeersRatingHandler {
 	return ncm.PeersRatingHandlerField
+}
+
+// PeersRatingMonitor -
+func (ncm *NetworkComponentsMock) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	return ncm.PeersRatingMonitorField
 }
 
 // IsInterfaceNil -

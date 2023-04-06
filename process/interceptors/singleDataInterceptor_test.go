@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -194,7 +194,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 		PeerField: originatorPid,
 	}
@@ -247,7 +247,7 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	arg.Throttler = throttler
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
 	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -291,7 +291,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
 	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -358,7 +358,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 		PeerField: originator,
 	}
@@ -404,7 +404,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	arg.WhiteListRequest = whiteListHandler
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
 	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)

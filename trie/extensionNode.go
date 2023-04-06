@@ -9,12 +9,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&extensionNode{})
@@ -210,7 +210,7 @@ func (en *extensionNode) commitCheckpoint(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -252,7 +252,7 @@ func (en *extensionNode) commitSnapshot(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -599,18 +599,6 @@ func (en *extensionNode) getChildren(db common.DBWriteCacher) ([]node, error) {
 	nextNodes = append(nextNodes, en.child)
 
 	return nextNodes, nil
-}
-
-func (en *extensionNode) getNumNodes() common.NumNodesDTO {
-	if check.IfNil(en) {
-		return common.NumNodesDTO{}
-	}
-
-	childNumNodes := en.child.getNumNodes()
-	childNumNodes.Extensions++
-	childNumNodes.MaxLevel++
-
-	return childNumNodes
 }
 
 func (en *extensionNode) isValid() bool {

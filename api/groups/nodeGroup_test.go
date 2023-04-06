@@ -13,19 +13,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/mock"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -191,6 +191,96 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
+	expectedErr := errors.New("i am an error")
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				BootstrapMetricsCalled: func() (map[string]interface{}, error) {
+					return nil, expectedErr
+				},
+			}
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/bootstrapstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(100))
+	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(150))
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/bootstrapstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keysFound := strings.Contains(respStr, common.MetricTrieSyncNumReceivedBytes) && strings.Contains(respStr, common.MetricTrieSyncNumProcessedNodes)
+	assert.True(t, keysFound)
+	valuesFound := strings.Contains(respStr, "100") && strings.Contains(respStr, "150")
+	assert.True(t, valuesFound)
+}
+
+func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
+	providedRatings := map[string]string{
+		"pid1": "100",
+		"pid2": "-50",
+		"pid3": "-5",
+	}
+	buff, _ := json.Marshal(providedRatings)
+	facade := mock.FacadeStub{
+		GetConnectedPeersRatingsCalled: func() string {
+			return string(buff)
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+	respMap, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok)
+	ratings, ok := respMap["ratings"].(string)
+	assert.True(t, ok)
+	assert.Equal(t, string(buff), ratings)
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
@@ -535,6 +625,8 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/debug", Open: true},
 					{Name: "/peerinfo", Open: true},
 					{Name: "/epoch-start/:epoch", Open: true},
+					{Name: "/bootstrapstatus", Open: true},
+					{Name: "/connected-peers-ratings", Open: true},
 				},
 			},
 		},

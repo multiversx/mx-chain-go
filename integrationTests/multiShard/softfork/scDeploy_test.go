@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +96,9 @@ func TestScDeploy(t *testing.T) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	log.Info("resulted sc address (failed)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deployedFailedAddress))
+	encodedDeployFailedAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(deployedFailedAddress)
+	assert.Nil(t, err)
+	log.Info("resulted sc address (failed)", "address", encodedDeployFailedAddr)
 	assert.False(t, scAccountExists(shardNode, deployedFailedAddress))
 
 	deploySucceeded := deploySc(t, nodes)
@@ -109,7 +111,9 @@ func TestScDeploy(t *testing.T) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	log.Info("resulted sc address (success)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deploySucceeded))
+	encodedDeploySucceededAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(deploySucceeded)
+	assert.Nil(t, err)
+	log.Info("resulted sc address (success)", "address", encodedDeploySucceededAddr)
 	assert.True(t, scAccountExists(shardNode, deploySucceeded))
 }
 
@@ -118,10 +122,10 @@ func deploySc(t *testing.T, nodes []*integrationTests.TestProcessorNode) []byte 
 	require.Nil(t, err)
 
 	node := nodes[0]
-	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.ArwenVirtualMachine)
+	scAddress, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, factory.WasmVirtualMachine)
 	require.Nil(t, err)
 
-	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.ArwenVirtualMachine, "001000000000")
+	integrationTests.DeployScTx(nodes, 0, hex.EncodeToString(scCode), factory.WasmVirtualMachine, "001000000000")
 
 	return scAddress
 }

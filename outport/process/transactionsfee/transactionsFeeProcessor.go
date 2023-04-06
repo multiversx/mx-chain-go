@@ -1,16 +1,21 @@
 package transactionsfee
 
 import (
+	"bytes"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
+
+const loggerName = "outport/process/transactionsfee"
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
@@ -18,12 +23,15 @@ type ArgTransactionsFeeProcessor struct {
 	TransactionsStorer storage.Storer
 	ShardCoordinator   sharding.Coordinator
 	TxFeeCalculator    FeesProcessorHandler
+	PubKeyConverter    core.PubkeyConverter
 }
 
 type transactionsFeeProcessor struct {
 	txGetter         transactionGetter
 	txFeeCalculator  FeesProcessorHandler
 	shardCoordinator sharding.Coordinator
+	dataFieldParser  dataFieldParser
+	log              logger.Logger
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -33,10 +41,20 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		return nil, err
 	}
 
+	parser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: arg.PubKeyConverter.Len(),
+		Marshalizer:   arg.Marshaller,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &transactionsFeeProcessor{
 		txFeeCalculator:  arg.TxFeeCalculator,
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
+		log:              logger.GetOrCreate(loggerName),
+		dataFieldParser:  parser,
 	}, nil
 }
 
@@ -52,6 +70,9 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	}
 	if check.IfNil(arg.Marshaller) {
 		return ErrNilMarshaller
+	}
+	if check.IfNil(arg.PubKeyConverter) {
+		return core.ErrNilPubkeyConverter
 	}
 
 	return nil
@@ -86,7 +107,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		txWithResult.SetFee(fee)
 		txWithResult.SetInitialPaidFee(initialPaidFee)
 
-		if isRelayedTx(txWithResult) {
+		if isRelayedTx(txWithResult) || tep.isESDTOperationWithSCCall(txWithResult) {
 			txWithResult.SetGasUsed(txWithResult.GetGasLimit())
 			txWithResult.SetFee(initialPaidFee)
 		}
@@ -160,7 +181,13 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		txFromStorage, err := tep.txGetter.GetTxByHash(scr.OriginalTxHash)
 		if err != nil {
-			return err
+			tep.log.Trace("transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", "hash", scr.OriginalTxHash, "error", err.Error())
+			continue
+		}
+
+		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
+		if !isForInitialTxSender {
+			continue
 		}
 
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)

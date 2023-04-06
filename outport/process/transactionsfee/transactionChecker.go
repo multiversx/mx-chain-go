@@ -6,11 +6,36 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandlerWithGasUsedAndFee) bool {
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+
+	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
+		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
+
+	isReceiverSC := core.IsSmartContractAddress(tx.GetRcvAddr())
+	hasFunction := res.Function != ""
+	if !hasFunction {
+		return false
+	}
+
+	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
+		return isESDTTransferOperation && isReceiverSC && hasFunction
+	}
+
+	if len(res.Receivers) == 0 {
+		return false
+	}
+
+	isReceiverSC = core.IsSmartContractAddress(res.Receivers[0])
+
+	return isESDTTransferOperation && isReceiverSC && hasFunction
+}
 
 func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())

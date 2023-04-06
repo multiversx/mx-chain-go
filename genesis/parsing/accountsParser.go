@@ -5,21 +5,24 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("genesis/parsing")
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
@@ -252,7 +255,7 @@ func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 
 // GenesisMintingAddress returns the encoded genesis minting address
 func (ap *accountsParser) GenesisMintingAddress() string {
-	return ap.pubkeyConverter.Encode(ap.minterAddressBytes)
+	return ap.pubkeyConverter.SilentEncode(ap.minterAddressBytes, log)
 }
 
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses' shards

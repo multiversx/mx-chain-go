@@ -6,17 +6,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 const addressSize = 32
 const hashSize = 32
 
-var pkConv, _ = pubkeyConverter.NewBech32PubkeyConverter(addressSize, logger.GetOrCreate("test"))
+var pkConv = testscommon.RealWorldBech32PubkeyConverter
 
 func TestSmartContractResultsToString(t *testing.T) {
 	t.Parallel()

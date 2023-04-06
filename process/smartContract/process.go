@@ -5,34 +5,36 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
+var logCounters = logger.GetOrCreate("process/smartcontract.blockchainHookCounters")
 
 const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
@@ -60,7 +62,7 @@ type scProcessor struct {
 	argsParser         process.ArgumentsParser
 	esdtTransferParser vmcommon.ESDTTransferParser
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
-	arwenChangeLocker  common.Locker
+	wasmVMChangeLocker common.Locker
 
 	enableEpochsHandler common.EnableEpochsHandler
 	badTxForwarder      process.IntermediateTransactionHandler
@@ -100,7 +102,7 @@ type ArgsNewSmartContractProcessor struct {
 	EnableEpochsHandler common.EnableEpochsHandler
 	BadTxForwarder      process.IntermediateTransactionHandler
 	VMOutputCacher      storage.Cacher
-	ArwenChangeLocker   common.Locker
+	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
 }
 
@@ -157,7 +159,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
-	if check.IfNilReflect(args.ArwenChangeLocker) {
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
 	if check.IfNil(args.VMOutputCacher) {
@@ -189,7 +191,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		badTxForwarder:      args.BadTxForwarder,
 		builtInFunctions:    args.BuiltInFunctions,
 		isGenesisProcessing: args.IsGenesisProcessing,
-		arwenChangeLocker:   args.ArwenChangeLocker,
+		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
@@ -320,7 +322,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst, nil)
 	if err != nil {
 		return returnCode, err
 	}
@@ -350,29 +352,31 @@ func (sc *scProcessor) executeSmartContractCall(
 	txHash []byte,
 	snapshot int,
 	acntSnd, acntDst state.UserAccountHandler,
+	prevVmOutput *vmcommon.VMOutput,
 ) (*vmcommon.VMOutput, error) {
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	sc.arwenChangeLocker.RLock()
+	sc.wasmVMChangeLocker.RLock()
 
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
-		sc.arwenChangeLocker.RUnlock()
+		sc.wasmVMChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
-	sc.arwenChangeLocker.RUnlock()
+	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -385,7 +389,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return userErrorVmOutput, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, prevVmOutput, vmOutput.Logs)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
@@ -418,6 +422,43 @@ func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler)
 
 	_, err = sc.builtInFunctions.Get(function)
 	return err != nil
+}
+
+func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
+	if logCounters.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	logCounters.Trace("blockchain hook counters",
+		"counters", sc.getBlockchainHookCountersString(),
+		"tx hash", sc.computeTxHashUnsafe(tx),
+		"receiver", sc.pubkeyConv.SilentEncode(tx.GetRcvAddr(), log),
+		"sender", sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log),
+		"value", tx.GetValue().String(),
+		"data", tx.GetData(),
+	)
+}
+
+func (sc *scProcessor) getBlockchainHookCountersString() string {
+	counters := sc.blockChainHook.GetCounterValues()
+	keys := make([]string, len(counters))
+
+	idx := 0
+	for key := range counters {
+		keys[idx] = key
+		idx++
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	lines := make([]string, 0, len(counters))
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s: %d", key, counters[key]))
+	}
+
+	return strings.Join(lines, ", ")
 }
 
 func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) ([]data.TransactionHandler, []*vmcommon.LogEntry) {
@@ -847,6 +888,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
 	if err != nil || returnCode != vmcommon.Ok {
@@ -890,7 +932,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	if vmInput.CallType == vmData.AsynchronousCallBack {
-		// in case of asynchronous callback - the process of built in function is a must
+		// in case of asynchronous callback - the process of built-in function is a must
 		snapshot = sc.accounts.JournalLen()
 	}
 
@@ -983,7 +1025,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 }
 
 func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
-	if len(vmOutput.Logs) == 0 {
+	if vmOutput == nil || len(vmOutput.Logs) == 0 {
 		return
 	}
 
@@ -1070,7 +1112,7 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
+	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC, vmOutput)
 	if err != nil {
 		return true, userErrorVmOutput, newVMInput, err
 	}
@@ -1300,7 +1342,7 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
-	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil)
+	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil, nil)
 }
 
 func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
@@ -1310,6 +1352,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	returnMessage []byte,
 	snapshot int,
 	gasLocked uint64,
+	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
 	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
@@ -1358,6 +1401,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	}
 
 	processIfErrorLogs := make([]*vmcommon.LogEntry, 0)
+	if prevVmOutput != nil && len(prevVmOutput.Logs) > 0 {
+		processIfErrorLogs = append(processIfErrorLogs, prevVmOutput.Logs...)
+	}
+
 	processIfErrorLogs = append(processIfErrorLogs, userErrorLog)
 	if relayerLog != nil {
 		processIfErrorLogs = append(processIfErrorLogs, relayerLog)
@@ -1618,6 +1665,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	acntSnd state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
@@ -1656,16 +1704,16 @@ func (sc *scProcessor) doDeploySmartContract(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
-	sc.arwenChangeLocker.RLock()
+	sc.wasmVMChangeLocker.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		sc.arwenChangeLocker.RUnlock()
+		sc.wasmVMChangeLocker.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
-	sc.arwenChangeLocker.RUnlock()
+	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1678,7 +1726,7 @@ func (sc *scProcessor) doDeploySmartContract(
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, vmOutput.Logs)
+		return vmcommon.UserError, sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked, nil, vmOutput.Logs)
 	}
 
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
@@ -1752,11 +1800,14 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
+		scAddress := sc.pubkeyConv.SilentEncode(addr, log)
+		scGenerated = append(scGenerated, scAddress)
 	}
 
+	ownerAddress := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
+
 	log.Debug("SmartContract deployed",
-		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"owner", ownerAddress,
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
@@ -2536,7 +2587,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		return err
 	}
 
-	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
+	// This check is desirable (not required though) since currently both Wasm VM and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
@@ -2562,12 +2613,14 @@ func (sc *scProcessor) updateSmartContractCode(
 		},
 	}
 
+	encodedOutputAccountAddr := sc.pubkeyConv.SilentEncode(outputAccount.Address, log)
+
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
@@ -2577,7 +2630,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): upgraded", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)

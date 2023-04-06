@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&branchNode{})
@@ -298,7 +298,7 @@ func (bn *branchNode) commitCheckpoint(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -346,7 +346,7 @@ func (bn *branchNode) commitSnapshot(
 	idleProvider IdleNodeProvider,
 	depthLevel int,
 ) error {
-	if shouldStopIfContextDone(ctx, idleProvider) {
+	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return errors.ErrContextClosing
 	}
 
@@ -853,34 +853,6 @@ func (bn *branchNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
 	hashes = append(hashes, bn.hash)
 
 	return hashes, nil
-}
-
-func (bn *branchNode) getNumNodes() common.NumNodesDTO {
-	if check.IfNil(bn) {
-		return common.NumNodesDTO{}
-	}
-
-	currentNumNodes := common.NumNodesDTO{
-		Branches: 1,
-	}
-
-	for _, n := range bn.children {
-		if check.IfNil(n) {
-			continue
-		}
-
-		childNumNodes := n.getNumNodes()
-		currentNumNodes.Branches += childNumNodes.Branches
-		currentNumNodes.Leaves += childNumNodes.Leaves
-		currentNumNodes.Extensions += childNumNodes.Extensions
-		if childNumNodes.MaxLevel > currentNumNodes.MaxLevel {
-			currentNumNodes.MaxLevel = childNumNodes.MaxLevel
-		}
-	}
-
-	currentNumNodes.MaxLevel++
-
-	return currentNumNodes
 }
 
 func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ factory.ComponentHandler = (*managedNetworkComponents)(nil)
@@ -88,6 +88,12 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mnc.peerHonestyHandler) {
 		return errors.ErrNilPeerHonestyHandler
+	}
+	if check.IfNil(mnc.peersRatingHandler) {
+		return errors.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(mnc.peersRatingMonitor) {
+		return errors.ErrNilPeersRatingMonitor
 	}
 
 	return nil
@@ -187,6 +193,18 @@ func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler
 	}
 
 	return mnc.networkComponents.peersRatingHandler
+}
+
+// PeersRatingMonitor returns the peers rating monitor
+func (mnc *managedNetworkComponents) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.networkComponents.peersRatingMonitor
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil

@@ -8,24 +8,24 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	txproc "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1284,7 +1284,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    mock.NewPubkeyConverterMock(32),
+		PubkeyConverter:    testscommon.NewPubkeyConverterMock(32),
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
@@ -1620,7 +1620,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1702,7 +1702,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1784,7 +1784,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1871,7 +1871,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1955,7 +1955,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2040,7 +2040,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2573,7 +2573,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}

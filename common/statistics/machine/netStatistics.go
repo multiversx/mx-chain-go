@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/shirou/gopsutil/net"
 )
 
@@ -52,12 +52,12 @@ func (ns *netStatistics) processLoop(ctx context.Context) {
 		default:
 		}
 
-		ns.computeStatistics()
+		ns.computeStatistics(ctx)
 	}
 }
 
 // computeStatistics computes the current network statistics usage.
-func (ns *netStatistics) computeStatistics() {
+func (ns *netStatistics) computeStatistics(ctx context.Context) {
 	nStart, err := ns.getStatisticsHandler()
 	if err != nil {
 		ns.setZeroStatsAndWait()
@@ -68,7 +68,14 @@ func (ns *netStatistics) computeStatistics() {
 		return
 	}
 
-	time.Sleep(durationSecond)
+	timer := time.NewTimer(durationSecond)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+		return
+	}
 
 	nEnd, err := ns.getStatisticsHandler()
 	if err != nil {
@@ -81,6 +88,13 @@ func (ns *netStatistics) computeStatistics() {
 	}
 
 	ns.processStatistics(nStart, nEnd)
+
+	timer.Reset(durationSecond)
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+		return
+	}
 }
 
 func getStatistics() ([]net.IOCountersStat, error) {
@@ -127,8 +141,6 @@ func (ns *netStatistics) processStatistics(nStart []net.IOCountersStat, nEnd []n
 		sentPercent = bpsSent * 100 / sentPeak
 	}
 	atomic.StoreUint64(&ns.percentSent, sentPercent)
-
-	time.Sleep(durationSecond)
 }
 
 // EpochConfirmed is called whenever a new epoch is starting

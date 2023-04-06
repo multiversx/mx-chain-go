@@ -3,13 +3,13 @@ package logs
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLogsConverter_TxLogToApiResourceShouldWork(t *testing.T) {
-	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	logsConverter := newLogsConverter(pkConverter)
 
 	contractAddressBech32 := "erd1qqqqqqqqqqqqqpgqxwakt2g7u9atsnr03gqcgmhcv38pt7mkd94q6shuwt"

@@ -5,12 +5,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/checking"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,7 +36,7 @@ func TestNewNodesSetupChecker_NilGenesisParserShouldErr(t *testing.T) {
 	nsc, err := checking.NewNodesSetupChecker(
 		nil,
 		big.NewInt(0),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -49,7 +50,7 @@ func TestNewNodesSetupChecker_NilInitialNodePriceShouldErr(t *testing.T) {
 	nsc, err := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{},
 		nil,
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -63,7 +64,7 @@ func TestNewNodesSetupChecker_InvalidInitialNodePriceShouldErr(t *testing.T) {
 	nsc, err := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{},
 		big.NewInt(-1),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -91,7 +92,7 @@ func TestNewNodesSetupChecker_NilKeyGeneratorShouldErr(t *testing.T) {
 	nsc, err := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{},
 		big.NewInt(0),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		nil,
 	)
 
@@ -105,7 +106,7 @@ func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
 	nsc, err := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{},
 		big.NewInt(0),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -129,7 +130,7 @@ func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(0),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{
 			CheckPublicKeyValidCalled: func(b []byte) error {
 				return expectedErr
@@ -163,7 +164,7 @@ func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(0),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -195,7 +196,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughStakedShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(nodePrice.Int64()+1),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -227,7 +228,7 @@ func TestNewNodeSetupChecker_CheckTooMuchStakedShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(nodePrice.Int64()-1),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -259,7 +260,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughDelegatedShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(nodePrice.Int64()+1),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -291,7 +292,7 @@ func TestNewNodeSetupChecker_CheckTooMuchDelegatedShouldErr(t *testing.T) {
 			},
 		},
 		big.NewInt(nodePrice.Int64()-1),
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 
@@ -327,7 +328,7 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 			},
 		},
 		nodePrice,
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{},
 	)
 

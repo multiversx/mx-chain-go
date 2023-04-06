@@ -3,8 +3,8 @@ package overridableConfig
 import (
 	"testing"
 
-	p2pConfig "github.com/ElrondNetwork/elrond-go-p2p/config"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/stretchr/testify/require"
 )
 

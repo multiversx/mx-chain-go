@@ -6,19 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockTrieRequesterArguments() ArgTrieRequester {
 	return ArgTrieRequester{
-		Messenger:                &mock.MessengerStub{},
+		Messenger:                &p2pmocks.MessengerStub{},
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
 		TrieDataGetter:           &trieMock.TrieStub{},
@@ -111,7 +112,7 @@ func TestTrieNodeRequester_RequestDataFromHashShouldWork(t *testing.T) {
 		},
 	}
 	numSendToConnectedPeerCalled := uint32(0)
-	args.Messenger = &mock.MessengerStub{
+	args.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil
@@ -139,7 +140,7 @@ func TestTrieNodeRequester_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		},
 	}
 	numSendToConnectedPeerCalled := uint32(0)
-	args.Messenger = &mock.MessengerStub{
+	args.Messenger = &p2pmocks.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil

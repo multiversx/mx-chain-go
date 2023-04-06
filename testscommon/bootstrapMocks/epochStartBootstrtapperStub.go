@@ -1,8 +1,8 @@
 package bootstrapMocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 )
 
 // EpochStartBootstrapperStub -

@@ -12,34 +12,34 @@ import (
 	syncGo "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	disabledSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/singlesig"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/disabled"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/dataValidators"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	procTx "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -344,7 +344,8 @@ func (n *Node) GetValueForKey(address string, key string, options api.AccountQue
 
 // GetESDTData returns the esdt balance and properties from a given account
 func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -359,14 +360,16 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 		return nil, api.BlockInfo{}, err
 	}
 
-	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
+	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID)
 	esdtToken, _, err := n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	if esdtToken.TokenMetaData != nil {
-		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+		esdtTokenCreatorAddr := n.coreComponents.AddressPubKeyConverter().SilentEncode(esdtToken.TokenMetaData.Creator, log)
+
+		esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 	}
 
 	return esdtToken, blockInfo, nil
@@ -508,7 +511,8 @@ func bigToString(bigValue *big.Int) string {
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	// TODO: refactor here as to ensure userAccount and systemAccount are on the same root-hash
+	userAccount, _, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -523,7 +527,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		return allESDTs, api.BlockInfo{}, nil
 	}
 
-	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
 	rootHash, err := userAccount.DataTrie().RootHash()
@@ -556,7 +560,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
-		esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
 		if err != nil {
 			log.Warn("cannot get ESDT token", "token name", tokenName, "error", err)
@@ -564,7 +568,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		if esdtToken.TokenMetaData != nil {
-			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+			esdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
+			if err != nil {
+				return nil, api.BlockInfo{}, err
+			}
+			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
@@ -852,7 +860,10 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 	ownerAddress := ""
 	if len(account.GetOwnerAddress()) > 0 {
 		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
-		ownerAddress = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		if err != nil {
+			return api.AccountResponse{}, api.BlockInfo{}, err
+		}
 	}
 
 	return api.AccountResponse{
@@ -908,7 +919,7 @@ func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
 		return "", fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 
-	return n.coreComponents.AddressPubKeyConverter().Encode(pk), nil
+	return n.coreComponents.AddressPubKeyConverter().Encode(pk)
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
@@ -975,11 +986,19 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 
 	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
 	for _, p := range pidsFound {
-		pidInfo := n.createPidInfo(p)
+		pidInfo, err := n.createPidInfo(p)
+		if err != nil {
+			return nil, err
+		}
 		peerInfoSlice = append(peerInfoSlice, pidInfo)
 	}
 
 	return peerInfoSlice, nil
+}
+
+// GetConnectedPeersRatings returns the connected peers ratings
+func (n *Node) GetConnectedPeersRatings() string {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
 }
 
 // GetEpochStartDataAPI returns epoch start data of a given epoch
@@ -1117,7 +1136,7 @@ func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
 }
 
-func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.networkComponents.NetworkMessenger().PeerAddresses(p),
@@ -1130,10 +1149,14 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
-		result.Pk = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
+		var err error
+		result.Pk, err = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
+		if err != nil {
+			return core.QueryP2PPeerInfo{}, fmt.Errorf("%w while encoding public key for creating peer id info %s", err, hex.EncodeToString(peerInfo.PkBytes))
+		}
 	}
 
-	return result
+	return result, nil
 }
 
 // Close closes all underlying components

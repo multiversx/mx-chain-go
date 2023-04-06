@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -251,24 +251,99 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+
 		storer := &storage.StorerStub{
-			GetCalled: func(key []byte) (b []byte, err error) {
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
-				case bytes.Equal(append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(1))...), key):
+				case bytes.Equal(epoch10Key, key):
 					return nil, errors.New("first get error")
 				default:
-					return nil, errors.New("invalid key")
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
 				}
-			},
-			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
-				return nodesConfigRegistryBytes, nil
 			},
 		}
 
 		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numStoredEpochs)
 		require.Nil(t, err)
 		require.Equal(t, nodesConfigRegistry, nodesConfig)
+	})
+
+	t.Run("getting from old key, should also save configuration with new keys", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+				"9": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val2": {
+							{
+								PubKey: []byte("pubKey2"),
+							},
+						},
+					},
+				},
+				"8": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val3": {
+							{
+								PubKey: []byte("pubKey3"),
+							},
+						},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+		epoch9Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(9))...)
+		epoch8Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(8))...)
+
+		numPutCalls := uint32(0)
+		storer := &storage.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case bytes.Equal(epoch10Key, key):
+					return nil, errors.New("first get error")
+				default:
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
+				}
+			},
+			PutCalled: func(key, data []byte) error {
+				switch {
+				case bytes.Equal(epoch10Key, key):
+					numPutCalls++
+					return nil
+				case bytes.Equal(epoch9Key, key):
+					numPutCalls++
+					return nil
+				case bytes.Equal(epoch8Key, key):
+					numPutCalls++
+					return nil
+				default:
+					return errors.New("put error")
+				}
+			},
+		}
+
+		numOfEpochsToKeep := uint32(3)
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numOfEpochsToKeep)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+		require.Equal(t, numOfEpochsToKeep, numPutCalls)
 	})
 
 	t.Run("getting each key separatelly by epoch, should work", func(t *testing.T) {

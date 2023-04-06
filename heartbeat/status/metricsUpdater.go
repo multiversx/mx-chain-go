@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const minDuration = time.Second
@@ -122,7 +122,7 @@ func (updater *metricsUpdater) updateConnectionsMetrics() {
 }
 
 func (updater *metricsUpdater) updateSenderMetrics() {
-	result, subType, err := updater.heartbeatSenderInfoProvider.GetSenderInfo()
+	result, subType, err := updater.heartbeatSenderInfoProvider.GetCurrentNodeType()
 	if err != nil {
 		log.Warn("error while updating metrics in heartbeat v2 metricsUpdater", "error", err)
 		return

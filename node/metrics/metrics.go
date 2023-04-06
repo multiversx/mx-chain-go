@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 const millisecondsInSecond = 1000
@@ -233,8 +233,12 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		key := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		appStatusHandler.SetUInt64Value(key, 0)
+	}
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, 0)
 	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
-	// TODO: add all other rewards parameters
 	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(common.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 

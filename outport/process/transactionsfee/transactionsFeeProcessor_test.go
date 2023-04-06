@@ -4,16 +4,20 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/outport/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
+
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
@@ -21,6 +25,7 @@ func prepareMockArg() ArgTransactionsFeeProcessor {
 		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
+		PubKeyConverter:    pubKeyConverter,
 	}
 }
 
@@ -145,6 +150,7 @@ func TestPutFeeAndGasUsedScrNoTx(t *testing.T) {
 	initialTx := &transaction.Transaction{
 		GasLimit: 30000000,
 		GasPrice: 1000000000,
+		SndAddr:  []byte("erd1k7j6ewjsla4zsgv8v6f6fe3dvrkgv3d0d9jerczw45hzedhyed8sh2u34u"),
 	}
 	txBytes, _ := arg.Marshaller.Marshal(initialTx)
 
@@ -297,4 +303,135 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFee())
 	require.Equal(t, uint64(550000000), initialTx.GetGasUsed())
 	require.Equal(t, "6103405000000000", initialTx.GetInitialPaidFee().String())
+}
+
+func TestPutFeeAndGasUsedESDTWithScCall(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx")
+	tx := outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
+		Nonce:    1011,
+		SndAddr:  silentDecodeAddress("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		RcvAddr:  silentDecodeAddress("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+		GasLimit: 55_000_000,
+		GasPrice: 1000000000,
+		Data:     []byte("ESDTNFTTransfer@434f572d636434363364@080c@01@00000000000000000500d3b28828d62052124f07dcd50ed31b0825f60eee1526@616363657074476c6f62616c4f66666572@c3e5"),
+		Value:    big.NewInt(0),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Txs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			string(txHash): tx,
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(820765000000000), tx.GetFee())
+	require.Equal(t, uint64(55_000_000), tx.GetGasUsed())
+	require.Equal(t, "820765000000000", tx.GetInitialPaidFee().String())
+}
+
+func silentDecodeAddress(address string) []byte {
+	decoded, _ := pubKeyConverter.Decode(address)
+	return decoded
+}
+
+func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
+	t.Parallel()
+
+	_ = logger.SetLogLevel("*:TRACE")
+
+	txHash := []byte("relayedTx")
+	scrWithRefund := []byte("scrWithRefund")
+
+	refundValueBig, _ := big.NewInt(0).SetString("226498540000000", 10)
+
+	scr := outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
+		Nonce:          3,
+		SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq3dswlnnlkfd3gqrcv3dhzgnvh8ryf27g5rfsecnn2s"),
+		RcvAddr:        []byte("erd1k7j6ewjsla4zsgv8v6f6fe3dvrkgv3d0d9jerczw45hzedhyed8sh2u34u"),
+		PrevTxHash:     []byte("f639cb7a0231191e04ec19dcb1359bd93a03fe8dc4a28a80d00835c5d1c988f8"),
+		OriginalTxHash: txHash,
+		Value:          refundValueBig,
+		Data:           []byte("@ok"),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			"wrong":               outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{}, 0, big.NewInt(0)),
+			string(scrWithRefund): scr,
+		},
+	}
+
+	arg := prepareMockArg()
+
+	wasCalled := false
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	txsFeeProc.log = &testscommon.LoggerStub{
+		TraceCalled: func(message string, args ...interface{}) {
+			wasCalled = true
+			require.Equal(t, "transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", message)
+		},
+	}
+
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0), scr.GetFee())
+	require.Equal(t, uint64(0), scr.GetGasUsed())
+	require.True(t, wasCalled)
+}
+
+func TestPutFeeAndGasUsedScrWithRefundNotForInitialSender(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx")
+	scrWithRefund := []byte("scrWithRefund")
+
+	refundValueBig, _ := big.NewInt(0).SetString("226498540000000", 10)
+
+	scr := outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
+		Nonce:          3,
+		SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq3dswlnnlkfd3gqrcv3dhzgnvh8ryf27g5rfsecnn2s"),
+		RcvAddr:        []byte("erd1k7j6ewjsla4zsgv8v6f6fe3dvrkgv3d0d9jerczw45hzedhyed8sh2u34u"),
+		PrevTxHash:     []byte("f639cb7a0231191e04ec19dcb1359bd93a03fe8dc4a28a80d00835c5d1c988f8"),
+		OriginalTxHash: txHash,
+		Value:          refundValueBig,
+		Data:           []byte(""),
+	}, 0, big.NewInt(0))
+
+	pool := &outportcore.Pool{
+		Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{
+			"wrong":               outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{}, 0, big.NewInt(0)),
+			string(scrWithRefund): scr,
+		},
+	}
+
+	arg := prepareMockArg()
+
+	initialTx := &transaction.Transaction{
+		GasLimit: 30_000_000,
+		GasPrice: 1000000000,
+		SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+	}
+	txBytes, _ := arg.Marshaller.Marshal(initialTx)
+
+	_ = arg.TransactionsStorer.Put(txHash, txBytes)
+
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0), scr.GetFee())
+	require.Equal(t, uint64(0), scr.GetGasUsed())
 }

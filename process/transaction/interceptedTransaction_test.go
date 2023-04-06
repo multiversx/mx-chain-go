@@ -8,20 +8,20 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,8 +36,8 @@ var recvAddress = []byte("23456789012345678901234567890123")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createDummySigner() crypto.SingleSigner {
@@ -98,7 +98,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -141,7 +141,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -991,7 +991,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1051,7 +1051,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShoudWork(t *testing.
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1140,7 +1140,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
@@ -1275,7 +1275,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		signer,
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1570,7 +1570,7 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
@@ -1613,7 +1613,7 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},

@@ -9,19 +9,19 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/update"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ update.ExportHandler = (*stateExport)(nil)
@@ -442,9 +442,20 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 	for _, validatorsInShard := range validators {
 		for _, validator := range validatorsInShard {
 			if shouldExportValidator(validator, acceptedListsForExport) {
+
+				pubKey, err := se.validatorPubKeyConverter.Encode(validator.GetPublicKey())
+				if err != nil {
+					return nil
+				}
+
+				rewardAddress, err := se.addressPubKeyConverter.Encode(validator.GetRewardAddress())
+				if err != nil {
+					return nil
+				}
+
 				initialNodes = append(initialNodes, &sharding.InitialNode{
-					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
-					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
+					PubKey:        pubKey,
+					Address:       rewardAddress,
 					InitialRating: validator.GetRating(),
 				})
 			}

@@ -8,18 +8,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dbLookupExtMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +54,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 
-	pubKeyConverter := &mock.PubkeyConverterMock{}
+	pubKeyConverter := &testscommon.PubkeyConverterMock{}
 	logsFacade := &testscommon.LogsFacadeStub{}
 	dataFieldParser := &testscommon.DataFieldParserStub{
 		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
@@ -69,14 +69,17 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	tx := &transaction.ApiTransactionResult{}
 
+	encodedSndAddr, err := pubKeyConverter.Encode(rec.SndAddr)
+	require.Nil(t, err)
+
 	expectedRecAPI := &transaction.ApiReceipt{
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
-		SndAddr: pubKeyConverter.Encode(rec.SndAddr),
+		SndAddr: encodedSndAddr,
 	}
 
-	err := n.putResultsInTransaction(txHash, tx, epoch)
+	err = n.putResultsInTransaction(txHash, tx, epoch)
 	require.Nil(t, err)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
 }
@@ -212,9 +215,18 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	pubKeyConverter := mock.NewPubkeyConverterMock(3)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(3)
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
+
+	encodedSndAddr, err := pubKeyConverter.Encode(scr1.SndAddr)
+	require.Nil(t, err)
+	encodedRcvAddr, err := pubKeyConverter.Encode(scr1.RcvAddr)
+	require.Nil(t, err)
+	encodedRelayerAddr, err := pubKeyConverter.Encode(scr1.RelayerAddr)
+	require.Nil(t, err)
+	encodedOriginalAddr, err := pubKeyConverter.Encode(scr1.OriginalSender)
+	require.Nil(t, err)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
@@ -231,10 +243,10 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			CallType:       scr1.CallType,
 			CodeMetadata:   string(scr1.CodeMetadata),
 			ReturnMessage:  string(scr1.ReturnMessage),
-			SndAddr:        pubKeyConverter.Encode(scr1.SndAddr),
-			RcvAddr:        pubKeyConverter.Encode(scr1.RcvAddr),
-			RelayerAddr:    pubKeyConverter.Encode(scr1.RelayerAddr),
-			OriginalSender: pubKeyConverter.Encode(scr1.OriginalSender),
+			SndAddr:        encodedSndAddr,
+			RcvAddr:        encodedRcvAddr,
+			RelayerAddr:    encodedRelayerAddr,
+			OriginalSender: encodedOriginalAddr,
 			Logs:           logs,
 			Receivers:      []string{},
 		},
@@ -247,7 +259,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	err := n.putResultsInTransaction(testTxHash, tx, testEpoch)
+	err = n.putResultsInTransaction(testTxHash, tx, testEpoch)
 	require.Nil(t, err)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }
@@ -301,7 +313,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	pubKeyConverter := &mock.PubkeyConverterMock{}
+	pubKeyConverter := &testscommon.PubkeyConverterMock{}
 	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser, shardCoordinator)
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 

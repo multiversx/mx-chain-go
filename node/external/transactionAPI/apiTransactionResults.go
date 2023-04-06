@@ -5,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	datafield "github.com/ElrondNetwork/elrond-vm-common/parsers/dataField"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/node/filters"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -122,6 +121,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
+
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
@@ -193,28 +193,23 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		IsRefund:       isRefund,
 	}
 
-	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.SndAddr = arp.addressPubKeyConverter.Encode(scr.SndAddr)
-	}
-
-	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RcvAddr = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
-	}
-
-	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RelayerAddr = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
-	}
-
-	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
-		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
-	}
+	apiSCR.SndAddr, _ = arp.addressPubKeyConverter.Encode(scr.SndAddr)
+	apiSCR.RcvAddr, _ = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
+	apiSCR.RelayerAddr, _ = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
+	apiSCR.OriginalSender, _ = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 
 	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
 	apiSCR.Operation = res.Operation
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues
 	apiSCR.Tokens = res.Tokens
-	apiSCR.Receivers = datafield.EncodeBytesSlice(arp.addressPubKeyConverter.Encode, res.Receivers)
+
+	var err error
+	apiSCR.Receivers, err = arp.addressPubKeyConverter.EncodeSlice(res.Receivers)
+	if err != nil {
+		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while encoding apiSCR.Receivers with", "err", err, "hash", scrHash)
+	}
+
 	apiSCR.ReceiversShardIDs = res.ReceiversShardID
 	apiSCR.IsRelayed = res.IsRelayed
 

@@ -7,18 +7,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 const prefixHeaderAlarm = "header_"
@@ -41,6 +41,7 @@ type validatorHeaderBroadcastData struct {
 	metaMiniBlocksData   map[uint32][]byte
 	metaTransactionsData map[string][][]byte
 	order                uint32
+	pkBytes              []byte
 }
 
 type delayedBroadcastData struct {
@@ -50,6 +51,7 @@ type delayedBroadcastData struct {
 	miniBlockHashes map[string]map[string]struct{}
 	transactions    map[string][][]byte
 	order           uint32
+	pkBytes         []byte
 }
 
 // timersScheduler exposes functionality for scheduling multiple timers
@@ -76,9 +78,9 @@ type delayedBlockBroadcaster struct {
 	maxDelayCacheSize          uint32
 	maxValidatorDelayCacheSize uint32
 	mutDataForBroadcast        sync.RWMutex
-	broadcastMiniblocksData    func(mbData map[uint32][]byte) error
-	broadcastTxsData           func(txData map[string][][]byte) error
-	broadcastHeader            func(header data.HeaderHandler) error
+	broadcastMiniblocksData    func(mbData map[uint32][]byte, pkBytes []byte) error
+	broadcastTxsData           func(txData map[string][][]byte, pkBytes []byte) error
+	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
 	cacheHeaders               storage.Cacher
 	mutHeadersCache            sync.RWMutex
 }
@@ -246,9 +248,9 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 
 // SetBroadcastHandlers sets the broadcast handlers for miniBlocks and transactions
 func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
-	mbBroadcast func(mbData map[uint32][]byte) error,
-	txBroadcast func(txData map[string][][]byte) error,
-	headerBroadcast func(header data.HeaderHandler) error,
+	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
 ) error {
 	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil {
 		return spos.ErrNilParameter
@@ -461,7 +463,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 		"alarmID", alarmID,
 	)
 	// broadcast header
-	err = dbb.broadcastHeader(vHeader.header)
+	err = dbb.broadcastHeader(vHeader.header, vHeader.pkBytes)
 	if err != nil {
 		log.Warn("delayedBlockBroadcaster.headerAlarmExpired", "error", err.Error(),
 			"headerHash", headerHash,
@@ -475,33 +477,34 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 			"headerHash", headerHash,
 			"alarmID", alarmID,
 		)
-		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, common.ExtraDelayForBroadcastBlockInfo)
+		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, vHeader.pkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	}
 }
 
 func (dbb *delayedBlockBroadcaster) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
 	for _, bData := range broadcastData {
-		go func(miniBlocks map[uint32][]byte, transactions map[string][][]byte) {
-			dbb.broadcastBlockData(miniBlocks, transactions, 0)
-		}(bData.miniBlocksData, bData.transactions)
+		go func(miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) {
+			dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, 0)
+		}(bData.miniBlocksData, bData.transactions, bData.pkBytes)
 	}
 }
 
 func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	pkBytes []byte,
 	delay time.Duration,
 ) {
 	time.Sleep(delay)
 
-	err := dbb.broadcastMiniblocksData(miniBlocks)
+	err := dbb.broadcastMiniblocksData(miniBlocks, pkBytes)
 	if err != nil {
 		log.Error("broadcastBlockData.broadcastMiniblocksData", "error", err.Error())
 	}
 
 	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
-	err = dbb.broadcastTxsData(transactions)
+	err = dbb.broadcastTxsData(transactions, pkBytes)
 	if err != nil {
 		log.Error("broadcastBlockData.broadcastTxsData", "error", err.Error())
 	}

@@ -1,21 +1,22 @@
 package alteredaccounts
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	outportcore "github.com/ElrondNetwork/elrond-go-core/data/outport"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/outport/process/alteredaccounts/shared"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var (
@@ -111,23 +112,17 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	options shared.AlteredAccountsOptions,
 ) error {
 	addressBytes := []byte(addressStr)
-	encodedAddress := aap.addressConverter.Encode(addressBytes)
+	encodedAddress := aap.addressConverter.SilentEncode(addressBytes, log)
 
 	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {
 		return fmt.Errorf("%w while loading account when computing altered accounts. address: %s", err, encodedAddress)
 	}
 
-	alteredAccounts[encodedAddress] = &outportcore.AlteredAccount{
-		Address: encodedAddress,
-		Balance: userAccount.GetBalance().String(),
-		Nonce:   userAccount.GetNonce(),
-	}
+	alteredAccounts[encodedAddress] = aap.getAlteredAccountFromUserAccounts(encodedAddress, userAccount)
+
 	if options.WithAdditionalOutportData {
-		alteredAccounts[encodedAddress].AdditionalData = &outportcore.AdditionalAccountData{
-			IsSender:       markedAccount.isSender,
-			BalanceChanged: markedAccount.balanceChanged,
-		}
+		aap.addAdditionalDataInAlteredAccount(alteredAccounts[encodedAddress], userAccount, markedAccount)
 	}
 
 	for _, tokenData := range markedAccount.tokens {
@@ -138,6 +133,33 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	}
 
 	return nil
+}
+
+func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAccount *outportcore.AlteredAccount, userAccount state.UserAccountHandler, markedAccount *markedAlteredAccount) {
+	alteredAccount.AdditionalData = &outportcore.AdditionalAccountData{
+		IsSender:       markedAccount.isSender,
+		BalanceChanged: markedAccount.balanceChanged,
+		UserName:       string(userAccount.GetUserName()),
+	}
+
+	ownerAddressBytes := userAccount.GetOwnerAddress()
+	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
+		alteredAccount.AdditionalData.CurrentOwner = aap.addressConverter.SilentEncode(ownerAddressBytes, log)
+	}
+	developerRewards := userAccount.GetDeveloperReward()
+	if developerRewards != nil {
+		alteredAccount.AdditionalData.DeveloperRewards = developerRewards.String()
+	}
+}
+
+func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *outportcore.AlteredAccount {
+	alteredAccount := &outportcore.AlteredAccount{
+		Address: userEncodedAddress,
+		Balance: userAccount.GetBalance().String(),
+		Nonce:   userAccount.GetNonce(),
+	}
+
+	return alteredAccount
 }
 
 func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options shared.AlteredAccountsOptions) (state.UserAccountHandler, error) {
@@ -172,7 +194,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	nonce := markedAccountToken.nonce
 	tokenID := markedAccountToken.identifier
 
-	storageKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	storageKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	storageKey = append(storageKey, []byte(tokenID)...)
 
 	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
@@ -193,7 +215,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
-		Properties: string(esdtToken.Properties),
+		Properties: hex.EncodeToString(esdtToken.Properties),
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
@@ -213,10 +235,12 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *ou
 		return nil
 	}
 
+	metaDataCreatorAddr := aap.addressConverter.SilentEncode(metaData.Creator, log)
+
 	return &outportcore.TokenMetaData{
 		Nonce:      metaData.Nonce,
 		Name:       string(metaData.Name),
-		Creator:    aap.addressConverter.Encode(metaData.Creator),
+		Creator:    metaDataCreatorAddr,
 		Royalties:  metaData.Royalties,
 		Hash:       metaData.Hash,
 		URIs:       metaData.URIs,

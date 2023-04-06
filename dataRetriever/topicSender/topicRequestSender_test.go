@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	topicsender "github.com/ElrondNetwork/elrond-go/dataRetriever/topicSender"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	topicsender "github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -250,6 +250,15 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{pID2}
 			},
 		}
+		decreaseCalledCounter := 0
+		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+			DecreaseRatingCalled: func(pid core.PeerID) {
+				decreaseCalledCounter++
+				if !bytes.Equal(pid.Bytes(), pID1.Bytes()) && !bytes.Equal(pid.Bytes(), pID2.Bytes()) {
+					assert.Fail(t, "should be one of the provided pids")
+				}
+			},
+		}
 		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
@@ -257,6 +266,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, sentToPid1)
 		assert.True(t, sentToPid2)
+		assert.Equal(t, 2, decreaseCalledCounter)
 	})
 	t.Run("should work and send to full history", func(t *testing.T) {
 		t.Parallel()
@@ -284,11 +294,19 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return false
 			},
 		}
+		decreaseCalledCounter := 0
+		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+			DecreaseRatingCalled: func(pid core.PeerID) {
+				decreaseCalledCounter++
+				assert.Equal(t, pIDfullHistory, pid)
+			},
+		}
 		trs, _ := topicsender.NewTopicRequestSender(arg)
 
 		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 		assert.Nil(t, err)
 		assert.True(t, sentToFullHistoryPeer)
+		assert.Equal(t, 1, decreaseCalledCounter)
 	})
 	t.Run("should work and send to preferred peers", func(t *testing.T) {
 		t.Parallel()

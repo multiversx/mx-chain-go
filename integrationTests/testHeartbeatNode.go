@@ -7,51 +7,51 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	requesterscontainer "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/requestersContainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/monitor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/processor"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat/validator"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
-	interceptorsProcessor "github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	processMock "github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
+	"github.com/multiversx/mx-chain-go/heartbeat/processor"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	interceptorsProcessor "github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/networksharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,7 +87,7 @@ type TestHeartbeatNode struct {
 	NodesCoordinator             nodesCoordinator.NodesCoordinator
 	PeerShardMapper              process.NetworkShardingCollector
 	Messenger                    p2p.Messenger
-	NodeKeys                     TestKeyPair
+	NodeKeys                     *TestNodeKeys
 	DataPool                     dataRetriever.PoolsHolder
 	Sender                       update.Closer
 	PeerAuthInterceptor          *interceptors.MultiDataInterceptor
@@ -190,9 +190,11 @@ func NewTestHeartbeatNode(
 	pkBytes, _ := pk.ToByteArray()
 	thn.PeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
-	thn.NodeKeys = TestKeyPair{
-		Sk: sk,
-		Pk: pk,
+	thn.NodeKeys = &TestNodeKeys{
+		MainKey: &TestKeyPair{
+			Sk: sk,
+			Pk: pk,
+		},
 	}
 
 	// start a go routine in order to allow peers to connect first
@@ -208,7 +210,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 	nodeShardId uint32,
 	p2pConfig p2pConfig.P2PConfig,
 	coordinator nodesCoordinator.NodesCoordinator,
-	keys TestKeyPair,
+	keys *TestNodeKeys,
 ) *TestHeartbeatNode {
 	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	singleSigner := singlesig.NewBlsSigner()
@@ -278,8 +280,8 @@ func CreateNodesWithTestHeartbeatNode(
 	p2pConfig p2pConfig.P2PConfig,
 ) map[uint32][]*TestHeartbeatNode {
 
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards), 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestHeartbeatNode)
@@ -313,13 +315,13 @@ func CreateNodesWithTestHeartbeatNode(
 
 		nodesList := make([]*TestHeartbeatNode, len(validatorList))
 		for i := range validatorList {
-			kp := cp.Keys[shardId][i]
+			kp := cp.NodesKeys[shardId][i]
 			nodesList[i] = NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
 				nodesCoordinatorInstance,
-				*kp,
+				kp,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -357,12 +359,15 @@ func CreateNodesWithTestHeartbeatNode(
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
 
+			nodeKeysInstance := &TestNodeKeys{
+				MainKey: createCryptoPair(),
+			}
 			n := NewTestHeartbeatNodeWithCoordinator(
 				uint32(numShards),
 				shardId,
 				p2pConfig,
 				nodesCoordinatorInstance,
-				createCryptoPair(),
+				nodeKeysInstance,
 			)
 
 			nodesMap[shardId] = append(nodesMap[shardId], n)
@@ -410,18 +415,21 @@ func (thn *TestHeartbeatNode) initSender() {
 		Marshaller:              TestMarshaller,
 		PeerAuthenticationTopic: common.PeerAuthenticationTopic,
 		HeartbeatTopic:          identifierHeartbeat,
+		BaseVersionNumber:       "v01-base",
 		VersionNumber:           "v01",
 		NodeDisplayName:         defaultNodeName,
 		Identity:                defaultNodeName + "_identity",
 		PeerSubType:             core.RegularPeer,
 		CurrentBlockProvider:    &testscommon.ChainHandlerStub{},
 		PeerSignatureHandler:    thn.PeerSigHandler,
-		PrivateKey:              thn.NodeKeys.Sk,
+		PrivateKey:              thn.NodeKeys.MainKey.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
 		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
+		ShardCoordinator:        thn.ShardCoordinator,
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
 		PeerAuthenticationTimeBetweenSendsWhenError: timeBetweenSendsWhenError,
@@ -430,6 +438,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatTimeThresholdBetweenSends:          thresholdBetweenSends,
 		HardforkTimeBetweenSends:                    timeBetweenHardforks,
+		PeerAuthenticationTimeBetweenChecks:         time.Second * 2,
 	}
 
 	thn.Sender, _ = sender.NewSender(argsSender)
@@ -718,7 +727,7 @@ func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) st
 
 	for shardId, nodesList := range nodes {
 		for _, n := range nodesList {
-			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
+			buffPk, _ := n.NodeKeys.MainKey.Pk.ToByteArray()
 
 			peerInfo := n.Messenger.GetConnectedPeersInfo()
 
@@ -830,11 +839,11 @@ func (thn *TestHeartbeatNode) IsInterfaceNil() bool {
 	return thn == nil
 }
 
-func createCryptoPair() TestKeyPair {
+func createCryptoPair() *TestKeyPair {
 	suite := mcl.NewSuiteBLS12()
 	keyGen := signing.NewKeyGenerator(suite)
 
-	kp := TestKeyPair{}
+	kp := &TestKeyPair{}
 	kp.Sk, kp.Pk = keyGen.GeneratePair()
 
 	return kp

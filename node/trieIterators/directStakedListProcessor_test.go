@@ -9,16 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,7 +68,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	validators := [][]byte{[]byte("validator1"), []byte("validator2")}
 
 	arg := createMockArgs()
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 			return nil, fmt.Errorf("not an expected call")
@@ -97,7 +98,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	validators := [][]byte{[]byte("validator1"), []byte("validator2")}
 
 	arg := createMockArgs()
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 			switch query.FuncName {
@@ -130,15 +131,19 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	directStakedList, err := dslp.GetDirectStakedList(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, 2, len(directStakedList))
+	encodedValidator0PubKey, err := arg.PublicKeyConverter.Encode(validators[0])
+	require.Nil(t, err)
+	encodedValidator1PubKey, err := arg.PublicKeyConverter.Encode(validators[1])
+	require.Nil(t, err)
 
 	expectedDirectStake1 := api.DirectStakedValue{
-		Address:    arg.PublicKeyConverter.Encode(validators[0]),
+		Address:    encodedValidator0PubKey,
 		BaseStaked: "9",
 		TopUp:      "1",
 		Total:      "10",
 	}
 	expectedDirectStake2 := api.DirectStakedValue{
-		Address:    arg.PublicKeyConverter.Encode(validators[1]),
+		Address:    encodedValidator1PubKey,
 		BaseStaked: "18",
 		TopUp:      "2",
 		Total:      "20",

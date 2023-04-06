@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // NetworkComponentsStub -
@@ -15,6 +15,7 @@ type NetworkComponentsStub struct {
 	PeerHonesty             factory.PeerHonestyHandler
 	PreferredPeersHolder    factory.PreferredPeersHolderHandler
 	PeersRatingHandlerField p2p.PeersRatingHandler
+	PeersRatingMonitorField p2p.PeersRatingMonitor
 }
 
 // PubKeyCacher -
@@ -70,6 +71,11 @@ func (ncs *NetworkComponentsStub) PreferredPeersHolderHandler() factory.Preferre
 // PeersRatingHandler -
 func (ncs *NetworkComponentsStub) PeersRatingHandler() p2p.PeersRatingHandler {
 	return ncs.PeersRatingHandlerField
+}
+
+// PeersRatingMonitor -
+func (ncs *NetworkComponentsStub) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	return ncs.PeersRatingMonitorField
 }
 
 // String -
