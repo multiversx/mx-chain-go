@@ -162,12 +162,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	unitOpener := createUnitOpener(
+	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
@@ -334,7 +337,7 @@ func createUnitOpener(
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
 	defaultEpochString string,
 	defaultShardString string,
-) storage.UnitOpenerHandler {
+) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
