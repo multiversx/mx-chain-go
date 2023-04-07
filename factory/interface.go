@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -540,4 +541,10 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// BlockTrackerCreator is able to create block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(args track.ArgBaseTracker) (process.BlockTracker, error)
+	IsInterfaceNil() bool
 }

@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -570,10 +571,11 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:          "v1.0.0",
-		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
-		SnapshotsEnabled: false,
-		ChainRunType: common.ChainRunTypeRegular,
+		Version:           "v1.0.0",
+		HistoryRepo:       &dblookupext.HistoryRepositoryStub{},
+		SnapshotsEnabled:  false,
+		ChainRunType:      common.ChainRunTypeRegular,
+		BlockTrackCreator: track.NewShardBlockTrackCreator(),
 	}
 }
 

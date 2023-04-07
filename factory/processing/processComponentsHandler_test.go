@@ -7,8 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/process/track"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,6 +59,18 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 		return 0
 	}
 
+	var blockTrackCreator factory.BlockTrackerCreator
+	switch chainType {
+	case common.ChainRunTypeRegular:
+		if shardID == core.MetachainShardId {
+			blockTrackCreator = track.NewMetaBlockTrackCreator()
+		} else {
+			blockTrackCreator = track.NewShardBlockTrackCreator()
+		}
+	case common.ChainRunTypeSovereign:
+		blockTrackCreator = track.NewSovereignBlockTrackCreator()
+	}
+
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
@@ -71,6 +85,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 		networkComponents,
 	)
 	processArgs.ChainRunType = chainType
+	processArgs.BlockTrackCreator = blockTrackCreator
 
 	componentsMock.SetShardCoordinator(t, processArgs.BootstrapComponents, shardCoordinator)
 

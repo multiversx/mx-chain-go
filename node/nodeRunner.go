@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -56,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -1201,6 +1203,10 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	blockTrackCreator, err := createBlockTrackCreator(bootstrapComponents)
+	if err != nil {
+		return nil, err
+	}
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                 *configs.GeneralConfig,
 		EpochConfig:            *configs.EpochConfig,
@@ -1229,6 +1235,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
 		ChainRunType:           nr.getChainRunType(),
+		BlockTrackCreator:      blockTrackCreator,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1246,6 +1253,18 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	return managedProcessComponents, nil
+}
+
+// TODO: We should refactor process components factory to be specific for each node type (shard/meta/sovereign)
+func createBlockTrackCreator(bootstrapComponents mainFactory.BootstrapComponentsHolder) (mainFactory.BlockTrackerCreator, error) {
+	if bootstrapComponents.ShardCoordinator().SelfId() < bootstrapComponents.ShardCoordinator().NumberOfShards() {
+		return track.NewShardBlockTrackCreator(), nil
+	}
+	if bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		return track.NewMetaBlockTrackCreator(), nil
+	}
+
+	return nil, errors.New("error creating block track creator because of invalid shard id")
 }
 
 // CreateManagedDataComponents is the managed data components factory

@@ -11,6 +11,7 @@ import (
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
@@ -75,7 +76,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		args.BlockTrackCreator = track.NewSovereignBlockTrackCreator()
+		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
 
