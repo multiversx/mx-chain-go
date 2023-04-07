@@ -10,7 +10,7 @@
         "contractCrate": {
             "name": "vault",
             "version": "0.0.0",
-            "gitVersion": "v0.39.6-139-gc8a1904ad"
+            "gitVersion": "v0.39.6-140-g20aa3e0f8"
         },
         "framework": {
             "name": "multiversx-sc",
@@ -155,7 +155,12 @@
             "payableInTokens": [
                 "*"
             ],
-            "inputs": [],
+            "inputs": [
+                {
+                    "name": "back_transfers",
+                    "type": "u64"
+                }
+            ],
             "outputs": []
         },
         {
