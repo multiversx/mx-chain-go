@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/google/gops v0.3.18
 	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230331113546-aacb0c8158ce
-	github.com/multiversx/mx-chain-go v1.4.14-0.20230404125732-acff3222b0c2
+	github.com/multiversx/mx-chain-go v1.4.14-0.20230407124003-bc09ec1ec848
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/urfave/cli v1.22.10
 )

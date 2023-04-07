@@ -57,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -1239,6 +1240,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
 		ChainRunType:           snr.getChainRunType(),
+		BlockTrackCreator:      track.NewSovereignBlockTrackCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
