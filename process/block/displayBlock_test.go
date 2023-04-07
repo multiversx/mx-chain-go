@@ -100,6 +100,22 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 	assert.Equal(t, len(header.MetaBlockHashes), len(lines))
 }
 
+func TestDisplayBlock_DisplayMainChainShardHeaderHashesIncluded(t *testing.T) {
+	t.Parallel()
+
+	shardLines := make([]*display.LineData, 0)
+	mainChainShardHeaderHashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
+	args := createMockArgsTransactionCounter()
+	txCounter, _ := NewTransactionCounter(args)
+	lines := txCounter.displayMainChainShardHeaderHashesIncluded(
+		shardLines,
+		mainChainShardHeaderHashes,
+	)
+
+	assert.NotNil(t, lines)
+	assert.Equal(t, len(mainChainShardHeaderHashes), len(lines))
+}
+
 func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 	t.Parallel()
 

@@ -30,7 +30,7 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 			RoundHandler:     &testscommon.RoundHandlerMock{},
 			ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			Store:            &storage.ChainStorerStub{},
-			StartHeaders:     createGenesisBlocks(&testscommon.ShardsCoordinatorMock{}),
+			StartHeaders:     createGenesisBlocks(&testscommon.ShardsCoordinatorMock{NoShards: 1}),
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: &testscommon.WhiteListHandlerStub{},
 			FeeHandler:       &mock.FeeHandlerStub{},
@@ -40,17 +40,37 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	return arguments
 }
 
-func TestSovereignBlockProcessor_NewSovereignBlockProcessorShouldWork(t *testing.T) {
+func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *testing.T) {
 	t.Parallel()
+
+	t.Run("should error when shard processor is nil", func(t *testing.T) {
+		t.Parallel()
+
+		scbp, err := blproc.NewSovereignChainBlockProcessor(nil, &mock.ValidatorStatisticsProcessorStub{})
+
+		assert.Nil(t, scbp)
+		assert.ErrorIs(t, err, process.ErrNilBlockProcessor)
+	})
+
+	t.Run("should error when validator statistics is nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, nil)
+
+		assert.Nil(t, scbp)
+		assert.ErrorIs(t, err, process.ErrNilValidatorStatistics)
+	})
 
 	t.Run("should error when type assertion fails", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
-		bp, _ := blproc.NewShardProcessor(arguments)
-		sbp, err := blproc.NewSovereignBlockProcessor(bp, &mock.ValidatorStatisticsProcessorStub{})
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
 
-		assert.Nil(t, sbp)
+		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	})
 
@@ -62,10 +82,12 @@ func TestSovereignBlockProcessor_NewSovereignBlockProcessorShouldWork(t *testing
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
-		bp, _ := blproc.NewShardProcessor(arguments)
-		sbp, err := blproc.NewSovereignBlockProcessor(bp, &mock.ValidatorStatisticsProcessorStub{})
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
 
-		assert.NotNil(t, sbp)
+		assert.NotNil(t, scbp)
 		assert.Nil(t, err)
 	})
 }
+
+//TODO: Unit tests should be added

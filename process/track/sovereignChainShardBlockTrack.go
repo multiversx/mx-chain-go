@@ -2,6 +2,7 @@ package track
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -38,7 +39,39 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 	scsbt.receivedHeaderFunc = scsbt.receivedHeader
 	scsbt.getFinalHeaderFunc = scsbt.getFinalHeader
 
+	err = scsbt.initCrossNotarizedStartHeaders()
+	if err != nil {
+		return nil, err
+	}
+
 	return scsbt, nil
+}
+
+func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() error {
+	scsbt.mutStartHeaders.RLock()
+	startHeader, foundHeader := scsbt.startHeaders[scsbt.shardCoordinator.SelfId()]
+	scsbt.mutStartHeaders.RUnlock()
+	if !foundHeader {
+		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrMissingHeader)
+	}
+
+	header, isHeader := startHeader.(*block.Header)
+	if !isHeader {
+		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrWrongTypeAssertion)
+	}
+
+	extendedShardHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: header,
+		},
+	}
+	extendedShardHeaderHash, err := core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader)
+	if err != nil {
+		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", err)
+	}
+
+	scsbt.AddCrossNotarizedHeader(core.SovereignChainShardId, extendedShardHeader, extendedShardHeaderHash)
+	return nil
 }
 
 // ComputeLongestSelfChain computes the longest chain from self shard

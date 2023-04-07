@@ -378,7 +378,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}
-	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := pcf.createTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -439,6 +439,24 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	return blockProcessorComponents, nil
 }
 
+func (pcf *processComponentsFactory) createTransactionCoordinator(
+	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
+) (process.TransactionCoordinator, error) {
+	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return transactionCoordinator, nil
+	case common.ChainRunTypeSovereign:
+		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
+}
+
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
@@ -461,7 +479,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	case common.ChainRunTypeRegular:
 		return shardProcessor, nil
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignBlockProcessor(
+		return block.NewSovereignChainBlockProcessor(
 			shardProcessor,
 			validatorStatisticsProcessor,
 		)

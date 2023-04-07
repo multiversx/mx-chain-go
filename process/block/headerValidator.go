@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
@@ -64,9 +65,21 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
-	if err != nil {
-		return err
+	var err error
+	var prevHeaderHash []byte
+
+	//TODO: Extract the extended shard header functionality into separate sovereign file with an overwritten method
+	shardHeaderExtended, isShardHeaderExtended := prevHeader.(*block.ShardHeaderExtended)
+	if isShardHeaderExtended {
+		prevHeaderHash, err = core.CalculateHash(h.marshalizer, h.hasher, shardHeaderExtended.Header.Header)
+		if err != nil {
+			return err
+		}
+	} else {
+		prevHeaderHash, err = core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {

@@ -53,6 +53,8 @@ type baseBlockTrack struct {
 	maxNumHeadersToKeepPerShard int
 	receivedHeaderFunc          func(headerHandler data.HeaderHandler, headerHash []byte)
 	getFinalHeaderFunc          func(headerHandler data.HeaderHandler) (data.HeaderHandler, error)
+	mutStartHeaders             sync.RWMutex
+	startHeaders                map[uint32]data.HeaderHandler
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -116,6 +118,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
+		startHeaders:                          arguments.StartHeaders,
 	}
 
 	return bbt, nil
