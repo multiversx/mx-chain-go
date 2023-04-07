@@ -14,6 +14,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
@@ -140,6 +141,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.BlockTrackCreator = track.NewSovereignBlockTrackCreator()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)

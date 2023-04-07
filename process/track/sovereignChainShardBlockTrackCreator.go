@@ -4,20 +4,16 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-type sovereignBlockTrackCreator struct {
-	args ArgShardTracker
-}
+type sovereignBlockTrackCreator struct{}
 
 // NewSovereignBlockTrackCreator creates a sovereign block track creator
-func NewSovereignBlockTrackCreator(args ArgShardTracker) *sovereignBlockTrackCreator {
-	return &sovereignBlockTrackCreator{
-		args: args,
-	}
+func NewSovereignBlockTrackCreator() *sovereignBlockTrackCreator {
+	return &sovereignBlockTrackCreator{}
 }
 
 // CreateBlockTracker creates a new sovereign block track
-func (creator *sovereignBlockTrackCreator) CreateBlockTracker() (process.BlockTracker, error) {
-	blockTracker, err := NewShardBlockTrack(creator.args)
+func (creator *sovereignBlockTrackCreator) CreateBlockTracker(args ArgBaseTracker) (process.BlockTracker, error) {
+	blockTracker, err := NewShardBlockTrack(ArgShardTracker{ArgBaseTracker: args})
 	if err != nil {
 		return nil, err
 	}

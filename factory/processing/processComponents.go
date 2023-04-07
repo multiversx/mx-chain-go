@@ -157,6 +157,7 @@ type ProcessComponentsFactoryArgs struct {
 	BootstrapComponents  factory.BootstrapComponentsHolder
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
+	BlockTrackCreator    mainFactory.BlockTrackerCreator
 	ChainRunType         common.ChainRunType
 }
 
@@ -192,6 +193,7 @@ type processComponentsFactory struct {
 	bootstrapComponents  factory.BootstrapComponentsHolder
 	statusComponents     factory.StatusComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
+	blockTrackCreator    mainFactory.BlockTrackerCreator
 	chainRunType         common.ChainRunType
 }
 
@@ -231,6 +233,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:   args.StatusCoreComponents,
 		snapshotsEnabled:       args.SnapshotsEnabled,
 		chainRunType:           args.ChainRunType,
+		blockTrackCreator:      args.BlockTrackCreator,
 	}, nil
 }
 
@@ -1357,19 +1360,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		FeeHandler:       pcf.coreData.EconomicsData(),
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
-		return pcf.createShardBlockTracker(argBaseTracker)
-	}
-
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		arguments := track.ArgMetaTracker{
-			ArgBaseTracker: argBaseTracker,
-		}
-
-		return track.NewMetaBlockTrack(arguments)
-	}
-
-	return nil, errors.New("could not create block tracker")
+	return pcf.blockTrackCreator.CreateBlockTracker(argBaseTracker)
 }
 
 func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
@@ -2032,6 +2023,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManagedPeersHolder)
+	}
+	if check.IfNil(args.BlockTrackCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errNilBlockTrackCreator)
 	}
 
 	return nil
