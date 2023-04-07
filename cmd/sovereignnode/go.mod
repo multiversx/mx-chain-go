@@ -1,4 +1,4 @@
-module github.com/multiversx/mx-chain-go/nodeSovereign
+module github.com/multiversx/mx-chain-go/sovereignnode
 
 go 1.17
 
