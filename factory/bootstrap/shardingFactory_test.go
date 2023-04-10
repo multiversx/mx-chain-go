@@ -486,7 +486,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
 	})
-	t.Run("NewIndexHashedNodesCoordinator fails should error", func(t *testing.T) {
+	t.Run("NewIndexHashedNodesCoordinatorWithRater fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		nodesC, err := CreateNodesCoordinator(
