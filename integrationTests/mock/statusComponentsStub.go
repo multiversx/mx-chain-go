@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/outport"
 )
@@ -10,7 +9,6 @@ import (
 type StatusComponentsStub struct {
 	Outport              outport.OutportHandler
 	SoftwareVersionCheck statistics.SoftwareVersionChecker
-	AppStatusHandler     core.AppStatusHandler
 }
 
 // Create -
