@@ -1,11 +1,11 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.70.0-nightly",
-            "commitHash": "db0cbc48d4aaa300713a95d9b317a365a474490c",
-            "commitDate": "2023-03-26",
+            "version": "1.66.0-nightly",
+            "commitHash": "4b8f4319954ff2642690b9e5cbe4af352d095bf6",
+            "commitDate": "2022-10-19",
             "channel": "Nightly",
-            "short": "rustc 1.70.0-nightly (db0cbc48d 2023-03-26)"
+            "short": "rustc 1.66.0-nightly (4b8f43199 2022-10-19)"
         },
         "contractCrate": {
             "name": "vault",
@@ -158,7 +158,13 @@
             "inputs": [
                 {
                     "name": "back_transfers",
-                    "type": "u64"
+                    "type": "optional<u64>",
+                    "multi_arg": true
+                },
+                {
+                    "name": "back_transfer_value",
+                    "type": "optional<BigUint>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -234,6 +240,16 @@
         },
         {
             "name": "num_called_retrieve_funds_promises",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "num_async_calls_sent_from_child",
             "mutability": "readonly",
             "inputs": [],
             "outputs": [

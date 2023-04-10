@@ -165,67 +165,100 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 	require.Equal(t, big.NewInt(2), res)
 }
 
-// func TestAsyncCallTransferESDTAndExecute(t *testing.T) {
-// 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
-// 	require.Nil(t, err)
-// 	defer testContext.Close()
+func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
+	numberOfCallsFromParent := 3
+	numberOfBackTransfers := 1
+	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
+}
 
-// 	gasPrice := uint64(10)
-// 	gasLimit := uint64(5000000)
+func TestAsyncCallTransferESDTAndExecute_Fail(t *testing.T) {
+	numberOfCallsFromParent := 3
+	numberOfBackTransfers := 2
+	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
+}
 
-// 	senderAddr := []byte("12345678901234567890123456789011")
-// 	ownerAddr := []byte("12345678901234567890123456789010")
+func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContext.Close()
 
-// 	childSCAddress, forwarderSCAddress := deployForwarderAndTestContract(
-// 		testContext,
-// 		"testdata/forwarderQueue/vault.wasm",
-// 		ownerAddr, senderAddr, t,
-// 		egldBalance,
-// 		esdtBalance,
-// 		gasPrice)
+	gasPrice := uint64(10)
+	gasLimit := uint64(5000000)
 
-// 	utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0, esdtBalance)
+	senderAddr := []byte("12345678901234567890123456789011")
+	ownerAddr := []byte("12345678901234567890123456789010")
 
-// 	esdtToTransferFromParent := int64(20)
+	childSCAddress, forwarderSCAddress := deployForwarderAndTestContract(
+		testContext,
+		"testdata/forwarderQueue/vault.wasm",
+		ownerAddr, senderAddr, t,
+		egldBalance,
+		esdtBalance,
+		gasPrice)
 
-// 	txBuilderEnqueue := txDataBuilder.NewBuilder()
-// 	txBuilderEnqueue.
-// 		Clear().
-// 		Func("add_queued_call_transfer_esdt").
-// 		Bytes(childSCAddress).
-// 		Int64(50000).
-// 		Bytes([]byte("retrieve_funds_promises")).
-// 		Bytes(esdtToken).
-// 		Int64(esdtToTransferFromParent)
+	utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0, esdtBalance)
 
-// 	sendTx(0, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, testContext, t)
-// 	sendTx(1, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, testContext, t)
+	esdtToTransferFromParent := int64(20)
+	esdtToTransferBackFromChild := int64(5)
 
-// 	txBuilderRunQueue := txDataBuilder.NewBuilder()
-// 	txBuilderRunQueue.
-// 		Clear().
-// 		Func("forward_queued_calls")
+	txBuilderEnqueue := txDataBuilder.NewBuilder()
+	txBuilderEnqueue.
+		Clear().
+		Func("add_queued_call_transfer_esdt").
+		Bytes(childSCAddress).
+		Int64(50000).
+		Bytes([]byte("retrieve_funds_promises")).
+		Bytes(esdtToken).
+		Int64(esdtToTransferFromParent).
+		Int(numberOfBackTransfers).
+		Int64(esdtToTransferBackFromChild)
 
-// 	gasLimit = uint64(50000000)
-// 	sendTx(2, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, testContext, t)
+	nonce := uint64(0)
 
-// 	intermediateTxs := testContext.GetIntermediateTransactions(t)
-// 	require.NotNil(t, intermediateTxs)
+	for call := 0; call < numberOfCallsFromParent; call++ {
+		sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, testContext, t)
+		nonce++
+	}
 
-// 	utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0,
-// 		big.NewInt(2*esdtToTransferFromParent- /* received */
-// 			esdtToTransferFromParent /* sent back via callback*/))
-// 	utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0,
-// 		big.NewInt((esdtBalance.Int64() - /* initial */
-// 			2*esdtToTransferFromParent + /* sent via async */
-// 			esdtToTransferFromParent /* received back via callback */)))
+	txBuilderRunQueue := txDataBuilder.NewBuilder()
+	txBuilderRunQueue.
+		Clear().
+		Func("forward_queued_calls")
 
-// 	res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
-// 	require.Equal(t, big.NewInt(2), res)
+	gasLimit = uint64(50000000)
+	sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, testContext, t)
 
-// 	res = vm.GetIntValueFromSC(nil, testContext.Accounts, forwarderSCAddress, "callback_count")
-// 	require.Equal(t, big.NewInt(2), res)
-// }
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	if numberOfBackTransfers == 1 {
+		utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0,
+			big.NewInt(int64(numberOfCallsFromParent)*esdtToTransferFromParent- /* received */
+				int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
+
+		utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0,
+			big.NewInt((esdtBalance.Int64() - /* initial */
+				int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
+				int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
+
+		res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
+		require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+
+		res = vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_async_calls_sent_from_child")
+		require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)), res)
+
+	} else {
+		utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0, big.NewInt(0))
+		utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0, esdtBalance)
+		res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
+		require.Equal(t, big.NewInt(int64(0)), res)
+		res = vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_async_calls_sent_from_child")
+		require.Equal(t, big.NewInt(0), res)
+	}
+
+	res := vm.GetIntValueFromSC(nil, testContext.Accounts, forwarderSCAddress, "callback_count")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+}
 
 func deployForwarderAndTestContract(
 	testContext *vm.VMTestContext,
@@ -434,114 +467,137 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 	require.Equal(t, big.NewInt(2), res)
 }
 
-// func TestAsyncCallTransferESDTAndExecute_CrossShard(t *testing.T) {
+func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
+	numberOfCallsFromParent := 3
+	numberOfBackTransfers := 1
+	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
+}
 
-// 	logger.SetLogLevel("*:TRACE")
-// 	// logger.SetLogLevel("vm/runtime:TRACE,vm/async:TRACE")
-// 	// logger.SetLogLevel("vm:TRACE")
+func TestAsyncCallTransferESDTAndExecute_CrossShard_Fail(t *testing.T) {
+	numberOfCallsFromParent := 3
+	numberOfBackTransfers := 2
+	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
+}
 
-// 	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
-// 	require.Nil(t, err)
-// 	defer vaultShard.Close()
+func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer vaultShard.Close()
 
-// 	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
-// 	require.Nil(t, err)
-// 	defer forwarderShard.Close()
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer forwarderShard.Close()
 
-// 	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
-// 	require.Nil(t, err)
-// 	defer testContextSender.Close()
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	require.Nil(t, err)
+	defer testContextSender.Close()
 
-// 	vaultOwner := []byte("12345678901234567890123456789010")
-// 	require.Equal(t, uint32(0), testContextSender.ShardCoordinator.ComputeId(vaultOwner))
+	vaultOwner := []byte("12345678901234567890123456789010")
+	require.Equal(t, uint32(0), testContextSender.ShardCoordinator.ComputeId(vaultOwner))
 
-// 	forwarderOwner := []byte("12345678901234567890123456789011")
-// 	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(forwarderOwner))
+	forwarderOwner := []byte("12345678901234567890123456789011")
+	require.Equal(t, uint32(1), testContextSender.ShardCoordinator.ComputeId(forwarderOwner))
 
-// 	senderAddr := []byte("12345678901234567890123456789032")
-// 	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(senderAddr))
+	senderAddr := []byte("12345678901234567890123456789032")
+	require.Equal(t, uint32(2), testContextSender.ShardCoordinator.ComputeId(senderAddr))
 
-// 	_, _ = vm.CreateAccount(testContextSender.Accounts, senderAddr, 0, egldBalance)
-// 	_, _ = vm.CreateAccount(vaultShard.Accounts, vaultOwner, 0, egldBalance)
-// 	_, _ = vm.CreateAccount(forwarderShard.Accounts, forwarderOwner, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContextSender.Accounts, senderAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(vaultShard.Accounts, vaultOwner, 0, egldBalance)
+	_, _ = vm.CreateAccount(forwarderShard.Accounts, forwarderOwner, 0, egldBalance)
 
-// 	gasPrice := uint64(10)
-// 	gasLimit := uint64(5000000)
-// 	vaultOwnerAccount, _ := vaultShard.Accounts.LoadAccount(vaultOwner)
+	gasPrice := uint64(10)
+	gasLimit := uint64(5000000)
+	vaultOwnerAccount, _ := vaultShard.Accounts.LoadAccount(vaultOwner)
 
-// 	pathToContract := "testdata/forwarderQueue/vault.wasm"
-// 	vaultSCAddress := utils.DoDeploySecond(t, vaultShard, pathToContract, vaultOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
+	pathToContract := "testdata/forwarderQueue/vault.wasm"
+	vaultSCAddress := utils.DoDeploySecond(t, vaultShard, pathToContract, vaultOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
 
-// 	forwarderOwnerAccount, _ := forwarderShard.Accounts.LoadAccount(forwarderOwner)
-// 	pathToContract = "testdata/forwarderQueue/forwarder-queue-promises.wasm"
-// 	forwarderSCAddress := utils.DoDeploySecond(t, forwarderShard, pathToContract, forwarderOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
+	forwarderOwnerAccount, _ := forwarderShard.Accounts.LoadAccount(forwarderOwner)
+	pathToContract = "testdata/forwarderQueue/forwarder-queue-promises.wasm"
+	forwarderSCAddress := utils.DoDeploySecond(t, forwarderShard, pathToContract, forwarderOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
 
-// 	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
 
-// 	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0, esdtBalance)
+	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0, esdtBalance)
 
-// 	utils.CleanAccumulatedIntermediateTransactions(t, vaultShard)
-// 	utils.CleanAccumulatedIntermediateTransactions(t, forwarderShard)
+	utils.CleanAccumulatedIntermediateTransactions(t, vaultShard)
+	utils.CleanAccumulatedIntermediateTransactions(t, forwarderShard)
 
-// 	vaultShard.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
-// 	forwarderShard.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	vaultShard.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	forwarderShard.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
-// 	esdtToTransferFromParent := int64(20)
+	esdtToTransferFromParent := int64(20)
+	esdtToTransferBackFromChild := int64(5)
 
-// 	txBuilderEnqueue := txDataBuilder.NewBuilder()
-// 	txBuilderEnqueue.
-// 		Clear().
-// 		Func("add_queued_call_transfer_esdt").
-// 		Bytes(vaultSCAddress).
-// 		Int64(50000).
-// 		Bytes([]byte("retrieve_funds_promises")).
-// 		Bytes(esdtToken).
-// 		Int64(esdtToTransferFromParent)
+	txBuilderEnqueue := txDataBuilder.NewBuilder()
+	txBuilderEnqueue.
+		Clear().
+		Func("add_queued_call_transfer_esdt").
+		Bytes(vaultSCAddress).
+		Int64(50000).
+		Bytes([]byte("retrieve_funds_promises")).
+		Bytes(esdtToken).
+		Int64(esdtToTransferFromParent).
+		Int(numberOfBackTransfers).
+		Int64(esdtToTransferBackFromChild)
 
-// 	sendTx(0, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, forwarderShard, t)
-// 	sendTx(1, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, forwarderShard, t)
+	nonce := uint64(0)
 
-// 	txBuilderRunQueue := txDataBuilder.NewBuilder()
-// 	txBuilderRunQueue.
-// 		Clear().
-// 		Func("forward_queued_calls")
+	for call := 0; call < numberOfCallsFromParent; call++ {
+		sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderEnqueue, forwarderShard, t)
+		nonce++
+	}
 
-// 	gasLimit = uint64(50000000)
-// 	sendTx(2, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, forwarderShard, t)
+	txBuilderRunQueue := txDataBuilder.NewBuilder()
+	txBuilderRunQueue.
+		Clear().
+		Func("forward_queued_calls")
 
-// 	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)
-// 	require.NotNil(t, intermediateTxs)
+	gasLimit = uint64(50000000)
+	sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, forwarderShard, t)
 
-// 	scrCall1 := intermediateTxs[0]
-// 	utils.ProcessSCRResult(t, vaultShard, scrCall1, vmcommon.Ok, nil)
-// 	scrCall2 := intermediateTxs[1]
-// 	utils.ProcessSCRResult(t, vaultShard, scrCall2, vmcommon.Ok, nil)
+	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
 
-// 	vaultIntermediateTxs := vaultShard.GetIntermediateTransactions(t)
-// 	require.NotNil(t, vaultIntermediateTxs)
+	for call := 0; call < numberOfCallsFromParent; call++ {
+		scrCall1 := intermediateTxs[call]
+		expectedReturnCode := vmcommon.Ok
+		if numberOfBackTransfers > 1 {
+			expectedReturnCode = vmcommon.UserError
+		}
+		utils.ProcessSCRResult(t, vaultShard, scrCall1, expectedReturnCode, nil)
+	}
 
-// 	scrCall1 = vaultIntermediateTxs[1]
-// 	utils.ProcessSCRResult(t, forwarderShard, scrCall1, vmcommon.Ok, nil)
-// 	scrCall2 = vaultIntermediateTxs[3]
-// 	utils.ProcessSCRResult(t, forwarderShard, scrCall2, vmcommon.Ok, nil)
+	if numberOfBackTransfers > 1 {
+		return
+	}
 
-// 	numberOfCalls := int64(2)
+	vaultIntermediateTxs := vaultShard.GetIntermediateTransactions(t)
+	require.NotNil(t, vaultIntermediateTxs)
 
-// 	utils.CheckESDTNFTBalance(t, vaultShard, vaultSCAddress, esdtToken, 0,
-// 		big.NewInt(numberOfCalls*esdtToTransferFromParent- /* received */
-// 			esdtToTransferFromParent /* sent back via callback*/))
+	for call := 0; call < numberOfCallsFromParent; call++ {
+		scrCall1 := vaultIntermediateTxs[1+2*call]
+		utils.ProcessSCRResult(t, forwarderShard, scrCall1, vmcommon.Ok, nil)
+	}
 
-// 	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0,
-// 		big.NewInt((esdtBalance.Int64() - /* initial */
-// 			numberOfCalls*esdtToTransferFromParent + /* sent via async */
-// 			esdtToTransferFromParent /* received back via callback */)))
+	utils.CheckESDTNFTBalance(t, vaultShard, vaultSCAddress, esdtToken, 0,
+		big.NewInt(int64(numberOfCallsFromParent)*esdtToTransferFromParent- /* received */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
 
-// 	res := vm.GetIntValueFromSC(nil, vaultShard.Accounts, vaultSCAddress, "num_called_retrieve_funds_promises")
-// 	require.Equal(t, big.NewInt(numberOfCalls), res)
+	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0,
+		big.NewInt((esdtBalance.Int64() - /* initial */
+			int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
 
-// 	res = vm.GetIntValueFromSC(nil, forwarderShard.Accounts, forwarderSCAddress, "callback_count")
-// 	require.Equal(t, big.NewInt(numberOfCalls), res)
-// }
+	res := vm.GetIntValueFromSC(nil, vaultShard.Accounts, vaultSCAddress, "num_called_retrieve_funds_promises")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+
+	res = vm.GetIntValueFromSC(nil, vaultShard.Accounts, vaultSCAddress, "num_async_calls_sent_from_child")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)), res)
+
+	res = vm.GetIntValueFromSC(nil, forwarderShard.Accounts, forwarderSCAddress, "callback_count")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+}
 
 func sendTx(nonce uint64, senderAddr []byte, secondSCAddress []byte, gasPrice uint64, gasLimit uint64, txBuilder *txDataBuilder.TxDataBuilder, testContext *vm.VMTestContext, t *testing.T) {
 	sendTxWithValue(nonce, 0, senderAddr, secondSCAddress, gasPrice, gasLimit, txBuilder, testContext, t)

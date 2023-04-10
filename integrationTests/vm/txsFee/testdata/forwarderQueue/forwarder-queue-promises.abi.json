@@ -1,16 +1,16 @@
 {
     "buildInfo": {
         "rustc": {
-            "version": "1.70.0-nightly",
-            "commitHash": "db0cbc48d4aaa300713a95d9b317a365a474490c",
-            "commitDate": "2023-03-26",
+            "version": "1.66.0-nightly",
+            "commitHash": "4b8f4319954ff2642690b9e5cbe4af352d095bf6",
+            "commitDate": "2022-10-19",
             "channel": "Nightly",
-            "short": "rustc 1.70.0-nightly (db0cbc48d 2023-03-26)"
+            "short": "rustc 1.66.0-nightly (4b8f43199 2022-10-19)"
         },
         "contractCrate": {
             "name": "forwarder-queue",
             "version": "0.0.0",
-            "gitVersion": "v0.39.6-139-gc8a1904ad"
+            "gitVersion": "v0.39.6-140-g20aa3e0f8"
         },
         "framework": {
             "name": "multiversx-sc",
