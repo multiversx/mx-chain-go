@@ -64,11 +64,7 @@ func RunDelegationStressTest(
 		return nil, err
 	}
 
-	trieStorage, err := storageunit.NewStorageUnit(
-		trieCache,
-		triePersister,
-		storageunit.DBConfigToNewDBArgs(dbConfig),
-	)
+	trieStorage, err := storageunit.NewStorageUnit(trieCache, triePersister)
 	if err != nil {
 		return nil, err
 	}

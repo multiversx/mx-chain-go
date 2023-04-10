@@ -98,8 +98,8 @@ func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
 func (sm *StorerMock) ClearCache() {
 }
 
-// ClearStorage -
-func (sm *StorerMock) ClearStorage() error {
+// Clear -
+func (sm *StorerMock) Clear() error {
 	return nil
 }
 

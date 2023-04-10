@@ -34,7 +34,7 @@ func CreateMemUnit() storage.Storer {
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 
-	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB(), storageunit.MemDBNewDBArgsType)
+	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	return unit
 }
 
@@ -64,7 +64,7 @@ func CreateStorer(parentDir string) storage.Storer {
 		return nil
 	}
 
-	trieStorage, err := storageunit.NewStorageUnit(trieCache, triePersister, storageunit.DBConfigToNewDBArgs(dbConfig))
+	trieStorage, err := storageunit.NewStorageUnit(trieCache, triePersister)
 	if err != nil {
 		return nil
 	}

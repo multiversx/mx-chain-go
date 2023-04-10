@@ -27,11 +27,7 @@ func generateTestCache() storage.Cacher {
 }
 
 func generateTestUnit() storage.Storer {
-	storer, _ := storageunit.NewStorageUnit(
-		generateTestCache(),
-		database.NewMemDB(),
-		storageunit.MemDBNewDBArgsType,
-	)
+	storer, _ := storageunit.NewStorageUnit(generateTestCache(), database.NewMemDB())
 
 	return storer
 }

@@ -17,7 +17,7 @@ func CreateMemUnit() storage.Storer {
 		return nil
 	}
 
-	unit, err := storageunit.NewStorageUnit(cache, database.NewMemDB(), storageunit.MemDBNewDBArgsType)
+	unit, err := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	if err != nil {
 		return nil
 	}

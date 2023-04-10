@@ -52,11 +52,7 @@ func (bdp *bootstrapDataProvider) LoadForPath(
 
 	newDBConfig := persisterFactory.DBConfigWithoutPath()
 	newDBConfig.FilePath = path
-	storer, err := storageunit.NewStorageUnit(
-		cacher,
-		persister,
-		storageunit.DBConfigToNewDBArgs(newDBConfig),
-	)
+	storer, err := storageunit.NewStorageUnit(cacher, persister)
 	if err != nil {
 		return nil, nil, err
 	}

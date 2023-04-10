@@ -85,8 +85,8 @@ func (sm *StorerMock) Remove(key []byte) error {
 func (sm *StorerMock) ClearCache() {
 }
 
-// ClearStorage -
-func (sm *StorerMock) ClearStorage() error {
+// Clear -
+func (sm *StorerMock) Clear() error {
 	return nil
 }
 

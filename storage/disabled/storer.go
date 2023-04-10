@@ -51,8 +51,8 @@ func (s *storer) Remove(_ []byte) error {
 func (s *storer) ClearCache() {
 }
 
-// ClearStorage returns nil
-func (s *storer) ClearStorage() error {
+// Clear returns nil
+func (s *storer) Clear() error {
 	return nil
 }
 

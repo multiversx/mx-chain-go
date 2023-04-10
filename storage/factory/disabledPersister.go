@@ -27,6 +27,11 @@ func (dp *disabledPersister) Close() error {
 	return fmt.Errorf("disabledPersister.Close")
 }
 
+// Clear returns error
+func (dp *disabledPersister) Clear() error {
+	return fmt.Errorf("disabledPersister.Clear")
+}
+
 // Remove returns error
 func (dp *disabledPersister) Remove(_ []byte) error {
 	return fmt.Errorf("disabledPersister.Remove")

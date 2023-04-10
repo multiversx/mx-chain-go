@@ -31,6 +31,11 @@ func (p *persister) Close() error {
 	return nil
 }
 
+// Clear returns nil
+func (p *persister) Clear() error {
+	return nil
+}
+
 // Remove returns nil
 func (p *persister) Remove(_ []byte) error {
 	return nil

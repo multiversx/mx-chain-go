@@ -195,8 +195,8 @@ func (sm *StorerMock) ClearAll() {
 func (sm *StorerMock) ClearCache() {
 }
 
-// ClearStorage -
-func (sm *StorerMock) ClearStorage() error {
+// Clear -
+func (sm *StorerMock) Clear() error {
 	return nil
 }
 

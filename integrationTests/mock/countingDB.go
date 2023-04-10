@@ -39,6 +39,11 @@ func (cdb *countingDB) Close() error {
 	return cdb.db.Close()
 }
 
+// Clear will clear the db
+func (cdb *countingDB) Clear() error {
+	return cdb.db.Clear()
+}
+
 // Remove will remove the key-value pair for the given key, if found in the db
 func (cdb *countingDB) Remove(key []byte) error {
 	return cdb.db.Remove(key)

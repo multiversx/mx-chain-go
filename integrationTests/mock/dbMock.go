@@ -24,6 +24,11 @@ func (MockDB) Close() error {
 	return nil
 }
 
+// Clear -
+func (MockDB) Clear() error {
+	return nil
+}
+
 // Remove -
 func (MockDB) Remove(_ []byte) error {
 	return nil

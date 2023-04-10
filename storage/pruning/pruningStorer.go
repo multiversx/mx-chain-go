@@ -656,8 +656,8 @@ func (ps *PruningStorer) ClearCache() {
 	ps.cacher.Clear()
 }
 
-// ClearStorage will return an error since the entire deletion of a split-by-epoch persister is not possible at the moment
-func (ps *PruningStorer) ClearStorage() error {
+// Clear will return an error since the entire deletion of a split-by-epoch persister is not possible at the moment
+func (ps *PruningStorer) Clear() error {
 	// this isn't supported at the moment since PruningStorer only holds the latest epochs open. A functional implementation
 	// would remove the entire database (remove all `Epoch_{[0-9]+}/Shard_{[0-9]+}/Transactions` directories)
 	return storage.ErrClearStorageNotSupportedForPruningStorer

@@ -88,11 +88,7 @@ func initStore() *dataRetriever.ChainStorer {
 func generateStorageUnit() storage.Storer {
 	memDB := database.NewMemDB()
 
-	storer, _ := storageunit.NewStorageUnit(
-		generateTestCache(),
-		memDB,
-		storageunit.MemDBNewDBArgsType,
-	)
+	storer, _ := storageunit.NewStorageUnit(generateTestCache(), memDB)
 
 	return storer
 }

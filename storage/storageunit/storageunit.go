@@ -2,7 +2,6 @@ package storageunit
 
 import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-storage-go/storageCacherAdapter"
 	"github.com/multiversx/mx-chain-storage-go/storageUnit"
@@ -30,13 +29,10 @@ type CacheType = storageUnit.CacheType
 // DBType represents the type of the supported databases
 type DBType = storageUnit.DBType
 
-// NewDBArgsType represents the type of the arguments needed to create a new DB
-type NewDBArgsType = storageUnit.ArgDB
-
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
-func NewStorageUnit(c storage.Cacher, p storage.Persister, newDBArgs NewDBArgsType) (*Unit, error) {
-	return storageUnit.NewStorageUnit(c, p, newDBArgs)
+func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
+	return storageUnit.NewStorageUnit(c, p)
 }
 
 // NewCache creates a new cache from a cache config
@@ -67,23 +63,4 @@ func NewStorageCacherAdapter(
 	marshaller marshal.Marshalizer,
 ) (storage.Cacher, error) {
 	return storageCacherAdapter.NewStorageCacherAdapter(cacher, db, storedDataFactory, marshaller)
-}
-
-// MemDBNewDBArgsType is the arguments object needed to create a new DB that uses a memory db
-var MemDBNewDBArgsType = NewDBArgsType{
-	DBType:            MemoryDB,
-	BatchDelaySeconds: 10,
-	MaxBatchSize:      10,
-	MaxOpenFiles:      10,
-}
-
-// DBConfigToNewDBArgs converts a config.DBConfig object to a NewDBArgsType object
-func DBConfigToNewDBArgs(dbConfig config.DBConfig) NewDBArgsType {
-	return NewDBArgsType{
-		DBType:            DBType(dbConfig.Type),
-		Path:              dbConfig.FilePath,
-		BatchDelaySeconds: dbConfig.BatchDelaySeconds,
-		MaxBatchSize:      dbConfig.MaxBatchSize,
-		MaxOpenFiles:      dbConfig.MaxOpenFiles,
-	}
 }

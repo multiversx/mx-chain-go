@@ -62,7 +62,10 @@ type Persister interface {
 	Destroy() error
 	// DestroyClosed removes the already closed persistence medium stored data
 	DestroyClosed() error
+	// RangeKeys will call the provided function for all the keys
 	RangeKeys(handler func(key []byte, val []byte) bool)
+	// Clear will clear the data inside the persister
+	Clear() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -94,7 +97,7 @@ type Storer interface {
 	RemoveFromCurrentEpoch(key []byte) error
 	Remove(key []byte) error
 	ClearCache()
-	ClearStorage() error
+	Clear() error
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
