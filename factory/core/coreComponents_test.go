@@ -248,7 +248,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidRoundConfigShouldErr(t
 	require.NotNil(t, err)
 }
 
-func TestCoreComponentsFactory_CreateCoreComponentsInvalidGasScheduleShouldErr(t *testing.T) {
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidEpochConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := componentsMock.GetCoreArgs()
