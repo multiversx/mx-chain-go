@@ -11,10 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trieValuesCache"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
+
+const numEntriesForTrieValuesCacher = 1000
 
 // Account is the struct used in serialization/deserialization
 type userAccount struct {
@@ -46,7 +49,12 @@ func NewUserAccount(
 		return nil, err
 	}
 
-	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	tvc, err := trieValuesCache.NewTrieValuesCache(numEntriesForTrieValuesCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler, tvc)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +90,12 @@ func NewUserAccountFromBytes(
 		return nil, err
 	}
 
-	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	tvc, err := trieValuesCache.NewTrieValuesCache(numEntriesForTrieValuesCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler, tvc)
 	if err != nil {
 		return nil, err
 	}
