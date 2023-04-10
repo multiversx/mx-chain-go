@@ -81,9 +81,8 @@ func EmptyErrChanReturningHadContained(errChan chan error) bool {
 
 // DirtyData -
 type DirtyData struct {
-	Value      []byte
-	OldVersion core.TrieNodeVersion
-	NewVersion core.TrieNodeVersion
+	Value   []byte
+	Version core.TrieNodeVersion
 }
 
 // DirtyData -
@@ -92,9 +91,8 @@ func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
 
 	for key, value := range tdaw.dirtyData {
 		dd[key] = DirtyData{
-			Value:      value.value,
-			OldVersion: value.oldVersion.version,
-			NewVersion: value.newVersion,
+			Value:   value.value,
+			Version: value.version,
 		}
 	}
 

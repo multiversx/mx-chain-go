@@ -1122,7 +1122,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		expectedKey := []byte("key")
-		deleteCalled := false
+		deleteCalled := 0
 		retrievedVal := []byte("value")
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -1134,7 +1134,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, expectedKey, key)
-				deleteCalled = true
+				deleteCalled++
 				return nil
 			},
 		}
@@ -1165,7 +1165,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		_, err := tdt.SaveDirtyData(trie)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(tdt.DirtyData()))
-		assert.True(t, deleteCalled)
+		assert.Equal(t, 1, deleteCalled)
 		assert.True(t, cleanCalled)
 	})
 }
@@ -1232,17 +1232,17 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			{
 				Key:     []byte("key1"),
 				Value:   []byte("value1"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key2"),
 				Value:   []byte("value2"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key3"),
 				Value:   []byte("value3"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 		}
 		tr := &trieMock.TrieStub{
@@ -1258,6 +1258,19 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsAutoBalanceDataTriesEnabledField: true,
 		}
+		tvc := &stateTest.TrieValuesCacherStub{
+			PutCalled: func(key []byte, value core.TrieData) {
+				for i := range leavesToBeMigrated {
+					if bytes.Equal(key, leavesToBeMigrated[i].Key) {
+						assert.Equal(t, leavesToBeMigrated[i].Value, value.Value)
+						assert.Equal(t, leavesToBeMigrated[i].Version, value.Version)
+						return
+					}
+				}
+
+				assert.Fail(t, "key not found")
+			},
+		}
 
 		tdt, _ := state.NewTrackableDataTrie(
 			[]byte("identifier"),
@@ -1265,7 +1278,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			&hashingMocks.HasherMock{},
 			&marshallerMock.MarshalizerMock{},
 			enableEpchs,
-			&stateTest.TrieValuesCacherStub{},
+			tvc,
 		)
 		err := tdt.MigrateDataTrieLeaves(core.NotSpecified, 100, dtm)
 		assert.Nil(t, err)
@@ -1275,8 +1288,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		for i := range leavesToBeMigrated {
 			d := dirtyData[string(leavesToBeMigrated[i].Key)]
 			assert.Equal(t, leavesToBeMigrated[i].Value, d.Value)
-			assert.Equal(t, leavesToBeMigrated[i].Version, d.OldVersion)
-			assert.Equal(t, core.TrieNodeVersion(100), d.NewVersion)
+			assert.Equal(t, core.TrieNodeVersion(100), d.Version)
 		}
 	})
 }

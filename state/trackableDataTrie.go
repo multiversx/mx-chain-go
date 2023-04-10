@@ -15,15 +15,9 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-type optionalVersion struct {
-	version      core.TrieNodeVersion
-	isValueKnown bool
-}
-
 type dirtyData struct {
-	value      []byte
-	oldVersion optionalVersion
-	newVersion core.TrieNodeVersion
+	value   []byte
+	version core.TrieNodeVersion
 }
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
@@ -116,11 +110,8 @@ func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	}
 
 	dataEntry := dirtyData{
-		value: value,
-		oldVersion: optionalVersion{
-			isValueKnown: false,
-		},
-		newVersion: core.GetVersionForNewData(tdaw.enableEpochsHandler),
+		value:   value,
+		version: core.GetVersionForNewData(tdaw.enableEpochsHandler),
 	}
 
 	tdaw.dirtyData[string(key)] = dataEntry
@@ -148,19 +139,42 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVer
 
 	dataToBeMigrated := trieMigrator.GetLeavesToBeMigrated()
 	for _, leafData := range dataToBeMigrated {
-		dataEntry := dirtyData{
-			value: leafData.Value,
-			oldVersion: optionalVersion{
-				version:      leafData.Version,
-				isValueKnown: true,
-			},
-			newVersion: newVersion,
+		newDataEntry := dirtyData{
+			value:   leafData.Value,
+			version: newVersion,
 		}
 
-		tdaw.dirtyData[string(leafData.Key)] = dataEntry
+		originalKey, err := tdaw.getOriginalKeyFromTrieData(leafData)
+		if err != nil {
+			return err
+		}
+
+		tdaw.dirtyData[string(originalKey)] = newDataEntry
+
+		oldTrieVal := core.TrieData{
+			Key:     leafData.Key,
+			Value:   leafData.Value,
+			Version: leafData.Version,
+		}
+
+		tdaw.trieValuesCache.Put(originalKey, oldTrieVal)
 	}
 
 	return nil
+}
+
+func (tdaw *trackableDataTrie) getOriginalKeyFromTrieData(trieData core.TrieData) ([]byte, error) {
+	if trieData.Version == core.AutoBalanceEnabled {
+		valWithMetadata := &dataTrieValue.TrieLeafData{}
+		err := tdaw.marshaller.Unmarshal(valWithMetadata, trieData.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		return valWithMetadata.Key, nil
+	}
+
+	return trieData.Key, nil
 }
 
 func (tdaw *trackableDataTrie) getKeyForVersion(key []byte, version core.TrieNodeVersion) []byte {
@@ -236,13 +250,13 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 
 	index := 0
 	for key, dataEntry := range tdaw.dirtyData {
-		oldVal, err := tdaw.getOldValue([]byte(key), dataEntry)
+		oldVal, err := tdaw.getOldValue([]byte(key))
 		if err != nil {
 			return nil, err
 		}
 		oldValues[index] = oldVal
 
-		err = tdaw.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
+		err = tdaw.deleteOldEntryIfMigrated([]byte(key), oldVal.Version, dataEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -260,16 +274,7 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) getOldValue(key []byte, dataEntry dirtyData) (core.TrieData, error) {
-	// TODO refactor to use the trieValuesCache instead of isValueKnown flag
-	if dataEntry.oldVersion.isValueKnown {
-		return core.TrieData{
-			Key:     key,
-			Value:   dataEntry.value,
-			Version: dataEntry.oldVersion.version,
-		}, nil
-	}
-
+func (tdaw *trackableDataTrie) getOldValue(key []byte) (core.TrieData, error) {
 	entry, ok := tdaw.trieValuesCache.Get(key)
 	if ok {
 		return entry, nil
@@ -358,12 +363,13 @@ func (tdaw *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byt
 	return trimmedValue, nil
 }
 
-func (tdaw *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
+func (tdaw *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, oldVersion core.TrieNodeVersion, newData dirtyData) error {
 	if !tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		return nil
 	}
 
-	if oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled {
+	isMigration := oldVersion == core.NotSpecified && newData.version == core.AutoBalanceEnabled
+	if isMigration && len(newData.value) != 0 {
 		return tdaw.tr.Delete(key)
 	}
 
@@ -375,7 +381,7 @@ func (tdaw *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVa
 		return tdaw.deleteFromTrie(oldVal, key, dtr)
 	}
 
-	version := dataEntry.newVersion
+	version := dataEntry.version
 	newKey := tdaw.getKeyForVersion(key, version)
 	value, err := tdaw.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
