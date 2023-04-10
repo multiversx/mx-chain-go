@@ -225,12 +225,12 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 
 	err = inTx.verifySig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	err = inTx.VerifyGuardianSig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
@@ -261,7 +261,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 	userTx, err := createTx(inTx.signMarshalizer, userTxArgs[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
@@ -270,17 +270,17 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 	err = inTx.integrity(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	err = inTx.verifySig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	err = inTx.VerifyGuardianSig(userTx)
 	if err != nil {
-		return err
+		return fmt.Errorf("inner transaction: %w", err)
 	}
 
 	if len(userTx.Data) == 0 {
@@ -397,7 +397,12 @@ func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transactio
 		return err
 	}
 
-	return inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+	errVerifySig := inTx.singleSigner.Verify(guardianPubKey, txMessageForSigVerification, tx.GuardianSignature)
+	if errVerifySig != nil {
+		return fmt.Errorf("%w when checking the guardian's signature", errVerifySig)
+	}
+
+	return nil
 }
 
 func verifyConsistencyForNotGuardedTx(tx *transaction.Transaction) error {
