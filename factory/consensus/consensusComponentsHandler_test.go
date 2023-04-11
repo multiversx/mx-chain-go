@@ -3,7 +3,7 @@ package consensus_test
 import (
 	"testing"
 
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -19,7 +19,7 @@ func TestNewManagedConsensusComponents(t *testing.T) {
 		t.Parallel()
 
 		managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(nil)
-		require.Equal(t, errErd.ErrNilConsensusComponentsFactory, err)
+		require.Equal(t, errorsMx.ErrNilConsensusComponentsFactory, err)
 		require.Nil(t, managedConsensusComponents)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestManagedConsensusComponents_ConsensusGroupSize(t *testing.T) {
 	require.NotNil(t, managedConsensusComponents)
 
 	size, err := managedConsensusComponents.ConsensusGroupSize()
-	require.Equal(t, errErd.ErrNilConsensusComponentsHolder, err)
+	require.Equal(t, errorsMx.ErrNilConsensusComponentsHolder, err)
 	require.Zero(t, size)
 
 	err = managedConsensusComponents.Create()
@@ -99,7 +99,7 @@ func TestManagedConsensusComponents_CheckSubcomponents(t *testing.T) {
 	managedConsensusComponents, _ := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
 	require.NotNil(t, managedConsensusComponents)
 
-	require.Equal(t, errErd.ErrNilConsensusComponentsHolder, managedConsensusComponents.CheckSubcomponents())
+	require.Equal(t, errorsMx.ErrNilConsensusComponentsHolder, managedConsensusComponents.CheckSubcomponents())
 
 	err := managedConsensusComponents.Create()
 	require.NoError(t, err)
