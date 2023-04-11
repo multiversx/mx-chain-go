@@ -3,23 +3,23 @@ package factory
 import (
 	"time"
 
-	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
+	wsDriverFactory "github.com/multiversx/mx-chain-core-go/webSockets/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
-// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
-type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
+// WrappedOutportDriverWebSocketsSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
+type WrappedOutportDriverWebSocketsSenderFactoryArgs struct {
 	Enabled bool
-	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
+	wsDriverFactory.ArgsWebSocketsDriverFactory
 }
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval                  time.Duration
-	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
-	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
+	RetrialInterval                   time.Duration
+	ElasticIndexerFactoryArgs         indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs          *EventNotifierFactoryArgs
+	WebSocketsSenderDriverFactoryArgs WrappedOutportDriverWebSocketsSenderFactoryArgs
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -53,7 +53,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	return createAndSubscribeWebSocketDriver(outport, args.WebSocketsSenderDriverFactoryArgs)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
@@ -98,13 +98,13 @@ func checkArguments(args *OutportFactoryArgs) error {
 
 func createAndSubscribeWebSocketDriver(
 	outport outport.OutportHandler,
-	args WrappedOutportDriverWebSocketSenderFactoryArgs,
+	args WrappedOutportDriverWebSocketsSenderFactoryArgs,
 ) error {
 	if !args.Enabled {
 		return nil
 	}
 
-	wsFactory, err := wsDriverFactory.NewOutportDriverWebSocketSenderFactory(args.OutportDriverWebSocketSenderFactoryArgs)
+	wsFactory, err := wsDriverFactory.NewWebSocketsDriverFactory(args.ArgsWebSocketsDriverFactory)
 	if err != nil {
 		return err
 	}

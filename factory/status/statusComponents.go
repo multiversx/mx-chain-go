@@ -9,8 +9,8 @@ import (
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
-	"github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
-	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
+	"github.com/multiversx/mx-chain-core-go/webSockets/data"
+	wsDriverFactory "github.com/multiversx/mx-chain-core-go/webSockets/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -205,7 +205,7 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
-	webSocketSenderDriverFactoryArgs, err := scf.makeWebSocketDriverArgs()
+	webSocketsSenderDriverFactoryArgs, err := scf.makeWebSocketsDriverArgs()
 	if err != nil {
 		return nil, err
 	}
@@ -219,9 +219,9 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
-		WebSocketSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketSenderFactoryArgs{
-			Enabled:                                 scf.externalConfig.WebSocketConnector.Enabled,
-			OutportDriverWebSocketSenderFactoryArgs: webSocketSenderDriverFactoryArgs,
+		WebSocketsSenderDriverFactoryArgs: outportDriverFactory.WrappedOutportDriverWebSocketsSenderFactoryArgs{
+			Enabled:                     scf.externalConfig.WebSocketsConnector.Enabled,
+			ArgsWebSocketsDriverFactory: webSocketsSenderDriverFactoryArgs,
 		},
 	}
 
@@ -266,24 +266,25 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFacto
 	}, nil
 }
 
-func (scf *statusComponentsFactory) makeWebSocketDriverArgs() (wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs, error) {
-	if !scf.externalConfig.WebSocketConnector.Enabled {
-		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, nil
+func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.ArgsWebSocketsDriverFactory, error) {
+	if !scf.externalConfig.WebSocketsConnector.Enabled {
+		return wsDriverFactory.ArgsWebSocketsDriverFactory{}, nil
 	}
 
-	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketConnector.MarshallerType)
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.WebSocketsConnector.MarshallerType)
 	if err != nil {
-		return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{}, err
+		return wsDriverFactory.ArgsWebSocketsDriverFactory{}, err
 	}
 
-	return wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs{
+	return wsDriverFactory.ArgsWebSocketsDriverFactory{
 		Marshaller: marshaller,
 		WebSocketConfig: data.WebSocketConfig{
-			URL:             scf.externalConfig.WebSocketConnector.URL,
-			WithAcknowledge: scf.externalConfig.WebSocketConnector.WithAcknowledge,
+			URL:             scf.externalConfig.WebSocketsConnector.URL,
+			WithAcknowledge: scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+			IsServer:        scf.externalConfig.WebSocketsConnector.IsServer,
 		},
 		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
 		Log:                      log,
-		WithAcknowledge:          scf.externalConfig.WebSocketConnector.WithAcknowledge,
+		WithAcknowledge:          scf.externalConfig.WebSocketsConnector.WithAcknowledge,
 	}, nil
 }
