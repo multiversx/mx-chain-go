@@ -316,6 +316,7 @@ func TestP2pAntiflood_SetConsensusSizeNotifier(t *testing.T) {
 
 	wasCalled := false
 	expectedSize := 878264
+	testShardId := uint32(5)
 	var actualSize int
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{},
@@ -329,7 +330,7 @@ func TestP2pAntiflood_SetConsensusSizeNotifier(t *testing.T) {
 	)
 
 	chainParamsSubscriber := chainparametersnotifier.NewChainParametersNotifier()
-	afm.SetConsensusSizeNotifier(chainParamsSubscriber, 5)
+	afm.SetConsensusSizeNotifier(chainParamsSubscriber, testShardId)
 
 	chainParamsSubscriber.UpdateCurrentChainParameters(config.ChainParametersByEpochConfig{
 		ShardConsensusGroupSize: uint32(expectedSize),
@@ -480,7 +481,15 @@ func TestP2pAntiflood_IsOriginatorEligibleForTopic(t *testing.T) {
 func TestP2pAntiflood_ConcurrentOperations(t *testing.T) {
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{},
-		&mock.TopicAntiFloodStub{},
+		&mock.TopicAntiFloodStub{
+			IncreaseLoadCalled: func(pid core.PeerID, topic string, numMessages uint32) error {
+				if topic == "should error" {
+					return errors.New("error")
+				}
+
+				return nil
+			},
+		},
 		&mock.FloodPreventerStub{},
 	)
 
@@ -516,10 +525,12 @@ func TestP2pAntiflood_ConcurrentOperations(t *testing.T) {
 				_ = afm.Debugger()
 			case 12:
 				_ = afm.SetPeerValidatorMapper(&mock.PeerShardResolverStub{})
+			case 13:
+				_ = afm.CanProcessMessagesOnTopic("peer", "should error", 37, 39, []byte("sequence"))
 			}
 
 			wg.Done()
-		}(i % 13)
+		}(i % 14)
 	}
 
 	wg.Wait()

@@ -278,8 +278,8 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 
 // Close will call the close function on all sub components
 func (af *p2pAntiflood) Close() error {
-	af.mutDebugger.Lock()
-	defer af.mutDebugger.Unlock()
+	af.mutDebugger.RLock()
+	defer af.mutDebugger.RUnlock()
 
 	return af.debugger.Close()
 }
