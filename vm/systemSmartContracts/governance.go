@@ -506,12 +506,8 @@ func (g *governanceContract) addUserVote(
 	totalStake *big.Int,
 	direct bool,
 ) error {
-	nonce, err := uint64FromBytes(nonceAsBytes)
-	if err != nil {
-		return err
-	}
-
-	err = g.updateUserVoteList(address, nonce.Uint64(), direct)
+	nonce := big.NewInt(0).SetBytes(nonceAsBytes)
+	err := g.updateUserVoteList(address, nonce.Uint64(), direct)
 	if err != nil {
 		return err
 	}
@@ -596,6 +592,10 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	if generalProposal.Closed {
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.Ok
+	}
+	if !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+		g.eei.AddReturnMessage("only the issuer can close the proposal")
+		return vmcommon.UserError
 	}
 
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
@@ -1088,14 +1088,8 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 
 // startEndEpochFromArguments converts the nonce string arguments to uint64
 func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteEpoch, err := uint64FromBytes(argStart)
-	if err != nil {
-		return 0, 0, err
-	}
-	endVoteEpoch, err := uint64FromBytes(argEnd)
-	if err != nil {
-		return 0, 0, err
-	}
+	startVoteEpoch := big.NewInt(0).SetBytes(argStart)
+	endVoteEpoch := big.NewInt(0).SetBytes(argEnd)
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
 	if currentEpoch > startVoteEpoch.Uint64() || startVoteEpoch.Uint64() > endVoteEpoch.Uint64() {
@@ -1106,19 +1100,6 @@ func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd 
 	}
 
 	return startVoteEpoch.Uint64(), endVoteEpoch.Uint64(), nil
-}
-
-// uint64FromBytes converts a byte array to a big.Int, returns error for invalid values
-func uint64FromBytes(nonce []byte) (*big.Int, error) {
-	voteNonce, okConvert := big.NewInt(0).SetString(string(nonce), conversionBase)
-	if !okConvert {
-		return nil, vm.ErrInvalidStartEndVoteEpoch
-	}
-	if !voteNonce.IsUint64() {
-		return nil, vm.ErrInvalidStartEndVoteEpoch
-	}
-
-	return voteNonce, nil
 }
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig

@@ -610,7 +610,7 @@ func TestGovernanceContract_ProposalInvalidVoteNonce(t *testing.T) {
 	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		[]byte("arg2"),
+		[]byte("5"),
 		[]byte("arg3"),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
@@ -628,8 +628,8 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		[]byte("5"),
-		[]byte("10"),
+		[]byte("50"),
+		[]byte("55"),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
 	retCode := gsc.Execute(callInput)
@@ -697,8 +697,7 @@ func TestGovernanceContract_VoteInvalidProposal(t *testing.T) {
 		return 16
 	}
 
-	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -727,8 +726,7 @@ func TestGovernanceContract_VoteInvalidVote(t *testing.T) {
 		return 14
 	}
 
-	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -764,8 +762,7 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 		[]byte("yes"),
 	}
 
-	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -802,8 +799,7 @@ func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
 		[]byte("1"),
 		[]byte("yes"),
 	}
-	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(nonce.Bytes(), proposalIdentifier)
+	gsc.eei.SetStorage(voteArgs[0], proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -853,8 +849,8 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 		{1},
 		big.NewInt(10000).Bytes(),
 	}
-	nonce, _ := uint64FromBytes(voteArgs[0])
-	gsc.eei.SetStorage(append([]byte(noncePrefix), nonce.Bytes()...), proposalIdentifier)
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
 	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
 
 	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -915,10 +911,11 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes:     big.NewInt(10),
-					No:      big.NewInt(10),
-					Veto:    big.NewInt(10),
-					Abstain: big.NewInt(10),
+					Yes:           big.NewInt(10),
+					No:            big.NewInt(10),
+					Veto:          big.NewInt(10),
+					Abstain:       big.NewInt(10),
+					IssuerAddress: callerAddress,
 				})
 				return proposalBytes
 			}
@@ -1115,6 +1112,52 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
+					Yes:           big.NewInt(10),
+					No:            big.NewInt(10),
+					Veto:          big.NewInt(10),
+					EndVoteEpoch:  10,
+					IssuerAddress: callerAddress,
+				})
+				return proposalBytes
+			}
+
+			return nil
+		},
+		BlockChainHookCalled: func() vm.BlockchainHook {
+			return &mock.BlockChainHookStub{
+				CurrentEpochCalled: func() uint32 {
+					return 1
+				},
+			}
+		},
+	}
+
+	gsc, _ := NewGovernanceContract(args)
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+	}
+	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	retCode := gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, retMessage, errSubstr)
+}
+
+func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
+	t.Parallel()
+
+	retMessage := ""
+	errSubstr := "only the issuer can close the proposal"
+	callerAddress := []byte("address")
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+	args := createMockGovernanceArgs()
+	args.Eei = &mock.SystemEIStub{
+		AddReturnMessageCalled: func(msg string) {
+			retMessage = msg
+		},
+		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
+				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:          big.NewInt(10),
 					No:           big.NewInt(10),
 					Veto:         big.NewInt(10),
@@ -1160,9 +1203,10 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes:  big.NewInt(10),
-					No:   big.NewInt(10),
-					Veto: big.NewInt(10),
+					Yes:           big.NewInt(10),
+					No:            big.NewInt(10),
+					Veto:          big.NewInt(10),
+					IssuerAddress: callerAddress,
 				})
 				return proposalBytes
 			}
