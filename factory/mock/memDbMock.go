@@ -81,6 +81,16 @@ func (s *MemDbMock) Remove(key []byte) error {
 	return nil
 }
 
+// Clear will clear the internal db
+func (s *MemDbMock) Clear() error {
+	s.mutx.Lock()
+	defer s.mutx.Unlock()
+
+	s.db = make(map[string][]byte)
+
+	return nil
+}
+
 // Destroy removes the storage medium stored data
 func (s *MemDbMock) Destroy() error {
 	s.mutx.Lock()

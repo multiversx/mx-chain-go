@@ -95,6 +95,16 @@ func (s *MemDbMock) Destroy() error {
 	return nil
 }
 
+// Clear will clear all the data from the db
+func (s *MemDbMock) Clear() error {
+	s.mutx.Lock()
+	defer s.mutx.Unlock()
+
+	s.db = make(map[string][]byte)
+
+	return nil
+}
+
 // DestroyClosed removes the already closed storage medium stored data
 func (s *MemDbMock) DestroyClosed() error {
 	return nil
