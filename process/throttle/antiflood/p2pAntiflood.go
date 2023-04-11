@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
@@ -27,6 +28,8 @@ type p2pAntiflood struct {
 	peerValidatorMapper process.PeerValidatorMapper
 	mapTopicsFromAll    map[string]struct{}
 	mutTopicCheck       sync.RWMutex
+	shardID             uint32
+	mutShardID          sync.RWMutex
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
@@ -55,6 +58,31 @@ func NewP2PAntiflood(
 		mapTopicsFromAll:    make(map[string]struct{}),
 		peerValidatorMapper: &disabled.PeerValidatorMapper{},
 	}, nil
+}
+
+// SetConsensusSizeNotifier sets the consensus size notifier
+func (af *p2pAntiflood) SetConsensusSizeNotifier(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32) {
+	af.mutShardID.Lock()
+	af.shardID = shardID
+	af.mutShardID.Unlock()
+
+	chainParametersNotifier.RegisterNotifyHandler(af)
+}
+
+// ChainParametersChanged will be called when new chain parameters are confirmed on the network
+func (af *p2pAntiflood) ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig) {
+	af.mutShardID.RLock()
+	shardID := af.shardID
+	af.mutShardID.RUnlock()
+
+	size := chainParameters.ShardConsensusGroupSize
+	if shardID == core.MetachainShardId {
+		size = chainParameters.MetachainConsensusGroupSize
+	}
+
+	for _, fp := range af.floodPreventers {
+		fp.ApplyConsensusSize(int(size))
+	}
 }
 
 // CanProcessMessage signals if a p2p message can be processed or not
@@ -210,13 +238,6 @@ func (af *p2pAntiflood) ResetForTopic(topic string) {
 	af.topicPreventer.ResetForTopic(topic)
 }
 
-// ApplyConsensusSize applies the consensus size on all contained flood preventers
-func (af *p2pAntiflood) ApplyConsensusSize(size int) {
-	for _, fp := range af.floodPreventers {
-		fp.ApplyConsensusSize(size)
-	}
-}
-
 // SetDebugger sets the antiflood debugger
 func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 	if check.IfNil(debugger) {
@@ -257,6 +278,9 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 
 // Close will call the close function on all sub components
 func (af *p2pAntiflood) Close() error {
+	af.mutDebugger.RLock()
+	defer af.mutDebugger.RUnlock()
+
 	return af.debugger.Close()
 }
 

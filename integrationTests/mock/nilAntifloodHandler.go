@@ -13,6 +13,10 @@ import (
 type NilAntifloodHandler struct {
 }
 
+// SetConsensusSizeNotifier -
+func (nah *NilAntifloodHandler) SetConsensusSizeNotifier(_ process.ChainParametersSubscriber, _ uint32) {
+}
+
 // ResetForTopic won't do anything
 func (nah *NilAntifloodHandler) ResetForTopic(_ string) {
 }

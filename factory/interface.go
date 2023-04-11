@@ -66,7 +66,7 @@ type P2PAntifloodHandler interface {
 	SetDebugger(debugger process.AntifloodDebugger) error
 	SetPeerValidatorMapper(validatorMapper process.PeerValidatorMapper) error
 	SetTopicsForAll(topics ...string)
-	ApplyConsensusSize(size int)
+	SetConsensusSizeNotifier(chainParametersNotifier process.ChainParametersSubscriber, shardID uint32)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	Close() error
@@ -120,6 +120,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
+	ChainParametersSubscriber() process.ChainParametersSubscriber
 	EnableRoundsHandler() process.EnableRoundsHandler
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
@@ -410,7 +411,6 @@ type ConsensusComponentsHolder interface {
 	Chronology() consensus.ChronologyHandler
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
-	ConsensusGroupSize() (int, error)
 	Bootstrapper() process.Bootstrapper
 	IsInterfaceNil() bool
 }

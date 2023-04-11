@@ -2,17 +2,21 @@ package antiflood_test
 
 import (
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/chainparametersnotifier"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -307,24 +311,33 @@ func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
 	assert.Equal(t, setMaxMessagesForTopicNum, setMaxMessagesForTopicParameter2)
 }
 
-func TestP2pAntiflood_ApplyConsensusSize(t *testing.T) {
+func TestP2pAntiflood_SetConsensusSizeNotifier(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
 	expectedSize := 878264
+	testShardId := uint32(5)
+	var actualSize int
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		&mock.FloodPreventerStub{
 			ApplyConsensusSizeCalled: func(size int) {
-				assert.Equal(t, expectedSize, size)
+				actualSize = size
 				wasCalled = true
 			},
 		},
 	)
 
-	afm.ApplyConsensusSize(expectedSize)
+	chainParamsSubscriber := chainparametersnotifier.NewChainParametersNotifier()
+	afm.SetConsensusSizeNotifier(chainParamsSubscriber, testShardId)
+
+	chainParamsSubscriber.UpdateCurrentChainParameters(config.ChainParametersByEpochConfig{
+		ShardConsensusGroupSize: uint32(expectedSize),
+	})
+
 	assert.True(t, wasCalled)
+	assert.Equal(t, expectedSize, actualSize)
 }
 
 func TestP2pAntiflood_SetDebuggerNilDebuggerShouldErr(t *testing.T) {
@@ -463,4 +476,62 @@ func TestP2pAntiflood_IsOriginatorEligibleForTopic(t *testing.T) {
 	assert.Nil(t, err)
 	err = afm.IsOriginatorEligibleForTopic(core.PeerID(validatorPID), "topic")
 	assert.Nil(t, err)
+}
+
+func TestP2pAntiflood_ConcurrentOperations(t *testing.T) {
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{
+			IncreaseLoadCalled: func(pid core.PeerID, topic string, numMessages uint32) error {
+				if topic == "should error" {
+					return errors.New("error")
+				}
+
+				return nil
+			},
+		},
+		&mock.FloodPreventerStub{},
+	)
+
+	numOperations := 500
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				afm.SetConsensusSizeNotifier(&commonmocks.ChainParametersNotifierStub{}, 1)
+			case 1:
+				afm.ChainParametersChanged(config.ChainParametersByEpochConfig{})
+			case 2:
+				_ = afm.Close()
+			case 3:
+				_ = afm.CanProcessMessage(&p2pmocks.P2PMessageMock{}, "peer")
+			case 4:
+				afm.BlacklistPeer("peer", "reason", time.Millisecond)
+			case 5:
+				_ = afm.CanProcessMessagesOnTopic("peer", "topic", 37, 39, []byte("sequence"))
+			case 6:
+				_ = afm.IsOriginatorEligibleForTopic("peer", "topic")
+			case 7:
+				afm.ResetForTopic("topic")
+			case 8:
+				_ = afm.SetDebugger(&disabled.AntifloodDebugger{})
+			case 9:
+				afm.SetMaxMessagesForTopic("topic", 37)
+			case 10:
+				afm.SetTopicsForAll("topic", "topic1")
+			case 11:
+				_ = afm.Debugger()
+			case 12:
+				_ = afm.SetPeerValidatorMapper(&mock.PeerShardResolverStub{})
+			case 13:
+				_ = afm.CanProcessMessagesOnTopic("peer", "should error", 37, 39, []byte("sequence"))
+			}
+
+			wg.Done()
+		}(i % 14)
+	}
+
+	wg.Wait()
 }

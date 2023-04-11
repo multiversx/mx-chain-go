@@ -13,15 +13,17 @@ import (
 )
 
 type chainParametersHolder struct {
-	currentChainParameters config.ChainParametersByEpochConfig
-	chainParameters        []config.ChainParametersByEpochConfig
-	mutOperations          sync.RWMutex
+	currentChainParameters  config.ChainParametersByEpochConfig
+	chainParameters         []config.ChainParametersByEpochConfig
+	chainParametersNotifier ChainParametersNotifierHandler
+	mutOperations           sync.RWMutex
 }
 
 // ArgsChainParametersHolder holds the arguments needed for creating a new chainParametersHolder
 type ArgsChainParametersHolder struct {
 	EpochStartEventNotifier EpochStartEventNotifier
 	ChainParameters         []config.ChainParametersByEpochConfig
+	ChainParametersNotifier ChainParametersNotifierHandler
 }
 
 // NewChainParametersHolder returns a new instance of chainParametersHolder
@@ -43,10 +45,11 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 	}
 
 	paramsHolder := &chainParametersHolder{
-		currentChainParameters: earliestChainParams, // will be updated on the epoch notifier handlers
-		chainParameters:        args.ChainParameters,
+		currentChainParameters:  earliestChainParams, // will be updated on the epoch notifier handlers
+		chainParameters:         args.ChainParameters,
+		chainParametersNotifier: args.ChainParametersNotifier,
 	}
-
+	args.ChainParametersNotifier.UpdateCurrentChainParameters(earliestChainParams)
 	args.EpochStartEventNotifier.RegisterHandler(paramsHolder)
 
 	logInitialConfiguration(args.ChainParameters)
@@ -72,6 +75,9 @@ func validateArgs(args ArgsChainParametersHolder) error {
 	}
 	if len(args.ChainParameters) == 0 {
 		return ErrMissingChainParameters
+	}
+	if check.IfNil(args.ChainParametersNotifier) {
+		return ErrNilChainParametersNotifier
 	}
 	return validateChainParameters(args.ChainParameters)
 }
@@ -133,6 +139,7 @@ func (c *chainParametersHolder) handleEpochChange(epoch uint32) {
 		"hysteresis", matchingVersionForNewEpoch.Hysteresis,
 		"adaptivity", matchingVersionForNewEpoch.Adaptivity,
 	)
+	c.chainParametersNotifier.UpdateCurrentChainParameters(matchingVersionForNewEpoch)
 }
 
 // CurrentChainParameters will return the chain parameters that are active at the moment of calling

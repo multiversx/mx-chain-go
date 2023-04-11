@@ -54,3 +54,6 @@ var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for 
 
 // ErrNoMatchingConfigurationFound signals that no matching configuration is found
 var ErrNoMatchingConfigurationFound = errors.New("no matching configuration found")
+
+// ErrNilChainParametersNotifier signals that a nil chain parameters notifier has been provided
+var ErrNilChainParametersNotifier = errors.New("nil chain parameters notifier")

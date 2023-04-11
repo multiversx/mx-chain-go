@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -350,5 +351,11 @@ type ManagedPeersHolder interface {
 	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyMode() bool
+	IsInterfaceNil() bool
+}
+
+// ChainParametersSubscriptionHandler defines the behavior of a chain parameters subscription handler
+type ChainParametersSubscriptionHandler interface {
+	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }
