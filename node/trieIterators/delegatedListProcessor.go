@@ -96,8 +96,13 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo, ok := delegatorsMap[string(delegatorAddress)]
 		if !ok {
+			encodedDelegatorAddress, err := dlp.publicKeyConverter.Encode(delegatorAddress)
+			if err != nil {
+				return fmt.Errorf("%w encoding the address of the delegator %s", err, hex.EncodeToString(delegatorAddress))
+			}
+
 			delegatorInfo = &api.Delegator{
-				DelegatorAddress: dlp.publicKeyConverter.Encode(delegatorAddress),
+				DelegatorAddress: encodedDelegatorAddress,
 				DelegatedTo:      make([]*api.DelegatedValue, 0),
 				TotalAsBigInt:    big.NewInt(0),
 			}
@@ -107,8 +112,13 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
+		delegationSCAddress, err := dlp.publicKeyConverter.Encode(delegationSC)
+		if err != nil {
+			return fmt.Errorf("%w encoding delegation SC address %s", err, hex.EncodeToString(delegationSC))
+		}
+
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
-			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
+			DelegationScAddress: delegationSCAddress,
 			Value:               value.String(),
 		})
 	}

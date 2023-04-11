@@ -374,7 +374,10 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		}
 	}
 
-	cp.publicKeyString = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return cp, nil
 }
@@ -399,7 +402,10 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 		return nil, err
 	}
 
-	cp.publicKeyString = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
 	cp.handledPrivateKeys = handledPrivateKeys
 
 	return cp, nil
@@ -519,7 +525,7 @@ func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGen
 	if !bytes.Equal(pkGeneratedBytes, pkBytes) {
 		return nil, fmt.Errorf("public keys mismatch, read %s, generated %s, key index %d",
 			pkString,
-			ccf.validatorPubKeyConverter.Encode(pkBytes),
+			ccf.validatorPubKeyConverter.SilentEncode(pkBytes, log),
 			index,
 		)
 	}
