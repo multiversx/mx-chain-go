@@ -611,7 +611,7 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
-
+	
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     MetaESDTSetEnableEpoch = 40
 
@@ -697,7 +697,7 @@ func TestEnableEpochConfig(t *testing.T) {
         {EnableEpoch = 0, Type = "no-KOSK"},
         {EnableEpoch = 3, Type = "KOSK"}
     ]
-
+	
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
