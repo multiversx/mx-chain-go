@@ -13,6 +13,8 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+const transferValueOnly = "transferValueOnly"
+
 type vmContext struct {
 	blockChainHook      vm.BlockchainHook
 	cryptoHook          vmcommon.CryptoHook
@@ -426,6 +428,17 @@ func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCa
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
+
+	if callInput.CallValue.Cmp(zero) > 0 {
+		logEntry := &vmcommon.LogEntry{
+			Identifier: []byte(transferValueOnly),
+			Address:    callInput.RecipientAddr,
+			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
+			Data:       []byte{},
+		}
+		host.AddLogEntry(logEntry)
+	}
+
 	return nil
 }
 
