@@ -9,6 +9,7 @@ type PersisterStub struct {
 	RemoveCalled        func(key []byte) error
 	DestroyCalled       func() error
 	DestroyClosedCalled func() error
+	ClearCalled         func() error
 	RangeKeysCalled     func(handler func(key []byte, val []byte) bool)
 }
 
@@ -70,6 +71,15 @@ func (p *PersisterStub) Destroy() error {
 func (p *PersisterStub) DestroyClosed() error {
 	if p.DestroyClosedCalled != nil {
 		return p.DestroyClosedCalled()
+	}
+
+	return nil
+}
+
+// Clear -
+func (p *PersisterStub) Clear() error {
+	if p.ClearCalled != nil {
+		return p.ClearCalled()
 	}
 
 	return nil
