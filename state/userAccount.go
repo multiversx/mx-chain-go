@@ -17,7 +17,7 @@ import (
 
 var _ UserAccountHandler = (*userAccount)(nil)
 
-const numEntriesForTrieValuesCacher = 1000
+const numEntriesForTrieValuesCacher = 10000
 
 // Account is the struct used in serialization/deserialization
 type userAccount struct {

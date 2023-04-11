@@ -2,6 +2,8 @@ package state_test
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/multiversx/mx-chain-go/state/trieValuesCache"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -1317,4 +1319,132 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	tdt.SetDataTrie(newTrie)
 	assert.True(t, cleanCalled)
 	assert.Equal(t, newTrie, tdt.DataTrie())
+}
+
+func TestTrackableDataTrie_MigrateMoreLeavesThanCacheSize(t *testing.T) {
+	t.Parallel()
+
+	identifier := []byte("identifier")
+	hasher := &hashingMocks.HasherMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
+	trieValuesCacheSize := 10
+	numLeavesForMigration := trieValuesCacheSize + 2
+	leavesForMigration := make([]core.TrieData, numLeavesForMigration)
+
+	keysForDeletion := make(map[string]struct{})
+	keysForUpdate := make(map[string]struct{})
+	updatedVals := make(map[string][]byte)
+
+	for i := 0; i < numLeavesForMigration; i++ {
+		key := []byte(fmt.Sprintf("key%d", i))
+		val := []byte(fmt.Sprintf("value%d", i))
+
+		leavesForMigration[i] = core.TrieData{
+			Key:     key,
+			Value:   val,
+			Version: core.NotSpecified,
+		}
+
+		keysForDeletion[string(key)] = struct{}{}
+		hashedKey := hasher.Compute(string(key))
+		keysForUpdate[string(hashedKey)] = struct{}{}
+		leafData := dataTrieValue.TrieLeafData{
+			Value:   val,
+			Key:     key,
+			Address: identifier,
+		}
+		leafDataBytes, err := marshaller.Marshal(leafData)
+		assert.Nil(t, err)
+		updatedVals[string(hashedKey)] = leafDataBytes
+
+	}
+	numDeletedLeaves := 0
+	numUpdatedLeaves := 0
+	numTrieGet := 0
+
+	tr := &trieMock.TrieStub{
+		CollectLeavesForMigrationCalled: func(_ core.TrieNodeVersion, _ core.TrieNodeVersion, _ vmcommon.DataTrieMigrator) error {
+			return nil
+		},
+		DeleteCalled: func(key []byte) error {
+			_, ok := keysForDeletion[string(key)]
+			assert.True(t, ok)
+			delete(keysForDeletion, string(key))
+			numDeletedLeaves++
+			return nil
+		},
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			_, ok := keysForUpdate[string(key)]
+			assert.True(t, ok)
+			delete(keysForUpdate, string(key))
+
+			expectedVal, ok := updatedVals[string(key)]
+			assert.True(t, ok)
+			assert.Equal(t, expectedVal, value)
+
+			assert.Equal(t, core.AutoBalanceEnabled, version)
+			numUpdatedLeaves++
+			return nil
+		},
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			if bytes.Equal(leavesForMigration[numTrieGet+trieValuesCacheSize].Key, key) {
+				val := leavesForMigration[numTrieGet+trieValuesCacheSize].Value
+				numTrieGet++
+
+				return val, 0, nil
+			}
+
+			return nil, 0, nil
+		},
+	}
+
+	tvc, err := trieValuesCache.NewTrieValuesCache(trieValuesCacheSize)
+	assert.Nil(t, err)
+	enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsAutoBalanceDataTriesEnabledField: true,
+	}
+
+	tdt, _ := state.NewTrackableDataTrie(
+		identifier,
+		tr,
+		hasher,
+		marshaller,
+		enableEpchs,
+		tvc,
+	)
+
+	dtm := &trieMock.DataTrieMigratorStub{
+		GetLeavesToBeMigratedCalled: func() []core.TrieData {
+			return leavesForMigration
+		},
+	}
+	err = tdt.MigrateDataTrieLeaves(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+	assert.Nil(t, err)
+
+	dirtyData := tdt.DirtyData()
+	for i := 0; i < numLeavesForMigration; i++ {
+		newDataEntry := dirtyData[string(leavesForMigration[i].Key)]
+		assert.Equal(t, leavesForMigration[i].Value, newDataEntry.Value)
+		assert.Equal(t, core.AutoBalanceEnabled, newDataEntry.Version)
+	}
+
+	for i := 0; i < trieValuesCacheSize; i++ {
+		trieData, ok := tvc.Get(leavesForMigration[i].Key)
+		assert.True(t, ok)
+		assert.Equal(t, leavesForMigration[i].Key, trieData.Key)
+		assert.Equal(t, leavesForMigration[i].Value, trieData.Value)
+		assert.Equal(t, core.NotSpecified, trieData.Version)
+	}
+
+	for i := trieValuesCacheSize; i < numLeavesForMigration; i++ {
+		_, ok := tvc.Get(leavesForMigration[i].Key)
+		assert.False(t, ok)
+	}
+
+	oldValues, err := tdt.SaveDirtyData(tr)
+	assert.Nil(t, err)
+	assert.Equal(t, numLeavesForMigration, len(oldValues))
+	assert.Equal(t, numLeavesForMigration, numDeletedLeaves)
+	assert.Equal(t, numLeavesForMigration, numUpdatedLeaves)
+	assert.Equal(t, numLeavesForMigration-trieValuesCacheSize, numTrieGet)
 }
