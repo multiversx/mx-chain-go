@@ -64,7 +64,7 @@ func NewIntermediateProcessorsContainerFactory(
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, process.ErrNilEpochHandler
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	return &intermediateProcessorsContainerFactory{
