@@ -20,6 +20,7 @@ var _ process.DataMarshalizer = (*basePostProcessor)(nil)
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
+	index           uint32
 }
 
 type txInfo struct {
@@ -41,6 +42,7 @@ type basePostProcessor struct {
 	mapProcessedResult      map[string][][]byte
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
+	index                   uint32
 }
 
 // SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
@@ -77,6 +79,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
 	bpp.mapProcessedResult = make(map[string][][]byte)
+	bpp.index = 0
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -273,7 +276,8 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	sndShardID uint32,
 	rcvShardID uint32,
 ) {
-	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
+	bpp.index++
+	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID, index: bpp.index}
 	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 

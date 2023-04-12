@@ -328,6 +328,7 @@ type EnableEpochsHandler interface {
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
+	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 
 	IsInterfaceNil() bool
 }

@@ -547,15 +547,17 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 }
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
-	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		createMockPubkeyConverter(),
-		initStore(),
-		initDataPool([]byte("test_hash1")),
-		&mock.FeeHandlerStub{},
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		PubkeyConverter:     createMockPubkeyConverter(),
+		Store:               initStore(),
+		PoolsHolder:         initDataPool([]byte("test_hash1")),
+		EconomicsFee:        &mock.FeeHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+	}
+	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := preFactory.Create()
 
 	return container
@@ -2180,15 +2182,17 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		createMockPubkeyConverter(),
-		&storageStubs.ChainStorerStub{},
-		tdp,
-		&mock.FeeHandlerStub{},
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    shardCoordinator,
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		PubkeyConverter:     createMockPubkeyConverter(),
+		Store:               &storageStubs.ChainStorerStub{},
+		PoolsHolder:         tdp,
+		EconomicsFee:        &mock.FeeHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+	}
+	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := preFactory.Create()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -2234,19 +2238,21 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		createMockPubkeyConverter(),
-		&storageStubs.ChainStorerStub{},
-		tdp,
-		&mock.FeeHandlerStub{
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           &hashingMocks.HasherMock{},
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Store:            &storageStubs.ChainStorerStub{},
+		PoolsHolder:      tdp,
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
-	)
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+	}
+	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := interFactory.Create()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()

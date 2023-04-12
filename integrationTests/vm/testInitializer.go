@@ -836,15 +836,17 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		integrationtests.TestMarshalizer,
-		integrationtests.TestHasher,
-		pubkeyConv,
-		disabled.NewChainStorer(),
-		poolsHolder,
-		&processDisabled.FeeHandler{},
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    shardCoordinator,
+		Marshalizer:         integrationtests.TestMarshalizer,
+		Hasher:              integrationtests.TestHasher,
+		PubkeyConverter:     pubkeyConv,
+		Store:               disabled.NewChainStorer(),
+		PoolsHolder:         poolsHolder,
+		EconomicsFee:        &processDisabled.FeeHandler{},
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
