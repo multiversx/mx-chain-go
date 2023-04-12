@@ -1093,7 +1093,7 @@ func TestGovernanceContract_CloseProposalAlreadyClosed(t *testing.T) {
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
-	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 }
 

@@ -591,7 +591,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 	if generalProposal.Closed {
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
-		return vmcommon.Ok
+		return vmcommon.UserError
 	}
 	if !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
