@@ -35,11 +35,12 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		Coordinator:         mock.NewMultiShardsCoordinatorMock(5),
 		PubkeyConv:          createMockPubkeyConverter(),
 		Store:               &storage.ChainStorerStub{},
-		BlockType:           block.TxBlock,
+		BlockType:           block.SmartContractResultBlock,
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
 		EconomicsFee:        &mock.FeeHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
+
 	return args
 }
 
@@ -128,7 +129,7 @@ func TestNewIntermediateResultsProcessor_NilEpochHandler(t *testing.T) {
 	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
-	assert.Equal(t, process.ErrNilEpochHandler, err)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
@@ -629,6 +630,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 			return maxGasLimitPerBlock
 		},
 	}
+	enableEpochHandler := &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: false}
+	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
@@ -669,6 +672,19 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
+
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Nil(t, err)
+
+	enableEpochHandler.IsKeepExecOrderOnCreatedSCRsEnabledField = true
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
+
+	miniBlock.TxHashes = make([][]byte, 0)
+	for i := 0; i < len(txs); i++ {
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+	}
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
