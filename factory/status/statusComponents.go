@@ -279,9 +279,10 @@ func (scf *statusComponentsFactory) makeWebSocketsDriverArgs() (wsDriverFactory.
 	return wsDriverFactory.ArgsWebSocketsDriverFactory{
 		Marshaller: marshaller,
 		WebSocketConfig: data.WebSocketConfig{
-			URL:             scf.externalConfig.WebSocketsConnector.URL,
-			WithAcknowledge: scf.externalConfig.WebSocketsConnector.WithAcknowledge,
-			IsServer:        scf.externalConfig.WebSocketsConnector.IsServer,
+			URL:                scf.externalConfig.WebSocketsConnector.URL,
+			WithAcknowledge:    scf.externalConfig.WebSocketsConnector.WithAcknowledge,
+			IsServer:           scf.externalConfig.WebSocketsConnector.IsServer,
+			RetryDurationInSec: scf.externalConfig.WebSocketsConnector.RetryDurationInSec,
 		},
 		Uint64ByteSliceConverter: scf.coreComponents.Uint64ByteSliceConverter(),
 		Log:                      log,

@@ -51,3 +51,5 @@
     WithAcknowledge = true
     # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported
     MarshallerType = "json"
+    # The number of seconds when the client will try again to send the data
+    RetryDurationInSec = 5

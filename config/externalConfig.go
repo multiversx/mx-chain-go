@@ -40,9 +40,10 @@ type CovalentConfig struct {
 
 // WebSocketsDriverConfig will hold the configuration for web socket driver
 type WebSocketsDriverConfig struct {
-	Enabled         bool
-	IsServer        bool
-	WithAcknowledge bool
-	URL             string
-	MarshallerType  string
+	Enabled            bool
+	IsServer           bool
+	WithAcknowledge    bool
+	URL                string
+	MarshallerType     string
+	RetryDurationInSec int
 }
