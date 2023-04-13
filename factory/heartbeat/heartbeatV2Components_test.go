@@ -227,17 +227,6 @@ func TestNewHeartbeatV2ComponentsFactory(t *testing.T) {
 		assert.Nil(t, hcf)
 		assert.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
-	t.Run("nil EpochStartTrigger should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			EpochTrigger: nil,
-		}
-		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
-		assert.Nil(t, hcf)
-		assert.Equal(t, errorsMx.ErrNilEpochStartTrigger, err)
-	})
 }
 
 func TestHeartbeatV2Components_Create(t *testing.T) {
