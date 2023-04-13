@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"math/big"
 	"testing"
 
@@ -303,7 +304,9 @@ func TestTxsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
 
 	txsToBeReverted, indexOfLastTxProcessed, shouldRevert, err := sctp.ProcessMiniBlock(
-		&block.MiniBlock{},
+		&block.MiniBlock{
+			TxHashes: [][]byte{[]byte("txHash1"), []byte("txHash2")},
+		},
 		haveTimeTrue,
 		haveAdditionalTimeFalse,
 		false,
@@ -313,9 +316,57 @@ func TestTxsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, txsToBeReverted)
-	assert.Equal(t, 0, indexOfLastTxProcessed)
+	assert.Equal(t, 1, indexOfLastTxProcessed)
 	assert.False(t, shouldRevert)
 	assert.Nil(t, err)
+}
+
+func TestTxsPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+
+	tp, _ := NewTransactionPreprocessor(args)
+	sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+	numTxsRequested := sctp.RequestTransactionsForMiniBlock(nil)
+	assert.Equal(t, 0, numTxsRequested)
+
+	miniBlock := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("txHash1"),
+			[]byte("txHash2"),
+		},
+	}
+	numTxsRequested = sctp.RequestTransactionsForMiniBlock(miniBlock)
+	assert.Equal(t, 0, numTxsRequested)
+}
+
+func TestTxsPreprocessor_RequestBlockTransactionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+
+	tp, _ := NewTransactionPreprocessor(args)
+	sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+	numTxsRequested := sctp.RequestBlockTransactions(nil)
+	assert.Equal(t, 0, numTxsRequested)
+
+	blockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID: core.MainChainShardId,
+				TxHashes: [][]byte{
+					[]byte("txHash1"),
+					[]byte("txHash2"),
+				},
+			},
+		},
+	}
+
+	numTxsRequested = sctp.RequestBlockTransactions(blockBody)
+	assert.Equal(t, 0, numTxsRequested)
 }
 
 func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testing.T) {

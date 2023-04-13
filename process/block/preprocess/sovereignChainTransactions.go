@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -42,6 +43,10 @@ func (sct *sovereignChainTransactions) ProcessBlockTransactions(
 	body *block.Body,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, error) {
+	if sct.isBodyToMe(body) {
+		return sct.processTxsToMe(header, body, haveTime)
+	}
+
 	calculatedMiniBlocks, _, err := sct.processTxsFromMe(body, haveTime, header.GetPrevRandSeed())
 	return calculatedMiniBlocks, err
 }
@@ -118,7 +123,7 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 
 // ProcessMiniBlock does nothing on sovereign chain
 func (sct *sovereignChainTransactions) ProcessMiniBlock(
-	_ *block.MiniBlock,
+	miniBlock *block.MiniBlock,
 	_ func() bool,
 	_ func() bool,
 	_ bool,
@@ -126,7 +131,8 @@ func (sct *sovereignChainTransactions) ProcessMiniBlock(
 	_ int,
 	_ process.PreProcessorExecutionInfoHandler,
 ) ([][]byte, int, bool, error) {
-	return nil, 0, false, nil
+	//TODO: Implement functionality for sovereign chain
+	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }
 
 func (sct *sovereignChainTransactions) shouldContinueProcessingScheduledTx(
@@ -213,4 +219,88 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 
 func isCriticalError(err error) bool {
 	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
+}
+
+// RequestTransactionsForMiniBlock requests missing transactions for the given mini block
+func (sct *sovereignChainTransactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	if miniBlock == nil {
+		return 0
+	}
+
+	//TODO: Implement functionality for sovereign chain
+	return 0
+}
+
+// RequestBlockTransactions requests missing transactions from the given body
+func (sct *sovereignChainTransactions) RequestBlockTransactions(body *block.Body) int {
+	if check.IfNil(body) {
+		return 0
+	}
+
+	//TODO: Implement functionality for sovereign chain
+
+	numTxsRequested := 0
+	for _, mb := range body.MiniBlocks {
+		if mb.SenderShardID != core.MainChainShardId {
+			numTxsRequested += sct.computeExistingAndRequestMissingTxsForShards(&block.Body{MiniBlocks: []*block.MiniBlock{mb}})
+		}
+	}
+
+	return numTxsRequested
+}
+
+func (sct *sovereignChainTransactions) processTxsToMe(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error) {
+	if check.IfNil(body) {
+		return nil, process.ErrNilBlockBody
+	}
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+
+	//TODO: Replace this initialization with a sovereign chain version of computeTxsToMe method
+	txsToMe := make([]*txcache.WrappedTransaction, 3)
+
+	numTXsProcessed := 0
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		totalGasConsumedInSelfShard:           sct.getTotalGasConsumed(),
+	}
+
+	log.Debug("sovereignChainTransactions.processTxsToMe: before processing",
+		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"total gas provided", sct.gasHandler.TotalGasProvided(),
+		"total gas provided as scheduled", sct.gasHandler.TotalGasProvidedAsScheduled(),
+		"total gas refunded", sct.gasHandler.TotalGasRefunded(),
+		"total gas penalized", sct.gasHandler.TotalGasPenalized(),
+	)
+	defer func() {
+		log.Debug("sovereignChainTransactions.processTxsToMe after processing",
+			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+			"num txs processed", numTXsProcessed,
+			"total gas provided", sct.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", sct.gasHandler.TotalGasProvidedAsScheduled(),
+			"total gas refunded", sct.gasHandler.TotalGasRefunded(),
+			"total gas penalized", sct.gasHandler.TotalGasPenalized(),
+		)
+	}()
+
+	log.Debug("sovereignChainTransactions.processTxsToMe: before processing", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
+	defer func() {
+		log.Debug("sovereignChainTransactions.processTxsToMe: after processing", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard)
+	}()
+
+	for range txsToMe {
+		if !haveTime() {
+			return nil, process.ErrTimeIsOut
+		}
+
+		//TODO: Implement the proper execution
+
+		numTXsProcessed++
+	}
+
+	return body.MiniBlocks, nil
 }

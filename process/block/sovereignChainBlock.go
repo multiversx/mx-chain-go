@@ -101,7 +101,7 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		incomingMiniBlocks := []*block.MiniBlock{
 			{
 				Type:            block.TxBlock,
-				SenderShardID:   0,
+				SenderShardID:   core.MainChainShardId,
 				ReceiverShardID: core.SovereignChainShardId,
 				TxHashes:        incomingTxHashes,
 			},
@@ -549,7 +549,9 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeader(
 	}
 
 	newBody := deleteSelfReceiptsMiniBlocks(body)
-	err = scbp.applyBodyInfoOnCommonHeader(headerHandler, newBody, nil)
+	//TODO: This map should be passed from the caller side
+	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+	err = scbp.applyBodyInfoOnCommonHeader(headerHandler, newBody, processedMiniBlocksDestMeInfo)
 	if err != nil {
 		return nil, err
 	}

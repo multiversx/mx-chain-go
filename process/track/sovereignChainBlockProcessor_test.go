@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -22,7 +23,17 @@ import (
 // CreateSovereignChainBlockProcessorMockArguments -
 func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
 	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	sovereignChainHeaderValidator, _ := processBlock.NewSovereignChainHeaderValidator(headerValidator)
+	blockProcessorArguments.HeaderValidator = sovereignChainHeaderValidator
+
 	return blockProcessorArguments
 }
 

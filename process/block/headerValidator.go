@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,8 +20,9 @@ type ArgsHeaderValidator struct {
 }
 
 type headerValidator struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher            hashing.Hasher
+	marshalizer       marshal.Marshalizer
+	getHeaderHashFunc func(headerHandler data.HeaderHandler) ([]byte, error)
 }
 
 // NewHeaderValidator returns a new header validator
@@ -34,10 +34,13 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 		return nil, process.ErrNilMarshalizer
 	}
 
-	return &headerValidator{
+	hv := &headerValidator{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-	}, nil
+	}
+
+	hv.getHeaderHashFunc = hv.getHeaderHash
+	return hv, nil
 }
 
 // IsHeaderConstructionValid verified if header is constructed correctly on top of other
@@ -65,21 +68,9 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrWrongNonceInBlock
 	}
 
-	var err error
-	var prevHeaderHash []byte
-
-	//TODO: Extract the extended shard header functionality into separate sovereign file with an overwritten method
-	shardHeaderExtended, isShardHeaderExtended := prevHeader.(*block.ShardHeaderExtended)
-	if isShardHeaderExtended {
-		prevHeaderHash, err = core.CalculateHash(h.marshalizer, h.hasher, shardHeaderExtended.Header.Header)
-		if err != nil {
-			return err
-		}
-	} else {
-		prevHeaderHash, err = core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
-		if err != nil {
-			return err
-		}
+	prevHeaderHash, err := h.getHeaderHashFunc(prevHeader)
+	if err != nil {
+		return err
 	}
 
 	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {
@@ -101,6 +92,10 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	return nil
+}
+
+func (h *headerValidator) getHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	return core.CalculateHash(h.marshalizer, h.hasher, headerHandler)
 }
 
 // IsInterfaceNil returns if underlying object is true
