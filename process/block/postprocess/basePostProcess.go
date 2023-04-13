@@ -276,8 +276,8 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	sndShardID uint32,
 	rcvShardID uint32,
 ) {
-	bpp.index++
 	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID, index: bpp.index}
+	bpp.index++
 	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
