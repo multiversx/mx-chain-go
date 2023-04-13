@@ -204,6 +204,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if arg.EpochConfig == nil {
 		return genesis.ErrNilEpochConfig
 	}
+	if arg.GasSchedule == nil {
+		return genesis.ErrNilGasSchedule
+	}
 
 	return nil
 }

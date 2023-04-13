@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
@@ -717,6 +717,12 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	if hardforkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardforkConfig.StartEpoch + hardforkConfig.ValidatorGracePeriodInEpochs
 	}
+
+	genesisHeader := pcf.data.Blockchain().GetGenesisHeader()
+	if check.IfNil(genesisHeader) {
+		return nil, errorsMx.ErrGenesisBlockNotInitialized
+	}
+
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:                          pcf.state.PeerAccounts(),
 		PubkeyConv:                           pcf.coreData.ValidatorPubKeyConverter(),
@@ -731,20 +737,16 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RewardsHandler:                       pcf.coreData.EconomicsData(),
 		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
 		RatingEnableEpoch:                    ratingEnabledEpoch,
-		GenesisNonce:                         pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
+		GenesisNonce:                         genesisHeader.GetNonce(),
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
-	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatorStatisticsProcessor, nil
+	return peer.NewValidatorStatisticsProcessor(arguments)
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Hasher:      pcf.coreData.Hasher(),
 			Marshalizer: pcf.coreData.InternalMarshalizer(),
@@ -782,20 +784,20 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 		}
-		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
-		if err != nil {
-			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
-		}
-
-		return epochStartTrigger, nil
+		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		genesisHeader := pcf.data.Blockchain().GetGenesisHeader()
+		if check.IfNil(genesisHeader) {
+			return nil, errorsMx.ErrGenesisBlockNotInitialized
+		}
+
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
 			Settings:           &pcf.config.EpochStartConfig,
 			Epoch:              pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartRound:    pcf.data.Blockchain().GetGenesisHeader().GetRound(),
+			EpochStartRound:    genesisHeader.GetRound(),
 			EpochStartNotifier: pcf.coreData.EpochStartNotifierWithConfirm(),
 			Storage:            pcf.data.StorageService(),
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
@@ -803,12 +805,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
 			DataPool:           pcf.data.Datapool(),
 		}
-		epochStartTrigger, err := metachain.NewEpochStartTrigger(argEpochStart)
-		if err != nil {
-			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
-		}
-
-		return epochStartTrigger, nil
+		return metachain.NewEpochStartTrigger(argEpochStart)
 	}
 
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
@@ -870,7 +867,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
 	if err != nil {
-		return nil, err
+		return map[string]*outport.AlteredAccount{}, err
 	}
 
 	leavesChannels := &common.TrieIteratorChannels{
@@ -879,7 +876,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
-		return nil, err
+		return map[string]*outport.AlteredAccount{}, err
 	}
 
 	genesisAccounts := make(map[string]*outport.AlteredAccount, 0)
@@ -904,7 +901,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
-		return nil, err
+		return map[string]*outport.AlteredAccount{}, err
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
@@ -931,12 +928,7 @@ func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]d
 		return errors.New("genesis block does not exist")
 	}
 
-	err := pcf.data.Blockchain().SetGenesisHeader(genesisBlock)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return pcf.data.Blockchain().SetGenesisHeader(genesisBlock)
 }
 
 func (pcf *processComponentsFactory) prepareGenesisBlock(
@@ -960,12 +952,7 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(
 	pcf.data.Blockchain().SetGenesisHeaderHash(genesisBlockHash)
 	nonceToByteSlice := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlock.GetNonce())
 
-	err = pcf.saveGenesisHeaderToStorage(genesisBlock, genesisBlockHash, nonceToByteSlice)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return pcf.saveGenesisHeaderToStorage(genesisBlock, genesisBlockHash, nonceToByteSlice)
 }
 
 func (pcf *processComponentsFactory) saveGenesisHeaderToStorage(
@@ -1158,17 +1145,12 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
-	err = pcf.saveAlteredGenesisHeaderToStorage(
+	return pcf.saveAlteredGenesisHeaderToStorage(
 		genesisBlockHeader,
 		genesisBlockHash,
 		genesisBody,
 		intraShardMiniBlocks,
 		txsPoolPerShard)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
@@ -1257,13 +1239,14 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	requestHandler process.RequestHandler,
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) (process.BlockTracker, error) {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	argBaseTracker := track.ArgBaseTracker{
 		Hasher:           pcf.coreData.Hasher(),
 		HeaderValidator:  headerValidator,
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		RequestHandler:   requestHandler,
 		RoundHandler:     pcf.coreData.RoundHandler(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator: shardCoordinator,
 		Store:            pcf.data.StorageService(),
 		StartHeaders:     genesisBlocks,
 		PoolsHolder:      pcf.data.Datapool(),
@@ -1271,7 +1254,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		FeeHandler:       pcf.coreData.EconomicsData(),
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
@@ -1279,7 +1262,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		return track.NewShardBlockTrack(arguments)
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
@@ -1383,11 +1366,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		PeersRatingHandler:          pcf.network.PeersRatingHandler(),
 		PayloadValidator:            payloadValidator,
 	}
-	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
-	if err != nil {
-		return nil, err
-	}
-	return resolversContainerFactory, nil
+	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 }
 
 func (pcf *processComponentsFactory) newInterceptorContainerFactory(
@@ -1399,7 +1378,8 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	peerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
 			headerSigVerifier,
 			headerIntegrityVerifier,
@@ -1410,7 +1390,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			hardforkTrigger,
 		)
 	}
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return pcf.newMetaInterceptorContainerFactory(
 			headerSigVerifier,
 			headerIntegrityVerifier,
@@ -1649,10 +1629,11 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
@@ -1793,12 +1774,7 @@ func createNetworkShardingCollector(
 		NodesCoordinator:      nodesCoordinator,
 		PreferredPeersHolder:  preferredPeersHolder,
 	}
-	psm, err := networksharding.NewPeerShardMapper(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	return psm, nil
+	return networksharding.NewPeerShardMapper(arg)
 }
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
@@ -1808,82 +1784,91 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
 	if check.IfNil(args.AccountsParser) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAccountsParser)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsParser)
 	}
-	if check.IfNil(args.SmartContractParser) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSmartContractParser)
-	}
-	if args.GasSchedule == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGasSchedule)
-	}
-	if check.IfNil(args.NodesCoordinator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNodesCoordinator)
+	if check.IfNil(args.GasSchedule) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGasSchedule)
 	}
 	if check.IfNil(args.Data) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilDataComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataComponentsHolder)
+	}
+	if check.IfNil(args.Data.Blockchain()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockChainHandler)
+	}
+	if check.IfNil(args.Data.Datapool()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataPoolsHolder)
+	}
+	if check.IfNil(args.Data.StorageService()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStorageService)
 	}
 	if check.IfNil(args.CoreData) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCoreComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilCoreComponentsHolder)
 	}
-	if args.CoreData.EconomicsData() == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEconomicsData)
+	if check.IfNil(args.CoreData.EconomicsData()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEconomicsData)
 	}
-	if check.IfNil(args.CoreData.RoundHandler()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRoundHandler)
+	if check.IfNil(args.CoreData.GenesisNodesSetup()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisNodesSetupHandler)
 	}
-	if check.IfNil(args.Crypto) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCryptoComponentsHolder)
-	}
-	if check.IfNil(args.State) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStateComponentsHolder)
-	}
-	if check.IfNil(args.Network) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNetworkComponentsHolder)
-	}
-	if check.IfNil(args.RequestedItemsHandler) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRequestedItemHandler)
-	}
-	if check.IfNil(args.WhiteListHandler) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilWhiteListHandler)
-	}
-	if check.IfNil(args.WhiteListerVerifiedTxs) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilWhiteListVerifiedTxs)
-	}
-	if check.IfNil(args.CoreData.EpochStartNotifierWithConfirm()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochStartNotifier)
-	}
-	if check.IfNil(args.CoreData.Rater()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRater)
-	}
-	if check.IfNil(args.CoreData.RatingsData()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRatingData)
-	}
-	if check.IfNil(args.CoreData.ValidatorPubKeyConverter()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilPubKeyConverter)
-	}
-	if args.SystemSCConfig == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
+	if check.IfNil(args.CoreData.AddressPubKeyConverter()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAddressPublicKeyConverter)
 	}
 	if check.IfNil(args.CoreData.EpochNotifier()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochNotifier)
 	}
-	if check.IfNil(args.CoreData.EnableEpochsHandler()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEnableEpochsHandler)
+	if check.IfNil(args.CoreData.ValidatorPubKeyConverter()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilPubKeyConverter)
+	}
+	if check.IfNil(args.CoreData.InternalMarshalizer()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInternalMarshalizer)
+	}
+	if check.IfNil(args.CoreData.Uint64ByteSliceConverter()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilUint64ByteSliceConverter)
+	}
+	if check.IfNil(args.Crypto) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilCryptoComponentsHolder)
+	}
+	if check.IfNil(args.Crypto.BlockSignKeyGen()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockSignKeyGen)
+	}
+	if check.IfNil(args.State) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStateComponentsHolder)
+	}
+	if check.IfNil(args.State.AccountsAdapter()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsAdapter)
+	}
+	if check.IfNil(args.Network) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilNetworkComponentsHolder)
+	}
+	if check.IfNil(args.Network.NetworkMessenger()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilMessenger)
+	}
+	if check.IfNil(args.Network.InputAntiFloodHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInputAntiFloodHandler)
+	}
+	if args.SystemSCConfig == nil {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSystemSCConfig)
 	}
 	if check.IfNil(args.BootstrapComponents) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilBootstrapComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapComponentsHolder)
 	}
 	if check.IfNil(args.BootstrapComponents.ShardCoordinator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilShardCoordinator)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinator)
+	}
+	if check.IfNil(args.BootstrapComponents.EpochBootstrapParams()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapParamsHandler)
 	}
 	if check.IfNil(args.StatusComponents) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStatusComponentsHolder)
+	}
+	if check.IfNil(args.StatusComponents.OutportHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilOutportHandler)
+	}
+	if check.IfNil(args.HistoryRepo) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilHistoryRepository)
 	}
 	if check.IfNil(args.StatusCoreComponents) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStatusCoreComponents)
-	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStatusCoreComponents)
 	}
 
 	return nil
