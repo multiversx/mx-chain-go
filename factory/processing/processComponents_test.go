@@ -691,20 +691,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, "shard coordinator")
 	})
-	t.Run("GetStorer TxLogsUnit fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ImportDBConfig.IsImportDBMode = true // coverage
-		dataCompStub, ok := args.Data.(*testsMocks.DataComponentsStub)
-		require.True(t, ok)
-		dataCompStub.Store = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType retriever.UnitType) (storage.Storer, error) {
-				return nil, expectedErr
-			},
-		}
-		testCreateWithArgs(t, args, expectedErr.Error())
-	})
+	t.Run("GetStorer TxLogsUnit fails should error", testWithMissingStorer(0, retriever.TxLogsUnit))
 	t.Run("NewResolversFinder fails should error", testWithNilMarshaller(5, "Marshalizer"))
 	t.Run("generateGenesisHeadersAndApplyInitialBalances fails due to invalid GenesisNodePrice should error", func(t *testing.T) {
 		t.Parallel()
@@ -723,6 +710,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
+		args.ImportDBConfig.IsImportDBMode = true // coverage
 		dataCompStub, ok := args.Data.(*testsMocks.DataComponentsStub)
 		require.True(t, ok)
 		blockChainStub, ok := dataCompStub.BlockChain.(*testscommon.ChainHandlerStub)
@@ -744,23 +732,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
-	t.Run("NewValidatorsProvider fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
-		pubKeyConv := args.CoreData.ValidatorPubKeyConverter()
-		cnt := 0
-		coreCompStub.ValidatorPubKeyConverterCalled = func() core.PubkeyConverter {
-			cnt++
-			if cnt > 2 {
-				return nil
-			}
-			return pubKeyConv
-		}
-		args.CoreData = coreCompStub
-		testCreateWithArgs(t, args, "pubkey converter")
-	})
+	t.Run("NewValidatorsProvider fails should error", testWithNilPubKeyConv(2, "pubkey converter"))
 	t.Run("newEpochStartTrigger fails due to invalid shard should error",
 		testWithInvalidShard(16, "error creating new start of epoch trigger because of invalid shard id"))
 	t.Run("newEpochStartTrigger fails due to NewHeaderValidator failure should error", testWithNilMarshaller(46, "Marshalizer"))
@@ -859,27 +831,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.CoreData = coreCompStub
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
-	t.Run("GetStorer BootstrapUnit fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		dataCompStub, ok := args.Data.(*testsMocks.DataComponentsStub)
-		require.True(t, ok)
-		store := args.Data.StorageService()
-		cnt := 0
-		dataCompStub.Store = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType retriever.UnitType) (storage.Storer, error) {
-				if unitType == retriever.BootstrapUnit {
-					cnt++
-					if cnt > 2 {
-						return nil, expectedErr
-					}
-				}
-				return store.GetStorer(unitType)
-			},
-		}
-		testCreateWithArgs(t, args, expectedErr.Error())
-	})
+	t.Run("GetStorer TxLogsUnit fails should error", testWithMissingStorer(2, retriever.BootstrapUnit))
 	t.Run("NewBootstrapStorer fails should error", testWithNilMarshaller(50, "Marshalizer"))
 	t.Run("NewHeaderValidator fails should error", testWithNilMarshaller(51, "Marshalizer"))
 	t.Run("newBlockTracker fails due to invalid shard should error",
@@ -948,45 +900,58 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.Config.VMOutputCacher.Type = "invalid"
 		testCreateWithArgs(t, args, "cache type")
 	})
-	t.Run("GetStorer ScheduledSCRsUnit fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		dataCompStub, ok := args.Data.(*testsMocks.DataComponentsStub)
-		require.True(t, ok)
-		store := args.Data.StorageService()
-		dataCompStub.Store = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType retriever.UnitType) (storage.Storer, error) {
-				if unitType == retriever.ScheduledSCRsUnit {
-					return nil, expectedErr
-				}
-				return store.GetStorer(unitType)
-			},
-		}
-		testCreateWithArgs(t, args, expectedErr.Error())
-	})
+	t.Run("GetStorer TxLogsUnit fails should error", testWithMissingStorer(0, retriever.ScheduledSCRsUnit))
 	t.Run("NewScheduledTxsExecution fails should error", testWithNilMarshaller(104, "Marshalizer"))
 	t.Run("NewESDTDataStorage fails should error", testWithNilMarshaller(105, "Marshalizer"))
 	t.Run("NewReceiptsRepository fails should error", testWithNilMarshaller(106, "marshalizer"))
 	t.Run("newBlockProcessor fails due to invalid shard should error",
 		testWithInvalidShard(31, "could not create block processor"))
-	t.Run("NewNodesSetupChecker fails should error", func(t *testing.T) {
+	t.Run("newShardBlockProcessor: NewESDTTransferParser fails should error",
+		testWithNilMarshaller(107, "marshaller"))
+	t.Run("newShardBlockProcessor: createBuiltInFunctionContainer fails should error",
+		testWithNilAddressPubKeyConv(46, "public key converter"))
+	t.Run("newShardBlockProcessor: createVMFactoryShard fails due to NewBlockChainHookImpl failure should error",
+		testWithNilAddressPubKeyConv(47, "pubkey converter"))
+	t.Run("newShardBlockProcessor: NewIntermediateProcessorsContainerFactory fails should error",
+		testWithNilMarshaller(110, "Marshalizer"))
+	t.Run("newShardBlockProcessor: NewTxTypeHandler fails should error",
+		testWithNilAddressPubKeyConv(49, "pubkey converter"))
+	t.Run("newShardBlockProcessor: NewGasComputation fails should error",
+		testWithNilEnableEpochsHandler(13, "enable epochs handler"))
+	t.Run("newShardBlockProcessor: NewSmartContractProcessor fails should error",
+		testWithNilAddressPubKeyConv(50, "pubkey converter"))
+	t.Run("newShardBlockProcessor: NewRewardTxProcessor fails should error",
+		testWithNilAddressPubKeyConv(51, "pubkey converter"))
+	t.Run("newShardBlockProcessor: NewTxProcessor fails should error",
+		testWithNilAddressPubKeyConv(52, "pubkey converter"))
+	t.Run("newShardBlockProcessor: createShardTxSimulatorProcessor fails due to NewIntermediateProcessorsContainerFactory failure should error",
+		testWithNilAddressPubKeyConv(53, "pubkey converter"))
+	t.Run("newShardBlockProcessor: createShardTxSimulatorProcessor fails due to createBuiltInFunctionContainer failure should error",
+		testWithNilAddressPubKeyConv(54, "public key converter"))
+	t.Run("newShardBlockProcessor: createOutportDataProvider fails due to missing TransactionUnit should error",
+		testWithMissingStorer(3, retriever.TransactionUnit))
+	t.Run("newShardBlockProcessor: createOutportDataProvider fails due to missing MiniBlockUnit should error",
+		testWithMissingStorer(4, retriever.MiniBlockUnit))
+	t.Run("newShardBlockProcessor: NewShardProcessor fails should error",
+		testWithNilEnableEpochsHandler(23, "enable epochs handler"))
+	t.Run("newShardBlockProcessor: attachProcessDebugger fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
-		pubKeyConv := args.CoreData.ValidatorPubKeyConverter()
-		cnt := 0
-		coreCompStub.ValidatorPubKeyConverterCalled = func() core.PubkeyConverter {
-			cnt++
-			if cnt > 5 {
-				return nil
-			}
-			return pubKeyConv
-		}
-		args.CoreData = coreCompStub
-		testCreateWithArgs(t, args, "pubkey converter")
+		args.Config.Debug.Process.Enabled = true
+		args.Config.Debug.Process.PollingTimeInSeconds = 0
+		testCreateWithArgs(t, args, "PollingTimeInSeconds")
 	})
+	t.Run("newShardBlockProcessor: NewBlockSizeComputation fails should error",
+		testWithNilMarshaller(116, "Marshalizer"))
+	t.Run("newShardBlockProcessor: NewPreProcessorsContainerFactory fails should error",
+		testWithNilMarshaller(117, "Marshalizer"))
+	t.Run("newShardBlockProcessor: NewPrintDoubleTransactionsDetector fails should error",
+		testWithNilMarshaller(118, "Marshalizer"))
+	t.Run("newShardBlockProcessor: NewTransactionCoordinator fails should error",
+		testWithNilMarshaller(119, "Marshalizer"))
+
+	t.Run("NewNodesSetupChecker fails should error", testWithNilPubKeyConv(5, "pubkey converter"))
 	t.Run("nodesSetupChecker.Check fails should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1227,6 +1192,7 @@ func testWithNilMarshaller(nilStep int, expectedErrSubstr string) func(t *testin
 		step := 0
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
 			step++
+			println(step)
 			if step > nilStep {
 				return nil
 			}
@@ -1234,6 +1200,94 @@ func testWithNilMarshaller(nilStep int, expectedErrSubstr string) func(t *testin
 		}
 		args.CoreData = coreCompStub
 		testCreateWithArgs(t, args, expectedErrSubstr)
+	}
+}
+
+func testWithNilPubKeyConv(nilStep int, expectedErrSubstr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		pubKeyConv := args.CoreData.ValidatorPubKeyConverter()
+		step := 0
+		coreCompStub.ValidatorPubKeyConverterCalled = func() core.PubkeyConverter {
+			step++
+			if step > nilStep {
+				return nil
+			}
+			return pubKeyConv
+		}
+		args.CoreData = coreCompStub
+		testCreateWithArgs(t, args, expectedErrSubstr)
+	}
+}
+
+func testWithNilAddressPubKeyConv(nilStep int, expectedErrSubstr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		pubKeyConv := args.CoreData.AddressPubKeyConverter()
+		step := 0
+		coreCompStub.AddressPubKeyConverterCalled = func() core.PubkeyConverter {
+			step++
+			println(step)
+			if step > nilStep {
+				return nil
+			}
+			return pubKeyConv
+		}
+		args.CoreData = coreCompStub
+		testCreateWithArgs(t, args, expectedErrSubstr)
+	}
+}
+
+func testWithNilEnableEpochsHandler(nilStep int, expectedErrSubstr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		enableEpochsHandler := coreCompStub.EnableEpochsHandler()
+		step := 0
+		coreCompStub.EnableEpochsHandlerCalled = func() common.EnableEpochsHandler {
+			step++
+			println(step)
+			if step > nilStep {
+				return nil
+			}
+			return enableEpochsHandler
+		}
+		args.CoreData = coreCompStub
+		testCreateWithArgs(t, args, expectedErrSubstr)
+	}
+}
+
+func testWithMissingStorer(failStep int, missingUnitType retriever.UnitType) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		args := createMockProcessComponentsFactoryArgs()
+		dataCompStub, ok := args.Data.(*testsMocks.DataComponentsStub)
+		require.True(t, ok)
+		store := args.Data.StorageService()
+		cnt := 0
+		dataCompStub.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType retriever.UnitType) (storage.Storer, error) {
+				if unitType == missingUnitType {
+					cnt++
+					println(cnt)
+					if cnt > failStep {
+						return nil, expectedErr
+					}
+				}
+				return store.GetStorer(unitType)
+			},
+		}
+		testCreateWithArgs(t, args, expectedErr.Error())
 	}
 }
 

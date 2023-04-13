@@ -436,13 +436,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	blockProcessorComponents := &blockProcessorAndVmFactories{
+	return &blockProcessorAndVmFactories{
 		blockProcessor:         blockProcessor,
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
 		vmFactoryForProcessing: vmFactory,
-	}
-
-	return blockProcessorComponents, nil
+	}, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
