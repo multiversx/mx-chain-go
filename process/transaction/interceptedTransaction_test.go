@@ -1394,7 +1394,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrNilValue, err)
+	assert.ErrorIs(t, err, data.ErrNilValue)
 
 	userTx.Value = big.NewInt(0)
 	userTxData, _ = marshalizer.Marshal(userTx)
@@ -1408,7 +1408,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, errSignerMockVerifySigFails, err)
+	assert.ErrorIs(t, err, errSignerMockVerifySigFails)
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1477,7 +1478,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, errSignerMockVerifySigFails, err)
+	assert.ErrorIs(t, err, errSignerMockVerifySigFails)
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1812,7 +1814,8 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
-		require.Equal(t, errSignerMockVerifySigFails, err)
+		require.ErrorIs(t, err, errSignerMockVerifySigFails)
+		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("normal TX with not empty guardian address", func(t *testing.T) {
 		tx := tx
@@ -1848,7 +1851,8 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
-		require.Equal(t, errSignerMockVerifySigFails, err)
+		require.ErrorIs(t, err, errSignerMockVerifySigFails)
+		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("correct guardian sig", func(t *testing.T) {
 		tx := tx
