@@ -909,6 +909,9 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 				})
 				return configBytes
 			}
+			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
+				return proposalIdentifier
+			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:           big.NewInt(10),
@@ -926,9 +929,7 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 
 	gsc, _ := NewGovernanceContract(args)
 
-	callInputArgs := [][]byte{
-		proposalIdentifier,
-	}
+	callInputArgs := [][]byte{{1}}
 
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
@@ -1072,6 +1073,9 @@ func TestGovernanceContract_CloseProposalAlreadyClosed(t *testing.T) {
 			retMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
+				return proposalIdentifier
+			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:    big.NewInt(10),
@@ -1087,9 +1091,7 @@ func TestGovernanceContract_CloseProposalAlreadyClosed(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInputArgs := [][]byte{
-		proposalIdentifier,
-	}
+	callInputArgs := [][]byte{{1}}
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
@@ -1110,6 +1112,9 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 			retMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
+				return proposalIdentifier
+			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:           big.NewInt(10),
@@ -1133,9 +1138,7 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInputArgs := [][]byte{
-		proposalIdentifier,
-	}
+	callInputArgs := [][]byte{{1}}
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
@@ -1156,6 +1159,9 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 			retMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
+				return proposalIdentifier
+			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:          big.NewInt(10),
@@ -1178,9 +1184,7 @@ func TestGovernanceContract_CloseProposalCallerNotIssuer(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInputArgs := [][]byte{
-		proposalIdentifier,
-	}
+	callInputArgs := [][]byte{{1}}
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
@@ -1201,6 +1205,9 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 			retMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
+				return proposalIdentifier
+			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
 					Yes:           big.NewInt(10),
@@ -1216,9 +1223,7 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 	}
 
 	gsc, _ := NewGovernanceContract(args)
-	callInputArgs := [][]byte{
-		proposalIdentifier,
-	}
+	callInputArgs := [][]byte{{1}}
 	callInput := createVMInput(zero, "closeProposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
