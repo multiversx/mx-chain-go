@@ -117,6 +117,7 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsMultiClaimOnDelegationEnabledField                         bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1012,6 +1013,14 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMultiClaimOnDelegationEnabledField
 }
 
 // IsInterfaceNil -
