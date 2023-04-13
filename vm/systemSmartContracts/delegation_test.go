@@ -919,7 +919,6 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, 6, len(vmOutput.OutputAccounts))
-	assert.Equal(t, 2, len(vmOutput.OutputAccounts[string(vm.StakingSCAddress)].OutputTransfers))
 
 	output = d.Execute(vmInput)
 	eei.gasRemaining = vmInput.GasProvided
@@ -4576,6 +4575,7 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	vmInput.CallerAddr = delegator
 
 	output = d.Execute(vmInput)
+	fmt.Println(eei.returnMessage)
 	assert.Equal(t, vmcommon.Ok, output)
 
 	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
@@ -4758,7 +4758,9 @@ func createDefaultEeiArgs() VMContextArgs {
 		InputParser:         parsers.NewCallArgsParser(),
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsMultiClaimOnDelegationEnabledField: true,
+		},
 	}
 }
 

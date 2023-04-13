@@ -118,6 +118,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
+	IsMultiClaimOnDelegationEnabledField                         bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1021,6 +1022,14 @@ func (stub *EnableEpochsHandlerStub) IsKeepExecOrderOnCreatedSCRsEnabled() bool 
 	defer stub.RUnlock()
 
 	return stub.IsKeepExecOrderOnCreatedSCRsEnabledField
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMultiClaimOnDelegationEnabledField
 }
 
 // IsInterfaceNil -

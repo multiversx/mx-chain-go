@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
@@ -31,11 +32,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDelegationSystemNodesOperationsTest(t *testing.T) {
+func TestDelegationSystemNodesOperationsTestBackwardComp(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
 		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &config.EnableEpochs{MultiClaimOnDelegationEnableEpoch: 5},
 	})
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
@@ -45,7 +47,7 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: integrationTests.UnreachableEpoch + 1,
+		EpochField: 3,
 	})
 
 	// create new delegation contract
@@ -69,6 +71,15 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, numExpectedScrsFound)
+
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 6,
+	})
+	scrsHandler.CreateBlockStarted()
+	// create new delegation contract
+	delegationScAddress = deployNewSc(t, tpn, maxDelegationCap, serviceFee, value, bytes.Repeat([]byte{1}, 32))
+	assert.NotNil(t, delegationScAddress)
+	assert.Equal(t, 0, len(scrsHandler.GetAllCurrentFinishedTxs()))
 }
 
 func TestDelegationSystemNodesOperations(t *testing.T) {

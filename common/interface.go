@@ -329,6 +329,7 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
+	IsMultiClaimOnDelegationEnabled() bool
 
 	IsInterfaceNil() bool
 }
