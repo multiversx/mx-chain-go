@@ -7,12 +7,13 @@ import (
 
 // StateComponentsMock -
 type StateComponentsMock struct {
-	PeersAcc        state.AccountsAdapter
-	Accounts        state.AccountsAdapter
-	AccountsAPI     state.AccountsAdapter
-	AccountsRepo    state.AccountsRepository
-	Tries           common.TriesHolder
-	StorageManagers map[string]common.StorageManager
+	PeersAcc                 state.AccountsAdapter
+	Accounts                 state.AccountsAdapter
+	AccountsAPI              state.AccountsAdapter
+	AccountsAdapterAPICalled func() state.AccountsAdapter
+	AccountsRepo             state.AccountsRepository
+	Tries                    common.TriesHolder
+	StorageManagers          map[string]common.StorageManager
 }
 
 // Create -
@@ -42,6 +43,9 @@ func (scm *StateComponentsMock) AccountsAdapter() state.AccountsAdapter {
 
 // AccountsAdapterAPI -
 func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
+	if scm.AccountsAdapterAPICalled != nil {
+		return scm.AccountsAdapterAPICalled()
+	}
 	return scm.AccountsAPI
 }
 
