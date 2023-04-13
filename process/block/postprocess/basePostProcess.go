@@ -20,11 +20,11 @@ var _ process.DataMarshalizer = (*basePostProcessor)(nil)
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
-	index           uint32
 }
 
 type txInfo struct {
-	tx data.TransactionHandler
+	tx    data.TransactionHandler
+	index uint32
 	*txShardInfo
 }
 
@@ -276,9 +276,9 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	sndShardID uint32,
 	rcvShardID uint32,
 ) {
-	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID, index: bpp.index}
+	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
+	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo, index: bpp.index}
 	bpp.index++
-	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
 	for key := range bpp.mapProcessedResult {

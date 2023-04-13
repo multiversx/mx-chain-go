@@ -688,7 +688,7 @@ func TestEnableEpochConfig(t *testing.T) {
     KeepExecOrderOnCreatedSCRsEnableEpoch = 64
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
-    MultiClaimOnDelegationEnableEpoch = 64
+    MultiClaimOnDelegationEnableEpoch = 65
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -786,7 +786,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
 			KeepExecOrderOnCreatedSCRsEnableEpoch:       64,
-			MultiClaimOnDelegationEnableEpoch:           64,
+			MultiClaimOnDelegationEnableEpoch:           65,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
