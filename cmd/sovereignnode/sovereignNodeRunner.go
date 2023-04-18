@@ -1,5 +1,8 @@
 package main
 
+// TODO: Add unit tests
+// TODO: Create a baseNodeRunner that uses common code from here and nodeRunner.go to avoid duplicated code
+
 import (
 	"fmt"
 	"io"
@@ -20,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -53,7 +55,6 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
-	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -94,14 +95,6 @@ func NewSovereignNodeRunner(cfgs *config.Configs) (*sovereignNodeRunner, error) 
 	return &sovereignNodeRunner{
 		configs: cfgs,
 	}, nil
-}
-
-func (snr *sovereignNodeRunner) getConsensusModel() consensus.ConsensusModel {
-	return consensus.ConsensusModelV2
-}
-
-func (snr *sovereignNodeRunner) getChainRunType() common.ChainRunType {
-	return common.ChainRunTypeSovereign
 }
 
 // Start creates and starts the managed components
@@ -508,15 +501,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		log.Debug("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(
-			managedStatusComponents.OutportHandler(),
-			nodesCoordinatorInstance,
-			managedProcessComponents.EpochStartTrigger().Epoch(),
-		)
-	}
-
 	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
 	allowExternalVMQueriesChan := make(chan struct{})
 
@@ -567,30 +551,6 @@ func addSyncersToAccountsDB(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 ) error {
-	selfId := bootstrapComponents.ShardCoordinator().SelfId()
-	if selfId == core.MetachainShardId {
-		stateSyncer, err := getValidatorAccountSyncer(
-			config,
-			coreComponents,
-			dataComponents,
-			stateComponents,
-			processComponents,
-		)
-		if err != nil {
-			return err
-		}
-
-		err = stateComponents.PeerAccounts().SetSyncer(stateSyncer)
-		if err != nil {
-			return err
-		}
-
-		err = stateComponents.PeerAccounts().StartSnapshotIfNeeded()
-		if err != nil {
-			return err
-		}
-	}
-
 	stateSyncer, err := getUserAccountSyncer(
 		config,
 		coreComponents,
@@ -642,31 +602,6 @@ func getUserAccountSyncer(
 	}
 
 	return syncer.NewUserAccountsSyncer(args)
-}
-
-func getValidatorAccountSyncer(
-	config *config.Config,
-	coreComponents mainFactory.CoreComponentsHolder,
-	dataComponents mainFactory.DataComponentsHolder,
-	stateComponents mainFactory.StateComponentsHolder,
-	processComponents mainFactory.ProcessComponentsHolder,
-) (process.AccountsDBSyncer, error) {
-	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
-	peerTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.PeerAccountTrie))
-	storageManager := peerTrie.GetStorageManager()
-
-	args := syncer.ArgsNewValidatorAccountsSyncer{
-		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
-			config,
-			coreComponents,
-			dataComponents,
-			processComponents,
-			storageManager,
-			maxTrieLevelInMemory,
-		),
-	}
-
-	return syncer.NewValidatorAccountsSyncer(args)
 }
 
 func getBaseAccountSyncerArgs(
@@ -877,8 +812,8 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        snr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        snr.getConsensusModel(),
-		ChainRunType:          snr.getChainRunType(),
+		ConsensusModel:        consensus.ConsensusModelV2,
+		ChainRunType:          common.ChainRunTypeSovereign,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1238,7 +1173,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
 		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
-		ChainRunType:           snr.getChainRunType(),
+		ChainRunType:           common.ChainRunTypeSovereign,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1370,7 +1305,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         snr.getChainRunType(),
+		ChainRunType:         common.ChainRunTypeSovereign,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1671,28 +1606,6 @@ func copySingleFile(folder string, configFile string) {
 	_, err = io.Copy(destination, source)
 	if err != nil {
 		log.Warn("copySingleFile", "Could not copy file", source.Name(), "error", err.Error())
-	}
-}
-
-func indexValidatorsListIfNeeded(
-	outportHandler outport.OutportHandler,
-	coordinator nodesCoordinator.NodesCoordinator,
-	epoch uint32,
-) {
-	if !outportHandler.HasDrivers() {
-		return
-	}
-
-	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(epoch)
-	if err != nil {
-		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
-	}
-
-	if len(validatorsPubKeys) > 0 {
-		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
-			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
-			Epoch:                  epoch,
-		})
 	}
 }
 
