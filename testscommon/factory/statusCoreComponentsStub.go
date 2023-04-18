@@ -14,6 +14,7 @@ type StatusCoreComponentsStub struct {
 	AppStatusHandlerField        core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
 	PersistentStatusHandlerField factory.PersistentStatusHandler
+	SCQueryServiceDebuggerField  factory.SCQueryServiceDebugger
 }
 
 // Create -
@@ -64,6 +65,11 @@ func (stub *StatusCoreComponentsStub) StatusMetrics() external.StatusMetricsHand
 // PersistentStatusHandler -
 func (stub *StatusCoreComponentsStub) PersistentStatusHandler() factory.PersistentStatusHandler {
 	return stub.PersistentStatusHandlerField
+}
+
+// SCQueryServiceDebugger -
+func (stub *StatusCoreComponentsStub) SCQueryServiceDebugger() factory.SCQueryServiceDebugger {
+	return stub.SCQueryServiceDebuggerField
 }
 
 // IsInterfaceNil -

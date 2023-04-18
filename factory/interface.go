@@ -150,6 +150,7 @@ type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
 	StatusMetrics() external.StatusMetricsHandler
 	PersistentStatusHandler() PersistentStatusHandler
+	SCQueryServiceDebugger() SCQueryServiceDebugger
 	IsInterfaceNil() bool
 }
 
@@ -535,3 +536,6 @@ type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
 }
+
+// SCQueryServiceDebugger defines the actions of a component that helps the debugging process on the SC query service sub-system
+type SCQueryServiceDebugger = process.SCQueryServiceDebugger

@@ -479,9 +479,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -538,6 +535,9 @@ var ErrNilStatusMetrics = errors.New("nil status metrics")
 
 // ErrNilPersistentHandler signals that a nil persistent handler was provided
 var ErrNilPersistentHandler = errors.New("nil persistent handler")
+
+// ErrNilDebugger signals that a nil debugger component has been provided
+var ErrNilDebugger = errors.New("nil debugger component")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

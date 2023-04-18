@@ -1306,3 +1306,11 @@ type Debugger interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// SCQueryServiceDebugger defines the actions of a component that helps the debugging process on the SC query service sub-system
+type SCQueryServiceDebugger interface {
+	NotifyExecutionStarted(index int)
+	NotifyExecutionFinished(index int)
+	Close() error
+	IsInterfaceNil() bool
+}

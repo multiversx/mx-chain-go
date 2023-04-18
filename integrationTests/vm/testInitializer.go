@@ -248,6 +248,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1471,6 +1472,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1521,6 +1523,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -34,6 +35,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 }
 
@@ -101,6 +103,29 @@ func TestNewSCQueryService_NilBootstrapperShouldErr(t *testing.T) {
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNilBootstrapper, err)
+}
+
+func TestNewSCQueryService_NilAllowExternalQueriesChan(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.AllowExternalQueriesChan = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilAllowExternalQueriesChan, err)
+}
+
+func TestNewSCQueryService_NilSCQueryDebugger(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.SCQueryDebugger = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.ErrorIs(t, err, process.ErrNilDebugger)
+	assert.Contains(t, err.Error(), "for NewSCQueryService, index 0")
 }
 
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
@@ -548,6 +573,22 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 			return uint64(math.MaxUint64)
 		},
 	}
+
+	mutMapDebuggerCalls := sync.RWMutex{}
+	mapDebuggerCalls := make(map[string]int)
+
+	argsNewSCQuery.SCQueryDebugger = &testscommon.SCQueryServiceDebuggerStub{
+		NotifyExecutionStartedCalled: func(index int) {
+			mutMapDebuggerCalls.Lock()
+			mapDebuggerCalls[fmt.Sprintf("%d started", index)]++
+			mutMapDebuggerCalls.Unlock()
+		},
+		NotifyExecutionFinishedCalled: func(index int) {
+			mutMapDebuggerCalls.Lock()
+			mapDebuggerCalls[fmt.Sprintf("%d finished", index)]++
+			mutMapDebuggerCalls.Unlock()
+		},
+	}
 	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	query := process.SCQuery{
@@ -561,6 +602,11 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 	_, err := target.ExecuteQuery(&query)
 	require.NoError(t, err)
 	require.True(t, callerAddressAndCallValueAreSet)
+
+	mutMapDebuggerCalls.RLock()
+	require.Equal(t, 1, mapDebuggerCalls["0 started"])
+	require.Equal(t, 1, mapDebuggerCalls["0 finished"])
+	mutMapDebuggerCalls.RUnlock()
 }
 
 func TestSCQueryService_ShouldFailIfNodeIsNotSynced(t *testing.T) {
@@ -746,6 +792,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             &mock.BootstrapperStub{},
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)

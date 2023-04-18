@@ -467,6 +467,7 @@ type DebugConfig struct {
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
 	Process             ProcessDebugConfig
+	SCQueryService      SCQueryServiceDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -517,6 +518,12 @@ type ProcessDebugConfig struct {
 	DebuggingLogLevel           string
 	PollingTimeInSeconds        int
 	RevertLogLevelTimeInSeconds int
+}
+
+// SCQueryServiceDebugConfig will hold the SC query service debug configuration
+type SCQueryServiceDebugConfig struct {
+	Enabled                    bool
+	IntervalAutoPrintInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

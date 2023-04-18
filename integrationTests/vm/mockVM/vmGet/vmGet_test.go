@@ -45,6 +45,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             disabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

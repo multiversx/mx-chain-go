@@ -91,6 +91,7 @@ type scQueryElementArgs struct {
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
 	index                 int
+	debugger              process.SCQueryServiceDebugger
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -98,13 +99,14 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
-		generalConfig:        args.Configs.GeneralConfig,
-		epochConfig:          args.Configs.EpochConfig,
-		coreComponents:       args.CoreComponents,
-		dataComponents:       args.DataComponents,
-		stateComponents:      args.StateComponents,
-		processComponents:    args.ProcessComponents,
-		statusCoreComponents: args.StatusCoreComponents, gasScheduleNotifier: args.GasScheduleNotifier,
+		generalConfig:         args.Configs.GeneralConfig,
+		epochConfig:           args.Configs.EpochConfig,
+		coreComponents:        args.CoreComponents,
+		dataComponents:        args.DataComponents,
+		stateComponents:       args.StateComponents,
+		processComponents:     args.ProcessComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
+		gasScheduleNotifier:   args.GasScheduleNotifier,
 		messageSigVerifier:    args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:        args.Configs.SystemSCConfig,
 		bootstrapper:          args.Bootstrapper,
@@ -300,6 +302,7 @@ func createScQueryService(
 		guardedAccountHandler: args.guardedAccountHandler,
 		allowVMQueriesChan:    args.allowVMQueriesChan,
 		index:                 0,
+		debugger:              args.statusCoreComponents.SCQueryServiceDebugger(),
 	}
 
 	var err error
@@ -466,6 +469,8 @@ func createScQueryElement(
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
 		MaxGasLimitPerQuery:      maxGasForVmQueries,
+		Index:                    args.index,
+		SCQueryDebugger:          args.debugger,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)

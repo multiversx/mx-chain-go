@@ -163,6 +163,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             disabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 

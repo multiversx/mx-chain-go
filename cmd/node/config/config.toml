@@ -809,6 +809,9 @@
         PollingTimeInSeconds = 240 # 4 minutes
         # setting this to 0 disables the automatic revert of the log level
         RevertLogLevelTimeInSeconds = 600 # 10 minutes
+    [Debug.SCQueryService]
+        Enabled = true
+        IntervalAutoPrintInSeconds = 20
 
 [Health]
     IntervalVerifyMemoryInSeconds = 30

@@ -93,6 +93,9 @@ func (mscc *managedStatusCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mscc.persistentHandler) {
 		return errors.ErrNilPersistentHandler
 	}
+	if check.IfNil(mscc.scQueryServiceDebugger) {
+		return fmt.Errorf("%w in managedStatusCoreComponents for scQueryServiceDebugger", errors.ErrNilDebugger)
+	}
 
 	return nil
 }
@@ -167,6 +170,18 @@ func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.Persi
 	}
 
 	return mscc.statusCoreComponents.persistentHandler
+}
+
+// SCQueryServiceDebugger returns the SC query service debugger instance
+func (mscc *managedStatusCoreComponents) SCQueryServiceDebugger() factory.SCQueryServiceDebugger {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.scQueryServiceDebugger
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

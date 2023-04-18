@@ -692,6 +692,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 			Bootstrapper:             tpn.Bootstrapper,
 			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+			SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	} else {
@@ -870,6 +871,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -887,6 +889,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          &testscommon.SCQueryServiceDebuggerStub{},
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -2312,7 +2315,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	txArgs := &external.ArgsCreateTransaction{
+	argsCreateTx := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         TestAddressPubkeyConverter.Encode(tx.RcvAddr),
@@ -2329,7 +2332,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		Guardian:         TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
-	tx, txHash, err := tpn.Node.CreateTransaction(txArgs)
+	tx, txHash, err := tpn.Node.CreateTransaction(argsCreateTx)
 	if err != nil {
 		return "", err
 	}

@@ -132,6 +132,10 @@ func TestTomlParser(t *testing.T) {
 				ExtraPrintsOnShuffleOut: true,
 				DoProfileOnShuffleOut:   true,
 			},
+			SCQueryService: SCQueryServiceDebugConfig{
+				Enabled:                    true,
+				IntervalAutoPrintInSeconds: 37,
+			},
 		},
 	}
 	testString := `
@@ -218,6 +222,9 @@ func TestTomlParser(t *testing.T) {
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+    [Debug.SCQueryService]
+        Enabled = true
+        IntervalAutoPrintInSeconds = 37
 `
 	cfg := Config{}
 

@@ -1,13 +1,17 @@
 package statusCore
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/machine"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/debug/scquery"
 	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -40,12 +44,13 @@ type statusCoreComponentsFactory struct {
 
 // statusCoreComponents is the DTO used for core components
 type statusCoreComponents struct {
-	resourceMonitor    factory.ResourceMonitor
-	networkStatistics  factory.NetworkStatisticsProvider
-	trieSyncStatistics factory.TrieSyncStatisticsProvider
-	appStatusHandler   core.AppStatusHandler
-	statusMetrics      external.StatusMetricsHandler
-	persistentHandler  factory.PersistentStatusHandler
+	resourceMonitor        factory.ResourceMonitor
+	networkStatistics      factory.NetworkStatisticsProvider
+	trieSyncStatistics     factory.TrieSyncStatisticsProvider
+	appStatusHandler       core.AppStatusHandler
+	statusMetrics          external.StatusMetricsHandler
+	persistentHandler      factory.PersistentStatusHandler
+	scQueryServiceDebugger factory.SCQueryServiceDebugger
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -103,13 +108,19 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
+	scQueryServiceDebugger, err := createSCQueryServiceDebugger(sccf.config)
+	if err != nil {
+		return nil, err
+	}
+
 	ssc := &statusCoreComponents{
-		resourceMonitor:    resourceMonitor,
-		networkStatistics:  netStats,
-		trieSyncStatistics: trieStatistics.NewTrieSyncStatistics(),
-		appStatusHandler:   appStatusHandler,
-		statusMetrics:      statusMetrics,
-		persistentHandler:  persistentStatusHandler,
+		resourceMonitor:        resourceMonitor,
+		networkStatistics:      netStats,
+		trieSyncStatistics:     trieStatistics.NewTrieSyncStatistics(),
+		appStatusHandler:       appStatusHandler,
+		statusMetrics:          statusMetrics,
+		persistentHandler:      persistentStatusHandler,
+		scQueryServiceDebugger: scQueryServiceDebugger,
 	}
 
 	return ssc, nil
@@ -161,22 +172,42 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 	return handler, statusMetrics, persistentHandler, nil
 }
 
+func createSCQueryServiceDebugger(config config.Config) (factory.SCQueryServiceDebugger, error) {
+	if !config.Debug.SCQueryService.Enabled {
+		return disabled.NewDisabledSCQueryServiceDebugger(), nil
+	}
+
+	args := scquery.ArgsSCQueryDebugger{
+		IntervalAutoPrintInSeconds: config.Debug.SCQueryService.IntervalAutoPrintInSeconds,
+		LoggerInstance:             logger.GetOrCreate("debug/scquery"),
+	}
+	return scquery.NewSCQueryDebugger(args)
+}
+
 // Close closes all underlying components
 func (scc *statusCoreComponents) Close() error {
-	var errNetStats error
-	var errResourceMonitor error
+	var err error
 	if !check.IfNil(scc.networkStatistics) {
-		errNetStats = scc.networkStatistics.Close()
+		errLocal := scc.networkStatistics.Close()
+		if errLocal != nil {
+			err = fmt.Errorf("%w when closing networkStatistics component", errLocal)
+		}
 	}
 	if !check.IfNil(scc.resourceMonitor) {
-		errResourceMonitor = scc.resourceMonitor.Close()
+		errLocal := scc.resourceMonitor.Close()
+		if errLocal != nil {
+			err = fmt.Errorf("%w when closing resourceMonitor component", errLocal)
+		}
+	}
+	if !check.IfNil(scc.scQueryServiceDebugger) {
+		errLocal := scc.scQueryServiceDebugger.Close()
+		if errLocal != nil {
+			err = fmt.Errorf("%w when closing scQueryServiceDebugger component", errLocal)
+		}
 	}
 	if !check.IfNil(scc.appStatusHandler) {
 		scc.appStatusHandler.Close()
 	}
 
-	if errNetStats != nil {
-		return errNetStats
-	}
-	return errResourceMonitor
+	return err
 }

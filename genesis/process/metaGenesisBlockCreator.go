@@ -537,6 +537,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		SCQueryDebugger:          disabled.NewDisabledSCQueryServiceDebugger(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {

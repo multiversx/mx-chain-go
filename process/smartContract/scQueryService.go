@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -31,6 +32,8 @@ type SCQueryService struct {
 	wasmVMChangeLocker       common.Locker
 	bootstrapper             process.Bootstrapper
 	allowExternalQueriesChan chan struct{}
+	index                    int
+	scQueryDebugger          process.SCQueryServiceDebugger
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -43,6 +46,8 @@ type ArgsNewSCQueryService struct {
 	Bootstrapper             process.Bootstrapper
 	AllowExternalQueriesChan chan struct{}
 	MaxGasLimitPerQuery      uint64
+	Index                    int
+	SCQueryDebugger          process.SCQueryServiceDebugger
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -70,6 +75,9 @@ func NewSCQueryService(
 	if args.AllowExternalQueriesChan == nil {
 		return nil, process.ErrNilAllowExternalQueriesChan
 	}
+	if check.IfNil(args.SCQueryDebugger) {
+		return nil, fmt.Errorf("%w for NewSCQueryService, index %d", process.ErrNilDebugger, args.Index)
+	}
 
 	gasForQuery := uint64(math.MaxUint64)
 	if args.MaxGasLimitPerQuery > 0 {
@@ -84,6 +92,8 @@ func NewSCQueryService(
 		bootstrapper:             args.Bootstrapper,
 		gasForQuery:              gasForQuery,
 		allowExternalQueriesChan: args.AllowExternalQueriesChan,
+		index:                    args.Index,
+		scQueryDebugger:          args.SCQueryDebugger,
 	}, nil
 }
 
@@ -118,6 +128,9 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
 	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
+
+	service.scQueryDebugger.NotifyExecutionStarted(service.index)
+	defer service.scQueryDebugger.NotifyExecutionFinished(service.index)
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
