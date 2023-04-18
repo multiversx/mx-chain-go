@@ -231,7 +231,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 
 		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/addr"), nil)
+		req, _ := http.NewRequest("GET", "/address/addr", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
