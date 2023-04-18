@@ -31,6 +31,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/multiversx/mx-chain-vm-go/vmhost/contexts"
 )
 
@@ -424,6 +425,12 @@ func (sc *scProcessor) executeSmartContractCall(
 		failureContext.setMessages(err.Error(), []byte(""))
 		return userErrorVmOutput, nil
 	}
+
+	if (vmInput.CallType == vmData.AsynchronousCall || vmInput.CallType == vmData.AsynchronousCallBack) &&
+		sc.isMultiLevelAsync(vmOutput) {
+		return nil, vmhost.ErrAsyncNoMultiLevel
+	}
+
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -438,6 +445,17 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	return vmOutput, nil
+}
+
+func (sc *scProcessor) isMultiLevelAsync(vmOutput *vmcommon.VMOutput) bool {
+	for _, outputAcc := range vmOutput.OutputAccounts {
+		for _, outTransfer := range outputAcc.OutputTransfers {
+			if outTransfer.CallType == vmData.AsynchronousCall {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler) bool {
