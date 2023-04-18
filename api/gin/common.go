@@ -40,7 +40,7 @@ func checkArgs(args ArgsNewWebServer) error {
 	}
 
 	if check.IfNil(args.Facade) {
-		return errHandler("nil facade")
+		return errHandler(apiErrors.ErrNilFacadeHandler.Error())
 	}
 
 	return nil

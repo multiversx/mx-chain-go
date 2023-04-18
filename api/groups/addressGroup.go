@@ -297,7 +297,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
+		shared.RespondWithValidationError(c, errors.ErrGetValueForKey, err)
 		return
 	}
 
@@ -424,30 +424,30 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyAddress)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTTokensWithRole, errors.ErrEmptyAddress)
 		return
 	}
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTTokensWithRole, err)
 		return
 	}
 
 	role := c.Param("role")
 	if role == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyRole)
+		shared.RespondWithValidationError(c, errors.ErrGetESDTTokensWithRole, errors.ErrEmptyRole)
 		return
 	}
 
 	if !core.IsValidESDTRole(role) {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, fmt.Errorf("invalid role: %s", role))
+		shared.RespondWithValidationError(c, errors.ErrGetESDTTokensWithRole, fmt.Errorf("invalid role: %s", role))
 		return
 	}
 
 	tokens, blockInfo, err := ag.getFacade().GetESDTsWithRole(addr, role, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithInternalError(c, errors.ErrGetESDTTokensWithRole, err)
 		return
 	}
 
@@ -458,19 +458,19 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyAddress)
+		shared.RespondWithValidationError(c, errors.ErrNFTTokenIDsRegistered, errors.ErrEmptyAddress)
 		return
 	}
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithValidationError(c, errors.ErrNFTTokenIDsRegistered, err)
 		return
 	}
 
 	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithInternalError(c, errors.ErrNFTTokenIDsRegistered, err)
 		return
 	}
 

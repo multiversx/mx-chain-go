@@ -153,3 +153,9 @@ var ErrFetchingNonceGapsCannotIncludeFields = errors.New("fetching nonce gaps ca
 
 // ErrInvalidFields signals that invalid fields were provided
 var ErrInvalidFields = errors.New("invalid fields")
+
+// ErrGetESDTTokensWithRole signals an error in getting the esdt tokens with the given role for given address
+var ErrGetESDTTokensWithRole = errors.New("getting esdt tokens with role error")
+
+// ErrNFTTokenIDsRegistered signals an error in getting the nft token ids registered by the given address
+var ErrNFTTokenIDsRegistered = errors.New("getting nft token ids registered error")
