@@ -31,14 +31,14 @@ func TestScDeploy(t *testing.T) {
 	relayedTxEnableEpoch := uint32(0)
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
-	scV2EnableEpoch := integrationTests.UnreachableEpoch
+	scProcessorV2EnableEpoch := integrationTests.UnreachableEpoch
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.BuiltInFunctionOnMetaEnableEpoch = builtinEnableEpoch
 	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
-	enableEpochs.SCProcessorV2EnableEpoch = scV2EnableEpoch
+	enableEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnableEpoch
 
 	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,

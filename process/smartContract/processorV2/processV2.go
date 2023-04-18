@@ -385,7 +385,7 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 func (sc *scProcessor) executeSmartContractCall(
 	vmInput *vmcommon.ContractCallInput,
 	tx data.TransactionHandler,
-	txHash []byte,
+	_ []byte,
 	acntSnd, acntDst state.UserAccountHandler,
 	failureContext *failureContext,
 ) (*vmcommon.VMOutput, error) {
@@ -809,9 +809,9 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 }
 
 func (sc *scProcessor) resolveFailedTransaction(
-	acntSnd state.UserAccountHandler,
+	_ state.UserAccountHandler,
 	tx data.TransactionHandler,
-	txHash []byte,
+	_ []byte,
 ) error {
 	if _, ok := tx.(*transaction.Transaction); ok {
 		err := sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
@@ -1082,15 +1082,15 @@ func (sc *scProcessor) createAsyncCallBackSCR(inputForCallback *inputDataForCall
 }
 
 func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.AsyncArguments, []byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
+	function, args, err := sc.argsParser.ParseCallData(data)
 	dataAsString := function
 	if err != nil {
-		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
+		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
 		return nil, nil, err
 	}
 
 	if len(args) < 2 {
-		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
+		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
 		return nil, nil, err
 	}
 
