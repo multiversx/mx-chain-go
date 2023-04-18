@@ -583,7 +583,8 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.OutOfGas
 	}
 
-	generalProposal, err := g.getProposalFromNonce(big.NewInt(0).SetBytes(args.Arguments[0]))
+	nonce := big.NewInt(0).SetBytes(args.Arguments[0])
+	generalProposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
 		g.eei.AddReturnMessage("getGeneralProposal error " + err.Error())
 		return vmcommon.UserError

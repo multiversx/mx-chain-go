@@ -1758,3 +1758,35 @@ func TestComputeEndResults(t *testing.T) {
 	require.Equal(t, "Proposal passed", retMessage)
 	require.True(t, pass.Passed)
 }
+
+func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
+	t.Parallel()
+
+	callerAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	gsc, blockchainHook, _ := createGovernanceBlockChainHookStubContextHandler()
+
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		big.NewInt(50).Bytes(),
+		big.NewInt(55).Bytes(),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	currentEpoch := uint32(52)
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return currentEpoch
+	}
+
+	callInput = createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, [][]byte{big.NewInt(1).Bytes(), []byte("yes")})
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	currentEpoch = 56
+	callInput = createVMInput(big.NewInt(0), "closeProposal", callerAddress, vm.GovernanceSCAddress, [][]byte{big.NewInt(1).Bytes()})
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
