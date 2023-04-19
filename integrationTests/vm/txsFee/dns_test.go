@@ -351,11 +351,13 @@ func scrToString(scr *smartContractResult.SmartContractResult) string {
 
 	hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, scr)
 
+	rcv, _ := integrationTests.TestAddressPubkeyConverter.Encode(scr.RcvAddr)
+	snd, _ := integrationTests.TestAddressPubkeyConverter.Encode(scr.SndAddr)
 	return fmt.Sprintf("hash: %s, nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
 		hex.EncodeToString(hash),
 		scr.Nonce, scr.Value.String(),
-		integrationTests.TestAddressPubkeyConverter.Encode(scr.RcvAddr),
-		integrationTests.TestAddressPubkeyConverter.Encode(scr.SndAddr),
+		rcv,
+		snd,
 		scr.GasLimit, scr.GasPrice, data,
 	)
 }
@@ -367,12 +369,13 @@ func txToString(tx *transaction.Transaction) string {
 	}
 
 	hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
-
+	rcv, _ := integrationTests.TestAddressPubkeyConverter.Encode(tx.RcvAddr)
+	snd, _ := integrationTests.TestAddressPubkeyConverter.Encode(tx.SndAddr)
 	return fmt.Sprintf("hash: %s, nonce: %d, value: %s, rcvAddr: %s, sender: %s, gasLimit: %d, gasPrice: %d, data: %s",
 		hex.EncodeToString(hash),
 		tx.Nonce, tx.Value.String(),
-		integrationTests.TestAddressPubkeyConverter.Encode(tx.RcvAddr),
-		integrationTests.TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		rcv,
+		snd,
 		tx.GasLimit, tx.GasPrice, data,
 	)
 }
