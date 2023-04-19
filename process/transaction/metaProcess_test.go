@@ -2,6 +2,9 @@ package transaction_test
 
 import (
 	"bytes"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
 	"math/big"
 	"testing"
 
@@ -445,4 +448,43 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	assert.Nil(t, err)
 	assert.True(t, builtInCalled)
 	assert.Equal(t, 0, saveAccountCalled)
+}
+
+func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = bytes.Repeat([]byte{1}, 32)
+	tx.RcvAddr = vm.GovernanceSCAddress
+	tx.RcvUserName = []byte("username")
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	called := false
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntDst, acntDst)
+	scProcessor := &testscommon.SCProcessorMock{
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+			called = true
+			return nil
+		},
+	}
+
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessor
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
+
+	err = txProc.VerifyTransaction(tx)
+	assert.Equal(t, err, process.ErrUserNameDoesNotMatchInCrossShardTx)
+
+	returnCode, err := txProc.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, called)
 }

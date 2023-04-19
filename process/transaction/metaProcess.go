@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"errors"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -108,6 +109,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return 0, errProcessIfErr
+			}
+			return vmcommon.UserError, nil
+		}
 		return 0, err
 	}
 
