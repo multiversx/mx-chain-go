@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -160,7 +159,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			return errors.ErrContextClosing
+			return core.ErrContextClosing
 		}
 	}
 }

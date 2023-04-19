@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -143,8 +144,8 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if core.IsGetNodeFromDBError(err) {
-		getNodeErr, ok := err.(getKeyHandler)
-		if !ok {
+		getNodeErr := unwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
 			return err
 		}
 
@@ -153,6 +154,21 @@ func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func unwrapGetNodeFromDBErr(wrappedErr error) getKeyHandler {
+	errWithKeyHandler, ok := wrappedErr.(getKeyHandler)
+	for !ok {
+		if wrappedErr == nil {
+			return nil
+		}
+
+		err := errors.Unwrap(wrappedErr)
+		errWithKeyHandler, ok = err.(getKeyHandler)
+		wrappedErr = err
+	}
+
+	return errWithKeyHandler
 }
 
 // Close closes the synchronization loop

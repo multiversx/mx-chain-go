@@ -2026,10 +2026,6 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
-
-		if core.IsGetNodeFromDBError(err) {
-			return nil, nil, err
-		}
 	}
 	if createAndProcessMBsDestMeInfo != nil {
 		processedMiniBlocksDestMeInfo = createAndProcessMBsDestMeInfo.allProcessedMiniBlocksInfo

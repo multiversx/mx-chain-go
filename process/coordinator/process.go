@@ -720,10 +720,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"error", errProc,
 			)
 
-			if core.IsGetNodeFromDBError(errProc) {
-				return nil, 0, false, err
-			}
-
 			continue
 		}
 

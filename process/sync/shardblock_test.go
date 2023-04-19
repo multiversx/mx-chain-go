@@ -2156,3 +2156,23 @@ func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 	bootstrapper := &sync.ShardBootstrap{}
 	assert.Nil(t, bootstrapper.Close())
 }
+
+func TestUnwrapGetNodeFromDBErr(t *testing.T) {
+	t.Parallel()
+
+	key := []byte("key")
+	identifier := "identifier"
+	err := fmt.Errorf("key not found")
+
+	getNodeFromDbErr := commonErrors.NewGetNodeFromDBErrWithKey(key, err, identifier)
+	wrappedErr1 := fmt.Errorf("wrapped error 1: %w", getNodeFromDbErr)
+	wrappedErr2 := fmt.Errorf("wrapped error 2: %w", wrappedErr1)
+	wrappedErr3 := fmt.Errorf("wrapped error 3: %w", wrappedErr2)
+
+	assert.Nil(t, sync.UnwrapGetNodeFromDBErr(nil))
+	assert.Nil(t, sync.UnwrapGetNodeFromDBErr(err))
+	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(getNodeFromDbErr))
+	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr1))
+	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr2))
+	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr3))
+}

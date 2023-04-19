@@ -288,3 +288,8 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
 }
+
+// UnwrapGetNodeFromDBErr -
+func UnwrapGetNodeFromDBErr(wrappedErr error) getKeyHandler {
+	return unwrapGetNodeFromDBErr(wrappedErr)
+}

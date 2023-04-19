@@ -3,7 +3,8 @@ package errors
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // GetNodeFromDBErrWithKey defines a custom error for trie get node
@@ -13,7 +14,7 @@ type GetNodeFromDBErrWithKey struct {
 	dbIdentifier string
 }
 
-// NewGetNodeFromDBErrWithKey will create a new instance of GetNodeFromDBErr
+// NewGetNodeFromDBErrWithKey will create a new instance of GetNodeFromDBErrWithKey
 func NewGetNodeFromDBErrWithKey(key []byte, err error, id string) *GetNodeFromDBErrWithKey {
 	return &GetNodeFromDBErrWithKey{
 		getErr:       err,
@@ -26,7 +27,7 @@ func NewGetNodeFromDBErrWithKey(key []byte, err error, id string) *GetNodeFromDB
 func (e *GetNodeFromDBErrWithKey) Error() string {
 	return fmt.Sprintf(
 		"%s: %s for key %v",
-		common.GetNodeFromDBErrorString,
+		core.GetNodeFromDBErrorString,
 		e.getErr.Error(),
 		hex.EncodeToString(e.key),
 	)

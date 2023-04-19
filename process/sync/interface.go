@@ -32,6 +32,7 @@ type forkDetector interface {
 
 // getKeyHandler defines the behaviour of a component that can provide a trie node key and identifier
 type getKeyHandler interface {
+	Error() string
 	GetKey() []byte
 	GetIdentifier() string
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -17,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
@@ -292,7 +292,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		return trieForShard, nil
 	}
 
-	trieStorageManager := si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
+	trieStorageManager := si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	if accType == ValidatorAccount {
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}

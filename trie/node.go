@@ -120,12 +120,12 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
+		log.Trace(core.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
 
 		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
 		if !ok {
-			log.Warn("db does not have an identifier", "db type", fmt.Sprintf("%T", db))
-			return nil, errors.NewGetNodeFromDBErrWithKey(n, err, "")
+			getNodeFromDbErr := errors.NewGetNodeFromDBErrWithKey(n, err, "")
+			return nil, fmt.Errorf("db does not have an identifier, db type: %T, error: %w", db, getNodeFromDbErr)
 		}
 
 		return nil, errors.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())

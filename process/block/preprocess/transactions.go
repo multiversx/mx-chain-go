@@ -1089,11 +1089,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 
 	if err != nil {
 		log.Debug("createAndProcessMiniBlocksFromMe", "error", err.Error())
-
-		if core.IsGetNodeFromDBError(err) {
-			return nil, err
-		}
-
 		return make(block.MiniBlockSlice, 0), nil
 	}
 

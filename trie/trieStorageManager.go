@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -176,7 +175,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	val, err := tsm.mainStorer.Get(key)
@@ -197,7 +196,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
 		tsm.storageOperationMutex.Unlock()
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -232,7 +231,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	return tsm.mainStorer.Put(key, val)
@@ -246,7 +245,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 	if tsm.closed {
 		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -265,7 +264,7 @@ func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, ep
 
 	if tsm.closed {
 		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -533,7 +532,7 @@ func newSnapshotNode(
 ) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
-		if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+		if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
 			treatCommitSnapshotError(err, rootHash, missingNodesCh)
 		}
 		return nil, err
