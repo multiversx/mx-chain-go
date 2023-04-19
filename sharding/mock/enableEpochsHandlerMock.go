@@ -566,6 +566,11 @@ func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
 }
 
+// IsMultiClaimOnDelegationEnabled -
+func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
+	return false
+}
+
 // IsChangeUsernameEnabled -
 func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
 	return false

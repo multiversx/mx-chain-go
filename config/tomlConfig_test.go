@@ -611,7 +611,7 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
-
+	
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     MetaESDTSetEnableEpoch = 40
 
@@ -684,6 +684,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
+    MultiClaimOnDelegationEnableEpoch = 64
+
     # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
     ChangeUsernameEnableEpoch = 64
 
@@ -697,7 +700,7 @@ func TestEnableEpochConfig(t *testing.T) {
         {EnableEpoch = 0, Type = "no-KOSK"},
         {EnableEpoch = 3, Type = "KOSK"}
     ]
-
+	
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -782,6 +785,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
+			MultiClaimOnDelegationEnableEpoch:           64,
 			ChangeUsernameEnableEpoch:                   64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{

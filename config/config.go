@@ -48,6 +48,7 @@ type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
+	Hrp             string
 }
 
 // TypeConfig will map the string type configuration
@@ -318,6 +319,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
 	GetAddressesBulkMaxSize            uint32
+	VmQueryDelayAfterStartInSec        uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 

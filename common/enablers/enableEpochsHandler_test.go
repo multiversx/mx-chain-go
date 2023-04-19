@@ -91,6 +91,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		RuntimeCodeSizeFixEnableEpoch:                     77,
+		MultiClaimOnDelegationEnableEpoch:                 78,
 		ChangeUsernameEnableEpoch:                         78,
 	}
 }
@@ -214,6 +215,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
+		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.False(t, handler.IsChangeUsernameEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {

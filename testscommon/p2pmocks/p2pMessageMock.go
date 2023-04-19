@@ -1,20 +1,22 @@
-package mock
+package p2pmocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // P2PMessageMock -
 type P2PMessageMock struct {
-	FromField      []byte
-	DataField      []byte
-	SeqNoField     []byte
-	TopicField     string
-	SignatureField []byte
-	KeyField       []byte
-	PeerField      core.PeerID
-	PayloadField   []byte
-	TimestampField int64
+	FromField            []byte
+	DataField            []byte
+	SeqNoField           []byte
+	TopicField           string
+	SignatureField       []byte
+	KeyField             []byte
+	PeerField            core.PeerID
+	PayloadField         []byte
+	TimestampField       int64
+	BroadcastMethodField p2p.BroadcastMethod
 }
 
 // From -
@@ -60,6 +62,11 @@ func (msg *P2PMessageMock) Timestamp() int64 {
 // Payload -
 func (msg *P2PMessageMock) Payload() []byte {
 	return msg.PayloadField
+}
+
+// BroadcastMethod -
+func (msg *P2PMessageMock) BroadcastMethod() p2p.BroadcastMethod {
+	return msg.BroadcastMethodField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
