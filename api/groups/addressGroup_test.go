@@ -1018,7 +1018,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 	})
 }
 
-func TestAddressGroup_UpdateFacadeStub(t *testing.T) {
+func TestAddressGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil facade should error", func(t *testing.T) {
@@ -1068,12 +1068,12 @@ func TestAddressGroup_UpdateFacadeStub(t *testing.T) {
 		assert.Equal(t, roles, response.Data.Roles)
 
 		newErr := errors.New("new error")
-		newFacadeStub := mock.FacadeStub{
+		newFacade := mock.FacadeStub{
 			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return nil, api.BlockInfo{}, newErr
 			},
 		}
-		err = addrGroup.UpdateFacade(&newFacadeStub)
+		err = addrGroup.UpdateFacade(&newFacade)
 		require.NoError(t, err)
 
 		req, _ = http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts/roles", testAddress), nil)
