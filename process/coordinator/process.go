@@ -85,7 +85,7 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock           func(shardId uint32, mbHash []byte)
+	onRequestMiniBlocks          func(shardId uint32, mbHashes [][]byte)
 	gasHandler                   process.GasHandler
 	feeHandler                   process.TransactionFeeHandler
 	blockSizeComputation         preprocess.BlockSizeComputationHandler
@@ -126,7 +126,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
-	tc.onRequestMiniBlock = args.RequestHandler.RequestMiniBlock
+	tc.onRequestMiniBlocks = args.RequestHandler.RequestMiniBlocks
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
@@ -604,6 +604,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
 
+	tc.requestMissingMiniBlocks(finalCrossMiniBlockInfos)
+
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
@@ -643,7 +645,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
-			go tc.onRequestMiniBlock(miniBlockInfo.SenderShardID, miniBlockInfo.Hash)
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
 				"scheduled mode", scheduledMode,
@@ -746,6 +747,26 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	}
 
 	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
+}
+
+func (tc *transactionCoordinator) requestMissingMiniBlocks(mbsInfo []*data.MiniBlockInfo) {
+	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
+
+	for _, mbInfo := range mbsInfo {
+		_, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
+		if !isMiniBlockFound {
+			log.Trace("transactionCoordinator.requestMissingMiniBlocks: mini block not found and was requested",
+				"sender shard", mbInfo.SenderShardID,
+				"hash", mbInfo.Hash,
+				"round", mbInfo.Round,
+			)
+			mapMissingMiniBlocksPerShard[mbInfo.SenderShardID] = append(mapMissingMiniBlocksPerShard[mbInfo.SenderShardID], mbInfo.Hash)
+		}
+	}
+
+	for senderShardID, mbsHashes := range mapMissingMiniBlocksPerShard {
+		go tc.onRequestMiniBlocks(senderShardID, mbsHashes)
+	}
 }
 
 func initMiniBlockDestMeExecutionInfo() *createMiniBlockDestMeExecutionInfo {
@@ -1084,13 +1105,18 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 
 	tc.requestedItemsHandler.Sweep()
 
+	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
 	finalCrossMiniBlockHashes := tc.getFinalCrossMiniBlockHashes(header)
 	for key, senderShardId := range finalCrossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
 		if obj == nil {
-			go tc.onRequestMiniBlock(senderShardId, []byte(key))
+			mapMissingMiniBlocksPerShard[senderShardId] = append(mapMissingMiniBlocksPerShard[senderShardId], []byte(key))
 			_ = tc.requestedItemsHandler.Add(key)
 		}
+	}
+
+	for senderShardID, mbsHashes := range mapMissingMiniBlocksPerShard {
+		go tc.onRequestMiniBlocks(senderShardID, mbsHashes)
 	}
 }
 
