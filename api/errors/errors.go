@@ -157,5 +157,5 @@ var ErrInvalidFields = errors.New("invalid fields")
 // ErrGetESDTTokensWithRole signals an error in getting the esdt tokens with the given role for given address
 var ErrGetESDTTokensWithRole = errors.New("getting esdt tokens with role error")
 
-// ErrNFTTokenIDsRegistered signals an error in getting the nft token ids registered by the given address
-var ErrNFTTokenIDsRegistered = errors.New("getting nft token ids registered error")
+// ErrRegisteredNFTTokenIDs signals an error in getting the registered nft token ids by the given address
+var ErrRegisteredNFTTokenIDs = errors.New("getting registered nft token ids error")

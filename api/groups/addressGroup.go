@@ -458,19 +458,19 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrNFTTokenIDsRegistered, errors.ErrEmptyAddress)
+		shared.RespondWithValidationError(c, errors.ErrRegisteredNFTTokenIDs, errors.ErrEmptyAddress)
 		return
 	}
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrNFTTokenIDsRegistered, err)
+		shared.RespondWithValidationError(c, errors.ErrRegisteredNFTTokenIDs, err)
 		return
 	}
 
 	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrNFTTokenIDsRegistered, err)
+		shared.RespondWithInternalError(c, errors.ErrRegisteredNFTTokenIDs, err)
 		return
 	}
 

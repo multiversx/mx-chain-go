@@ -851,10 +851,10 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	t.Run("empty address should error",
 		testErrorScenario("/address//registered-nfts", nil,
-			formatExpectedErr(apiErrors.ErrNFTTokenIDsRegistered, apiErrors.ErrEmptyAddress)))
+			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
 		testErrorScenario("/address/erd1alice/registered-nfts?blockNonce=not-uint64", nil,
-			formatExpectedErr(apiErrors.ErrNFTTokenIDsRegistered, apiErrors.ErrBadUrlParams)))
+			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 
@@ -869,7 +869,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 			"/address/erd1alice/registered-nfts",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrNFTTokenIDsRegistered, expectedErr),
+			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, expectedErr),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
