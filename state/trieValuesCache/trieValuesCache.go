@@ -51,10 +51,10 @@ func (tvc *trieValuesCache) Get(key []byte) (core.TrieData, bool) {
 
 // Clean removes all entries from the cache
 func (tvc *trieValuesCache) Clean() {
+	log.Trace("trieValuesCache cleaned", "numEntries before clean", tvc.numEntries)
+
 	tvc.cache = make(map[string]core.TrieData)
 	tvc.numEntries = 0
-
-	log.Trace("trieValuesCache cleaned", "numEntries", tvc.numEntries)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

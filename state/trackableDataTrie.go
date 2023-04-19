@@ -70,7 +70,7 @@ func NewTrackableDataTrie(
 func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	// search in dirty data cache
 	if dataEntry, found := tdaw.dirtyData[string(key)]; found {
-		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value)
+		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdaw.identifier)
 		return dataEntry.value, 0, nil
 	}
 
@@ -78,7 +78,7 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 	entry, ok := tdaw.trieValuesCache.Get(key)
 	if ok {
 		val, err := tdaw.getValueWithoutMetadata(key, entry)
-		log.Trace("retrieve value from trie values cache", "key", key, "value", val)
+		log.Trace("retrieve value from trie values cache", "key", key, "value", val, "account", tdaw.identifier)
 		return val, 0, err
 	}
 
@@ -97,7 +97,7 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 		return nil, depth, err
 	}
 
-	log.Trace("retrieve value from trie", "key", key, "value", val)
+	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdaw.identifier)
 
 	return val, depth, nil
 }
@@ -277,8 +277,11 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 func (tdaw *trackableDataTrie) getOldValue(key []byte) (core.TrieData, error) {
 	entry, ok := tdaw.trieValuesCache.Get(key)
 	if ok {
+		log.Trace("trieValuesCache hit", "key", key, "account", tdaw.identifier)
 		return entry, nil
 	}
+
+	log.Trace("trieValuesCache miss", "key", key, "account", tdaw.identifier)
 
 	val, _, err := tdaw.retrieveValueFromTrieAndUpdateCache(key, trieValuesCache.NewDisabledTrieValuesCache())
 	return val, err
