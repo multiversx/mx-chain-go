@@ -21,7 +21,6 @@ type BlockProcessorMock struct {
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error

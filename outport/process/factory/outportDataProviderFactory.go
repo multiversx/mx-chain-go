@@ -64,6 +64,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		TransactionsStorer: arg.TransactionsStorer,
 		ShardCoordinator:   arg.ShardCoordinator,
 		TxFeeCalculator:    arg.EconomicsData,
+		PubKeyConverter:    arg.AddressConverter,
 	})
 	if err != nil {
 		return nil, err

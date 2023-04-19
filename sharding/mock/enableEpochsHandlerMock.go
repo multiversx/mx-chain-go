@@ -546,6 +546,11 @@ func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
 	return false
 }
 
+// IsRuntimeCodeSizeFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRuntimeCodeSizeFixEnabled() bool {
+	return false
+}
+
 // IsMaxBlockchainHookCountersFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	return false
@@ -558,6 +563,11 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 
 // IsAlwaysSaveTokenMetaDataEnabled -
 func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
 	return false
 }
 

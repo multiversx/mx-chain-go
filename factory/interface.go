@@ -184,7 +184,9 @@ type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
 	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
-	ConsensusSigHandler() consensus.SignatureHandler
+	ConsensusSigningHandler() consensus.SigningHandler
+	ManagedPeersHolder() common.ManagedPeersHolder
+	KeysHandler() consensus.KeysHandler
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -192,6 +194,8 @@ type CryptoComponentsHolder interface {
 // KeyLoaderHandler defines the loading of a key from a pem file and index
 type KeyLoaderHandler interface {
 	LoadKey(string, int) ([]byte, string, error)
+	LoadAllKeys(path string) ([][]byte, []string, error)
+	IsInterfaceNil() bool
 }
 
 // CryptoComponentsHandler defines the crypto components handler actions
@@ -243,6 +247,7 @@ type NetworkComponentsHolder interface {
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
+	PeersRatingMonitor() p2p.PeersRatingMonitor
 	IsInterfaceNil() bool
 }
 
