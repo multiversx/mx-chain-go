@@ -75,7 +75,7 @@ const DNSV2Address = "erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4h
 const DNSV2DeployerAddress = "erd1uzk2g5rhvg8prk9y50d0q7qsxg7tm7f320q0q4qlpmfu395wjmdqqy0n9q"
 
 // TestAddressPubkeyConverter represents an address public key converter
-var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 // TODO: Merge test utilities from this file with the ones from "wasmvm/utils.go"
 
