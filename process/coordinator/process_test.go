@@ -4401,8 +4401,11 @@ func TestTransactionCoordinator_requestMissingMiniBlocksShouldWork(t *testing.T)
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 	mapRequestedMiniBlocksPerShard := make(map[uint32]int)
+	mutMap := sync.RWMutex{}
 	tc.onRequestMiniBlocks = func(shardId uint32, mbHashes [][]byte) {
+		mutMap.Lock()
 		mapRequestedMiniBlocksPerShard[shardId] += len(mbHashes)
+		mutMap.Unlock()
 		wg.Done()
 	}
 
@@ -4422,7 +4425,9 @@ func TestTransactionCoordinator_requestMissingMiniBlocksShouldWork(t *testing.T)
 
 	wg.Wait()
 
+	mutMap.RLock()
 	assert.Equal(t, 3, mapRequestedMiniBlocksPerShard[0])
 	assert.Equal(t, 2, mapRequestedMiniBlocksPerShard[1])
 	assert.Equal(t, 1, mapRequestedMiniBlocksPerShard[2])
+	mutMap.RUnlock()
 }
