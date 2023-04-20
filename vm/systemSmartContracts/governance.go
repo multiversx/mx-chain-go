@@ -583,8 +583,8 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.OutOfGas
 	}
 
-	proposal := args.Arguments[0]
-	generalProposal, err := g.getGeneralProposal(proposal)
+	nonce := big.NewInt(0).SetBytes(args.Arguments[0])
+	generalProposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
 		g.eei.AddReturnMessage("getGeneralProposal error " + err.Error())
 		return vmcommon.UserError
@@ -611,7 +611,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	err = g.saveGeneralProposal(proposal, generalProposal)
+	err = g.saveGeneralProposal(generalProposal.CommitHash, generalProposal)
 	if err != nil {
 		g.eei.AddReturnMessage("saveGeneralProposal error " + err.Error())
 		return vmcommon.UserError
@@ -626,7 +626,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{proposal, boolToSlice(generalProposal.Passed)},
+		Topics:     [][]byte{generalProposal.CommitHash, boolToSlice(generalProposal.Passed)},
 	}
 	g.eei.AddLogEntry(logEntry)
 
@@ -704,12 +704,7 @@ func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	reference := args.Arguments[0]
-	if len(reference) < commitHashLength {
-		reference = g.eei.GetStorage(append([]byte(noncePrefix), reference...))
-	}
-
-	proposal, err := g.getGeneralProposal(reference)
+	proposal, err := g.getProposalFromNonce(big.NewInt(0).SetBytes(args.Arguments[0]))
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1042,9 +1037,7 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 
 // getValidProposal returns a proposal from storage if it exists, or it is still valid/in-progress
 func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal, error) {
-	nonceKey := append([]byte(noncePrefix), nonce.Bytes()...)
-	commitHash := g.eei.GetStorage(nonceKey)
-	proposal, err := g.getGeneralProposal(commitHash)
+	proposal, err := g.getProposalFromNonce(nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -1059,6 +1052,12 @@ func (g *governanceContract) getValidProposal(nonce *big.Int) (*GeneralProposal,
 	}
 
 	return proposal, nil
+}
+
+func (g *governanceContract) getProposalFromNonce(nonce *big.Int) (*GeneralProposal, error) {
+	nonceKey := append([]byte(noncePrefix), nonce.Bytes()...)
+	commitHash := g.eei.GetStorage(nonceKey)
+	return g.getGeneralProposal(commitHash)
 }
 
 // getGeneralProposal returns a proposal from storage
