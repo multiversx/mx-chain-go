@@ -97,7 +97,7 @@ type DataTrieTracker interface {
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(common.Trie) ([]core.TrieData, error)
-	MigrateDataTrieLeaves(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
+	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
 
@@ -225,5 +225,5 @@ type dataTrie interface {
 	common.Trie
 
 	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
-	CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
+	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }

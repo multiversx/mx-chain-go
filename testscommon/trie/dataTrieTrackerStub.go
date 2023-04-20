@@ -14,7 +14,7 @@ type DataTrieTrackerStub struct {
 	DataTrieCalled              func() common.Trie
 	SaveDirtyDataCalled         func(trie common.Trie) ([]core.TrieData, error)
 	SaveTrieDataCalled          func(trieData core.TrieData) error
-	MigrateDataTrieLeavesCalled func(version core.TrieNodeVersion, newVersion core.TrieNodeVersion, migrator vmcommon.DataTrieMigrator) error
+	MigrateDataTrieLeavesCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 
 // RetrieveValue -
@@ -61,9 +61,9 @@ func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]core.Tri
 }
 
 // MigrateDataTrieLeaves -
-func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(version core.TrieNodeVersion, newVersion core.TrieNodeVersion, migrator vmcommon.DataTrieMigrator) error {
+func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	if dtts.MigrateDataTrieLeavesCalled != nil {
-		return dtts.MigrateDataTrieLeavesCalled(version, newVersion, migrator)
+		return dtts.MigrateDataTrieLeavesCalled(args)
 	}
 
 	return nil

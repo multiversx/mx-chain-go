@@ -576,18 +576,16 @@ func (ln *leafNode) getVersion() (core.TrieNodeVersion, error) {
 }
 
 func (ln *leafNode) collectLeavesForMigration(
-	oldVersion core.TrieNodeVersion,
-	newVersion core.TrieNodeVersion,
-	trieMigrator vmcommon.DataTrieMigrator,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
 	_ common.DBWriteCacher,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
-	shouldContinue := trieMigrator.ConsumeStorageLoadGas()
+	shouldContinue := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()
 	if !shouldContinue {
 		return false, nil
 	}
 
-	shouldMigrateNode, err := shouldMigrateCurrentNode(ln, oldVersion, newVersion)
+	shouldMigrateNode, err := shouldMigrateCurrentNode(ln, migrationArgs)
 	if err != nil {
 		return false, err
 	}
@@ -612,7 +610,7 @@ func (ln *leafNode) collectLeavesForMigration(
 		Version: version,
 	}
 
-	return trieMigrator.AddLeafToMigrationQueue(leafData, newVersion)
+	return migrationArgs.TrieMigrator.AddLeafToMigrationQueue(leafData, migrationArgs.NewVersion)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
