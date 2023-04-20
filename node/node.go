@@ -1335,6 +1335,11 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	return hex.DecodeString(key)
 }
 
+// AddClosableComponent adds a closable component to the internal stored components
+func (n *Node) AddClosableComponent(component mainFactory.Closer) {
+	n.closableComponents = append(n.closableComponents, component)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (n *Node) IsInterfaceNil() bool {
 	return n == nil
