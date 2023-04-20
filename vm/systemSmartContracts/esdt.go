@@ -812,6 +812,9 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
+		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -1309,8 +1312,11 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 		for _, role := range specialRole.Roles {
 			rolesAsString = append(rolesAsString, string(role))
 		}
+
+		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
+
 		roles := strings.Join(rolesAsString, ",")
-		message := fmt.Sprintf("%s:%s", e.addressPubKeyConverter.Encode(specialRole.Address), roles)
+		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
 	}
 
@@ -2212,7 +2218,7 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 		return false
 	}
 
-	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
+	encodedAddress := e.addressPubKeyConverter.SilentEncode(addressBytes, log)
 
 	return encodedAddress != ""
 }

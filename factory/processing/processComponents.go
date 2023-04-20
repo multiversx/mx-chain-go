@@ -21,10 +21,10 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/epochProviders"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	disabledResolversContainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer/disabled"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -143,6 +143,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportStartHandler     update.ImportStartHandler
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
+	SnapshotsEnabled       bool
 
 	Data                    factory.DataComponentsHolder
 	CoreData                factory.CoreComponentsHolder
@@ -176,6 +177,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
+	snapshotsEnabled       bool
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                    factory.DataComponentsHolder
@@ -224,6 +226,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:           args.CoreData.EpochNotifier(),
 		statusCoreComponents:    args.StatusCoreComponents,
 		txExecutionOrderHandler: args.TxExecutionOrderHandler,
+		snapshotsEnabled:        args.SnapshotsEnabled,
 	}, nil
 }
 
@@ -401,6 +404,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
 	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+	err = dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -909,7 +916,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			continue
 		}
 
-		encodedAddress := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		if err != nil {
+			return nil, err
+		}
+
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
 			AdditionalData: &outport.AdditionalAccountData{
 				BalanceChanged: true,
@@ -1120,6 +1131,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+
 		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
@@ -1496,6 +1508,8 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -1548,6 +1562,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
@@ -1580,6 +1595,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
@@ -1926,6 +1942,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAppStatusHandler)
+	}
+	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManagedPeersHolder)
 	}
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilTxExecutionOrderHandler)

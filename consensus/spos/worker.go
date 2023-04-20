@@ -376,6 +376,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
+	wrk.consensusState.UpdatePublicKeyLiveness(cnsMsg.GetPubKey(), message.Peer())
+
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
 		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(
 			wrk.consensusState.SelfPubKey(),
@@ -460,6 +462,11 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		return fmt.Errorf("%w : received header from consensus topic is invalid",
 			ErrInvalidHeader)
 	}
+	err := header.CheckFieldsForNil()
+	if err != nil {
+		return fmt.Errorf("%w : received header from consensus topic is invalid",
+			err)
+	}
 
 	var valStatsRootHash []byte
 	metaHeader, ok := header.(data.MetaHeaderHandler)
@@ -477,7 +484,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", valStatsRootHash)
 
-	err := wrk.headerIntegrityVerifier.Verify(header)
+	err = wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
 	}
@@ -542,7 +549,8 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
+	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
+	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 

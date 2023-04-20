@@ -87,11 +87,13 @@ type EnableEpochs struct {
 	FixAsyncCallBackArgsListEnableEpoch               uint32
 	FixOldTokenLiquidityEnableEpoch                   uint32
 	RuntimeMemStoreLimitEnableEpoch                   uint32
+	RuntimeCodeSizeFixEnableEpoch                     uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
 	MaxBlockchainHookCountersEnableEpoch              uint32
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
+	MultiClaimOnDelegationEnableEpoch                 uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

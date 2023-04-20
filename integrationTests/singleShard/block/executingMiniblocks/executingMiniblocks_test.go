@@ -266,7 +266,8 @@ func proposeAndCommitBlock(node *integrationTests.TestProcessorNode, round uint6
 		return err
 	}
 
-	node.BroadcastBlock(body, hdr)
+	pk := node.NodeKeys.MainKey.Pk
+	node.BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 	return nil
 }

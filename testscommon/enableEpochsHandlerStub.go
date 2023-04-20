@@ -113,9 +113,11 @@ type EnableEpochsHandlerStub struct {
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
+	IsRuntimeCodeSizeFixEnabledField                             bool
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsMultiClaimOnDelegationEnabledField                         bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -981,6 +983,14 @@ func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
 	return stub.IsRuntimeMemStoreLimitEnabledField
 }
 
+// IsRuntimeCodeSizeFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsRuntimeCodeSizeFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRuntimeCodeSizeFixEnabledField
+}
+
 // IsMaxBlockchainHookCountersFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	stub.RLock()
@@ -1003,6 +1013,14 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMultiClaimOnDelegationEnabledField
 }
 
 // IsInterfaceNil -

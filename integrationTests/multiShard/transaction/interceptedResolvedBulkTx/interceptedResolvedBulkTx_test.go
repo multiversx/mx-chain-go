@@ -51,7 +51,8 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	fmt.Println("Generating and broadcasting transactions...")
 	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 	pkBytes, _ := pkInShardFive.ToByteArray()
-	addrInShardFive := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	addrInShardFive, err := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	assert.Nil(t, err)
 
 	idxSender := 0
 	shardId = nodes[idxSender].ShardCoordinator.SelfId()
@@ -136,7 +137,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 	pkBytes, _ := pkInShardFive.ToByteArray()
-	addrInShardFive := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	addrInShardFive, err := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	assert.Nil(t, err)
 
 	idxSender := 0
 	shardId = uint32(4)
@@ -241,7 +243,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
 	pkBytes, _ := pkInShardFive.ToByteArray()
-	addrInShardFive := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	addrInShardFive, err := integrationTests.TestAddressPubkeyConverter.Encode(pkBytes)
+	assert.Nil(t, err)
 
 	mutGeneratedTxHashes := sync.Mutex{}
 	generatedTxHashes := make([][]byte, 0)

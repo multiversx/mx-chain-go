@@ -179,6 +179,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		MultiClaimOnDelegationEnableEpoch:           integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -2488,7 +2489,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	ticker := "ELRONDCOIN"
+	ticker := "COIN12345678"
 	esdtCommon.IssueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 

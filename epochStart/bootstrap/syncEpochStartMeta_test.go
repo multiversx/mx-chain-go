@@ -137,7 +137,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			Marsh:               &mock.MarshalizerMock{},
 			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 			PathHdl:             &testscommon.PathManagerStub{},
 			ChainIdCalled: func() string {
 				return "chain-ID"

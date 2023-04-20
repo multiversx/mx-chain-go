@@ -63,6 +63,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			IsUnBondTokensV2FlagEnabledField:        true,
 			IsValidatorToDelegationFlagEnabledField: true,
 			IsDoubleKeyProtectionFlagEnabledField:   true,
+			IsMultiClaimOnDelegationEnabledField:    true,
 		},
 	}
 
@@ -3028,7 +3029,7 @@ func TestValidatorStakingSC_getBlsStatusNoBlsKeys(t *testing.T) {
 	arguments.Arguments = append(arguments.Arguments, []byte("erd key"))
 
 	returnCode := sc.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "no bls keys"))
 }
 
