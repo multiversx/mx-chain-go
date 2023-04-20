@@ -68,6 +68,9 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
+	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
+	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -480,7 +483,18 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	headersPool := managedDataComponents.Datapool().Headers()
+	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating node structure")
+
+	extraOption := func(n *node.Node) error {
+		n.AddClosableComponent(sovereignWsReceiver)
+		return nil
+	}
 	currentNode, err := node.CreateNode(
 		configs.GeneralConfig,
 		managedStatusCoreComponents,
@@ -496,6 +510,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
+		extraOption,
 	)
 	if err != nil {
 		return true, err
@@ -523,6 +538,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
+
+	go func() {
+		sovereignWsReceiver.Start()
+	}()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -1625,4 +1644,29 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func createSovereignWsReceiver(handler notifierProcess.ExtendedHeaderHandler) (notifierProcess.WSClient, error) {
+	argsNotifier := factory.ArgsCreateSovereignNotifier{
+		MarshallerType:      "",
+		SubscribedAddresses: nil,
+		NumOfMainShards:     0,
+	}
+
+	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovereignNotifier.RegisterHandler(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
+		WebSocketConfig:   notifierCfg.WebSocketConfig{},
+		SovereignNotifier: sovereignNotifier,
+	}
+
+	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
 }
