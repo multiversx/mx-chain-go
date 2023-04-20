@@ -932,6 +932,84 @@ func TestGetGasConfigs(t *testing.T) {
 	})
 }
 
+func TestNetworkGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		networkGroup, err := groups.NewNetworkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = networkGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		networkGroup, err := groups.NewNetworkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = networkGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		builtInCost := map[string]uint64{
+			"val1": 1,
+		}
+		expectedMap := map[string]map[string]uint64{
+			common.BuiltInCost: builtInCost,
+		}
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return expectedMap, nil
+			},
+		}
+		networkGroup, err := groups.NewNetworkGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/network/gas-configs", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+		response := gasConfigsResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
+
+		expectedErr := errors.New("expected error")
+		newFacade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return nil, expectedErr
+			},
+		}
+		err = networkGroup.UpdateFacade(&newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("GET", "/network/gas-configs", nil)
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+}
+
+func TestNetworkGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	networkGroup, _ := groups.NewNetworkGroup(nil)
+	require.True(t, networkGroup.IsInterfaceNil())
+
+	networkGroup, _ = groups.NewNetworkGroup(&mock.FacadeStub{})
+	require.False(t, networkGroup.IsInterfaceNil())
+}
+
 func getNetworkRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{

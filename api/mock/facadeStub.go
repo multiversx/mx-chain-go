@@ -26,7 +26,7 @@ type FacadeStub struct {
 	GetHeartbeatsHandler                        func() ([]data.PubKeyHeartbeat, error)
 	GetBalanceCalled                            func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetAccountCalled                            func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
-	GetAccountsCalled          func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
+	GetAccountsCalled                           func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GenerateTransactionHandler                  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler                    func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
@@ -82,6 +82,7 @@ type FacadeStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
+	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 }
 
 // GetTokenSupply -
@@ -352,6 +353,9 @@ func (f *FacadeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 
 // DecodeAddressPubkey -
 func (f *FacadeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if f.DecodeAddressPubkeyCalled != nil {
+		return f.DecodeAddressPubkeyCalled(pk)
+	}
 	return hex.DecodeString(pk)
 }
 
