@@ -47,6 +47,7 @@ func CreateNode(
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
+	extraOptions ...Option,
 ) (*Node, error) {
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
@@ -72,7 +73,7 @@ func CreateNode(
 	}
 
 	var nd *Node
-	nd, err = NewNode(
+	options := []Option{
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
@@ -98,7 +99,10 @@ func CreateNode(
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
-	)
+	}
+	options = append(options, extraOptions...)
+
+	nd, err = NewNode(options...)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
