@@ -941,6 +941,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		Hasher:                 pcf.coreData.Hasher(),
 		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
+		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 	})
 }
 
