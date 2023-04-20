@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -274,19 +275,18 @@ func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []by
 
 func shouldMigrateCurrentNode(
 	currentNode node,
-	oldVersion core.TrieNodeVersion,
-	newVersion core.TrieNodeVersion,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
 ) (bool, error) {
 	version, err := currentNode.getVersion()
 	if err != nil {
 		return false, err
 	}
 
-	if version == newVersion {
+	if version == migrationArgs.NewVersion {
 		return false, nil
 	}
 
-	if version != oldVersion && version != core.NotSpecified {
+	if version != migrationArgs.OldVersion && version != core.NotSpecified {
 		return false, nil
 	}
 

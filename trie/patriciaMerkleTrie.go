@@ -669,27 +669,23 @@ func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (com
 
 // CollectLeavesForMigration will collect trie leaves that need to be migrated. The leaves are collected in the trieMigrator.
 // The traversing of the trie is done in a DFS manner, and it will stop when the gas runs out (this will be signaled by the trieMigrator).
-func (tr *patriciaMerkleTrie) CollectLeavesForMigration(
-	oldVersion core.TrieNodeVersion,
-	newVersion core.TrieNodeVersion,
-	trieMigrator vmcommon.DataTrieMigrator,
-) error {
+func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if check.IfNil(tr.root) {
 		return nil
 	}
-	if check.IfNil(trieMigrator) {
+	if check.IfNil(args.TrieMigrator) {
 		return errors.ErrNilTrieMigrator
 	}
 
-	err := tr.checkIfMigrationPossible(newVersion, oldVersion)
+	err := tr.checkIfMigrationPossible(args)
 	if err != nil {
 		return err
 	}
 
-	_, err = tr.root.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, tr.trieStorage, keyBuilder.NewKeyBuilder())
+	_, err = tr.root.collectLeavesForMigration(args, tr.trieStorage, keyBuilder.NewKeyBuilder())
 	if err != nil {
 		return err
 	}
@@ -697,16 +693,16 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(
 	return nil
 }
 
-func (tr *patriciaMerkleTrie) checkIfMigrationPossible(newVersion core.TrieNodeVersion, oldVersion core.TrieNodeVersion) error {
-	if !tr.trieNodeVersionVerifier.IsValidVersion(newVersion) {
-		return fmt.Errorf("%w: newVersion %v", errors.ErrInvalidTrieNodeVersion, newVersion)
+func (tr *patriciaMerkleTrie) checkIfMigrationPossible(args vmcommon.ArgsMigrateDataTrieLeaves) error {
+	if !tr.trieNodeVersionVerifier.IsValidVersion(args.NewVersion) {
+		return fmt.Errorf("%w: newVersion %v", errors.ErrInvalidTrieNodeVersion, args.NewVersion)
 	}
 
-	if !tr.trieNodeVersionVerifier.IsValidVersion(oldVersion) {
-		return fmt.Errorf("%w: oldVersion %v", errors.ErrInvalidTrieNodeVersion, oldVersion)
+	if !tr.trieNodeVersionVerifier.IsValidVersion(args.OldVersion) {
+		return fmt.Errorf("%w: oldVersion %v", errors.ErrInvalidTrieNodeVersion, args.OldVersion)
 	}
 
-	if newVersion == core.NotSpecified && oldVersion == core.AutoBalanceEnabled {
+	if args.NewVersion == core.NotSpecified && args.OldVersion == core.AutoBalanceEnabled {
 		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.AutoBalanceEnabled, core.NotSpecified)
 	}
 

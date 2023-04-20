@@ -32,7 +32,7 @@ type TrieStub struct {
 	GetSerializedNodeCalled         func(bytes []byte) ([]byte, error)
 	GetOldRootCalled                func() []byte
 	CloseCalled                     func() error
-	CollectLeavesForMigrationCalled func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
+	CollectLeavesForMigrationCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsMigratedToLatestVersionCalled func() (bool, error)
 }
 
@@ -100,9 +100,9 @@ func (ts *TrieStub) UpdateWithVersion(key []byte, value []byte, version core.Tri
 }
 
 // CollectLeavesForMigration -
-func (ts *TrieStub) CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error {
+func (ts *TrieStub) CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	if ts.CollectLeavesForMigrationCalled != nil {
-		return ts.CollectLeavesForMigrationCalled(oldVersion, newVersion, trieMigrator)
+		return ts.CollectLeavesForMigrationCalled(args)
 	}
 
 	return errNotImplemented

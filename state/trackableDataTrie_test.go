@@ -647,7 +647,12 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		t.Parallel()
 
 		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), nil, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-		err := tdt.MigrateDataTrieLeaves(core.NotSpecified, core.AutoBalanceEnabled, &trieMock.DataTrieMigratorStub{})
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: &trieMock.DataTrieMigratorStub{},
+		}
+		err := tdt.MigrateDataTrieLeaves(args)
 		assert.Equal(t, state.ErrNilTrie, err)
 	})
 
@@ -655,7 +660,12 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		t.Parallel()
 
 		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), &trieMock.TrieStub{}, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-		err := tdt.MigrateDataTrieLeaves(core.NotSpecified, core.AutoBalanceEnabled, nil)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: nil,
+		}
+		err := tdt.MigrateDataTrieLeaves(args)
 		assert.Equal(t, errorsCommon.ErrNilTrieMigrator, err)
 	})
 
@@ -664,13 +674,18 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		tr := &trieMock.TrieStub{
-			CollectLeavesForMigrationCalled: func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error {
+			CollectLeavesForMigrationCalled: func(_ vmcommon.ArgsMigrateDataTrieLeaves) error {
 				return expectedErr
 			},
 		}
 
 		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), tr, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-		err := tdt.MigrateDataTrieLeaves(core.NotSpecified, core.AutoBalanceEnabled, &trieMock.DataTrieMigratorStub{})
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: &trieMock.DataTrieMigratorStub{},
+		}
+		err := tdt.MigrateDataTrieLeaves(args)
 		assert.Equal(t, expectedErr, err)
 	})
 
@@ -695,7 +710,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			},
 		}
 		tr := &trieMock.TrieStub{
-			CollectLeavesForMigrationCalled: func(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error {
+			CollectLeavesForMigrationCalled: func(_ vmcommon.ArgsMigrateDataTrieLeaves) error {
 				return nil
 			},
 		}
@@ -709,7 +724,12 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		}
 
 		tdt, _ := state.NewTrackableDataTrie([]byte("identifier"), tr, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
-		err := tdt.MigrateDataTrieLeaves(core.NotSpecified, 100, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   100,
+			TrieMigrator: dtm,
+		}
+		err := tdt.MigrateDataTrieLeaves(args)
 		assert.Nil(t, err)
 
 		dirtyData := tdt.DirtyData()

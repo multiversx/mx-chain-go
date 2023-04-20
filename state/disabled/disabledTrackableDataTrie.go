@@ -39,7 +39,7 @@ func (dtdt *disabledTrackableDataTrie) SaveDirtyData(_ common.Trie) ([]core.Trie
 }
 
 // MigrateDataTrieLeaves does nothing for this implementation
-func (dtdt *disabledTrackableDataTrie) MigrateDataTrieLeaves(_ core.TrieNodeVersion, _ core.TrieNodeVersion, _ vmcommon.DataTrieMigrator) error {
+func (dtdt *disabledTrackableDataTrie) MigrateDataTrieLeaves(_ vmcommon.ArgsMigrateDataTrieLeaves) error {
 	return nil
 }
 
