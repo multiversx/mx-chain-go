@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
