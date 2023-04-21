@@ -755,7 +755,7 @@ func (tc *transactionCoordinator) requestMissingMiniBlocks(mbsInfo []*data.MiniB
 	for _, mbInfo := range mbsInfo {
 		_, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
 		if !isMiniBlockFound {
-			log.Trace("transactionCoordinator.requestMissingMiniBlocks: mini block not found and was requested",
+			log.Debug("transactionCoordinator.requestMissingMiniBlocks: mini block not found and was requested",
 				"sender shard", mbInfo.SenderShardID,
 				"hash", mbInfo.Hash,
 				"round", mbInfo.Round,
