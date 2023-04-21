@@ -98,6 +98,8 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
 	}
 
+	printPool(pool)
+
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
 	})
@@ -192,7 +194,10 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
 		pool.Txs,
 		pool.Scrs,
-		pool.Rewards,
+	}
+
+	if odp.shardID != core.MetachainShardId {
+		txGroups = append(txGroups, pool.Rewards)
 	}
 
 	foundTxHashes := 0
@@ -323,4 +328,39 @@ func WrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.Transact
 // IsInterfaceNil returns true if there is no value under the interface
 func (odp *outportDataProvider) IsInterfaceNil() bool {
 	return odp == nil
+}
+
+func printPool(pool *outportcore.Pool) {
+	printMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
+		for hash, tx := range txs {
+			log.Warn(hex.EncodeToString([]byte(hash)), "order", tx.GetExecutionOrder())
+		}
+	}
+
+	total := len(pool.Txs) + len(pool.Invalid) + len(pool.Scrs) + len(pool.Rewards)
+	if total > 0 {
+		log.Warn("###################################")
+	}
+
+	if len(pool.Txs) > 0 {
+		log.Warn("############### NORMAL TXS ####################")
+		printMapTxs(pool.Txs)
+	}
+	if len(pool.Invalid) > 0 {
+		log.Warn("############### INVALID ####################")
+		printMapTxs(pool.Invalid)
+	}
+
+	if len(pool.Scrs) > 0 {
+		log.Warn("############### SCRS ####################")
+		printMapTxs(pool.Scrs)
+	}
+
+	if len(pool.Rewards) > 0 {
+		log.Warn("############### REWARDS ####################")
+		printMapTxs(pool.Rewards)
+	}
+	if total > 0 {
+		log.Warn("###################################")
+	}
 }
