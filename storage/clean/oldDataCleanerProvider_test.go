@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -41,6 +40,7 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 		require.True(t, check.IfNil(odcp))
 		require.Equal(t, storage.ErrNilManagedPeersHolder, err)
 	})
+	//TODO(jls) check test here
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -135,4 +135,14 @@ func TestOldDataCleanerProvider_ShouldClean(t *testing.T) {
 
 		require.True(t, odcp.ShouldClean())
 	})
+}
+
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var odcp *oldDataCleanerProvider
+	require.True(t, odcp.IsInterfaceNil())
+
+	odcp, _ = NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
+	require.False(t, odcp.IsInterfaceNil())
 }

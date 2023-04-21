@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -28,6 +29,7 @@ type DataComponentsFactoryArgs struct {
 	Crypto                        factory.CryptoComponentsHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	NodeProcessingMode            common.NodeProcessingMode
 	SnapshotsEnabled              bool
 }
 
@@ -40,6 +42,7 @@ type dataComponentsFactory struct {
 	crypto                        factory.CryptoComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
+	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
 }
 
@@ -91,6 +94,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		statusCore:                    args.StatusCore,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
+		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.SnapshotsEnabled,
 		crypto:                        args.Crypto,
 	}, nil
@@ -181,6 +185,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
+			NodeProcessingMode:            dcf.nodeProcessingMode,
 			SnapshotsEnabled:              dcf.snapshotsEnabled,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
 		})

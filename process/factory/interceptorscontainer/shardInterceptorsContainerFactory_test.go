@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -713,7 +714,7 @@ func getArgumentsShard(
 		Store:                        createShardStore(),
 		DataPool:                     createShardDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
-		TxFeeHandler:                 &mock.FeeHandlerStub{},
+		TxFeeHandler:                 &economicsmocks.EconomicsHandlerStub{},
 		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
