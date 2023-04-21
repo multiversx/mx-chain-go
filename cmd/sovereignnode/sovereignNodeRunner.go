@@ -59,6 +59,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -87,11 +88,11 @@ const (
 
 // sovereignNodeRunner holds the sovereign node runner configuration and controls running of a node
 type sovereignNodeRunner struct {
-	configs *config.Configs
+	configs *sovereignConfig.SovereignConfig
 }
 
 // NewSovereignNodeRunner creates a sovereignNodeRunner instance
-func NewSovereignNodeRunner(cfgs *config.Configs) (*sovereignNodeRunner, error) {
+func NewSovereignNodeRunner(cfgs *sovereignConfig.SovereignConfig) (*sovereignNodeRunner, error) {
 	if cfgs == nil {
 		return nil, fmt.Errorf("nil configs provided")
 	}
@@ -125,7 +126,7 @@ func (snr *sovereignNodeRunner) Start() error {
 		return err
 	}
 
-	printEnableEpochs(snr.configs)
+	printEnableEpochs(snr.configs.Configs)
 
 	core.DumpGoRoutinesToLog(0, log)
 
@@ -484,7 +485,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	headersPool := managedDataComponents.Datapool().Headers()
-	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool)
+	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool, configs.NotifierConfig)
 	if err != nil {
 		return true, err
 	}
@@ -659,7 +660,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
+		Configs:              configs.Configs,
 		CoreComponents:       currentNode.GetCoreComponents(),
 		DataComponents:       currentNode.GetDataComponents(),
 		StateComponents:      currentNode.GetStateComponents(),
@@ -1646,11 +1647,14 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func createSovereignWsReceiver(handler notifierProcess.ExtendedHeaderHandler) (notifierProcess.WSClient, error) {
+func createSovereignWsReceiver(
+	handler notifierProcess.ExtendedHeaderHandler,
+	config *sovereignConfig.NotifierConfig,
+) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
-		MarshallerType:      "",
-		SubscribedAddresses: nil,
-		NumOfMainShards:     0,
+		MarshallerType:      config.WebSocketConfig.MarshallerType,
+		SubscribedAddresses: config.SubscribedAddresses,
+		NumOfMainShards:     config.NumOfMainShards,
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
@@ -1664,7 +1668,12 @@ func createSovereignWsReceiver(handler notifierProcess.ExtendedHeaderHandler) (n
 	}
 
 	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
-		WebSocketConfig:   notifierCfg.WebSocketConfig{},
+		WebSocketConfig: notifierCfg.WebSocketConfig{
+			Url:                config.WebSocketConfig.Url,
+			MarshallerType:     config.WebSocketConfig.MarshallerType,
+			RetryDuration:      config.WebSocketConfig.RetryDuration,
+			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+		},
 		SovereignNotifier: sovereignNotifier,
 	}
 
