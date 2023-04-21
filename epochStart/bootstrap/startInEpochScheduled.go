@@ -254,7 +254,11 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 
 	additionalData := header.GetAdditionalData()
 	if additionalData != nil {
-		scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(miniBlocks, scheduledIntermediateTxs)
+		scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(
+			header.GetMiniBlockHeaderHandlers(),
+			miniBlocks,
+			scheduledIntermediateTxs,
+		)
 		gasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: additionalData.GetScheduledAccumulatedFees(),
 			DeveloperFees:   additionalData.GetScheduledDeveloperFees(),
@@ -344,13 +348,18 @@ func isScheduledIntermediateTx(
 }
 
 func getScheduledIntermediateTxsMapInOrder(
+	miniBlockHeaderHandlerList []data.MiniBlockHeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 	intermediateTxs map[string]data.TransactionHandler,
 ) map[block.Type][]data.TransactionHandler {
-
 	intermediateTxsMap := make(map[block.Type][]data.TransactionHandler)
 
-	for _, miniBlock := range miniBlocks {
+	for _, mbHeader := range miniBlockHeaderHandlerList {
+		miniBlock, ok := miniBlocks[string(mbHeader.GetHash())]
+		if !ok {
+			continue
+		}
+
 		for _, hash := range miniBlock.TxHashes {
 			txHandler, ok := intermediateTxs[string(hash)]
 			if !ok {

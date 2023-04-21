@@ -424,7 +424,13 @@ func TestStartInEpochWithScheduledDataSyncer_getScheduledIntermediateTxsMap(t *t
 		TxHashes: [][]byte{[]byte("hash4"), []byte("5hash"), []byte("3hash"), []byte("hash6")},
 	}
 
-	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(miniBlocks, intermediateTxs)
+	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 4)
+	miniBlockHeaders[0] = &block.MiniBlockHeader{Hash: []byte("1")}
+	miniBlockHeaders[1] = &block.MiniBlockHeader{Hash: []byte("2")}
+	miniBlockHeaders[2] = &block.MiniBlockHeader{Hash: []byte("3")}
+	miniBlockHeaders[3] = &block.MiniBlockHeader{Hash: []byte("4")}
+
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(miniBlockHeaders, miniBlocks, intermediateTxs)
 	require.Equal(t, 2, len(scheduledIntermediateTxsMap))
 	require.Equal(t, 6, len(scheduledIntermediateTxsMap[block.SmartContractResultBlock]))
 	require.Equal(t, 1, len(scheduledIntermediateTxsMap[block.InvalidBlock]))
@@ -455,7 +461,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfoNoScheduledRootHas
 		},
 	}
 
-	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(make([]data.MiniBlockHeaderHandler, 0), make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
 	scheduledInfo := &process.ScheduledInfo{
 		RootHash:        nil,
 		IntermediateTxs: scheduledIntermediateTxsMap,
@@ -513,7 +519,7 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfo(t *testing.T) {
 		},
 	}
 
-	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
+	scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(make([]data.MiniBlockHeaderHandler, 0), make(map[string]*block.MiniBlock), scheduledIntermediateTxs)
 	scheduledInfo := &process.ScheduledInfo{
 		RootHash:        scheduledRootHash,
 		IntermediateTxs: scheduledIntermediateTxsMap,
