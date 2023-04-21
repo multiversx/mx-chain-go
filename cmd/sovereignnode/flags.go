@@ -411,6 +411,7 @@ func getFlags() []cli.Flag {
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
+		notifierConfigFile,
 		port,
 		profileMode,
 		useHealthService,

@@ -9,9 +9,9 @@ type SovereignConfig struct {
 
 // NotifierConfig holds sovereign notifier configuration
 type NotifierConfig struct {
-	NumOfMainShards     uint32          `toml:"NumOfMainShards"`
+	NumOfMainShards     uint32          `toml:"NumMainShards"`
 	SubscribedAddresses []string        `toml:"SubscribedAddresses"`
-	WebSocketConfig     WebSocketConfig `toml:"WebSocketConfig"`
+	WebSocketConfig     WebSocketConfig `toml:"WebSocket"`
 }
 
 // WebSocketConfig holds web sockets config
