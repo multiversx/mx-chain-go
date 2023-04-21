@@ -1111,8 +1111,13 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
 	finalCrossMiniBlockHashes := tc.getFinalCrossMiniBlockHashes(header)
 	for key, senderShardId := range finalCrossMiniBlockHashes {
-		obj, _ := tc.miniBlockPool.Peek([]byte(key))
-		if obj == nil {
+		_, isMiniBlockFound := tc.miniBlockPool.Peek([]byte(key))
+		if !isMiniBlockFound {
+			log.Debug("transactionCoordinator.RequestMiniBlocks: mini block not found and was requested",
+				"sender shard", senderShardId,
+				"hash", []byte(key),
+				"round", header.GetRound(),
+			)
 			mapMissingMiniBlocksPerShard[senderShardId] = append(mapMissingMiniBlocksPerShard[senderShardId], []byte(key))
 			_ = tc.requestedItemsHandler.Add(key)
 		}
