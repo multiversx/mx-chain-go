@@ -157,7 +157,7 @@ func TestNewTxValidator_NilTxVersionCheckerShouldErr(t *testing.T) {
 		adb,
 		shardCoordinator,
 		&testscommon.WhiteListHandlerStub{},
-		mock.NewPubkeyConverterMock(32),
+		testscommon.NewPubkeyConverterMock(32),
 		nil,
 		maxNonceDeltaAllowed,
 	)

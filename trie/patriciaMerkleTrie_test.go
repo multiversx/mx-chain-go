@@ -1009,7 +1009,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 			case 12:
 				trieIteratorChannels := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, 1000),
-					ErrChan:    make(chan error, 1000),
+					ErrChan:    errChan.NewErrChanWrapper(),
 				}
 
 				err := tr.GetAllLeavesOnChannel(

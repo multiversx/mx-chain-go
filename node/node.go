@@ -400,14 +400,14 @@ func (n *Node) getPendingAndActiveGuardians(
 
 	if active != nil {
 		activeGuardian = &api.Guardian{
-			Address:         n.coreComponents.AddressPubKeyConverter().Encode(active.Address),
+			Address:         n.coreComponents.AddressPubKeyConverter().SilentEncode(active.Address, log),
 			ActivationEpoch: active.ActivationEpoch,
 			ServiceUID:      string(active.ServiceUID),
 		}
 	}
 	if pending != nil {
 		pendingGuardian = &api.Guardian{
-			Address:         n.coreComponents.AddressPubKeyConverter().Encode(pending.Address),
+			Address:         n.coreComponents.AddressPubKeyConverter().SilentEncode(pending.Address, log),
 			ActivationEpoch: pending.ActivationEpoch,
 			ServiceUID:      string(pending.ServiceUID),
 		}
@@ -654,9 +654,9 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		if esdtToken.TokenMetaData != nil {
-			esdtTokenCreatorAddr, err := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
-			if err != nil {
-				return nil, api.BlockInfo{}, err
+			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
+			if errEncode != nil {
+				return nil, api.BlockInfo{}, errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)

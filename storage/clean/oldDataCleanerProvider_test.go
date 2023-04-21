@@ -28,7 +28,7 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 		args := createMockArgOldDataCleanerProvider()
 		args.NodeTypeProvider = nil
 		odcp, err := NewOldDataCleanerProvider(args)
-		require.True(t, check.IfNil(odcp))
+		require.Nil(t, odcp)
 		require.Equal(t, storage.ErrNilNodeTypeProvider, err)
 	})
 	t.Run("nil ManagedPeersHolder should error", func(t *testing.T) {
@@ -37,16 +37,15 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 		args := createMockArgOldDataCleanerProvider()
 		args.ManagedPeersHolder = nil
 		odcp, err := NewOldDataCleanerProvider(args)
-		require.True(t, check.IfNil(odcp))
+		require.Nil(t, odcp)
 		require.Equal(t, storage.ErrNilManagedPeersHolder, err)
 	})
-	//TODO(jls) check test here
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		odcp, err := NewOldDataCleanerProvider(createMockArgOldDataCleanerProvider())
 		require.NoError(t, err)
-		require.False(t, check.IfNil(odcp))
+		require.NotNil(t, odcp)
 	})
 }
 
@@ -143,6 +142,7 @@ func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	var odcp *oldDataCleanerProvider
 	require.True(t, odcp.IsInterfaceNil())
 
-	odcp, _ = NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
+	args := createMockArgOldDataCleanerProvider()
+	odcp, _ = NewOldDataCleanerProvider(args)
 	require.False(t, odcp.IsInterfaceNil())
 }

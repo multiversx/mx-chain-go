@@ -90,7 +90,6 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
-	guardAccountFlag                            *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
 }
@@ -182,7 +181,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
-		guardAccountFlag:                            &atomic.Flag{}, // TODO(jls) -> chekc here
 		setGuardianFlag:                             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 	}

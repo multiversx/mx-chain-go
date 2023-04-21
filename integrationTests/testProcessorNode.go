@@ -2414,7 +2414,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		return "", err
 	}
 
-	txArgs := &external.ArgsCreateTransaction{
+	txArgsLocal := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         encodedRcvAddr,
@@ -2428,10 +2428,10 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 		Options:          tx.Options,
-		Guardian:         TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
+		Guardian:         TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log),
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
-	tx, txHash, err := tpn.Node.CreateTransaction(txArgs)
+	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
 	if err != nil {
 		return "", err
 	}

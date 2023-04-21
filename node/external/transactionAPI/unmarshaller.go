@@ -129,11 +129,11 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	}
 
 	if len(tx.GuardianAddr) > 0 {
-		apiTx.GuardianAddr = tu.addressPubKeyConverter.Encode(tx.GuardianAddr)
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
 	}
 
-	return apiTx, nil
+	return apiTx
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
@@ -159,11 +159,11 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 	}
 
 	if len(tx.GuardianAddr) > 0 {
-		apiTx.GuardianAddr = tu.addressPubKeyConverter.Encode(tx.GuardianAddr)
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
 	}
 
-	return apiTx, nil
+	return apiTx
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult {
