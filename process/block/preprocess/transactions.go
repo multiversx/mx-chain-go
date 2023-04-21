@@ -886,6 +886,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		txs.txExecutionOrderHandler.Remove(txHash)
+		log.Warn("already executed", "error", err.Error(), "txhash", txHash)
 		return err
 	}
 
