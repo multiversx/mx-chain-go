@@ -104,11 +104,11 @@ func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // MigrateDataTrieLeaves migrates the data trie leaves from oldVersion to newVersion
-func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error {
+func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	if check.IfNil(tdaw.tr) {
 		return ErrNilTrie
 	}
-	if check.IfNil(trieMigrator) {
+	if check.IfNil(args.TrieMigrator) {
 		return errorsCommon.ErrNilTrieMigrator
 	}
 
@@ -117,16 +117,16 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVer
 		return fmt.Errorf("invalid trie, type is %T", tdaw.tr)
 	}
 
-	err := dtr.CollectLeavesForMigration(oldVersion, newVersion, trieMigrator)
+	err := dtr.CollectLeavesForMigration(args)
 	if err != nil {
 		return err
 	}
 
-	dataToBeMigrated := trieMigrator.GetLeavesToBeMigrated()
+	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
 	for _, leafData := range dataToBeMigrated {
 		newDataEntry := dirtyData{
 			value:   leafData.Value,
-			version: newVersion,
+			version: args.NewVersion,
 		}
 
 		originalKey, err := tdaw.getOriginalKeyFromTrieData(leafData)

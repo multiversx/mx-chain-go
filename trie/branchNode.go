@@ -985,18 +985,16 @@ func (bn *branchNode) getVersionForChild(childIndex byte) core.TrieNodeVersion {
 }
 
 func (bn *branchNode) collectLeavesForMigration(
-	oldVersion core.TrieNodeVersion,
-	newVersion core.TrieNodeVersion,
-	trieMigrator vmcommon.DataTrieMigrator,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
 	db common.DBWriteCacher,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
-	shouldContinue := trieMigrator.ConsumeStorageLoadGas()
+	shouldContinue := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()
 	if !shouldContinue {
 		return false, nil
 	}
 
-	shouldMigrateNode, err := shouldMigrateCurrentNode(bn, oldVersion, newVersion)
+	shouldMigrateNode, err := shouldMigrateCurrentNode(bn, migrationArgs)
 	if err != nil {
 		return false, err
 	}
@@ -1009,7 +1007,7 @@ func (bn *branchNode) collectLeavesForMigration(
 			continue
 		}
 
-		if bn.getVersionForChild(byte(i)) != oldVersion {
+		if bn.getVersionForChild(byte(i)) != migrationArgs.OldVersion {
 			continue
 		}
 
@@ -1020,7 +1018,7 @@ func (bn *branchNode) collectLeavesForMigration(
 
 		clonedKeyBuilder := keyBuilder.Clone()
 		clonedKeyBuilder.BuildKey([]byte{byte(i)})
-		shouldContinueMigrating, err := bn.children[i].collectLeavesForMigration(oldVersion, newVersion, trieMigrator, db, clonedKeyBuilder)
+		shouldContinueMigrating, err := bn.children[i].collectLeavesForMigration(migrationArgs, db, clonedKeyBuilder)
 		if err != nil {
 			return false, err
 		}

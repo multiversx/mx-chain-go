@@ -1172,7 +1172,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 }
 
 type dataTrie interface {
-	CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
+	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
 }
 
@@ -1191,7 +1191,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := tr.(dataTrie).CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := tr.(dataTrie).CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 	})
 
@@ -1200,7 +1205,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := initTrie().(dataTrie)
 
-		err := tr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, nil)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: nil,
+		}
+		err := tr.CollectLeavesForMigration(args)
 		assert.Equal(t, errorsCommon.ErrNilTrieMigrator, err)
 	})
 
@@ -1225,7 +1235,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, numLoadsCalled)
 	})
@@ -1257,7 +1272,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, addLeafToMigrationQueueCalled)
 	})
@@ -1291,7 +1311,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 3, numLoads)
 		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
@@ -1325,7 +1350,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 5, numLoads)
 		assert.Equal(t, 2, numAddLeafToMigrationQueueCalled)
@@ -1348,7 +1378,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.TrieNodeVersion(100), dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.TrieNodeVersion(100),
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
 		assert.Equal(t, 0, numLoadsCalled)
 		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
@@ -1371,7 +1406,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.TrieNodeVersion(100), core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.TrieNodeVersion(100),
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
 		assert.Equal(t, 0, numLoadsCalled)
 		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
@@ -1404,7 +1444,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 6, numLoadsCalled)
 		assert.Equal(t, 3, numAddLeafToMigrationQueueCalled)
@@ -1435,7 +1480,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.NotSpecified, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 2, numLoadsCalled)
 		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
@@ -1466,7 +1516,12 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		}
 
-		err := dtr.CollectLeavesForMigration(core.AutoBalanceEnabled, core.AutoBalanceEnabled, dtm)
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
 		assert.Nil(t, err)
 		assert.Equal(t, 1, numLoadsCalled)
 		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)

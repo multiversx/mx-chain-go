@@ -811,18 +811,16 @@ func (en *extensionNode) getVersion() (core.TrieNodeVersion, error) {
 }
 
 func (en *extensionNode) collectLeavesForMigration(
-	oldVersion core.TrieNodeVersion,
-	newVersion core.TrieNodeVersion,
-	trieMigrator vmcommon.DataTrieMigrator,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
 	db common.DBWriteCacher,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
-	hasEnoughGasToContinueMigration := trieMigrator.ConsumeStorageLoadGas()
+	hasEnoughGasToContinueMigration := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()
 	if !hasEnoughGasToContinueMigration {
 		return false, nil
 	}
 
-	shouldMigrateNode, err := shouldMigrateCurrentNode(en, oldVersion, newVersion)
+	shouldMigrateNode, err := shouldMigrateCurrentNode(en, migrationArgs)
 	if err != nil {
 		return false, err
 	}
@@ -836,7 +834,7 @@ func (en *extensionNode) collectLeavesForMigration(
 	}
 
 	keyBuilder.BuildKey(en.Key)
-	return en.child.collectLeavesForMigration(oldVersion, newVersion, trieMigrator, db, keyBuilder.Clone())
+	return en.child.collectLeavesForMigration(migrationArgs, db, keyBuilder.Clone())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
