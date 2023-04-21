@@ -752,6 +752,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 func (tc *transactionCoordinator) requestMissingMiniBlocks(mbsInfo []*data.MiniBlockInfo) {
 	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
 
+	tc.requestedItemsHandler.Sweep()
+
 	for _, mbInfo := range mbsInfo {
 		_, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
 		if !isMiniBlockFound {
@@ -761,6 +763,7 @@ func (tc *transactionCoordinator) requestMissingMiniBlocks(mbsInfo []*data.MiniB
 				"round", mbInfo.Round,
 			)
 			mapMissingMiniBlocksPerShard[mbInfo.SenderShardID] = append(mapMissingMiniBlocksPerShard[mbInfo.SenderShardID], mbInfo.Hash)
+			_ = tc.requestedItemsHandler.Add(string(mbInfo.Hash))
 		}
 	}
 
