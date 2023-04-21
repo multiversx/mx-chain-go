@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&leafNode{})
@@ -139,7 +138,7 @@ func (ln *leafNode) commitCheckpoint(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -184,7 +183,7 @@ func (ln *leafNode) commitSnapshot(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()

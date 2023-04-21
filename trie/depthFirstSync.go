@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -104,7 +103,7 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 		case <-time.After(d.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
-			return errors.ErrContextClosing
+			return core.ErrContextClosing
 		}
 	}
 }

@@ -28,7 +28,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -52,8 +51,8 @@ func createMockArgument(
 	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = storageManager
-	trieStorageManagers[factory.PeerAccountTrie] = storageManager
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -146,7 +145,7 @@ func createMockArgument(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
-		trieStorageManagers[factory.UserAccountTrie],
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 	)
 	require.Nil(t, err)

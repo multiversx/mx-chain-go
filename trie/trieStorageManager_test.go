@@ -10,9 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -248,7 +248,7 @@ func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 	err := ts.PutInEpoch(key, value, 0)
-	assert.Equal(t, errors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
@@ -390,7 +390,7 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 
 	require.Equal(t, 1, len(iteratorChannels.ErrChan))
 	errRecovered := <-iteratorChannels.ErrChan
-	assert.True(t, strings.Contains(errRecovered.Error(), common.GetNodeFromDBErrorString))
+	assert.True(t, strings.Contains(errRecovered.Error(), core.GetNodeFromDBErrorString))
 }
 
 func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
@@ -516,5 +516,33 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 		assert.Equal(t, err1, recovered)
 		recovered = <-errChan
 		assert.Equal(t, err2, recovered)
+	})
+}
+
+func TestTrieStorageManager_GetIdentifier(t *testing.T) {
+	t.Parallel()
+
+	t.Run("db without identifier", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		id := ts.GetIdentifier()
+		assert.Equal(t, "", id)
+	})
+
+	t.Run("db with identifier", func(t *testing.T) {
+		t.Parallel()
+
+		expectedIdentifier := "identifier"
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{
+			GetIdentifierCalled: func() string {
+				return expectedIdentifier
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		id := ts.GetIdentifier()
+		assert.Equal(t, expectedIdentifier, id)
 	})
 }

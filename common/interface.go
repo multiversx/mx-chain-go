@@ -79,6 +79,7 @@ type StorageManager interface {
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	GetBaseTrieStorageManager() StorageManager
+	GetIdentifier() string
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool

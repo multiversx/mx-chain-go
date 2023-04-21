@@ -8,7 +8,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
@@ -218,7 +217,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)

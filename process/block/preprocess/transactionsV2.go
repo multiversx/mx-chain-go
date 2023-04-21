@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
-	chainErr "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -71,7 +70,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
-			if chainErr.IsGetNodeFromDBError(err) {
+			if core.IsGetNodeFromDBError(err) {
 				return nil, nil, nil, err
 			}
 			if shouldAddToRemaining {
@@ -189,7 +188,7 @@ func (txs *transactions) processTransaction(
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil && !chainErr.IsClosingError(errRevert) {
+		if errRevert != nil && !core.IsClosingError(errRevert) {
 			log.Warn("revert to snapshot", "error", errRevert.Error())
 		}
 
@@ -316,7 +315,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			receiverShardID,
 			mbInfo)
 		if err != nil {
-			if chainErr.IsGetNodeFromDBError(err) {
+			if core.IsGetNodeFromDBError(err) {
 				return nil, err
 			}
 			continue

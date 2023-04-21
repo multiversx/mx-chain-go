@@ -3,10 +3,11 @@ package trie
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -119,8 +120,15 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		log.Trace(common.GetNodeFromDBErrorString, "error", err, "key", n)
-		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
+		log.Trace(core.GetNodeFromDBErrorString, "error", err, "key", n, "stack trace", string(debug.Stack()))
+
+		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
+		if !ok {
+			getNodeFromDbErr := errors.NewGetNodeFromDBErrWithKey(n, err, "")
+			return nil, fmt.Errorf("db does not have an identifier, db type: %T, error: %w", db, getNodeFromDbErr)
+		}
+
+		return nil, errors.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
@@ -262,7 +270,7 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 }
 
 func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("context closing", "hash", hash)
 		return
 	}

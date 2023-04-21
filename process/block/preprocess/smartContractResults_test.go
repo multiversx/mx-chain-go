@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -1200,7 +1199,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 	tdp := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	scrPreproc, _ := NewSmartContractResultPreprocessor(

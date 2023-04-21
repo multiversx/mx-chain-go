@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -9,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -143,12 +143,32 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if errors.IsGetNodeFromDBError(err) {
-		errSync := boot.syncUserAccountsState()
+	if core.IsGetNodeFromDBError(err) {
+		getNodeErr := unwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
+			return err
+		}
+
+		errSync := boot.syncUserAccountsState(getNodeErr.GetKey())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
+}
+
+func unwrapGetNodeFromDBErr(wrappedErr error) getKeyHandler {
+	errWithKeyHandler, ok := wrappedErr.(getKeyHandler)
+	for !ok {
+		if wrappedErr == nil {
+			return nil
+		}
+
+		err := errors.Unwrap(wrappedErr)
+		errWithKeyHandler, ok = err.(getKeyHandler)
+		wrappedErr = err
+	}
+
+	return errWithKeyHandler
 }
 
 // Close closes the synchronization loop

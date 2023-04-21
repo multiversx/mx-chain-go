@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -414,7 +413,7 @@ func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {
 
 	balance, err := bpp.getBalanceForAddress(address)
 	if err != nil {
-		if errors.IsGetNodeFromDBError(err) {
+		if core.IsGetNodeFromDBError(err) {
 			return err
 		}
 		balance = big.NewInt(0)

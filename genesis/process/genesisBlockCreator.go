@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 	hardfork "github.com/multiversx/mx-chain-go/update/genesis"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
@@ -490,7 +489,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
 		factoryState.NewAccountCreator(),
-		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
+		gbc.arg.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		gbc.arg.Core.AddressPubKeyConverter(),
 	)
 	if err != nil {

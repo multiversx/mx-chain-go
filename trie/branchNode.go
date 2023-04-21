@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&branchNode{})
@@ -299,7 +298,7 @@ func (bn *branchNode) commitCheckpoint(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -347,7 +346,7 @@ func (bn *branchNode) commitSnapshot(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := bn.isEmptyOrNil()
@@ -358,7 +357,7 @@ func (bn *branchNode) commitSnapshot(
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
-			if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+			if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
 				treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
 				continue
 			}

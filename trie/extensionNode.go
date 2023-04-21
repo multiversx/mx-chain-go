@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&extensionNode{})
@@ -211,7 +210,7 @@ func (en *extensionNode) commitCheckpoint(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := en.isEmptyOrNil()
@@ -253,7 +252,7 @@ func (en *extensionNode) commitSnapshot(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := en.isEmptyOrNil()
@@ -264,7 +263,7 @@ func (en *extensionNode) commitSnapshot(
 	err = resolveIfCollapsed(en, 0, db)
 	isMissingNodeErr := false
 	if err != nil {
-		isMissingNodeErr = strings.Contains(err.Error(), common.GetNodeFromDBErrorString)
+		isMissingNodeErr = strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
 		if !isMissingNodeErr {
 			return err
 		}

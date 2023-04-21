@@ -2,13 +2,13 @@ package sync
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -179,38 +179,44 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if errors.IsGetNodeFromDBError(err) {
-		errSync := boot.syncAccountsDBs()
+	if core.IsGetNodeFromDBError(err) {
+		getNodeErr := unwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
+			return err
+		}
+
+		errSync := boot.syncAccountsDBs(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
 }
 
-func (boot *MetaBootstrap) syncAccountsDBs() error {
-	var err error
-
-	err = boot.syncValidatorAccountsState()
+func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+	userAccountsStorerIdentifier, err := boot.getStorerIdentifier(dataRetriever.UserAccountsUnit)
 	if err != nil {
 		return err
 	}
 
-	err = boot.syncUserAccountsState()
+	peerAccountsStorerIdentifier, err := boot.getStorerIdentifier(dataRetriever.PeerAccountsUnit)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	// TODO: refactor this in order to avoid treatment based on identifier
+	switch id {
+	case userAccountsStorerIdentifier:
+		return boot.syncUserAccountsState(key)
+	case peerAccountsStorerIdentifier:
+		return boot.syncValidatorAccountsState(key)
+	default:
+		return fmt.Errorf("invalid trie identifier, id: %s", id)
+	}
 }
 
-func (boot *MetaBootstrap) syncValidatorAccountsState() error {
-	rootHash, err := boot.validatorAccountsDB.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(key)
 }
 
 // Close closes the synchronization loop

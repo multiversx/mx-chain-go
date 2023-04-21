@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
@@ -24,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
@@ -536,7 +536,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 }
 
 func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.PeerAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.PeerAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}
@@ -548,7 +548,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.UserAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.UserAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}

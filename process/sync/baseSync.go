@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
@@ -693,14 +694,9 @@ func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 	}
 }
 
-func (boot *baseBootstrap) syncUserAccountsState() error {
-	rootHash, err := boot.accounts.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	log.Warn("base sync: started syncUserAccountsState")
-	return boot.accountsDBSyncer.SyncAccounts(rootHash)
+	return boot.accountsDBSyncer.SyncAccounts(key)
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -1126,6 +1122,19 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (boot *baseBootstrap) getStorerIdentifier(unitType dataRetriever.UnitType) (string, error) {
+	storer, err := boot.store.GetStorer(unitType)
+	if err != nil {
+		return "", err
+	}
+	dbWithID, ok := storer.(dbStorerWithIdentifier)
+	if !ok {
+		return "", errors.ErrWrongTypeAssertion
+	}
+
+	return dbWithID.GetIdentifier(), nil
 }
 
 func (boot *baseBootstrap) init() {

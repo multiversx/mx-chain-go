@@ -127,3 +127,7 @@ type storageManagerExtension interface {
 type StorageMarker interface {
 	MarkStorerAsSyncedAndActive(storer common.StorageManager)
 }
+
+type dbWriteCacherWithIdentifier interface {
+	GetIdentifier() string
+}

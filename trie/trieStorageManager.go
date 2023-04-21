@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -176,11 +175,11 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	val, err := tsm.mainStorer.Get(key)
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -197,7 +196,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	if tsm.closed {
 		log.Trace("trieStorageManager get context closing", "key", key)
 		tsm.storageOperationMutex.Unlock()
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -214,7 +213,7 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
 	val, err := tsm.checkpointsStorer.Get(key)
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -232,7 +231,7 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 
 	if tsm.closed {
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	return tsm.mainStorer.Put(key, val)
@@ -246,7 +245,7 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 	if tsm.closed {
 		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -265,7 +264,7 @@ func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, ep
 
 	if tsm.closed {
 		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -516,7 +515,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("context closing", "message", message, "rootHash", rootHash, "mainTrieRootHash", mainTrieRootHash)
 		return
 	}
@@ -533,7 +532,7 @@ func newSnapshotNode(
 ) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	if err != nil {
-		if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
+		if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
 			treatCommitSnapshotError(err, rootHash, missingNodesCh)
 		}
 		return nil, err
@@ -685,6 +684,17 @@ func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 // GetBaseTrieStorageManager returns the trie storage manager
 func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager {
 	return tsm
+}
+
+// GetIdentifier returns the identifier of the main storer
+func (tsm *trieStorageManager) GetIdentifier() string {
+	dbWithIdentifier, ok := tsm.mainStorer.(dbWriteCacherWithIdentifier)
+	if !ok {
+		log.Warn("trieStorageManager.GetIdentifier mainStorer is not of type dbWriteCacherWithIdentifier", "type", fmt.Sprintf("%T", tsm.mainStorer))
+		return ""
+	}
+
+	return dbWithIdentifier.GetIdentifier()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

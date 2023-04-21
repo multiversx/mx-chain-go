@@ -1,8 +1,8 @@
 package logging
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -24,7 +24,7 @@ func logErrAsLevelExceptAsDebugIfClosingError(logInstance logger.Logger, logLeve
 		return
 	}
 
-	if chainErrors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		logLevel = logger.LogDebug
 	}
 

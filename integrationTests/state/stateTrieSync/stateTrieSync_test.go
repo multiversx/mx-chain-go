@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -20,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
@@ -94,7 +94,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
@@ -107,7 +107,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	tss := statistics.NewTrieSyncStatistics()
@@ -215,7 +215,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 100000
 	for i := 0; i < numTrieLeaves; i++ {
@@ -228,7 +228,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
@@ -338,7 +338,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
 	require.Nil(t, err)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
@@ -465,14 +465,14 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	accState := nResolver.AccntState
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 	rootHash, _ := accState.RootHash()
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	require.Equal(t, numAccounts+numSystemAccounts, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	copyPartialState(t, nResolver, nRequester, dataTrieRootHashes)
@@ -486,7 +486,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	err = nRequester.AccntState.StartSnapshotIfNeeded()
 	assert.Nil(t, err)
 
-	tsm := nRequester.TrieStorageManagers[trieFactory.UserAccountTrie]
+	tsm := nRequester.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
 	nRequester.AccntState.SnapshotState(rootHash)
 	for tsm.IsPruningBlocked() {
@@ -504,12 +504,12 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 }
 
 func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTests.TestProcessorNode, dataTriesRootHashes [][]byte) {
-	resolverTrie := sourceNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := sourceNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	hashes, _ := resolverTrie.GetAllHashes()
 	assert.NotEqual(t, 0, len(hashes))
 
 	hashes = append(hashes, getDataTriesHashes(t, resolverTrie, dataTriesRootHashes)...)
-	destStorage := destinationNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie)).GetStorageManager()
+	destStorage := destinationNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String())).GetStorageManager()
 
 	for i, hash := range hashes {
 		if i%1000 == 0 {
@@ -581,7 +581,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:                            integrationTests.TestHasher,
 			Marshalizer:                       integrationTests.TestMarshalizer,
-			TrieStorageManager:                node.TrieStorageManagers[trieFactory.UserAccountTrie],
+			TrieStorageManager:                node.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 			RequestHandler:                    node.RequestHandler,
 			Timeout:                           common.TimeoutGettingTrieNodes,
 			Cacher:                            node.DataPool.TrieNodes(),

@@ -149,8 +149,8 @@ func CreateTriesComponentsForShardId(
 	trieContainer := state.NewDataTriesHolder()
 	trieStorageManagers := make(map[string]common.StorageManager)
 
-	trieContainer.Put([]byte(UserAccountTrie), userAccountTrie)
-	trieStorageManagers[UserAccountTrie] = userStorageManager
+	trieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), userAccountTrie)
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = userStorageManager
 
 	mainStorer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 	if err != nil {
@@ -176,8 +176,8 @@ func CreateTriesComponentsForShardId(
 		return nil, nil, err
 	}
 
-	trieContainer.Put([]byte(PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[PeerAccountTrie] = peerStorageManager
+	trieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerAccountsTrie)
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = peerStorageManager
 
 	return trieContainer, trieStorageManagers, nil
 }

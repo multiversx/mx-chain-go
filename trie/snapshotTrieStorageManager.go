@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type snapshotTrieStorageManager struct {
@@ -35,13 +34,13 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	// test point get during snapshot
 
 	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
@@ -86,7 +85,7 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
@@ -100,7 +99,7 @@ func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, er
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)

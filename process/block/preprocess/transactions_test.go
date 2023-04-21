@@ -1156,7 +1156,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
-	missingNodeErr := fmt.Errorf(common.GetNodeFromDBErrorString)
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 
 	args := createDefaultTransactionsProcessorArgs()
 	args.Accounts = &stateMock.AccountsStub{

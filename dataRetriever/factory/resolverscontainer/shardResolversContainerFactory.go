@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 var _ dataRetriever.ResolversContainerFactory = (*shardResolversContainerFactory)(nil)
@@ -232,7 +231,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := srcf.createTrieNodesResolver(
 		identifierTrieNodes,
-		triesFactory.UserAccountTrie,
+		dataRetriever.UserAccountsUnit.String(),
 		core.MetachainShardId,
 	)
 	if err != nil {

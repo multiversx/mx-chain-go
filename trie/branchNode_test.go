@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -1352,10 +1352,10 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 
 	err = bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
@@ -1363,7 +1363,7 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	db := &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, chainErrors.ErrContextClosing
+			return nil, core.ErrContextClosing
 		},
 	}
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
