@@ -227,11 +227,3 @@ type dataTrie interface {
 	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
 	CollectLeavesForMigration(oldVersion core.TrieNodeVersion, newVersion core.TrieNodeVersion, trieMigrator vmcommon.DataTrieMigrator) error
 }
-
-// TrieValuesCacher defines the behavior of a cache that holds trie values
-type TrieValuesCacher interface {
-	Get(key []byte) (core.TrieData, bool)
-	Put(key []byte, value core.TrieData)
-	Clean()
-	IsInterfaceNil() bool
-}

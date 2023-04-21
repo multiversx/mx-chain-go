@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	"github.com/multiversx/mx-chain-go/state/trieValuesCache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -28,7 +27,6 @@ type trackableDataTrie struct {
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
 	identifier          []byte
-	trieValuesCache     TrieValuesCacher
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -38,7 +36,6 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
-	trieValueCacher TrieValuesCacher,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
@@ -49,9 +46,6 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(trieValueCacher) {
-		return nil, ErrNilTrieValuesCacher
-	}
 
 	return &trackableDataTrie{
 		tr:                  tr,
@@ -60,7 +54,6 @@ func NewTrackableDataTrie(
 		dirtyData:           make(map[string]dirtyData),
 		identifier:          identifier,
 		enableEpochsHandler: enableEpochsHandler,
-		trieValuesCache:     trieValueCacher,
 	}, nil
 }
 
@@ -74,20 +67,12 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 		return dataEntry.value, 0, nil
 	}
 
-	// search in trieValuesCache
-	entry, ok := tdaw.trieValuesCache.Get(key)
-	if ok {
-		val, err := tdaw.getValueWithoutMetadata(key, entry)
-		log.Trace("retrieve value from trie values cache", "key", key, "value", val, "account", tdaw.identifier)
-		return val, 0, err
-	}
-
 	if check.IfNil(tdaw.tr) {
 		return nil, 0, ErrNilTrie
 	}
 
 	// search in trie
-	trieValue, depth, err := tdaw.retrieveValueFromTrieAndUpdateCache(key, tdaw.trieValuesCache)
+	trieValue, depth, err := tdaw.retrieveValueFromTrie(key)
 	if err != nil {
 		return nil, depth, err
 	}
@@ -150,14 +135,6 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(oldVersion core.TrieNodeVer
 		}
 
 		tdaw.dirtyData[string(originalKey)] = newDataEntry
-
-		oldTrieVal := core.TrieData{
-			Key:     leafData.Key,
-			Value:   leafData.Value,
-			Version: leafData.Version,
-		}
-
-		tdaw.trieValuesCache.Put(originalKey, oldTrieVal)
 	}
 
 	return nil
@@ -209,8 +186,6 @@ func (tdaw *trackableDataTrie) getValueForVersion(key []byte, value []byte, vers
 // SetDataTrie sets the internal data trie
 func (tdaw *trackableDataTrie) SetDataTrie(tr common.Trie) {
 	tdaw.tr = tr
-
-	tdaw.trieValuesCache.Clean()
 }
 
 // DataTrie sets the internal data trie
@@ -220,10 +195,6 @@ func (tdaw *trackableDataTrie) DataTrie() common.DataTrieHandler {
 
 // SaveDirtyData saved the dirty data to the trie
 func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
-	// TODO investigate if it is better to only clean the cache on data trie commit.
-	// If so, treat the case when the data is modified for a cached value, and the case of a reverted tx
-	defer tdaw.trieValuesCache.Clean()
-
 	if len(tdaw.dirtyData) == 0 {
 		return make([]core.TrieData, 0), nil
 	}
@@ -250,7 +221,7 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 
 	index := 0
 	for key, dataEntry := range tdaw.dirtyData {
-		oldVal, err := tdaw.getOldValue([]byte(key))
+		oldVal, _, err := tdaw.retrieveValueFromTrie([]byte(key))
 		if err != nil {
 			return nil, err
 		}
@@ -274,20 +245,7 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 	return oldValues, nil
 }
 
-func (tdaw *trackableDataTrie) getOldValue(key []byte) (core.TrieData, error) {
-	entry, ok := tdaw.trieValuesCache.Get(key)
-	if ok {
-		log.Trace("trieValuesCache hit", "key", key, "account", tdaw.identifier)
-		return entry, nil
-	}
-
-	log.Trace("trieValuesCache miss", "key", key, "account", tdaw.identifier)
-
-	val, _, err := tdaw.retrieveValueFromTrieAndUpdateCache(key, trieValuesCache.NewDisabledTrieValuesCache())
-	return val, err
-}
-
-func (tdaw *trackableDataTrie) retrieveValueFromTrieAndUpdateCache(key []byte, trieValCache TrieValuesCacher) (core.TrieData, uint32, error) {
+func (tdaw *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
 	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		hashedKey := tdaw.hasher.Compute(string(key))
 		valWithMetadata, depth, err := tdaw.tr.Get(hashedKey)
@@ -300,8 +258,6 @@ func (tdaw *trackableDataTrie) retrieveValueFromTrieAndUpdateCache(key []byte, t
 				Value:   valWithMetadata,
 				Version: core.AutoBalanceEnabled,
 			}
-
-			trieValCache.Put(key, trieValue)
 
 			return trieValue, depth, nil
 		}
@@ -318,8 +274,6 @@ func (tdaw *trackableDataTrie) retrieveValueFromTrieAndUpdateCache(key []byte, t
 			Version: core.NotSpecified,
 		}
 
-		trieValCache.Put(key, trieValue)
-
 		return trieValue, depth, nil
 	}
 
@@ -331,8 +285,6 @@ func (tdaw *trackableDataTrie) retrieveValueFromTrieAndUpdateCache(key []byte, t
 		Value:   nil,
 		Version: newDataVersion,
 	}
-
-	trieValCache.Put(key, trieValue)
 
 	return trieValue, depth, nil
 }

@@ -150,6 +150,3 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
-
-// ErrNilTrieValuesCacher signals that a nil trie values cacher has been provided
-var ErrNilTrieValuesCacher = errors.New("nil trie values cacher")

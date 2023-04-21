@@ -45,7 +45,6 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&TrieValuesCacherStub{},
 	)
 
 	return &AccountWrapMock{
