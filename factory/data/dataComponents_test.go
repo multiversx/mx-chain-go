@@ -9,7 +9,6 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/stretchr/testify/require"
@@ -41,18 +40,6 @@ func TestNewDataComponentsFactory(t *testing.T) {
 		require.Nil(t, dcf)
 		require.Equal(t, errorsMx.ErrNilCoreComponents, err)
 	})
-	t.Run("nil epoch start notifier should error", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
-		args.EpochStartNotifier = nil
-
-		dcf, err := dataComp.NewDataComponentsFactory(args)
-		require.Nil(t, dcf)
-		require.Equal(t, errorsMx.ErrNilEpochStartNotifier, err)
-	})
 	t.Run("nil status core components should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -64,6 +51,18 @@ func TestNewDataComponentsFactory(t *testing.T) {
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
+	})
+	t.Run("nil crypto components should error", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		coreComponents := componentsMock.GetCoreComponents()
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+		args.Crypto = nil
+
+		dcf, err := dataComp.NewDataComponentsFactory(args)
+		require.Nil(t, dcf)
+		require.Equal(t, errorsMx.ErrNilCryptoComponents, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

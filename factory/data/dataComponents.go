@@ -64,23 +64,11 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
 	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
-	if check.IfNil(args.Core.EpochStartNotifierWithConfirm()) {
-		return nil, errors.ErrNilEpochStartNotifier
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
-	}
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
-	}
-	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
-		return nil, errors.ErrNilManagedPeersHolder
 	}
 
 	return &dataComponentsFactory{

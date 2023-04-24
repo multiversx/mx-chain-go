@@ -766,7 +766,6 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
