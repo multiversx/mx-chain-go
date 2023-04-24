@@ -46,6 +46,11 @@ type TrieStats interface {
 	GetTrieStats(address string, rootHash []byte) (*statistics.TrieStatsDTO, error)
 }
 
+// StorageMarker is used to mark the given storer as synced and active
+type StorageMarker interface {
+	MarkStorerAsSyncedAndActive(storer StorageManager)
+}
+
 // KeyBuilder is used for building trie keys as you traverse the trie
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)

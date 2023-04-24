@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -20,7 +19,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
+var _ state.AccountsDBSyncer = (*userAccountsSyncer)(nil)
 
 var log = logger.GetOrCreate("syncer")
 
@@ -88,7 +87,6 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:                 args.TrieSyncerVersion,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
-		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
 	}
@@ -104,7 +102,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
-func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
+func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -134,7 +132,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }

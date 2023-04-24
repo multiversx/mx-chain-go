@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +66,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 	getCalled := false
 	returnedVal := []byte("existingVal")
 	putCalled := 0
-	tsm = &testscommon.StorageManagerStub{
+	tsm = &storageManager.StorageManagerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			getCalled = true
 			return returnedVal, nil
