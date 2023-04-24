@@ -2390,13 +2390,6 @@ func (sc *scProcessor) createSmartContractResults(
 		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
-		if result.CallType == vmData.AsynchronousCallBack {
-			if isCrossShard {
-				// backward compatibility
-				createdAsyncCallBack = true
-				result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
-			}
-		}
 
 		useSenderAddressFromOutTransfer :=
 			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&

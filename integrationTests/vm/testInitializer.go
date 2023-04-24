@@ -1486,6 +1486,18 @@ func GetIntValueFromSC(
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
+// GetStringValueFromSC -
+func GetStringValueFromSC(
+	gasSchedule map[string]map[string]uint64,
+	accnts state.AccountsAdapter,
+	scAddressBytes []byte,
+	funcName string,
+	args ...[]byte,
+) string {
+	vmOutput := GetVmOutput(gasSchedule, accnts, scAddressBytes, funcName, args...)
+	return string(vmOutput.ReturnData[0])
+}
+
 // GetVmOutput -
 func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *vmcommon.VMOutput {
 	vmConfig := createDefaultVMConfig()

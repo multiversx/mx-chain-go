@@ -583,8 +583,6 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	for call := 0; call < numberOfCallsFromParent; call++ {
 		scrCall1 := vaultIntermediateTxs[1+2*call]
 		utils.ProcessSCRResult(t, forwarderShard, scrCall1, vmcommon.Ok, nil)
-		scrCall2 := vaultIntermediateTxs[2+2*call]
-		utils.ProcessSCRResult(t, forwarderShard, scrCall2, vmcommon.Ok, nil)
 	}
 
 	utils.CheckESDTNFTBalance(t, vaultShard, vaultSCAddress, esdtToken, 0,
@@ -605,8 +603,8 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	res = vm.GetIntValueFromSC(nil, forwarderShard.Accounts, forwarderSCAddress, "callback_count")
 	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
 
-	res = vm.GetIntValueFromSC(nil, forwarderShard.Accounts, forwarderSCAddress, "callback_payments")
-	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+	resStr := vm.GetStringValueFromSC(nil, forwarderShard.Accounts, forwarderSCAddress, "callback_payments")
+	require.Equal(t, "ESDTTransfer@6d696975746f6b656e@05", resStr)
 }
 
 func sendTx(nonce uint64, senderAddr []byte, secondSCAddress []byte, gasPrice uint64, gasLimit uint64, txBuilder *txDataBuilder.TxDataBuilder, testContext *vm.VMTestContext, t *testing.T) {
