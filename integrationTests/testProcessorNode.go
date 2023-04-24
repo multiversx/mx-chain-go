@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -145,7 +146,7 @@ var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
-var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, AddressHrp)
 
 // TestValidatorPubkeyConverter represents an address public key converter
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
@@ -232,10 +233,17 @@ type TestKeyPair struct {
 	Pk crypto.PublicKey
 }
 
-// CryptoParams holds crypto parametres
+// TestNodeKeys will hold the main key along the handled keys of a node
+type TestNodeKeys struct {
+	MainKey     *TestKeyPair
+	HandledKeys []*TestKeyPair
+}
+
+// CryptoParams holds crypto parameters
 type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
-	Keys         map[uint32][]*TestKeyPair
+	P2PKeyGen    crypto.KeyGenerator
+	NodesKeys    map[uint32][]*TestNodeKeys
 	SingleSigner crypto.SingleSigner
 	TxKeyGen     crypto.KeyGenerator
 	TxKeys       map[uint32][]*TestKeyPair
@@ -265,7 +273,7 @@ type ArgTestProcessorNode struct {
 	HardforkPk              crypto.PublicKey
 	GenesisFile             string
 	StateCheckpointModulus  *IntWrapper
-	NodeKeys                *TestKeyPair
+	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
 	MultiSigner             crypto.MultiSigner
@@ -274,6 +282,9 @@ type ArgTestProcessorNode struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	OwnAccount              *TestWalletAccount
 	EpochStartSubscriber    notifier.EpochStartNotifier
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
+	WithPeersRatingHandler  bool
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -286,7 +297,7 @@ type TestProcessorNode struct {
 	Messenger        p2p.Messenger
 
 	OwnAccount *TestWalletAccount
-	NodeKeys   *TestKeyPair
+	NodeKeys   *TestNodeKeys
 
 	ExportFolder        string
 	DataPool            dataRetriever.PoolsHolder
@@ -306,7 +317,8 @@ type TestProcessorNode struct {
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
-	ResolverFinder        dataRetriever.ResolversFinder
+	RequestersContainer   dataRetriever.RequestersContainer
+	RequestersFinder      dataRetriever.RequestersFinder
 	RequestHandler        process.RequestHandler
 	WasmVMChangeLocker    common.Locker
 
@@ -376,7 +388,10 @@ type TestProcessorNode struct {
 
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
+	PeersRatingMonitor      p2p.PeersRatingMonitor
 	HardforkTrigger         node.HardforkTrigger
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -413,13 +428,35 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
-	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
-		p2pFactory.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
+	appStatusHandler := args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		appStatusHandler = TestAppStatusHandler
+	}
+
+	var peersRatingHandler p2p.PeersRatingHandler
+	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	topRatedCache := testscommon.NewCacherMock()
+	badRatedCache := testscommon.NewCacherMock()
+	if args.WithPeersRatingHandler {
+		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
+			p2pFactory.ArgPeersRatingHandler{
+				TopRatedCache: topRatedCache,
+				BadRatedCache: badRatedCache,
+			})
+	}
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+
+	var peersRatingMonitor p2p.PeersRatingMonitor
+	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
+	if args.WithPeersRatingHandler {
+		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache:       topRatedCache,
+				BadRatedCache:       badRatedCache,
+				ConnectionsProvider: messenger,
+			})
+	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -451,13 +488,18 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
 		GuardedAccountHandler:    &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:         appStatusHandler,
+		PeersRatingMonitor:       peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
 	if tpn.NodeKeys == nil {
 		kg := &mock.KeyGenMock{}
-		tpn.NodeKeys = &TestKeyPair{}
-		tpn.NodeKeys.Sk, tpn.NodeKeys.Pk = kg.GeneratePair()
+		kp := &TestKeyPair{}
+		kp.Sk, kp.Pk = kg.GeneratePair()
+		tpn.NodeKeys = &TestNodeKeys{
+			MainKey: kp,
+		}
 	}
 
 	tpn.MultiSigner = TestMultiSig
@@ -636,6 +678,16 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
+	tpn.AppStatusHandler = args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		tpn.AppStatusHandler = TestAppStatusHandler
+	}
+
+	tpn.StatusMetrics = args.StatusMetrics
+	if check.IfNil(args.StatusMetrics) {
+		args.StatusMetrics = &testscommon.StatusMetricsStub{}
+	}
+
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -659,6 +711,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
+	tpn.initRequesters()
 	tpn.initValidatorStatistics()
 	tpn.initGenesisBlocks(args)
 	tpn.initBlockTracker()
@@ -713,11 +766,14 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.MainKey.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 
 	if args.WithSync {
@@ -895,11 +951,14 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
-		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
+		testscommon.NewKeysHandlerSingleSignerMock(
+			tpn.NodeKeys.MainKey.Sk,
+			tpn.Messenger.ID(),
+		),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1241,7 +1300,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 }
 
 func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
-	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
+	pkBytes, _ := tpn.NodeKeys.MainKey.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        pkBytes,
 		Enabled:                   true,
@@ -1273,29 +1332,23 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
+	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            tpn.ShardCoordinator,
-		Messenger:                   tpn.Messenger,
-		Store:                       tpn.Storage,
-		Marshalizer:                 TestMarshalizer,
-		DataPools:                   tpn.DataPool,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		DataPacker:                  dataPacker,
-		TriesContainer:              tpn.TrieContainer,
-		SizeCheckDelta:              100,
-		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  2,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: tpn.PeersRatingHandler,
-		PayloadValidator:   payloadValidator,
+		ShardCoordinator:           tpn.ShardCoordinator,
+		Messenger:                  tpn.Messenger,
+		Store:                      tpn.Storage,
+		Marshalizer:                TestMarshalizer,
+		DataPools:                  tpn.DataPool,
+		Uint64ByteSliceConverter:   TestUint64Converter,
+		DataPacker:                 dataPacker,
+		TriesContainer:             tpn.TrieContainer,
+		SizeCheckDelta:             100,
+		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       preferredPeersHolder,
+		PayloadValidator:           payloadValidator,
 	}
 
 	var err error
@@ -1304,32 +1357,63 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
-
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
-			tpn.RequestedItemsHandler,
-			tpn.WhiteListHandler,
-			100,
-			tpn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
 	} else {
 		resolversContainerFactory, _ := resolverscontainer.NewShardResolversContainerFactory(resolverContainerFactory)
 
 		tpn.ResolversContainer, err = resolversContainerFactory.Create()
 		log.LogIfError(err)
-
-		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
-		tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-			tpn.ResolverFinder,
-			tpn.RequestedItemsHandler,
-			tpn.WhiteListHandler,
-			100,
-			tpn.ShardCoordinator.SelfId(),
-			time.Second,
-		)
 	}
+}
+
+func (tpn *TestProcessorNode) initRequesters() {
+	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig: config.RequesterConfig{
+			NumCrossShardPeers:  2,
+			NumTotalPeers:       3,
+			NumFullHistoryPeers: 3,
+		},
+		ShardCoordinator:            tpn.ShardCoordinator,
+		Messenger:                   tpn.Messenger,
+		Marshaller:                  TestMarshaller,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:          tpn.PeersRatingHandler,
+		SizeCheckDelta:              0,
+	}
+
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		tpn.createMetaRequestersContainer(requestersContainerFactoryArgs)
+	} else {
+		tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
+	}
+
+	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
+	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		tpn.RequestersFinder,
+		tpn.RequestedItemsHandler,
+		tpn.WhiteListHandler,
+		100,
+		tpn.ShardCoordinator.SelfId(),
+		time.Second,
+	)
+}
+
+func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	var err error
+	tpn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
+}
+
+func (tpn *TestProcessorNode) createShardRequestersContainer(args requesterscontainer.FactoryArgs) {
+	requestersContainerFactory, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	var err error
+	tpn.RequestersContainer, err = requestersContainerFactory.Create()
+	log.LogIfError(err)
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64, vmConfig *config.VirtualMachineConfig) {
@@ -1958,7 +2042,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	triesConfig := config.Config{
 		StateTriesConfig: config.StateTriesConfig{
-			SnapshotsEnabled:        true,
 			CheckpointRoundsModulus: stateCheckpointModulus,
 		},
 	}
@@ -2202,6 +2285,11 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		StatusMetricsField:    tpn.StatusMetrics,
+		AppStatusHandlerField: tpn.AppStatusHandler,
+	}
+
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
@@ -2235,7 +2323,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.ReqFinder = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2249,8 +2337,8 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
-	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.PrivKey = tpn.NodeKeys.MainKey.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.MainKey.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
@@ -2278,6 +2366,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
+	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2290,13 +2380,15 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
+		node.WithStatusCoreComponents(statusCoreComponents),
 	)
 	log.LogIfError(err)
 
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		tpn.Node,
 		tpn.InterceptorsContainer,
-		tpn.ResolverFinder,
+		tpn.ResolversContainer,
+		tpn.RequestersFinder,
 		config.InterceptorResolverDebugConfig{
 			Enabled:                    true,
 			CacheSize:                  1000,
@@ -2312,12 +2404,22 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	txArgs := &external.ArgsCreateTransaction{
+	encodedRcvAddr, err := TestAddressPubkeyConverter.Encode(tx.RcvAddr)
+	if err != nil {
+		return "", err
+	}
+
+	encodedSndAddr, err := TestAddressPubkeyConverter.Encode(tx.SndAddr)
+	if err != nil {
+		return "", err
+	}
+
+	txArgsLocal := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		Receiver:         encodedRcvAddr,
 		ReceiverUsername: nil,
-		Sender:           TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		Sender:           encodedSndAddr,
 		SenderUsername:   nil,
 		GasPrice:         tx.GasPrice,
 		GasLimit:         tx.GasLimit,
@@ -2326,10 +2428,10 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 		Options:          tx.Options,
-		Guardian:         TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
+		Guardian:         TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log),
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
-	tx, txHash, err := tpn.Node.CreateTransaction(txArgs)
+	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
 	if err != nil {
 		return "", err
 	}
@@ -2499,14 +2601,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
-func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
+func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler, publicKey crypto.PublicKey) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
 
 	time.Sleep(tpn.WaitTime)
 
+	pkBytes, _ := publicKey.ToByteArray()
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
-	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
-	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
+	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
 
 // WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
@@ -2795,8 +2899,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	log.LogIfError(err)
 
 	cryptoComponents := GetDefaultCryptoComponents()
-	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
-	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.PrivKey = tpn.NodeKeys.MainKey.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.MainKey.Pk
 	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
 	cryptoComponents.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(tpn.MultiSigner)
@@ -2810,7 +2914,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
-	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.ReqFinder = tpn.RequestersFinder
 	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
 	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
@@ -2835,7 +2939,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
-		AppStatusHandlerField: TestAppStatusHandler,
+		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
 
 	err = tpn.Node.ApplyOptions(
@@ -2849,22 +2953,23 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	hbv2Config := config.HeartbeatV2Config{
 		PeerAuthenticationTimeBetweenSendsInSec:          5,
 		PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-		PeerAuthenticationThresholdBetweenSends:          0.1,
+		PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 		HeartbeatTimeBetweenSendsInSec:                   2,
 		HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 		HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-		HeartbeatThresholdBetweenSends:                   0.1,
+		HeartbeatTimeThresholdBetweenSends:               0.1,
 		HeartbeatExpiryTimespanInSec:                     300,
 		MinPeersThreshold:                                0.8,
-		DelayBetweenRequestsInSec:                        10,
-		MaxTimeoutInSec:                                  60,
+		DelayBetweenPeerAuthenticationRequestsInSec:      10,
+		PeerAuthenticationMaxTimeoutForRequestsInSec:     60,
 		PeerShardTimeBetweenSendsInSec:                   5,
-		PeerShardThresholdBetweenSends:                   0.1,
+		PeerShardTimeThresholdBetweenSends:               0.1,
 		MaxMissingKeysInRequest:                          100,
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
 		HardforkTimeBetweenSendsInSec:                    2,
 		TimeBetweenConnectionsMetricsUpdateInSec:         10,
+		PeerAuthenticationTimeBetweenChecksInSec:         1,
 		HeartbeatPool: config.CacheConfig{
 			Type:     "LRU",
 			Capacity: 1000,
@@ -3023,7 +3128,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			CurrentShard: 0,
 		},
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		ReqFinder:                &dataRetrieverMock.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
@@ -3072,18 +3177,20 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	return &mock.CryptoComponentsStub{
-		PubKey:            &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyMock{},
-		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SignerMock{},
-		TxSig:             &mock.SignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		PubKey:                  &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyMock{},
+		PubKeyString:            "pubKey",
+		PrivKeyBytes:            []byte("privKey"),
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SignerMock{},
+		TxSig:                   &mock.SignerMock{},
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+		KeysHandlerField:        &testscommon.KeysHandlerStub{},
 	}
 }
 
@@ -3110,6 +3217,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:           &mock.PeerBlackListCacherStub{},
 		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField: &p2pmocks.PeersRatingMonitorStub{},
 	}
 }
 

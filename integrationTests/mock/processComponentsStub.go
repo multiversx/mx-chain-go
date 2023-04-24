@@ -21,7 +21,8 @@ type ProcessComponentsStub struct {
 	ShardCoord                           sharding.Coordinator
 	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	RoundHandlerCalled                   func() consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
@@ -94,9 +95,14 @@ func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsCo
 	return pcs.IntContainer
 }
 
-// ResolversFinder -
-func (pcs *ProcessComponentsStub) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcs.ResFinder
+// ResolversContainer -
+func (pcs *ProcessComponentsStub) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcs.ResContainer
+}
+
+// RequestersFinder -
+func (pcs *ProcessComponentsStub) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcs.ReqFinder
 }
 
 // RoundHandler -

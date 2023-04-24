@@ -50,7 +50,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 			},
 			UInt64ByteSliceConv: &testsMocks.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      &mock.PubkeyConverterStub{},
+			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			WatchdogTimer:       &testscommon.WatchdogMock{},
 			AlarmSch:            &testscommon.AlarmSchedulerStub{},
 			NtpSyncTimer:        &testscommon.SyncTimerStub{},
@@ -79,8 +79,10 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			MultiSigContainer: &cryptoMocks.MultiSignerContainerMock{
 				MultiSigner: &cryptoMocks.MultisignerMock{},
 			},
-			BlKeyGen: &cryptoMocks.KeyGenStub{},
-			BlockSig: &cryptoMocks.SingleSignerStub{},
+			BlKeyGen:         &cryptoMocks.KeyGenStub{},
+			BlockSig:         &cryptoMocks.SingleSignerStub{},
+			KeysHandlerField: &testscommon.KeysHandlerStub{},
+			SigHandler:       &consensusMocks.SigningHandlerStub{},
 		},
 		DataComponents: &testsMocks.DataComponentsStub{
 			DataPool: &dataRetriever.PoolsHolderStub{
@@ -865,22 +867,26 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, cc)
 	})
-	t.Run("createBlsSignatureHandler fails due ToByteArray failure should error", func(t *testing.T) {
+	t.Run("createConsensusState fails due to nil KeysHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
 		cryptoCompStub, ok := args.CryptoComponents.(*testsMocks.CryptoComponentsStub)
 		require.True(t, ok)
-		cryptoCompStub.PrivKey = &cryptoMocks.PrivateKeyStub{
-			ToByteArrayStub: func() ([]byte, error) {
-				return nil, expectedErr
-			},
+		cnt := 0
+		cryptoCompStub.KeysHandlerCalled = func() consensus.KeysHandler {
+			cnt++
+			if cnt > 0 {
+				return nil
+			}
+			return &testscommon.KeysHandlerStub{}
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "keys handler")
 		require.Nil(t, cc)
 	})
 	t.Run("NewConsensusCore failure should error", func(t *testing.T) {
@@ -889,13 +895,13 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		args := createMockConsensusComponentsFactoryArgs()
 		cryptoCompStub, ok := args.CryptoComponents.(*testsMocks.CryptoComponentsStub)
 		require.True(t, ok)
-		cryptoCompStub.BlockSig = nil
+		cryptoCompStub.SigHandler = nil
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
 		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "single signer"))
+		require.True(t, strings.Contains(err.Error(), "signing handler"))
 		require.Nil(t, cc)
 	})
 	t.Run("GetSubroundsFactory failure should error", func(t *testing.T) {

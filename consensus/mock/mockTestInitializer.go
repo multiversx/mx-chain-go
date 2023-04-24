@@ -175,12 +175,6 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	blsPrivateKeyMock := &PrivateKeyMock{}
-	blsSingleSignerMock := &SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) (bytes []byte, e error) {
-			return make([]byte, 0), nil
-		},
-	}
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
@@ -208,8 +202,10 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
+	messageSigningHandler := &MessageSigningHandlerStub{}
+	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
-	signatureHandler := &SignatureHandlerStub{}
+	signingHandler := &consensusMocks.SigningHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -220,8 +216,6 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		chronologyHandler:       chronologyHandlerMock,
 		hasher:                  hasherMock,
 		marshalizer:             marshalizerMock,
-		blsPrivateKey:           blsPrivateKeyMock,
-		blsSingleSigner:         blsSingleSignerMock,
 		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
@@ -234,7 +228,9 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		fallbackHeaderValidator: fallbackHeaderValidator,
 		nodeRedundancyHandler:   nodeRedundancyHandler,
 		scheduledProcessor:      scheduledProcessor,
-		signatureHandler:        signatureHandler,
+		messageSigningHandler:   messageSigningHandler,
+		peerBlacklistHandler:    peerBlacklistHandler,
+		signingHandler:          signingHandler,
 	}
 
 	return container
