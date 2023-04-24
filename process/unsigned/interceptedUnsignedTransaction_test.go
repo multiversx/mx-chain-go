@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/unsigned"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -45,13 +46,13 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 		txBuff,
 		marshalizer,
 		&hashingMocks.HasherMock{},
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 	)
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewInterceptedUnsignedTransaction

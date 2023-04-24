@@ -291,7 +291,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		},
 		EpochConfig: &config.EpochConfig{},
 		CoreComponents: &mock.CoreComponentsMock{
-			AddrPubKeyConv: &mock.PubkeyConverterStub{
+			AddrPubKeyConv: &testscommon.PubkeyConverterStub{
 				DecodeCalled: func(humanReadable string) ([]byte, error) {
 					return []byte(humanReadable), nil
 				},
