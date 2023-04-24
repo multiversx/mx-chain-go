@@ -617,7 +617,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	err = g.eei.Transfer(args.RecipientAddr, args.CallerAddr, generalProposal.ProposalCost, nil, 0)
+	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, generalProposal.ProposalCost, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -975,7 +975,7 @@ func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, referenc
 	if err != nil {
 		return nil, err
 	}
-	log.Error("total stake" + " " + totalStake.String())
+
 	scVoteInfo.TotalPower.Set(totalVotingPower)
 	scVoteInfo.TotalStake.Set(totalStake)
 
