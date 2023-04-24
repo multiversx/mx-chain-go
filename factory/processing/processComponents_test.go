@@ -68,6 +68,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		Length:          32,
 		Type:            "bech32",
 		SignatureLength: 0,
+		Hrp:             "erd",
 	})
 	valPubKeyConv, _ := factory.NewPubkeyConverter(config.PubkeyConfig{
 		Length:          96,
@@ -198,14 +199,15 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			MultiSigContainer: &cryptoMocks.MultiSignerContainerMock{
 				MultiSigner: &cryptoMocks.MultisignerMock{},
 			},
-			PrivKey:         &cryptoMocks.PrivateKeyStub{},
-			PubKey:          &cryptoMocks.PublicKeyStub{},
-			PubKeyString:    "pub key string",
-			PubKeyBytes:     []byte("pub key bytes"),
-			TxKeyGen:        &cryptoMocks.KeyGenStub{},
-			TxSig:           &cryptoMocks.SingleSignerStub{},
-			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
-			MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
+			PrivKey:                 &cryptoMocks.PrivateKeyStub{},
+			PubKey:                  &cryptoMocks.PublicKeyStub{},
+			PubKeyString:            "pub key string",
+			PubKeyBytes:             []byte("pub key bytes"),
+			TxKeyGen:                &cryptoMocks.KeyGenStub{},
+			TxSig:                   &cryptoMocks.SingleSignerStub{},
+			PeerSignHandler:         &cryptoMocks.PeerSignatureHandlerStub{},
+			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
 		State: &testscommon.StateComponentsMock{
 			Accounts: &state.AccountsStub{
@@ -365,7 +367,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:         &testscommon.NodesSetupStub{},
-			AddrPubKeyConv:      &mock.PubkeyConverterStub{},
+			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: nil,
 		}
 		pcf, err := processComp.NewProcessComponentsFactory(args)
@@ -379,7 +381,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:         &testscommon.NodesSetupStub{},
-			AddrPubKeyConv:      &mock.PubkeyConverterStub{},
+			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
 			ValPubKeyConv:       nil,
 		}
@@ -394,9 +396,9 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:         &testscommon.NodesSetupStub{},
-			AddrPubKeyConv:      &mock.PubkeyConverterStub{},
+			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			ValPubKeyConv:       &mock.PubkeyConverterStub{},
+			ValPubKeyConv:       &testscommon.PubkeyConverterStub{},
 			IntMarsh:            nil,
 		}
 		pcf, err := processComp.NewProcessComponentsFactory(args)
@@ -410,9 +412,9 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:         &testscommon.NodesSetupStub{},
-			AddrPubKeyConv:      &mock.PubkeyConverterStub{},
+			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			ValPubKeyConv:       &mock.PubkeyConverterStub{},
+			ValPubKeyConv:       &testscommon.PubkeyConverterStub{},
 			IntMarsh:            &testscommon.MarshalizerStub{},
 			UInt64ByteSliceConv: nil,
 		}
@@ -903,19 +905,19 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("NewESDTDataStorage fails should error",
 		testWithNilMarshaller(105, "Marshalizer", unreachableStep))
 	t.Run("NewReceiptsRepository fails should error",
-		testWithNilMarshaller(106, "marshalizer", unreachableStep))
+		testWithNilMarshaller(107, "marshalizer", unreachableStep))
 	t.Run("newBlockProcessor fails due to invalid shard should error",
 		testWithInvalidShard(31, "could not create block processor"))
 
 	// newShardBlockProcessor
 	t.Run("newShardBlockProcessor: NewESDTTransferParser fails should error",
-		testWithNilMarshaller(107, "marshaller", unreachableStep))
+		testWithNilMarshaller(108, "marshaller", unreachableStep))
 	t.Run("newShardBlockProcessor: createBuiltInFunctionContainer fails should error",
 		testWithNilAddressPubKeyConv(46, "public key converter", unreachableStep))
 	t.Run("newShardBlockProcessor: createVMFactoryShard fails due to NewBlockChainHookImpl failure should error",
 		testWithNilAddressPubKeyConv(47, "pubkey converter", unreachableStep))
 	t.Run("newShardBlockProcessor: NewIntermediateProcessorsContainerFactory fails should error",
-		testWithNilMarshaller(110, "Marshalizer", unreachableStep))
+		testWithNilMarshaller(111, "Marshalizer", unreachableStep))
 	t.Run("newShardBlockProcessor: NewTxTypeHandler fails should error",
 		testWithNilAddressPubKeyConv(49, "pubkey converter", unreachableStep))
 	t.Run("newShardBlockProcessor: NewGasComputation fails should error",
@@ -949,13 +951,13 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, "PollingTimeInSeconds")
 	})
 	t.Run("newShardBlockProcessor: NewBlockSizeComputation fails should error",
-		testWithNilMarshaller(116, "Marshalizer", unreachableStep))
-	t.Run("newShardBlockProcessor: NewPreProcessorsContainerFactory fails should error",
 		testWithNilMarshaller(117, "Marshalizer", unreachableStep))
-	t.Run("newShardBlockProcessor: NewPrintDoubleTransactionsDetector fails should error",
+	t.Run("newShardBlockProcessor: NewPreProcessorsContainerFactory fails should error",
 		testWithNilMarshaller(118, "Marshalizer", unreachableStep))
-	t.Run("newShardBlockProcessor: NewTransactionCoordinator fails should error",
+	t.Run("newShardBlockProcessor: NewPrintDoubleTransactionsDetector fails should error",
 		testWithNilMarshaller(119, "Marshalizer", unreachableStep))
+	t.Run("newShardBlockProcessor: NewTransactionCoordinator fails should error",
+		testWithNilMarshaller(120, "Marshalizer", unreachableStep))
 
 	// newMetaBlockProcessor, step for meta is 31 inside newBlockProcessor
 	t.Run("newMetaBlockProcessor: createBuiltInFunctionContainer fails should error",
@@ -963,9 +965,9 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("newMetaBlockProcessor: createVMFactoryMeta fails due to NewBlockChainHookImpl failure should error",
 		testWithNilAddressPubKeyConv(47, "pubkey converter", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewIntermediateProcessorsContainerFactory fails should error",
-		testWithNilMarshaller(110, "Marshalizer", blockProcessorOnMetaStep))
+		testWithNilMarshaller(111, "Marshalizer", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewESDTTransferParser fails should error",
-		testWithNilMarshaller(111, "marshaller", blockProcessorOnMetaStep))
+		testWithNilMarshaller(112, "marshaller", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewTxTypeHandler fails should error",
 		testWithNilAddressPubKeyConv(49, "pubkey converter", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewGasComputation fails should error",
@@ -985,25 +987,25 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("newMetaBlockProcessor: createMetaTxSimulatorProcessor fails due to NewMetaTxProcessor failure second time should error",
 		testWithNilAddressPubKeyConv(55, "pubkey converter", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewBlockSizeComputation fails should error",
-		testWithNilMarshaller(119, "Marshalizer", blockProcessorOnMetaStep))
-	t.Run("newMetaBlockProcessor: NewPreProcessorsContainerFactory fails should error",
 		testWithNilMarshaller(120, "Marshalizer", blockProcessorOnMetaStep))
-	t.Run("newMetaBlockProcessor: NewPrintDoubleTransactionsDetector fails should error",
+	t.Run("newMetaBlockProcessor: NewPreProcessorsContainerFactory fails should error",
 		testWithNilMarshaller(121, "Marshalizer", blockProcessorOnMetaStep))
-	t.Run("newMetaBlockProcessor: NewTransactionCoordinator fails should error",
+	t.Run("newMetaBlockProcessor: NewPrintDoubleTransactionsDetector fails should error",
 		testWithNilMarshaller(122, "Marshalizer", blockProcessorOnMetaStep))
-	t.Run("newMetaBlockProcessor: NewStakingToPeer fails should error",
+	t.Run("newMetaBlockProcessor: NewTransactionCoordinator fails should error",
 		testWithNilMarshaller(123, "Marshalizer", blockProcessorOnMetaStep))
-	t.Run("newMetaBlockProcessor: NewEpochStartData fails should error",
+	t.Run("newMetaBlockProcessor: NewStakingToPeer fails should error",
 		testWithNilMarshaller(124, "Marshalizer", blockProcessorOnMetaStep))
+	t.Run("newMetaBlockProcessor: NewEpochStartData fails should error",
+		testWithNilMarshaller(125, "Marshalizer", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewEndOfEpochEconomicsDataCreator fails should error",
-		testWithNilMarshaller(125, "marshalizer", blockProcessorOnMetaStep))
+		testWithNilMarshaller(126, "marshalizer", blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: GetStorer RewardTransactionUnit fails should error",
 		testWithMissingStorer(1, retriever.RewardTransactionUnit, blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: GetStorer MiniBlockUnit fails should error",
 		testWithMissingStorer(4, retriever.MiniBlockUnit, blockProcessorOnMetaStep))
 	t.Run("newMetaBlockProcessor: NewRewardsCreatorProxy fails should error",
-		testWithNilMarshaller(126, "marshalizer", blockProcessorOnMetaStep))
+		testWithNilMarshaller(127, "marshalizer", blockProcessorOnMetaStep))
 
 	t.Run("NewNodesSetupChecker fails should error", testWithNilPubKeyConv(5, "pubkey converter", unreachableStep))
 	t.Run("nodesSetupChecker.Check fails should error", func(t *testing.T) {
@@ -1047,8 +1049,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, "messenger")
 	})
-	t.Run("NewReceiptsRepository fails should error", testWithNilMarshaller(123, "marshalizer", unreachableStep))
-	t.Run("NewTxsSenderWithAccumulator fails should error", testWithNilMarshaller(124, "Marshalizer", unreachableStep))
+	t.Run("NewReceiptsRepository fails should error", testWithNilMarshaller(124, "marshalizer", unreachableStep))
+	t.Run("NewTxsSenderWithAccumulator fails should error", testWithNilMarshaller(125, "Marshalizer", unreachableStep))
 	t.Run("should work with indexAndReturnGenesisAccounts failing due to RootHash failure", func(t *testing.T) {
 		t.Parallel()
 

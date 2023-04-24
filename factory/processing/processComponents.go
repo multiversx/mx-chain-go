@@ -911,7 +911,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
 		if err != nil {
-			return nil, err
+			return map[string]*outport.AlteredAccount{}, err
 		}
 
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
