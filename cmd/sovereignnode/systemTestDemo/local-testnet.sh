@@ -71,7 +71,7 @@ testnetUpdateVariables(){
 }
 
 testnetNew(){
-  #cloneDependencies
+  cloneDependencies
   testnetRemove
   testnetSetup
   testnetUpdateVariables
