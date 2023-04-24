@@ -27,6 +27,7 @@ type AccountWrapMock struct {
 	RootHash          []byte
 	address           []byte
 	Balance           *big.Int
+	guarded           bool
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
@@ -214,6 +215,11 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 // GetNonce gets the nonce of the account
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
+}
+
+// IsGuarded -
+func (awm *AccountWrapMock) IsGuarded() bool {
+	return awm.guarded
 }
 
 // GetAllLeaves -

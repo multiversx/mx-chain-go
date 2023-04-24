@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state/parsers"
@@ -39,7 +40,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	leavesChannel1 := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	_ = tr.GetAllLeavesOnChannel(
 		leavesChannel1,
@@ -52,12 +53,12 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
-	err := common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err := leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	leavesChannel1 = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	_ = tr.GetAllLeavesOnChannel(
 		leavesChannel1,
@@ -69,7 +70,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("god"), []byte("puppy"))
@@ -78,7 +79,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	_ = tr.GetAllLeavesOnChannel(
 		leavesChannel1,
@@ -90,7 +91,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
@@ -99,7 +100,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	_ = tr.GetAllLeavesOnChannel(
 		leavesChannel2,
@@ -112,7 +113,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 4)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel2.ErrChan)
+	err = leavesChannel2.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	for range leavesChannel1.LeavesChan {
@@ -121,7 +122,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 3)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	for range leavesChannel2.LeavesChan {
@@ -130,7 +131,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel2.ErrChan)
+	err = leavesChannel2.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	err = tr.Close()

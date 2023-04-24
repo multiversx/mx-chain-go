@@ -218,6 +218,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		Crypto:                        GetCryptoComponents(coreComponents),
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
+		NodeProcessingMode:            common.Normal,
 		SnapshotsEnabled:              false,
 	}
 }

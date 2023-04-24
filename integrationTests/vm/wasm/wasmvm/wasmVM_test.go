@@ -32,6 +32,7 @@ import (
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -516,7 +517,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
 		},
@@ -538,7 +539,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        &mock.FeeHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),

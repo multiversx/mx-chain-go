@@ -33,6 +33,9 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 
+	// GetGuardianData returns the guardian data for given account
+	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
+
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
 
@@ -58,8 +61,7 @@ type NodeHandler interface {
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 
 	// CreateTransaction will return a transaction from all needed fields
-	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 
 	// ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
