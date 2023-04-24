@@ -14,9 +14,6 @@ import (
 
 func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
@@ -26,9 +23,6 @@ func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -46,9 +40,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *te
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -69,9 +60,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -88,9 +76,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigSho
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -111,9 +96,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConf
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -134,9 +116,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -160,9 +139,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShou
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -186,9 +162,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShoul
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config = config.Config{
@@ -215,9 +188,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfig
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config.ValidatorPubkeyConverter.Type = "invalid"
@@ -230,9 +200,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShou
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	args.Config.AddressPubkeyConverter.Type = "invalid"
@@ -245,9 +212,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterSho
 
 func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
@@ -260,9 +224,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 // ------------ Test CoreComponents --------------------
 func TestCoreComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetCoreArgs()
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
