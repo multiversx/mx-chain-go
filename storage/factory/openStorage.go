@@ -30,7 +30,7 @@ type openStorageUnits struct {
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
-func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
+func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) *openStorageUnits {
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
@@ -38,7 +38,7 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
 	}
 
-	return o, nil
+	return o
 }
 
 // GetMostRecentStorageUnit will open bootstrap storage unit

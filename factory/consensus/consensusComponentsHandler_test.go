@@ -14,9 +14,6 @@ import (
 // ------------ Test ManagedConsensusComponentsFactory --------------------
 func TestManagedConsensusComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -36,9 +33,6 @@ func TestManagedConsensusComponents_CreateWithInvalidArgsShouldErr(t *testing.T)
 
 func TestManagedConsensusComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
@@ -62,9 +56,6 @@ func TestManagedConsensusComponents_CreateShouldWork(t *testing.T) {
 
 func TestManagedConsensusComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	consensusArgs := componentsMock.GetConsensusArgs(shardCoordinator)
