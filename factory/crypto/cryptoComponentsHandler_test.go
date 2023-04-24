@@ -39,6 +39,7 @@ func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
 	require.Nil(t, managedCryptoComponents.TxSignKeyGen())
 	require.Nil(t, managedCryptoComponents.MessageSignVerifier())
+	require.Nil(t, managedCryptoComponents.ManagedPeersHolder())
 
 	err = managedCryptoComponents.Create()
 	require.NoError(t, err)
@@ -51,6 +52,7 @@ func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedCryptoComponents.BlockSignKeyGen())
 	require.NotNil(t, managedCryptoComponents.TxSignKeyGen())
 	require.NotNil(t, managedCryptoComponents.MessageSignVerifier())
+	require.NotNil(t, managedCryptoComponents.ManagedPeersHolder())
 }
 
 func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {

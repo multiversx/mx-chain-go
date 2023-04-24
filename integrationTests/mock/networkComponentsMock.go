@@ -16,6 +16,7 @@ type NetworkComponentsStub struct {
 	PeerHonesty             factory.PeerHonestyHandler
 	PreferredPeersHolder    factory.PreferredPeersHolderHandler
 	PeersRatingHandlerField p2p.PeersRatingHandler
+	PeersRatingMonitorField p2p.PeersRatingMonitor
 }
 
 // PubKeyCacher -
@@ -74,6 +75,11 @@ func (ncs *NetworkComponentsStub) PreferredPeersHolderHandler() factory.Preferre
 // PeersRatingHandler -
 func (ncs *NetworkComponentsStub) PeersRatingHandler() p2p.PeersRatingHandler {
 	return ncs.PeersRatingHandlerField
+}
+
+// PeersRatingMonitor -
+func (ncs *NetworkComponentsStub) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	return ncs.PeersRatingMonitorField
 }
 
 // String -

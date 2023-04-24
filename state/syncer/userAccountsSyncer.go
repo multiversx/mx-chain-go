@@ -275,8 +275,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {
-	u.mutStatistics.RLock()
-	defer u.mutStatistics.RUnlock()
+	u.mutStatistics.Lock()
+	defer u.mutStatistics.Unlock()
 
 	log.Debug("user accounts tries sync has finished",
 		"num small data tries", u.numSmallTries, "threshold", core.ConvertBytes(uint64(smallTrieThreshold)))
@@ -289,7 +289,7 @@ func (u *userAccountsSyncer) printDataTrieStatistics() {
 	})
 
 	for _, trieStat := range u.largeTries {
-		address := u.pubkeyCoverter.Encode(trieStat.address)
+		address := u.pubkeyCoverter.SilentEncode(trieStat.address, log)
 
 		log.Debug("datatrie for "+address,
 			"num trie nodes", trieStat.numTrieNodes,

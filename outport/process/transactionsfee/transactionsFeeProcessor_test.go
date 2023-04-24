@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, &testscommon.LoggerStub{})
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
