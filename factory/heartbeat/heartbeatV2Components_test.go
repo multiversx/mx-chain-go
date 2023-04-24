@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
-	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -50,7 +49,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 				return []byte("hardfork pub key")
 			},
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
-				return &mock.PubkeyConverterStub{}
+				return &testscommon.PubkeyConverterStub{}
 			},
 		},
 		DataComponents: &testsMocks.DataComponentsStub{
@@ -68,8 +67,9 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			Messenger: &p2pmocks.MessengerStub{},
 		},
 		CryptoComponents: &testsMocks.CryptoComponentsStub{
-			PrivKey:         &cryptoMocks.PrivateKeyStub{},
-			PeerSignHandler: &testsMocks.PeerSignatureHandler{},
+			PrivKey:                 &cryptoMocks.PrivateKeyStub{},
+			PeerSignHandler:         &testsMocks.PeerSignatureHandler{},
+			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
@@ -92,17 +92,18 @@ func createMockConfig() config.Config {
 		HeartbeatV2: config.HeartbeatV2Config{
 			PeerAuthenticationTimeBetweenSendsInSec:          1,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
-			PeerAuthenticationThresholdBetweenSends:          0.1,
+			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
 			HeartbeatTimeBetweenSendsDuringBootstrapInSec:    1,
 			HeartbeatTimeBetweenSendsWhenErrorInSec:          1,
-			HeartbeatThresholdBetweenSends:                   0.1,
+			HeartbeatTimeThresholdBetweenSends:               0.1,
 			HeartbeatExpiryTimespanInSec:                     30,
 			MinPeersThreshold:                                0.8,
-			DelayBetweenRequestsInSec:                        10,
-			MaxTimeoutInSec:                                  60,
+			DelayBetweenPeerAuthenticationRequestsInSec:      10,
+			PeerAuthenticationMaxTimeoutForRequestsInSec:     60,
+			PeerAuthenticationTimeBetweenChecksInSec:         1,
 			PeerShardTimeBetweenSendsInSec:                   5,
-			PeerShardThresholdBetweenSends:                   0.1,
+			PeerShardTimeThresholdBetweenSends:               0.1,
 			MaxMissingKeysInRequest:                          100,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
@@ -337,7 +338,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.Config.HeartbeatV2.DelayBetweenRequestsInSec = 0
+		args.Config.HeartbeatV2.DelayBetweenPeerAuthenticationRequestsInSec = 0
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
 		assert.NoError(t, err)
