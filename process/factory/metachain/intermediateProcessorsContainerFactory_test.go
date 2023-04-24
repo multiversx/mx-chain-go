@@ -26,7 +26,7 @@ func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermedi
 		PubkeyConverter:     createMockPubkeyConverter(),
 		Store:               &storageStubs.ChainStorerStub{},
 		PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
-		EconomicsFee:        &mock.FeeHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
 	return args
