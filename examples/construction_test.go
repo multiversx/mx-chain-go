@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -21,7 +20,7 @@ import (
 )
 
 var (
-	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	signingMarshalizer = &marshal.JsonMarshalizer{}
 	txSignHasher       = keccak.NewKeccak()
 	signer             = &singlesig.Ed25519Signer{}

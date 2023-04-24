@@ -50,6 +50,7 @@ type StorageServiceFactory struct {
 	currentEpoch                  uint32
 	storageType                   StorageServiceType
 	nodeProcessingMode            common.NodeProcessingMode
+	snapshotsEnabled              bool
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -61,9 +62,11 @@ type StorageServiceFactoryArgs struct {
 	EpochStartNotifier            epochStart.EpochStartNotifier
 	NodeTypeProvider              NodeTypeProviderHandler
 	StorageType                   StorageServiceType
+	ManagedPeersHolder            storage.ManagedPeersHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
+	SnapshotsEnabled              bool
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -73,10 +76,12 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		return nil, err
 	}
 
-	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(
-		args.NodeTypeProvider,
-		args.Config.StoragePruning,
-	)
+	argsOldDataCleanerProvider := clean.ArgOldDataCleanerProvider{
+		NodeTypeProvider:    args.NodeTypeProvider,
+		PruningStorerConfig: args.Config.StoragePruning,
+		ManagedPeersHolder:  args.ManagedPeersHolder,
+	}
+	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(argsOldDataCleanerProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +100,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
 		nodeProcessingMode:            args.NodeProcessingMode,
+		snapshotsEnabled:              args.SnapshotsEnabled,
 	}, nil
 }
 
@@ -379,7 +385,7 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
-	if !psf.generalConfig.StateTriesConfig.SnapshotsEnabled {
+	if !psf.snapshotsEnabled {
 		return psf.createTriePersister(storageConfig)
 	}
 

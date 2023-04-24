@@ -83,6 +83,7 @@ func createConfigs(tb testing.TB) *config.Configs {
 			WorkingDir:    tempDir,
 			NoKeyProvided: true,
 			Version:       "test version",
+			DbDir:         path.Join(tempDir, "db"),
 		},
 		ImportDbConfig: &config.ImportDbConfig{},
 		ConfigurationPathsHolder: &config.ConfigurationPathsHolder{

@@ -7,14 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var _ dataRetriever.MiniBlocksResolver = (*miniblockResolver)(nil)
-var _ requestHandlers.HashSliceResolver = (*miniblockResolver)(nil)
+var _ dataRetriever.Resolver = (*miniblockResolver)(nil)
 
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {
@@ -134,7 +132,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 
 	buff, err := mbRes.getFromStorage(hash, epoch)
 	if err != nil {
-		mbRes.ResolverDebugHandler().LogFailedToResolveData(
+		mbRes.DebugHandler().LogFailedToResolveData(
 			mbRes.topic,
 			hash,
 			err,
@@ -143,7 +141,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 		return nil, err
 	}
 
-	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, hash)
+	mbRes.DebugHandler().LogSucceededToResolveData(mbRes.topic, hash)
 
 	return buff, nil
 }
@@ -190,39 +188,6 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 	}
 
 	return errFetch
-}
-
-// RequestDataFromHash requests a block body from other peers having input the block body hash
-func (mbRes *miniblockResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return mbRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests a block body from other peers having input the block body hash
-func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	batchBytes, err := mbRes.marshalizer.Marshal(b)
-
-	if err != nil {
-		return err
-	}
-
-	return mbRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: batchBytes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
