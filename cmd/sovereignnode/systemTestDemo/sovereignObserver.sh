@@ -29,7 +29,9 @@ setupSovereignObserver(){
   mv config/config_observer.toml config/config.toml
   mv $KEY_GENERATOR_PATH/validatorKey.pem config/
 
+  sed -i 's/DestinationShardAsObserver =.*/DestinationShardAsObserver = "0"/' $SOVEREIGN_OBSERVER_PATH/config/prefs.toml
   sed -i '/WebSocketConnector\]/!b;n;n;c\    Enabled = true' "$EXTERNAL_CONFIG_DIR"
+
   ./node --log-level *:DEBUG
 }
 
