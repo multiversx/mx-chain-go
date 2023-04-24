@@ -34,7 +34,7 @@ type ArgPeerAuthenticationRequestsProcessor struct {
 	Epoch                   uint32
 	MinPeersThreshold       float32
 	DelayBetweenRequests    time.Duration
-	MaxTimeout              time.Duration
+	MaxTimeoutForRequests   time.Duration
 	MaxMissingKeysInRequest uint32
 	Randomizer              dataRetriever.IntRandomizer
 }
@@ -73,7 +73,7 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 	}
 
 	var ctx context.Context
-	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeout)
+	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeoutForRequests)
 
 	go processor.startRequestingMessages(ctx)
 
@@ -98,9 +98,9 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 		return fmt.Errorf("%w for DelayBetweenRequests, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.DelayBetweenRequests, minDelayBetweenRequests)
 	}
-	if args.MaxTimeout < minTimeout {
-		return fmt.Errorf("%w for MaxTimeout, provided %d, min expected %d",
-			heartbeat.ErrInvalidTimeDuration, args.MaxTimeout, minTimeout)
+	if args.MaxTimeoutForRequests < minTimeout {
+		return fmt.Errorf("%w for MaxTimeoutForRequests, provided %d, min expected %d",
+			heartbeat.ErrInvalidTimeDuration, args.MaxTimeoutForRequests, minTimeout)
 	}
 	if args.MaxMissingKeysInRequest < minMissingKeysAllowed {
 		return fmt.Errorf("%w for MaxMissingKeysInRequest, provided %d, min expected %d",

@@ -168,9 +168,9 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 	testContextMeta.TxsLogsProcessor.Clean()
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
-	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.UserError, nil)
 
-	checkReturnLog(t, testContextMeta, noTokensToUnBondMessage, false)
+	checkReturnLog(t, testContextMeta, noTokensToUnBondMessage, true)
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {

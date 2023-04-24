@@ -83,6 +83,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 		require.Nil(t, managedCryptoComponents.P2pSingleSigner())
 		require.Nil(t, managedCryptoComponents.PeerSignatureHandler())
 		require.Nil(t, managedCryptoComponents.P2pKeyGen())
+		require.Nil(t, managedCryptoComponents.ManagedPeersHolder())
 		multiSigner, errGet := managedCryptoComponents.GetMultiSigner(0)
 		require.Nil(t, multiSigner)
 		require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, errGet)
@@ -107,6 +108,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 		require.NotNil(t, managedCryptoComponents.P2pSingleSigner())
 		require.NotNil(t, managedCryptoComponents.PeerSignatureHandler())
 		require.NotNil(t, managedCryptoComponents.P2pKeyGen())
+		require.NotNil(t, managedCryptoComponents.ManagedPeersHolder())
 
 		require.Equal(t, factory.CryptoComponentsName, managedCryptoComponents.String())
 

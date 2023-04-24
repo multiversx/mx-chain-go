@@ -55,9 +55,12 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir: tb.TempDir(),
-		UseLogView: true,
-		Version:    Version,
+		WorkingDir:  tb.TempDir(),
+		DbDir:       "dbDir",
+		LogsDir:     "logsDir",
+		UseLogView:  true,
+		BaseVersion: BaseVersion,
+		Version:     Version,
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}

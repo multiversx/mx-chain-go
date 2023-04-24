@@ -30,7 +30,8 @@ func TestPidPubkeyConverter_Encode(t *testing.T) {
 			}
 		}()
 
-		encoded := converter.Encode([]byte("not a valid PK"))
+		encoded, err := converter.Encode([]byte("not a valid PK"))
+		assert.Contains(t, err.Error(), "parameter is invalid")
 		assert.Empty(t, encoded)
 	})
 	t.Run("valid public key should work", func(t *testing.T) {
@@ -40,7 +41,8 @@ func TestPidPubkeyConverter_Encode(t *testing.T) {
 		pkBytes, err := hex.DecodeString(pkHex)
 		assert.Nil(t, err)
 
-		encoded := converter.Encode(pkBytes)
+		encoded, err := converter.Encode(pkBytes)
+		assert.Nil(t, err)
 		assert.Equal(t, "16Uiu2HAmSHgyTYyawhsZv9opxTHX77vKjoPeGkyCYS5fYVMssHjN", encoded)
 	})
 }

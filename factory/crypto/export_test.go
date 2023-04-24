@@ -2,6 +2,7 @@ package crypto
 
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 )
 
@@ -36,4 +37,9 @@ func (ccf *cryptoComponentsFactory) CreateMultiSignerContainer(
 // GetSuite -
 func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 	return ccf.getSuite()
+}
+
+// GetManagedPeersHolder -
+func (cc *cryptoComponents) GetManagedPeersHolder() common.ManagedPeersHolder {
+	return cc.managedPeersHolder
 }
