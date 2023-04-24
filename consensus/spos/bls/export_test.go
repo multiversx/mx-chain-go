@@ -271,6 +271,10 @@ func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
+func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
+	return sr.doEndRoundJobByLeader()
+}
+
 func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
 	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
 }
@@ -295,7 +299,36 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
+func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
+	return sr.verifyNodesOnAggSigFail()
+}
+
+func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
+	return sr.computeAggSigOnValidNodes()
+}
+
+func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
+}
+
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+	return sr.verifyInvalidSigners(invalidSigners)
+}
+
+// GetMinConsensusGroupIndexOfManagedKeys -
+func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
+	return sr.getMinConsensusGroupIndexOfManagedKeys()
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
+}
+
+func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
+	sr.createAndBroadcastInvalidSigners(invalidSigners)
+}
+
+func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
+	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 }

@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -44,9 +44,9 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -81,9 +81,9 @@ func TestRequestResolveShardHeadersByHashRequestingMetaResolvingShard(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, shardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, shardId)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -118,9 +118,9 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -157,11 +157,11 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingShard(t *testi
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -196,11 +196,11 @@ func TestRequestResolveShardHeadersByNonceRequestingMetaResolvingShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, shardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, shardId)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -235,11 +235,11 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()

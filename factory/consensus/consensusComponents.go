@@ -12,12 +12,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
-	"github.com/multiversx/mx-chain-go/consensus/signing"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
@@ -28,9 +29,12 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
+
+const defaultSpan = 300 * time.Second
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -66,12 +70,13 @@ type consensusComponentsFactory struct {
 }
 
 type consensusComponents struct {
-	chronology         consensus.ChronologyHandler
-	bootstrapper       process.Bootstrapper
-	broadcastMessenger consensus.BroadcastMessenger
-	worker             factory.ConsensusWorker
-	consensusTopic     string
-	consensusGroupSize int
+	chronology           consensus.ChronologyHandler
+	bootstrapper         process.Bootstrapper
+	broadcastMessenger   consensus.BroadcastMessenger
+	worker               factory.ConsensusWorker
+	peerBlacklistHandler consensus.PeerBlacklistHandler
+	consensusTopic       string
+	consensusGroupSize   int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -173,11 +178,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.coreComponents.Hasher(),
 		ccf.networkComponents.NetworkMessenger(),
 		ccf.processComponents.ShardCoordinator(),
-		ccf.cryptoComponents.PrivateKey(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
+		ccf.cryptoComponents.KeysHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -187,6 +192,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	sizeCheckDelta := ccf.config.Marshalizer.SizeCheckDelta
 	if sizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, sizeCheckDelta)
+	}
+
+	cc.peerBlacklistHandler, err = ccf.createPeerBlacklistHandler()
+	if err != nil {
+		return nil, err
 	}
 
 	workerArgs := &spos.WorkerArgs{
@@ -214,6 +224,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -234,7 +245,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	signatureHandler, err := ccf.createBlsSignatureHandler()
+	p2pSigningHandler, err := ccf.createP2pSigningHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +258,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ChronologyHandler:             cc.chronology,
 		Hasher:                        ccf.coreComponents.Hasher(),
 		Marshalizer:                   ccf.coreComponents.InternalMarshalizer(),
-		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
-		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
 		MultiSignerContainer:          ccf.cryptoComponents.MultiSignerContainer(),
 		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
@@ -261,7 +270,9 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 		ScheduledProcessor:            ccf.scheduledProcessor,
-		SignatureHandler:              signatureHandler,
+		MessageSigningHandler:         p2pSigningHandler,
+		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -312,6 +323,10 @@ func (cc *consensusComponents) Close() error {
 		return err
 	}
 	err = cc.bootstrapper.Close()
+	if err != nil {
+		return err
+	}
+	err = cc.peerBlacklistHandler.Close()
 	if err != nil {
 		return err
 	}
@@ -381,11 +396,16 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 		return nil, err
 	}
 
-	roundConsensus := spos.NewRoundConsensus(
+	roundConsensus, err := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		// TODO: move the consensus data from nodesSetup json to config
 		consensusGroupSize,
-		string(selfId))
+		string(selfId),
+		ccf.cryptoComponents.KeysHandler(),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	roundConsensus.ResetRoundState()
 
@@ -656,20 +676,26 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, common.DefaultInterceptorsIdentifier, cc.worker)
 }
 
-func (ccf *consensusComponentsFactory) createBlsSignatureHandler() (consensus.SignatureHandler, error) {
-	privKeyBytes, err := ccf.cryptoComponents.PrivateKey().ToByteArray()
+func (ccf *consensusComponentsFactory) createPeerBlacklistHandler() (consensus.PeerBlacklistHandler, error) {
+	cache := timecache.NewTimeCache(defaultSpan)
+	peerCacher, err := timecache.NewPeerTimeCache(cache)
 	if err != nil {
 		return nil, err
 	}
-
-	signatureHolderArgs := signing.ArgsSignatureHolder{
-		PubKeys:              []string{ccf.cryptoComponents.PublicKeyString()},
-		PrivKeyBytes:         privKeyBytes,
-		MultiSignerContainer: ccf.cryptoComponents.MultiSignerContainer(),
-		KeyGenerator:         ccf.cryptoComponents.BlockSignKeyGen(),
+	blacklistArgs := blacklist.PeerBlackListArgs{
+		PeerCacher: peerCacher,
 	}
 
-	return signing.NewSignatureHolder(signatureHolderArgs)
+	return blacklist.NewPeerBlacklist(blacklistArgs)
+}
+
+func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PSigningHandler, error) {
+	p2pSignerArgs := p2pFactory.ArgsMessageVerifier{
+		Marshaller: ccf.coreComponents.InternalMarshalizer(),
+		P2PSigner:  ccf.networkComponents.NetworkMessenger(),
+	}
+
+	return p2pFactory.NewMessageVerifier(p2pSignerArgs)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

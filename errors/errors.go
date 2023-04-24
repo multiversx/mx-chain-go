@@ -311,8 +311,11 @@ var ErrNilRequestedItemHandler = errors.New("nil requested item handler")
 // ErrNilRequestHandler signals that a nil request handler was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilResolversFinder signals that a nil resolver finder was provided
-var ErrNilResolversFinder = errors.New("nil resolvers finder")
+// ErrNilRequestersFinder signals that a nil requesters finder was provided
+var ErrNilRequestersFinder = errors.New("nil requesters finder")
+
+// ErrNilResolversContainer signals that a nil resolvers container was provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
 
 // ErrNilRoundHandler signals that a nil roundHandler was provided
 var ErrNilRoundHandler = errors.New("nil roundHandler")
@@ -482,9 +485,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -544,3 +544,15 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrEmptyPeerID signals that an empty peer ID has been provided
+var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
+var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")

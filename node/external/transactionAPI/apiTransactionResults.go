@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/filters"
 	"github.com/multiversx/mx-chain-go/sharding"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -122,6 +121,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionB
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
+
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
 		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
@@ -193,28 +193,23 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 		IsRefund:       isRefund,
 	}
 
-	if len(scr.SndAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.SndAddr = arp.addressPubKeyConverter.Encode(scr.SndAddr)
-	}
-
-	if len(scr.RcvAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RcvAddr = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
-	}
-
-	if len(scr.RelayerAddr) == arp.addressPubKeyConverter.Len() {
-		apiSCR.RelayerAddr = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
-	}
-
-	if len(scr.OriginalSender) == arp.addressPubKeyConverter.Len() {
-		apiSCR.OriginalSender = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
-	}
+	apiSCR.SndAddr, _ = arp.addressPubKeyConverter.Encode(scr.SndAddr)
+	apiSCR.RcvAddr, _ = arp.addressPubKeyConverter.Encode(scr.RcvAddr)
+	apiSCR.RelayerAddr, _ = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
+	apiSCR.OriginalSender, _ = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 
 	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
 	apiSCR.Operation = res.Operation
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues
 	apiSCR.Tokens = res.Tokens
-	apiSCR.Receivers = datafield.EncodeBytesSlice(arp.addressPubKeyConverter.Encode, res.Receivers)
+
+	var err error
+	apiSCR.Receivers, err = arp.addressPubKeyConverter.EncodeSlice(res.Receivers)
+	if err != nil {
+		log.Warn("bech32PubkeyConverter.EncodeSlice() failed while encoding apiSCR.Receivers with", "err", err, "hash", scrHash)
+	}
+
 	apiSCR.ReceiversShardIDs = res.ReceiversShardID
 	apiSCR.IsRelayed = res.IsRelayed
 

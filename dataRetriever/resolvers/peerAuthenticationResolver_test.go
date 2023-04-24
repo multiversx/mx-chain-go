@@ -181,8 +181,8 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.ChunkType, nil), fromConnectedPeer)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+		assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	})
 	t.Run("parseReceivedMessage returns error due to marshaller error", func(t *testing.T) {
 		t.Parallel()
@@ -464,53 +464,5 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 2, messagesSent)
 		assert.Equal(t, expectedLen, hashesReceived)
-	})
-}
-
-func TestPeerAuthenticationResolver_RequestShouldError(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(30)
-	arg := createMockArgPeerAuthenticationResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			assert.Equal(t, providedEpoch, rd.Epoch)
-			return expectedErr
-		},
-	}
-	res, err := resolvers.NewPeerAuthenticationResolver(arg)
-	assert.Nil(t, err)
-	assert.False(t, res.IsInterfaceNil())
-
-	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), providedEpoch)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("RequestDataFromChunk - error on SendOnRequestTopic", func(t *testing.T) {
-		hashes := make([][]byte, 0)
-		hashes = append(hashes, []byte("pk"))
-		err = res.RequestDataFromHashArray(hashes, providedEpoch)
-		assert.Equal(t, expectedErr, err)
-	})
-}
-
-func TestPeerAuthenticationResolver_RequestShouldWork(t *testing.T) {
-	t.Parallel()
-
-	providedEpoch := uint32(30)
-	arg := createMockArgPeerAuthenticationResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-			assert.Equal(t, providedEpoch, rd.Epoch)
-			return nil
-		},
-	}
-	res, err := resolvers.NewPeerAuthenticationResolver(arg)
-	assert.Nil(t, err)
-	assert.False(t, res.IsInterfaceNil())
-
-	t.Run("RequestDataFromHash", func(t *testing.T) {
-		err = res.RequestDataFromHash([]byte(""), providedEpoch)
-		assert.Nil(t, err)
 	})
 }

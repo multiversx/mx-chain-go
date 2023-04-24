@@ -90,8 +90,8 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
-	guardAccountFlag                            *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
+	multiClaimOnDelegationFlag                  *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -181,8 +181,8 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
-		guardAccountFlag:                            &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
+		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 	}
 }
 
@@ -667,4 +667,9 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled
 func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
+}
+
+// IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
+func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
+	return holder.multiClaimOnDelegationFlag.IsSet()
 }
