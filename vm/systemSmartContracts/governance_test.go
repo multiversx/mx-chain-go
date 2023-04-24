@@ -1697,8 +1697,8 @@ func TestComputeEndResults(t *testing.T) {
 		GetBalanceCalled: func(_ []byte) *big.Int {
 			return big.NewInt(100)
 		},
-		AddReturnMessageCalled: func(msg string) {
-			retMessage = msg
+		FinishCalled: func(value []byte) {
+			retMessage = string(value)
 		},
 	}
 	gsc, _ := NewGovernanceContract(args)

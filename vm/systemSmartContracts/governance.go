@@ -852,7 +852,7 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
-		g.eei.AddReturnMessage("Proposal did not reach minQuorum")
+		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
 		proposal.Passed = false
 		return nil
 	}
@@ -860,18 +860,18 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		proposal.Passed = false
-		g.eei.AddReturnMessage("Proposal vetoed")
+		g.eei.Finish([]byte("Proposal vetoed"))
 		return nil
 	}
 
 	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
-		g.eei.AddReturnMessage("Proposal passed")
+		g.eei.Finish([]byte("Proposal passed"))
 		proposal.Passed = true
 		return nil
 	}
 
-	g.eei.AddReturnMessage("Proposal rejected")
+	g.eei.Finish([]byte("Proposal rejected"))
 	proposal.Passed = false
 	return nil
 }
