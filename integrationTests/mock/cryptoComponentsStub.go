@@ -14,13 +14,13 @@ import (
 // CryptoComponentsStub -
 type CryptoComponentsStub struct {
 	PubKey                  crypto.PublicKey
-	PublicKeyCalled   func() crypto.PublicKey
+	PublicKeyCalled         func() crypto.PublicKey
 	PrivKey                 crypto.PrivateKey
 	P2pPubKey               crypto.PublicKey
 	P2pPrivKey              crypto.PrivateKey
 	PubKeyBytes             []byte
 	PubKeyString            string
-	PrivKeyBytes      []byte
+	PrivKeyBytes            []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
 	P2pSig                  crypto.SingleSigner
@@ -32,6 +32,7 @@ type CryptoComponentsStub struct {
 	MsgSigVerifier          vm.MessageSignVerifier
 	ManagedPeersHolderField common.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
+	KeysHandlerCalled       func() consensus.KeysHandler
 	SigHandler              consensus.SigningHandler
 	mutMultiSig             sync.RWMutex
 }
@@ -173,6 +174,9 @@ func (ccs *CryptoComponentsStub) ManagedPeersHolder() common.ManagedPeersHolder 
 
 // KeysHandler -
 func (ccs *CryptoComponentsStub) KeysHandler() consensus.KeysHandler {
+	if ccs.KeysHandlerCalled != nil {
+		return ccs.KeysHandlerCalled()
+	}
 	return ccs.KeysHandlerField
 }
 

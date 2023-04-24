@@ -5,10 +5,10 @@ import (
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
-	consensusMocks "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -72,7 +72,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		TxKeyGen:          &mock.KeyGenMock{},
 		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SigHandler:        &consensusMocks.SigningHandlerStub{},
+		SigHandler:        &consensus.SigningHandlerStub{},
 	}
 }
 
