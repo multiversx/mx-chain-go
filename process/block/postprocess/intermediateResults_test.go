@@ -38,7 +38,7 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		Store:               &storage.ChainStorerStub{},
 		BlockType:           block.SmartContractResultBlock,
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
-		EconomicsFee:        &mock.FeeHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
 
@@ -258,7 +258,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 	}
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardC
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -319,7 +319,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -387,7 +387,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -407,7 +407,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -439,7 +439,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -579,7 +579,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -623,11 +623,11 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -873,7 +873,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	args.Coordinator = shardCoordinator
 	args.Hasher = hasher
 	args.Marshalizer = marshalizer
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimit
 		},

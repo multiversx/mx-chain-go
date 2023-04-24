@@ -555,7 +555,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		PubkeyConverter:     createMockPubkeyConverter(),
 		Store:               initStore(),
 		PoolsHolder:         initDataPool([]byte("test_hash1")),
-		EconomicsFee:        &mock.FeeHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -2190,7 +2190,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		PubkeyConverter:     createMockPubkeyConverter(),
 		Store:               &storageStubs.ChainStorerStub{},
 		PoolsHolder:         tdp,
-		EconomicsFee:        &mock.FeeHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -2246,8 +2246,8 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		PubkeyConverter:  createMockPubkeyConverter(),
 		Store:            &storageStubs.ChainStorerStub{},
 		PoolsHolder:      tdp,
-		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
