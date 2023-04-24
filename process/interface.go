@@ -1162,6 +1162,7 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
+	ManagedPeersHolder() common.ManagedPeersHolder
 	IsInterfaceNil() bool
 }
 

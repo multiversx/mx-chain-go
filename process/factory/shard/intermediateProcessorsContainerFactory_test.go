@@ -48,8 +48,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {

@@ -23,7 +23,7 @@ func createMockArgTxsPoolsCleaner() ArgTxsPoolsCleaner {
 			ShardCoordinator:               mock.NewMultipleShardsCoordinatorMock(),
 			MaxRoundsToKeepUnprocessedData: 1,
 		},
-		AddressPubkeyConverter: &mock.PubkeyConverterStub{},
+		AddressPubkeyConverter: &testscommon.PubkeyConverterStub{},
 		DataPool:               dataRetrieverMock.NewPoolsHolderMock(),
 	}
 }
@@ -143,7 +143,7 @@ func TestGetShardFromAddress(t *testing.T) {
 
 	args := createMockArgTxsPoolsCleaner()
 	addrLen := 64
-	args.AddressPubkeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return addrLen
 		},
