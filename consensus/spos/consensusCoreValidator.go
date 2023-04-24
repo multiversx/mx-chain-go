@@ -47,12 +47,6 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.NodesCoordinator()) {
 		return ErrNilNodesCoordinator
 	}
-	if check.IfNil(container.PrivateKey()) {
-		return ErrNilBlsPrivateKey
-	}
-	if check.IfNil(container.SingleSigner()) {
-		return ErrNilBlsSingleSigner
-	}
 	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
@@ -68,8 +62,17 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.NodeRedundancyHandler()) {
 		return ErrNilNodeRedundancyHandler
 	}
-	if check.IfNil(container.SignatureHandler()) {
-		return ErrNilSignatureHandler
+	if check.IfNil(container.ScheduledProcessor()) {
+		return ErrNilScheduledProcessor
+	}
+	if check.IfNil(container.MessageSigningHandler()) {
+		return ErrNilMessageSigningHandler
+	}
+	if check.IfNil(container.PeerBlacklistHandler()) {
+		return ErrNilPeerBlacklistHandler
+	}
+	if check.IfNil(container.SigningHandler()) {
+		return ErrNilSigningHandler
 	}
 
 	return nil

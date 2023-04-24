@@ -400,14 +400,14 @@ func (n *Node) getPendingAndActiveGuardians(
 
 	if active != nil {
 		activeGuardian = &api.Guardian{
-			Address:         n.coreComponents.AddressPubKeyConverter().Encode(active.Address),
+			Address:         n.coreComponents.AddressPubKeyConverter().SilentEncode(active.Address, log),
 			ActivationEpoch: active.ActivationEpoch,
 			ServiceUID:      string(active.ServiceUID),
 		}
 	}
 	if pending != nil {
 		pendingGuardian = &api.Guardian{
-			Address:         n.coreComponents.AddressPubKeyConverter().Encode(pending.Address),
+			Address:         n.coreComponents.AddressPubKeyConverter().SilentEncode(pending.Address, log),
 			ActivationEpoch: pending.ActivationEpoch,
 			ServiceUID:      string(pending.ServiceUID),
 		}
@@ -448,7 +448,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	}
 
 	if esdtToken.TokenMetaData != nil {
-		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+		esdtTokenCreatorAddr := n.coreComponents.AddressPubKeyConverter().SilentEncode(esdtToken.TokenMetaData.Creator, log)
+
+		esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 	}
 
 	return esdtToken, blockInfo, nil
@@ -652,7 +654,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 		}
 
 		if esdtToken.TokenMetaData != nil {
-			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+			esdtTokenCreatorAddr, errEncode := n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator)
+			if errEncode != nil {
+				return nil, api.BlockInfo{}, errEncode
+			}
+			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
@@ -965,7 +971,10 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 	ownerAddress := ""
 	if len(account.GetOwnerAddress()) > 0 {
 		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
-		ownerAddress = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		if err != nil {
+			return api.AccountResponse{}, api.BlockInfo{}, err
+		}
 	}
 
 	return api.AccountResponse{
@@ -1038,7 +1047,7 @@ func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
 		return "", fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 
-	return n.coreComponents.AddressPubKeyConverter().Encode(pk), nil
+	return n.coreComponents.AddressPubKeyConverter().Encode(pk)
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
@@ -1105,11 +1114,19 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 
 	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
 	for _, p := range pidsFound {
-		pidInfo := n.createPidInfo(p)
+		pidInfo, err := n.createPidInfo(p)
+		if err != nil {
+			return nil, err
+		}
 		peerInfoSlice = append(peerInfoSlice, pidInfo)
 	}
 
 	return peerInfoSlice, nil
+}
+
+// GetConnectedPeersRatings returns the connected peers ratings
+func (n *Node) GetConnectedPeersRatings() string {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
 }
 
 // GetEpochStartDataAPI returns epoch start data of a given epoch
@@ -1247,7 +1264,7 @@ func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
 }
 
-func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.networkComponents.NetworkMessenger().PeerAddresses(p),
@@ -1260,10 +1277,14 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
-		result.Pk = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
+		var err error
+		result.Pk, err = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
+		if err != nil {
+			return core.QueryP2PPeerInfo{}, fmt.Errorf("%w while encoding public key for creating peer id info %s", err, hex.EncodeToString(peerInfo.PkBytes))
+		}
 	}
 
-	return result
+	return result, nil
 }
 
 // Close closes all underlying components

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/factory"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -96,7 +97,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 
 	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.Hasher = &hashingMocks.HasherMock{}
-	args.EventNotifierFactoryArgs.PubKeyConverter = &mock.PubkeyConverterMock{}
+	args.EventNotifierFactoryArgs.PubKeyConverter = &testscommon.PubkeyConverterMock{}
 	args.EventNotifierFactoryArgs.RequestTimeoutSec = 1
 	outPort, err := factory.CreateOutport(args)
 	require.Nil(t, err)

@@ -13,16 +13,16 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-core-go v1.1.37
+	github.com/multiversx/mx-chain-core-go v1.2.1
 	github.com/multiversx/mx-chain-crypto-go v1.2.6
-	github.com/multiversx/mx-chain-es-indexer-go v1.3.16
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.1
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-p2p-go v1.0.14
-	github.com/multiversx/mx-chain-storage-go v1.0.7
-	github.com/multiversx/mx-chain-vm-common-go v1.3.40
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.52
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.53
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.79
+	github.com/multiversx/mx-chain-p2p-go v1.0.16
+	github.com/multiversx/mx-chain-storage-go v1.0.8
+	github.com/multiversx/mx-chain-vm-common-go v1.4.1
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.53
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.54
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.80
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -69,7 +69,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v0.6.0 // indirect
 	github.com/herumi/bls-go-binary v1.0.0 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect

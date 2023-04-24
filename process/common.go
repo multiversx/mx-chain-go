@@ -695,15 +695,8 @@ func DisplayProcessTxDetails(
 		return
 	}
 
-	receiver := ""
-	if len(txHandler.GetRcvAddr()) == addressPubkeyConverter.Len() {
-		receiver = addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
-	}
-
-	sender := ""
-	if len(txHandler.GetSndAddr()) == addressPubkeyConverter.Len() {
-		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
-	}
+	receiverAddress, _ := addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+	senderAddress, _ := addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 
 	log.Trace("executing transaction",
 		"txHash", txHash,
@@ -712,8 +705,8 @@ func DisplayProcessTxDetails(
 		"gas limit", txHandler.GetGasLimit(),
 		"gas price", txHandler.GetGasPrice(),
 		"data", hex.EncodeToString(txHandler.GetData()),
-		"sender", sender,
-		"receiver", receiver)
+		"sender", senderAddress,
+		"receiver", receiverAddress)
 }
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -103,9 +103,9 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	maxNumRequests := 5
 	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
-			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardBlocksTopic, senderShard)
+			requester, err := nodes[j+1].RequestersFinder.CrossShardRequester(factory.ShardBlocksTopic, senderShard)
 			assert.Nil(t, err)
-			_ = resolver.RequestDataFromHash(shardHeaderHash, 0)
+			_ = requester.RequestDataFromHash(shardHeaderHash, 0)
 		}
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
@@ -134,9 +134,9 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
-		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+		requester, err := nodes[0].RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.RequestDataFromHash(metaHeaderHash, 0)
+		_ = requester.RequestDataFromHash(metaHeaderHash, 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
@@ -160,9 +160,9 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
-		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+		requester, err := nodes[0].RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 		assert.Nil(t, err)
-		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce(), 0)
+		_ = requester.(requestHandlers.HeaderRequester).RequestDataFromNonce(metaHdr2.GetNonce(), 0)
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
 

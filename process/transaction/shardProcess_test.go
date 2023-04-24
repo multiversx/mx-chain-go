@@ -1288,7 +1288,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    mock.NewPubkeyConverterMock(32),
+		PubkeyConverter:    testscommon.NewPubkeyConverterMock(32),
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
@@ -1624,7 +1624,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1706,7 +1706,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1788,7 +1788,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1875,7 +1875,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1959,7 +1959,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2044,7 +2044,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2577,7 +2577,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}

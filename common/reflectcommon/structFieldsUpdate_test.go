@@ -99,10 +99,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error when setting invalid float64", func(t *testing.T) {
 		t.Parallel()
 
-		path := "HeartbeatV2.PeerShardThresholdBetweenSends"
+		path := "HeartbeatV2.PeerShardTimeThresholdBetweenSends"
 		expectedNewValue := "invalid float64"
 		cfg := &config.Config{}
-		cfg.HeartbeatV2.PeerShardThresholdBetweenSends = 37.0
+		cfg.HeartbeatV2.PeerShardTimeThresholdBetweenSends = 37.0
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
@@ -279,15 +279,15 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should work and override float64 value", func(t *testing.T) {
 		t.Parallel()
 
-		path := "HeartbeatV2.PeerAuthenticationThresholdBetweenSends"
+		path := "HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends"
 		expectedNewValue := 38.0
 		cfg := &config.Config{}
-		cfg.HeartbeatV2.PeerAuthenticationThresholdBetweenSends = 37.0
+		cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends = 37.0
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%f", expectedNewValue))
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.PeerAuthenticationThresholdBetweenSends)
+		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends)
 	})
 
 	t.Run("should work and override int value", func(t *testing.T) {
