@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -66,7 +67,7 @@ func getCode(accountsDB state.AccountsAdapter, codeHash []byte) ([]byte, error) 
 func getData(accountsDB state.AccountsAdapter, rootHash []byte, address []byte) ([]string, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
 	err := accountsDB.GetAllLeaves(leavesChannels, context.Background(), rootHash)
@@ -89,7 +90,7 @@ func getData(accountsDB state.AccountsAdapter, rootHash []byte, address []byte) 
 			hex.EncodeToString(valWithoutSuffix)))
 	}
 
-	err = <-leavesChannels.ErrChan
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, fmt.Errorf("%w while trying to export data on hex root hash %s, address %s",
 			err, hex.EncodeToString(rootHash), hex.EncodeToString(address))

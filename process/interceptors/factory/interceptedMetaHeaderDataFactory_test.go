@@ -16,6 +16,7 @@ import (
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -54,7 +55,7 @@ func createMockPubkeyConverter() core.PubkeyConverter {
 }
 
 func createMockFeeHandler() process.FeeHandler {
-	return &mock.FeeHandlerStub{}
+	return &economicsmocks.EconomicsHandlerStub{}
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {

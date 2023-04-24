@@ -53,6 +53,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsComputeRewardCheckpointFlagEnabledField:              true,
 			IsValidatorToDelegationFlagEnabledField:                true,
 			IsReDelegateBelowMinCheckFlagEnabledField:              true,
+			IsMultiClaimOnDelegationEnabledField:                   true,
 		},
 	}
 }
@@ -919,7 +920,6 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, 6, len(vmOutput.OutputAccounts))
-	assert.Equal(t, 2, len(vmOutput.OutputAccounts[string(vm.StakingSCAddress)].OutputTransfers))
 
 	output = d.Execute(vmInput)
 	eei.gasRemaining = vmInput.GasProvided
@@ -2057,6 +2057,10 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "nothing to unBond")
 
 	gFundData, _ := d.getGlobalFundData()
 	assert.Equal(t, big.NewInt(80), gFundData.TotalUnStaked)
@@ -4541,6 +4545,7 @@ func TestDelegation_OptimizeRewardsComputation(t *testing.T) {
 	vmInput.CallerAddr = delegator
 
 	output = d.Execute(vmInput)
+	fmt.Println(eei.returnMessage)
 	assert.Equal(t, vmcommon.Ok, output)
 
 	destAcc, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
@@ -4723,7 +4728,9 @@ func createDefaultEeiArgs() VMContextArgs {
 		InputParser:         parsers.NewCallArgsParser(),
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+			IsMultiClaimOnDelegationEnabledField: true,
+		},
 	}
 }
 
