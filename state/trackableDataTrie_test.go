@@ -252,6 +252,72 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		assert.Equal(t, errExpected, err)
 		assert.Nil(t, valRecovered)
 	})
+
+	t.Run("val not found in trie - auto balance enabled", func(t *testing.T) {
+		t.Parallel()
+
+		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		hasher := &hashingMocks.HasherMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
+
+		trie := &trieMock.TrieStub{
+			UpdateCalled: func(key, value []byte) error {
+				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+		}
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tdt, _ := state.NewTrackableDataTrie(
+			identifier,
+			trie,
+			hasher,
+			marshaller,
+			enableEpochsHandler,
+		)
+		assert.NotNil(t, tdt)
+
+		valRecovered, _, err := tdt.RetrieveValue(expectedKey)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte(nil), valRecovered)
+	})
+
+	t.Run("val not found in trie - auto balance disabled", func(t *testing.T) {
+		t.Parallel()
+
+		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		hasher := &hashingMocks.HasherMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
+
+		trie := &trieMock.TrieStub{
+			UpdateCalled: func(key, value []byte) error {
+				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+		}
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: false,
+		}
+		tdt, _ := state.NewTrackableDataTrie(
+			identifier,
+			trie,
+			hasher,
+			marshaller,
+			enableEpochsHandler,
+		)
+		assert.NotNil(t, tdt)
+
+		valRecovered, _, err := tdt.RetrieveValue(expectedKey)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte(nil), valRecovered)
+	})
 }
 
 func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
@@ -611,7 +677,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		expectedKey := []byte("key")
-		deleteCalled := false
+		deleteCalled := 0
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				if bytes.Equal(expectedKey, key) {
@@ -622,7 +688,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, expectedKey, key)
-				deleteCalled = true
+				deleteCalled++
 				return nil
 			},
 		}
@@ -636,7 +702,55 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		_, err := tdt.SaveDirtyData(trie)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(tdt.DirtyData()))
-		assert.True(t, deleteCalled)
+		assert.Equal(t, 1, deleteCalled)
+	})
+
+	t.Run("not present in trie - autobalance disabled", func(t *testing.T) {
+		t.Parallel()
+
+		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		newVal := []byte("value")
+		valueWithMetadata := append(newVal, expectedKey...)
+		valueWithMetadata = append(valueWithMetadata, identifier...)
+		hasher := &hashingMocks.HasherMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		updateCalled := false
+
+		trie := &trieMock.TrieStub{
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+				assert.Equal(t, expectedKey, key)
+				assert.Equal(t, valueWithMetadata, value)
+				updateCalled = true
+				return nil
+			},
+			DeleteCalled: func(key []byte) error {
+				assert.Fail(t, "this delete should not have been called")
+				return nil
+			},
+		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: false,
+		}
+		tdt, _ := state.NewTrackableDataTrie(
+			identifier,
+			trie,
+			hasher,
+			marshaller,
+			enableEpochsHandler,
+		)
+
+		_ = tdt.SaveKeyValue(expectedKey, newVal)
+		oldValues, err := tdt.SaveDirtyData(trie)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(oldValues))
+		assert.Equal(t, expectedKey, oldValues[0].Key)
+		assert.Equal(t, []byte(nil), oldValues[0].Value)
+		assert.True(t, updateCalled)
 	})
 }
 
@@ -696,17 +810,17 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			{
 				Key:     []byte("key1"),
 				Value:   []byte("value1"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key2"),
 				Value:   []byte("value2"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key3"),
 				Value:   []byte("value3"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 		}
 		tr := &trieMock.TrieStub{
@@ -737,7 +851,6 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		for i := range leavesToBeMigrated {
 			d := dirtyData[string(leavesToBeMigrated[i].Key)]
 			assert.Equal(t, leavesToBeMigrated[i].Value, d.Value)
-			assert.Equal(t, leavesToBeMigrated[i].Version, d.OldVersion)
 			assert.Equal(t, core.TrieNodeVersion(100), d.NewVersion)
 		}
 	})
