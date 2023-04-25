@@ -2,6 +2,7 @@ package config
 
 import "github.com/multiversx/mx-chain-go/config"
 
+// SovereignConfig holds sovereign node config
 type SovereignConfig struct {
 	*config.Configs
 	NotifierConfig *NotifierConfig
@@ -14,10 +15,11 @@ type NotifierConfig struct {
 	WebSocketConfig     WebSocketConfig `toml:"WebSocket"`
 }
 
-// WebSocketConfig holds web sockets config
+// WebSocketConfig holds web socket config
 type WebSocketConfig struct {
 	Url                string `toml:"Url"`
 	MarshallerType     string `toml:"MarshallerType"`
 	RetryDuration      uint32 `toml:"RetryDuration"`
 	BlockingAckOnError bool   `toml:"BlockingAckOnError"`
+	HasherType         string `toml:"HasherType"`
 }

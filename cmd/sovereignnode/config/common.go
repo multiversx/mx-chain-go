@@ -12,5 +12,5 @@ func LoadSovereignNotifierConfig(filepath string) (*NotifierConfig, error) {
 		return nil, err
 	}
 
-	return cfg, err
+	return cfg, nil
 }
