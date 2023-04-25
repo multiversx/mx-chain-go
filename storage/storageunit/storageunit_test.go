@@ -7,10 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-storage-go/common"
-
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -155,7 +155,7 @@ func TestNewStorageCacherAdapter(t *testing.T) {
 	cacher := &mock.AdaptedSizedLruCacheStub{}
 	db := &mock.PersisterStub{}
 	storedDataFactory := &storage.StoredDataFactoryStub{}
-	marshaller := &testscommon.MarshalizerStub{}
+	marshaller := &marshallerMock.MarshalizerStub{}
 
 	t.Run("nil parameter should error", func(t *testing.T) {
 		t.Parallel()

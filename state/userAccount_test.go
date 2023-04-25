@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -223,7 +224,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, 100),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := acc.GetAllLeaves(chLeaves, context.Background())
 		assert.Nil(t, err)
@@ -262,7 +263,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, 100),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := acc.GetAllLeaves(chLeaves, context.Background())
 		assert.Nil(t, err)
@@ -302,7 +303,7 @@ func TestUserAccount_GetAllLeaves(t *testing.T) {
 
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, 100),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := acc.GetAllLeaves(chLeaves, context.Background())
 		assert.Nil(t, err)

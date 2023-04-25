@@ -463,7 +463,12 @@ func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	acntDst, err := state.NewUserAccount(tx.RcvAddr, argsAccCreation)
 	assert.Nil(t, err)
 
 	called := false

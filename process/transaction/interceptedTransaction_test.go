@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,7 +74,7 @@ func createFreeTxFeeHandler() *economicsmocks.EconomicsHandlerStub {
 }
 
 func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler, txVerChecker *testscommon.TxVersionCheckerStub) (*transaction.InterceptedTransaction, error) {
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	txBuff, err := marshaller.Marshal(tx)
 	if err != nil {
 		return nil, err

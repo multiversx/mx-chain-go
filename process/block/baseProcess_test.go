@@ -1975,7 +1975,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 				RootHashCalled: func() ([]byte, error) {
 					return rootHash, nil
 				},
-				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
 					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 					return nil

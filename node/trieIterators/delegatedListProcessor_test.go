@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/node/mock"
@@ -231,4 +230,3 @@ func TestDelegatedListProcessor_IsInterfaceNil(t *testing.T) {
 	dlp, _ = NewDelegatedListProcessor(createMockArgs())
 	require.False(t, dlp.IsInterfaceNil())
 }
-

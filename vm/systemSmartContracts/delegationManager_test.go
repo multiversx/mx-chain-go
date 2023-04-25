@@ -1096,7 +1096,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 		createSystemSCContainer(eei),
 	)
 
-	enableHandlerStub := &testscommon.EnableEpochsHandlerStub{
+	enableHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsMultiClaimOnDelegationEnabledField: false,
 		IsDelegationManagerFlagEnabledField:  true,
 	}

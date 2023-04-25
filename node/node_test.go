@@ -4731,7 +4731,12 @@ func TestNode_setTxGuardianData(t *testing.T) {
 
 func TestNode_GetGuardianData(t *testing.T) {
 	userAddressBytes := bytes.Repeat([]byte{3}, 32)
-	testAccount, _ := state.NewUserAccount(userAddressBytes)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
 	testAccountsDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return testAccount, nil, nil
@@ -4917,7 +4922,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Nil(t, err)
 	})
 	t.Run("one active and one pending and account guarded", func(t *testing.T) {
-		acc, _ := state.NewUserAccount(userAddressBytes)
+		acc, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
 		acc.CodeMetadata = (&vmcommon.CodeMetadata{Guarded: true}).ToBytes()
 		accDB := &stateMock.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {

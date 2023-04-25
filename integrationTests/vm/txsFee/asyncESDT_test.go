@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -538,7 +539,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, 1),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = testContext.Accounts.GetAllLeaves(leaves, context.Background(), roothash)
+	err = testContext.Accounts.GetAllLeaves(leaves, context.Background(), roothash, parsers.NewMainTrieLeafParser())
 	require.Nil(t, err)
 
 	for range leaves.LeavesChan {
