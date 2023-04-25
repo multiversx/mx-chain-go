@@ -81,6 +81,22 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "the cache for the headers"))
 
 	args = getGoodArgs()
+	args.Config.TxBlockBodyDataPool.Capacity = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	fmt.Println(err)
+	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the miniblocks"))
+
+	args = getGoodArgs()
+	args.Config.PeerBlockBodyDataPool.Capacity = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	fmt.Println(err)
+	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the peer mini block body"))
+
+	args = getGoodArgs()
 	args.Config.TrieSyncStorage.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)

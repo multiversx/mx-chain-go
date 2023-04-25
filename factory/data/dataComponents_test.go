@@ -15,9 +15,6 @@ import (
 
 func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := componentsMock.GetCoreComponents()
@@ -31,9 +28,6 @@ func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetDataArgs(nil, shardCoordinator)
@@ -96,9 +90,6 @@ func TestNewDataComponentsFactory_NilPathHandlerShouldErr(t *testing.T) {
 
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := &mock.CoreComponentsMock{
@@ -115,9 +106,6 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 
 func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := componentsMock.GetCoreComponents()
@@ -129,9 +117,6 @@ func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 
 func TestDataComponentsFactory_CreateShouldErrDueBadConfig(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := componentsMock.GetCoreComponents()
@@ -147,9 +132,6 @@ func TestDataComponentsFactory_CreateShouldErrDueBadConfig(t *testing.T) {
 
 func TestDataComponentsFactory_CreateForShardShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -164,9 +146,6 @@ func TestDataComponentsFactory_CreateForShardShouldWork(t *testing.T) {
 
 func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -183,9 +162,6 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 // ------------ Test DataComponents --------------------
 func TestManagedDataComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)

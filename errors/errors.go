@@ -550,3 +550,15 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
+var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")
+
+// ErrNilLogger signals that a nil logger instance has been provided
+var ErrNilLogger = errors.New("nil logger")
+
+// ErrNilShuffleOutCloser signals that a nil shuffle out closer has been provided
+var ErrNilShuffleOutCloser = errors.New("nil shuffle out closer")

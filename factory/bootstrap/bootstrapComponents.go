@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/guardian"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -26,7 +28,7 @@ import (
 
 var log = logger.GetOrCreate("factory")
 
-// BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
+// BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config               config.Config
 	RoundConfig          config.RoundConfig
@@ -60,6 +62,7 @@ type bootstrapComponents struct {
 	headerVersionHandler    nodeFactory.HeaderVersionHandler
 	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler   process.GuardedAccountHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -81,9 +84,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
-	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return nil, errors.ErrNilStatusCoreComponents
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
@@ -179,6 +179,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	tss := bcf.statusCoreComponents.TrieSyncStatistics()
 	tss.AddNumProcessed(1)
 
+	setGuardianEpochsDelay := bcf.config.GeneralSettings.SetGuardianEpochsDelay
+	guardedAccountHandler, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier(), setGuardianEpochsDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -201,6 +207,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
+		NodeProcessingMode:         common.GetNodeProcessingMode(&bcf.importDbConfig),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -256,6 +263,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
+		guardedAccountHandler:   guardedAccountHandler,
 	}, nil
 }
 

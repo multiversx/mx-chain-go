@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -36,8 +38,8 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
-func feeHandlerMock() *mock.FeeHandlerStub {
-	return &mock.FeeHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
+	return &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -69,24 +71,26 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:            &stateMock.AccountsStub{},
-		Hasher:              &hashingMocks.HasherMock{},
-		PubkeyConv:          createMockPubkeyConverter(),
-		Marshalizer:         &mock.MarshalizerMock{},
-		SignMarshalizer:     &mock.MarshalizerMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		ScProcessor:         &testscommon.SCProcessorMock{},
-		TxFeeHandler:        &mock.FeeAccumulatorStub{},
-		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:        feeHandlerMock(),
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          &mock.ArgumentParserMock{},
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		Accounts:         &stateMock.AccountsStub{},
+		Hasher:           &hashingMocks.HasherMock{},
+		PubkeyConv:       createMockPubKeyConverter(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		SignMarshalizer:  &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ScProcessor:      &testscommon.SCProcessorMock{},
+		TxFeeHandler:     &mock.FeeAccumulatorStub{},
+		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:     feeHandlerMock(),
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       &mock.ArgumentParserMock{},
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
 }
@@ -688,7 +692,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerCheckErrorShouldErr(t *testing.T) {
 	args.Accounts = adb
 
 	expectedError := errors.New("validatity check failed")
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		}}
@@ -741,7 +745,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerInsufficientFeeShouldErr(t *testing.
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0).Add(acntSrc.Balance, big.NewInt(1))
 		}}
@@ -773,7 +777,7 @@ func TestTxProcessor_ProcessWithInsufficientFundsShouldCreateReceiptErr(t *testi
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrInsufficientFunds
 		}}
@@ -806,7 +810,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchCreateReceiptErr(t *testing.T) {
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
@@ -837,7 +841,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *
 
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
@@ -1031,7 +1035,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	}
 
 	txCost := big.NewInt(16)
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -1060,7 +1064,7 @@ func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -1111,7 +1115,7 @@ func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -1162,7 +1166,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -1214,7 +1218,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewUserAccount(tx.SndAddr)
@@ -1263,7 +1267,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -1296,7 +1300,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    mock.NewPubkeyConverterMock(32),
+		PubkeyConverter:    testscommon.NewPubkeyConverterMock(32),
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
@@ -1327,7 +1331,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1362,7 +1366,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1421,7 +1425,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 
 	moveBalanceFee := big.NewInt(50)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1460,7 +1464,7 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 	processingFee := big.NewInt(5)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1496,7 +1500,7 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	gasPerByte := uint64(1)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1560,7 +1564,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.ShardCoordinator = shardC
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
@@ -1611,7 +1615,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 	args.ShardCoordinator = shardC
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
@@ -1632,7 +1636,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1714,7 +1718,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1796,7 +1800,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1883,7 +1887,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -1967,7 +1971,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2052,7 +2056,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2585,7 +2589,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	t.Parallel()
 
-	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
 
 	userAddr := []byte("user")
 	tx := transaction.Transaction{}
@@ -2671,7 +2675,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(1)
 		},

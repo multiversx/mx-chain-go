@@ -30,12 +30,20 @@ type PeerShard = message.PeerShard
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler = rating.ArgPeersRatingHandler
 
+// ArgPeersRatingMonitor is the DTO used to create a new peers rating monitor
+type ArgPeersRatingMonitor = rating.ArgPeersRatingMonitor
+
 // ArgsMessageVerifier defines the args used to create a message verifier
 type ArgsMessageVerifier = messagecheck.ArgsMessageVerifier
 
 // NewPeersRatingHandler returns a new peers rating handler
 func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, error) {
 	return rating.NewPeersRatingHandler(args)
+}
+
+// NewPeersRatingMonitor returns a new peers rating monitor
+func NewPeersRatingMonitor(args ArgPeersRatingMonitor) (p2p.PeersRatingMonitor, error) {
+	return rating.NewPeersRatingMonitor(args)
 }
 
 // NewPeersHolder returns a new instance of peersHolder

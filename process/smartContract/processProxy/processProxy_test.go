@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -46,13 +47,13 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		BlockChainHook:   &testscommon.BlockChainHookStub{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
+		PubkeyConv:       testscommon.NewPubkeyConverterMock(32),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:     &mock.FeeAccumulatorStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},

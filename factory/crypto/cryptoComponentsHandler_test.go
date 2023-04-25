@@ -13,9 +13,6 @@ import (
 // ------------ Test ManagedCryptoComponents --------------------
 func TestManagedCryptoComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	args := componentsMock.GetCryptoArgs(coreComponents)
@@ -30,9 +27,6 @@ func TestManagedCryptoComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 
 func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	args := componentsMock.GetCryptoArgs(coreComponents)
@@ -63,9 +57,6 @@ func TestManagedCryptoComponents_CreateShouldWork(t *testing.T) {
 
 func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
@@ -75,9 +66,6 @@ func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 
 func TestManagedCryptoComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
@@ -103,9 +91,6 @@ func getManagedCryptoComponents(t *testing.T) factory.CryptoComponentsHandler {
 
 func TestManagedCryptoComponents_Clone(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	args := componentsMock.GetCryptoArgs(coreComponents)

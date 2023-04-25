@@ -91,6 +91,15 @@ var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
+// ErrNilLatestStorageDataProvider signals that a nil latest storage data provider has been provided
+var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provider")
+
+// ErrNilBootstrapDataProvider signals that a nil bootstrap data provider has been provided
+var ErrNilBootstrapDataProvider = errors.New("nil bootstrap data provider")
+
+// ErrNilDirectoryReader signals that a nil directory reader has been provided
+var ErrNilDirectoryReader = errors.New("nil directory reader")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.

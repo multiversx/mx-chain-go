@@ -75,7 +75,6 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
@@ -111,7 +110,6 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 
 	sndAddr := []byte("12345678901234567890123456789113")
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(100000))
@@ -148,7 +146,6 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("invalidAddress")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
@@ -182,7 +179,6 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 1, big.NewInt(10970))
 
@@ -220,7 +216,6 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	gasLimit := uint64(len(txData) + 1)
@@ -266,7 +261,6 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 
 	txData := []byte(core.BuiltInFunctionSaveKeyValue + "@01@02")
 	gasLimit := uint64(len(txData) + 1)
-	gasPrice := uint64(10)
 
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, destAddr, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -299,7 +293,6 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 
 	txData := []byte(core.BuiltInFunctionSaveKeyValue + "@01000000@02000000@03000000@04000000@05000000@06000000")
 	gasLimit := uint64(len(txData) + 20)
-	gasPrice := uint64(10)
 
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimit, txData)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)

@@ -70,7 +70,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			Hash:                         &hashingMocks.HasherMock{},
 			TxSignHasherField:            &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv:          &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:               &mock.PubkeyConverterMock{},
+			AddrPubKeyConv:               &testscommon.PubkeyConverterMock{},
 			PathHdl:                      &testscommon.PathManagerStub{},
 			EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),

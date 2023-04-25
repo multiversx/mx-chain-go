@@ -34,6 +34,7 @@ import (
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -106,6 +107,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -146,7 +148,7 @@ var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
-var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, AddressHrp)
 
 // TestValidatorPubkeyConverter represents an address public key converter
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
@@ -283,6 +285,9 @@ type ArgTestProcessorNode struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	OwnAccount              *TestWalletAccount
 	EpochStartSubscriber    notifier.EpochStartNotifier
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
+	WithPeersRatingHandler  bool
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -355,6 +360,7 @@ type TestProcessorNode struct {
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	GuardedAccountHandler   process.GuardedAccountHandler
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
@@ -388,7 +394,10 @@ type TestProcessorNode struct {
 
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
+	PeersRatingMonitor      p2p.PeersRatingMonitor
 	HardforkTrigger         node.HardforkTrigger
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -425,13 +434,35 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		nodesCoordinatorInstance = getDefaultNodesCoordinator(args.MaxShards, pksBytes)
 	}
 
-	peersRatingHandler, _ := p2pFactory.NewPeersRatingHandler(
-		p2pFactory.ArgPeersRatingHandler{
-			TopRatedCache: testscommon.NewCacherMock(),
-			BadRatedCache: testscommon.NewCacherMock(),
-		})
+	appStatusHandler := args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		appStatusHandler = TestAppStatusHandler
+	}
+
+	var peersRatingHandler p2p.PeersRatingHandler
+	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	topRatedCache := testscommon.NewCacherMock()
+	badRatedCache := testscommon.NewCacherMock()
+	if args.WithPeersRatingHandler {
+		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
+			p2pFactory.ArgPeersRatingHandler{
+				TopRatedCache: topRatedCache,
+				BadRatedCache: badRatedCache,
+			})
+	}
 
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+
+	var peersRatingMonitor p2p.PeersRatingMonitor
+	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
+	if args.WithPeersRatingHandler {
+		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache:       topRatedCache,
+				BadRatedCache:       badRatedCache,
+				ConnectionsProvider: messenger,
+			})
+	}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -471,6 +502,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BootstrapStorer:          &mock.BoostrapStorerMock{},
 		RatingsData:              args.RatingsData,
 		EpochStartNotifier:       args.EpochStartSubscriber,
+		GuardedAccountHandler:    &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:         appStatusHandler,
+		PeersRatingMonitor:       peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -659,6 +693,16 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
+	tpn.AppStatusHandler = args.AppStatusHandler
+	if check.IfNil(args.AppStatusHandler) {
+		tpn.AppStatusHandler = TestAppStatusHandler
+	}
+
+	tpn.StatusMetrics = args.StatusMetrics
+	if check.IfNil(args.StatusMetrics) {
+		args.StatusMetrics = &testscommon.StatusMetricsStub{}
+	}
+
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler()
@@ -773,6 +817,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -966,6 +1011,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		EpochNotifier:               tpn.EpochNotifier,
 		EnableEpochsHandler:         tpn.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1008,11 +1054,13 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
+					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
-			MinGasPrice:      minGasPrice,
-			GasPerDataByte:   "1",
-			GasPriceModifier: 0.01,
+			MinGasPrice:            minGasPrice,
+			GasPerDataByte:         "1",
+			GasPriceModifier:       0.01,
+			MaxGasPriceSetGuardian: "2000000000",
 		},
 	}
 }
@@ -1300,6 +1348,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
+	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           tpn.ShardCoordinator,
@@ -1314,7 +1363,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PreferredPeersHolder:       preferredPeersHolder,
 		PayloadValidator:           payloadValidator,
 	}
 
@@ -1346,7 +1395,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:          tpn.PeersRatingHandler,
 		SizeCheckDelta:              0,
 	}
 
@@ -1443,6 +1492,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1565,6 +1615,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScrForwarder:        tpn.ScrForwarder,
 		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
@@ -1664,6 +1716,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1807,6 +1860,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        tpn.EconomicsData,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
@@ -2253,6 +2308,11 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 func (tpn *TestProcessorNode) initNode() {
 	var err error
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		StatusMetricsField:    tpn.StatusMetrics,
+		AppStatusHandlerField: tpn.AppStatusHandler,
+	}
+
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
@@ -2330,6 +2390,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.Messenger
+	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -2342,6 +2404,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
+		node.WithStatusCoreComponents(statusCoreComponents),
 	)
 	log.LogIfError(err)
 
@@ -2365,21 +2428,38 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	tx, txHash, err := tpn.Node.CreateTransaction(
-		tx.Nonce,
-		tx.Value.String(),
-		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
-		nil,
-		TestAddressPubkeyConverter.Encode(tx.SndAddr),
-		nil,
-		tx.GasPrice,
-		tx.GasLimit,
-		tx.Data,
-		hex.EncodeToString(tx.Signature),
-		string(tx.ChainID),
-		tx.Version,
-		tx.Options,
-	)
+	encodedRcvAddr, err := TestAddressPubkeyConverter.Encode(tx.RcvAddr)
+	if err != nil {
+		return "", err
+	}
+
+	encodedSndAddr, err := TestAddressPubkeyConverter.Encode(tx.SndAddr)
+	if err != nil {
+		return "", err
+	}
+
+	txArgsLocal := &external.ArgsCreateTransaction{
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         encodedRcvAddr,
+		ReceiverUsername: nil,
+		Sender:           encodedSndAddr,
+		SenderUsername:   nil,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		DataField:        tx.Data,
+		SignatureHex:     hex.EncodeToString(tx.Signature),
+		ChainID:          string(tx.ChainID),
+		Version:          tx.Version,
+		Options:          tx.Options,
+	}
+
+	if len(tx.GuardianAddr) > 0 {
+		txArgsLocal.Guardian = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
+		txArgsLocal.GuardianSigHex = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
 	if err != nil {
 		return "", err
 	}
@@ -2887,7 +2967,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
-		AppStatusHandlerField: TestAppStatusHandler,
+		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
 
 	err = tpn.Node.ApplyOptions(
@@ -3166,6 +3246,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:           &mock.PeerBlackListCacherStub{},
 		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField: &p2pmocks.PeersRatingMonitorStub{},
 	}
 }
 
@@ -3194,12 +3275,13 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
-		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-		NodeRole:             "",
-		ShCoordinator:        shardCoordinator,
-		HdrVersionHandler:    headerVersionHandler,
-		VersionedHdrFactory:  versionedHeaderFactory,
-		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:                   "",
+		ShCoordinator:              shardCoordinator,
+		HdrVersionHandler:          headerVersionHandler,
+		VersionedHdrFactory:        versionedHeaderFactory,
+		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 	}
 }
 
@@ -3221,7 +3303,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		for leaf := range chLeaves.LeavesChan {
@@ -3232,7 +3314,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 			return leaf.Key()
 		}
 
-		err := common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+		err := chLeaves.ErrChan.ReadFromChanNonBlocking()
 		if err != nil {
 			log.Error("error getting all leaves from channel", "err", err)
 		}

@@ -15,9 +15,6 @@ import (
 
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	args.StatusHandler = nil
@@ -28,9 +25,6 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 
 func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	args.Marshalizer = nil
@@ -41,9 +35,6 @@ func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, err := networkComp.NewNetworkComponentsFactory(args)
@@ -53,9 +44,6 @@ func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 
 func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	args.MainConfig = config.Config{}
@@ -70,9 +58,6 @@ func TestNetworkComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 
 func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
@@ -86,9 +71,6 @@ func TestNetworkComponentsFactory_CreateShouldWork(t *testing.T) {
 // ------------ Test NetworkComponents --------------------
 func TestNetworkComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)

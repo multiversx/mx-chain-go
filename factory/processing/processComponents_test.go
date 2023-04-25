@@ -24,9 +24,6 @@ import (
 // ------------ Test TestProcessComponents --------------------
 func TestProcessComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
@@ -42,9 +39,6 @@ func TestProcessComponents_CloseShouldWork(t *testing.T) {
 
 func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
@@ -60,9 +54,6 @@ func TestProcessComponentsFactory_CreateWithInvalidTxAccumulatorTimeExpectError(
 
 func TestProcessComponents_IndexGenesisBlocks(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)

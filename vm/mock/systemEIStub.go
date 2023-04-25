@@ -38,7 +38,6 @@ type SystemEIStub struct {
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
-	ParseCallDataCalled                 func(data string) (string, [][]byte, error)
 }
 
 // AddLogEntry -
@@ -103,6 +102,16 @@ func (s *SystemEIStub) UseGas(gas uint64) error {
 		return s.UseGasCalled(gas)
 	}
 	return nil
+}
+
+// GetTotalSentToUser -
+func (s *SystemEIStub) GetTotalSentToUser(_ []byte) *big.Int {
+	return big.NewInt(0)
+}
+
+// GetLogs -
+func (s *SystemEIStub) GetLogs() []*vmcommon.LogEntry {
+	return make([]*vmcommon.LogEntry, 0)
 }
 
 // SetGasProvided -
@@ -279,14 +288,6 @@ func (s *SystemEIStub) CleanStorageUpdates() {
 	if s.CleanStorageUpdatesCalled != nil {
 		s.CleanStorageUpdatesCalled()
 	}
-}
-
-func (s *SystemEIStub) ParseCallData(data string) (string, [][]byte, error) {
-	if s.ParseCallDataCalled != nil {
-		return s.ParseCallDataCalled(data)
-	}
-
-	return "", nil, nil
 }
 
 // IsInterfaceNil -

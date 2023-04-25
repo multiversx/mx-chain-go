@@ -26,7 +26,7 @@ import (
 func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
 	return ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		PubkeyConv:          mock.NewPubkeyConverterMock(32),
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
@@ -271,22 +271,25 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						MaxGasLimitPerMetaMiniBlock: "10000000000",
 						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				MinGasPrice:      "10",
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
+				MinGasPrice:            "10",
+				GasPerDataByte:         "1",
+				GasPriceModifier:       1.0,
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
 	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
-		PubkeyConv:          mock.NewPubkeyConverterMock(32),
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         makeGasSchedule(),

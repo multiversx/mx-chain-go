@@ -45,8 +45,8 @@ func generateEmptyByteSlice(size int) []byte {
 	return buff
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state.UserAccountHandler) {
@@ -87,7 +87,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:     &mock.FeeAccumulatorStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},
@@ -919,7 +919,7 @@ func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.PubkeyConv = mock.NewPubkeyConverterMock(3)
+	arguments.PubkeyConv = testscommon.NewPubkeyConverterMock(3)
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	tx := &transaction.Transaction{}
@@ -975,7 +975,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		},
@@ -1189,7 +1189,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	economicsFee := &mock.FeeHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -1932,7 +1932,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 1000
 		},
@@ -2379,7 +2379,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	txFee := big.NewInt(25)
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -2500,7 +2500,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	minGasPrice := uint64(10)
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
@@ -2540,7 +2540,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 
 	minGasPrice := uint64(10)
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
@@ -3678,7 +3678,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
@@ -3894,7 +3894,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 		return big.NewInt(100)
 	}}
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -3984,7 +3984,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -4023,7 +4023,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -4249,11 +4249,13 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerMetaMiniBlock: "15000000000",
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				GasPerDataByte:   "1500",
-				MinGasPrice:      "1000000000",
-				GasPriceModifier: 0.01,
+				GasPerDataByte:         "1500",
+				MinGasPrice:            "1000000000",
+				GasPriceModifier:       0.01,
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
@@ -4261,6 +4263,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 }
 
