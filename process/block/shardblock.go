@@ -145,6 +145,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
+	sp.requestMissingHeadersFunc = sp.requestMissingHeaders
 
 	return &sp, nil
 }

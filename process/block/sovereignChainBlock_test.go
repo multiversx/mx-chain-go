@@ -2,7 +2,9 @@ package block_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -63,10 +65,25 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		assert.ErrorIs(t, err, process.ErrNilValidatorStatistics)
 	})
 
-	t.Run("should error when type assertion fails", func(t *testing.T) {
+	t.Run("should error when type assertion to extendedShardHeaderTrackHandler fails", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
+
+		assert.Nil(t, scbp)
+		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+
+	t.Run("should error when type assertion to extendedShardHeaderRequestHandler fails", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
 
@@ -80,8 +97,18 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		shardArguments := CreateSovereignChainShardTrackerMockArguments()
 		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
+		rrh, _ := requestHandlers.NewResolverRequestHandler(
+			&dataRetrieverMock.RequestersFinderStub{},
+			&mock.RequestedItemsHandlerStub{},
+			&testscommon.WhiteListHandlerStub{},
+			1,
+			0,
+			time.Second,
+		)
+
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
+		arguments.RequestHandler, _ = requestHandlers.NewSovereignResolverRequestHandler(rrh)
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
 

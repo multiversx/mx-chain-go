@@ -127,6 +127,7 @@ type baseBootstrap struct {
 	processAndCommitFunc                func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	handleScheduledRollBackToHeaderFunc func(header data.HeaderHandler, headerHash []byte) []byte
 	getRootHashFromBlockFunc            func(header data.HeaderHandler, headerHash []byte) []byte
+	processReceivedHeaderFunc           func(headerHandler data.HeaderHandler, headerHash []byte)
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -1146,7 +1147,7 @@ func (boot *baseBootstrap) init() {
 	boot.setRequestedMiniBlocks(nil)
 
 	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
-	boot.headers.RegisterHandler(boot.processReceivedHeader)
+	boot.headers.RegisterHandler(boot.processReceivedHeaderFunc)
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}

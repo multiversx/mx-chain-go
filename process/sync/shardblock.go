@@ -97,6 +97,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
+	base.processReceivedHeaderFunc = base.processReceivedHeader
 	base.init()
 
 	return &boot, nil

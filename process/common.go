@@ -190,6 +190,25 @@ func GetMetaHeaderFromPool(
 	return hdr, nil
 }
 
+// GetExtendedShardHeaderFromPool gets the header, which is associated with the given hash, from pool
+func GetExtendedShardHeaderFromPool(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+) (*block.ShardHeaderExtended, error) {
+
+	obj, err := getHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, ok := obj.(*block.ShardHeaderExtended)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, nil
+}
+
 // GetHeaderFromStorage method returns a block header from storage
 func GetHeaderFromStorage(
 	shardId uint32,

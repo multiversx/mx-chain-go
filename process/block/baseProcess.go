@@ -114,6 +114,7 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+	requestMissingHeadersFunc     func(missingNonces []uint64, shardID uint32)
 }
 
 type bootStorerDataArgs struct {
@@ -305,12 +306,16 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, nonces...)
 	}
 
+	bp.requestMissingHeadersFunc(missingNonces, shardId)
+
+	return nil
+}
+
+func (bp *baseProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {
 	for _, nonce := range missingNonces {
 		bp.addHeaderIntoTrackerPool(nonce, shardId)
 		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
-
-	return nil
 }
 
 func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uint64 {

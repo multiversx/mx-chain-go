@@ -299,13 +299,16 @@ func (txc *transactionCounter) displayTxBlockBody(
 			processingTypeInMiniBlockStr = "S_"
 		}
 
-		part := fmt.Sprintf("%s%s%s_MiniBlock_%s%d->%d",
+		senderShardStr := getShardName(miniBlock.SenderShardID)
+		receiverShardStr := getShardName(miniBlock.ReceiverShardID)
+
+		part := fmt.Sprintf("%s%s%s_MiniBlock_%s%s->%s",
 			processingTypeInMiniBlockHeaderStr,
 			constructionStateInMiniBlockHeaderStr,
 			miniBlock.Type.String(),
 			processingTypeInMiniBlockStr,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+			senderShardStr,
+			receiverShardStr)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -341,6 +344,23 @@ func (txc *transactionCounter) displayTxBlockBody(
 	}
 
 	return lines
+}
+
+func getShardName(shardID uint32) string {
+	var shardStr string
+
+	switch shardID {
+	case core.MetachainShardId:
+		shardStr = "MetaChain"
+	case core.MainChainShardId:
+		shardStr = "MainChain"
+	case core.SovereignChainShardId:
+		shardStr = "SovereignChain"
+	default:
+		shardStr = fmt.Sprintf("%d", shardID)
+	}
+
+	return shardStr
 }
 
 func getProcessingTypeAsString(miniBlockHeader data.MiniBlockHeaderHandler) string {

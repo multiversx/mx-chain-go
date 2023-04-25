@@ -108,6 +108,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	base.processReceivedHeaderFunc = base.processReceivedHeader
 	base.init()
 
 	return &boot, nil

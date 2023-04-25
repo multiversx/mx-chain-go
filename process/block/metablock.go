@@ -172,6 +172,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+	mp.requestMissingHeadersFunc = mp.requestMissingHeaders
 
 	return &mp, nil
 }

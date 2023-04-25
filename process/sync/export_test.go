@@ -21,12 +21,12 @@ func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAn
 
 // ReceivedHeaders -
 func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
-	boot.processReceivedHeader(header, key)
+	boot.processReceivedHeaderFunc(header, key)
 }
 
 // ReceivedHeaders -
 func (boot *ShardBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
-	boot.processReceivedHeader(header, key)
+	boot.processReceivedHeaderFunc(header, key)
 }
 
 // RollBack -
@@ -177,7 +177,7 @@ func (boot *MetaBootstrap) GetNotarizedInfo(
 
 // ProcessReceivedHeader -
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	boot.processReceivedHeader(headerHandler, headerHash)
+	boot.processReceivedHeaderFunc(headerHandler, headerHash)
 }
 
 // RequestMiniBlocksFromHeaderWithNonceIfMissing -
