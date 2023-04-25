@@ -117,6 +117,8 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsSetGuardianEnabledField                                    bool
+	IsMultiClaimOnDelegationEnabledField                         bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 }
 
@@ -1013,6 +1015,22 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsSetGuardianEnabled -
+func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSetGuardianEnabledField
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMultiClaimOnDelegationEnabledField
 }
 
 // IsAutoBalanceDataTriesEnabled -

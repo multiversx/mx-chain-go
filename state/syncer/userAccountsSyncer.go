@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
@@ -218,7 +219,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = mainTrie.GetAllLeavesOnChannel(
 		leavesChannels,
@@ -279,7 +280,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	wg.Wait()
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}
@@ -288,8 +289,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {
-	u.mutStatistics.RLock()
-	defer u.mutStatistics.RUnlock()
+	u.mutStatistics.Lock()
+	defer u.mutStatistics.Unlock()
 
 	log.Debug("user accounts tries sync has finished",
 		"num small data tries", u.numSmallTries, "threshold", core.ConvertBytes(uint64(smallTrieThreshold)))

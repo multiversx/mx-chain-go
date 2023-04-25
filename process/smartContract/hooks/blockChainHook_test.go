@@ -1388,7 +1388,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1435,7 +1435,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 
@@ -2037,7 +2037,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
@@ -2063,7 +2063,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: true,
@@ -2078,7 +2078,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Upgradeable: true,
 			Readable:    true,
 		}
-		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted = bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected = vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: false,

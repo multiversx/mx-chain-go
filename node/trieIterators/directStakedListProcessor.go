@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -53,7 +54,7 @@ func (dslp *directStakedListProcessor) GetDirectStakedList(ctx context.Context) 
 func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount state.UserAccountHandler, ctx context.Context) ([]*api.DirectStakedValue, error) {
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := validatorAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
@@ -89,7 +90,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		stakedAccounts = append(stakedAccounts, val)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

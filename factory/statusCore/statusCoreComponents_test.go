@@ -19,9 +19,6 @@ import (
 
 func TestNewStatusCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	t.Run("nil core components should error", func(t *testing.T) {
 		t.Parallel()
@@ -97,9 +94,6 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 
 func TestStatusCoreComponentsFactory_InvalidValueShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
 	args.Config = config.Config{
@@ -117,9 +111,6 @@ func TestStatusCoreComponentsFactory_InvalidValueShouldErr(t *testing.T) {
 
 func TestStatusCoreComponentsFactory_CreateStatusCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
 	sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
@@ -133,9 +124,6 @@ func TestStatusCoreComponentsFactory_CreateStatusCoreComponentsShouldWork(t *tes
 // ------------ Test CoreComponents --------------------
 func TestStatusCoreComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
 	sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
