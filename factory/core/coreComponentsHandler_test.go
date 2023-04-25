@@ -136,6 +136,7 @@ func TestManagedCoreComponents_CheckSubcomponents(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, managedCoreComponents.CheckSubcomponents())
 }
+
 func TestManagedCoreComponents_Close(t *testing.T) {
 	t.Parallel()
 
