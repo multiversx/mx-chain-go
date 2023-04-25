@@ -22,9 +22,31 @@ import (
 func TestNewLatestDataProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ldp, err := NewLatestDataProvider(getLatestDataProviderArgs())
-	require.NotNil(t, ldp)
-	require.NoError(t, err)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ldp, err := NewLatestDataProvider(getLatestDataProviderArgs())
+		require.NotNil(t, ldp)
+		require.NoError(t, err)
+	})
+	t.Run("nil DirectoryReader should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getLatestDataProviderArgs()
+		args.DirectoryReader = nil
+		ldp, err := NewLatestDataProvider(args)
+		require.Nil(t, ldp)
+		require.Equal(t, storage.ErrNilDirectoryReader, err)
+	})
+	t.Run("nil BootstrapDataProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getLatestDataProviderArgs()
+		args.BootstrapDataProvider = nil
+		ldp, err := NewLatestDataProvider(args)
+		require.Nil(t, ldp)
+		require.Equal(t, storage.ErrNilBootstrapDataProvider, err)
+	})
 }
 
 func TestLatestDataProvider_GetParentDirectory(t *testing.T) {
@@ -32,7 +54,7 @@ func TestLatestDataProvider_GetParentDirectory(t *testing.T) {
 
 	args := getLatestDataProviderArgs()
 	ldp, _ := NewLatestDataProvider(args)
-	assert.Equal(t, args.ParentDir, ldp.GetParentDirectory())
+	require.Equal(t, args.ParentDir, ldp.GetParentDirectory())
 }
 
 func TestGetShardsFromDirectory(t *testing.T) {
