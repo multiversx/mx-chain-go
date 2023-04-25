@@ -327,7 +327,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating state components")
 	managedStateComponents, err := nr.CreateManagedStateComponents(
 		managedCoreComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
 	)
@@ -1306,13 +1305,11 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 // CreateManagedStateComponents is the managed state components factory
 func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
-	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
-		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
 		Core:                     coreComponents,
 		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),

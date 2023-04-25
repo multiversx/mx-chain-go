@@ -44,7 +44,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)

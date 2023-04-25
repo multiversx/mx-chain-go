@@ -134,7 +134,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -331,7 +331,7 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 }
 
 // GetStateFactoryArgs -
-func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) stateComp.StateComponentsFactoryArgs {
+func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
 	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
@@ -348,13 +348,12 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoord
 	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
-		Config:           GetGeneralConfig(),
-		ShardCoordinator: shardCoordinator,
-		Core:             coreComponents,
-		StatusCore:       GetStatusCoreComponents(),
-		StorageService:   disabled.NewChainStorer(),
-		ProcessingMode:   common.Normal,
-		ChainHandler:     &testscommon.ChainHandlerStub{},
+		Config:         GetGeneralConfig(),
+		Core:           coreComponents,
+		StatusCore:     GetStatusCoreComponents(),
+		StorageService: disabled.NewChainStorer(),
+		ProcessingMode: common.Normal,
+		ChainHandler:   &testscommon.ChainHandlerStub{},
 	}
 
 	return stateComponentsFactoryArgs
@@ -366,7 +365,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
 		coreComponents,
@@ -624,7 +623,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
 		coreComponents,
@@ -704,8 +703,8 @@ func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 }
 
 // GetStateComponents -
-func GetStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents, shardCoordinator)
+func GetStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(coreComponents)
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
 	if err != nil {
 		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
