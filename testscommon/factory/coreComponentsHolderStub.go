@@ -54,6 +54,7 @@ type CoreComponentsHolderStub struct {
 	ProcessStatusHandlerCalled          func() common.ProcessStatusHandler
 	HardforkTriggerPubKeyCalled         func() []byte
 	EnableEpochsHandlerCalled           func() common.EnableEpochsHandler
+	RoundNotifierCalled                 func() process.RoundNotifier
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -364,6 +365,14 @@ func (stub *CoreComponentsHolderStub) HardforkTriggerPubKey() []byte {
 func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsHandler {
 	if stub.EnableEpochsHandlerCalled != nil {
 		return stub.EnableEpochsHandlerCalled()
+	}
+	return nil
+}
+
+// RoundNotifier -
+func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
+	if stub.RoundNotifierCalled != nil {
+		return stub.RoundNotifierCalled()
 	}
 	return nil
 }
