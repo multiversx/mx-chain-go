@@ -50,7 +50,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	if check.IfNil(args.CryptoComponents) {
 		return nil, epochStart.ErrNilCryptoComponentsHolder
 	}
-
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
 	}

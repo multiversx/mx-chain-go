@@ -87,7 +87,7 @@ func TestCreateInterceptedDebugHandler_InvalidDebugConfigShouldErr(t *testing.T)
 	)
 
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), "must provide a positive size when creating NewInterceptorDebugHandler"))
+	assert.True(t, strings.Contains(err.Error(), "must provide a positive size"))
 }
 
 func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *testing.T) {

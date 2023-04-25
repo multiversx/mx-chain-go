@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -17,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -42,24 +42,19 @@ func TestNewDelegatedListProcessor(t *testing.T) {
 			},
 			exError: ErrNilAccountsAdapter,
 		},
-		{
-			name: "ShouldWork",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				return createMockArgs()
-			},
-			exError: nil,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewDelegatedListProcessor(tt.argsFunc())
+			dlp, err := NewDelegatedListProcessor(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
+			require.Nil(t, dlp)
 		})
 	}
 
-	dlp, _ := NewDelegatedListProcessor(createMockArgs())
-	assert.False(t, check.IfNil(dlp))
+	dlp, err := NewDelegatedListProcessor(createMockArgs())
+	require.NotNil(t, dlp)
+	require.Nil(t, err)
 }
 
 func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldErr(t *testing.T) {
@@ -99,7 +94,7 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 	delegators := [][]byte{[]byte("delegator1"), []byte("delegator2")}
 
 	arg := createMockArgs()
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
@@ -146,7 +141,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	delegators := [][]byte{[]byte("delegator1"), []byte("delegator2")}
 
 	arg := createMockArgs()
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
@@ -182,15 +177,25 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	delegatorsValues, err := dlp.GetDelegatorsList(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, 2, len(delegatorsValues))
+
+	encodedDelegator1PubKey, err := arg.PublicKeyConverter.Encode(delegators[0])
+	require.Nil(t, err)
+
+	encodedDelegationSc1, err := arg.PublicKeyConverter.Encode(delegationSc[0])
+	require.Nil(t, err)
+
+	encodedDelegationSc2, err := arg.PublicKeyConverter.Encode(delegationSc[1])
+	require.Nil(t, err)
+
 	expectedDelegator1 := api.Delegator{
-		DelegatorAddress: arg.PublicKeyConverter.Encode(delegators[0]),
+		DelegatorAddress: encodedDelegator1PubKey,
 		DelegatedTo: []*api.DelegatedValue{
 			{
-				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[0]),
+				DelegationScAddress: encodedDelegationSc1,
 				Value:               "1",
 			},
 			{
-				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[1]),
+				DelegationScAddress: encodedDelegationSc2,
 				Value:               "1",
 			},
 		},
@@ -198,15 +203,18 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 		TotalAsBigInt: big.NewInt(2),
 	}
 
+	encodedDelegator2PubKey, err := arg.PublicKeyConverter.Encode(delegators[1])
+	require.Nil(t, err)
+
 	expectedDelegator2 := api.Delegator{
-		DelegatorAddress: arg.PublicKeyConverter.Encode(delegators[1]),
+		DelegatorAddress: encodedDelegator2PubKey,
 		DelegatedTo: []*api.DelegatedValue{
 			{
-				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[0]),
+				DelegationScAddress: encodedDelegationSc1,
 				Value:               "2",
 			},
 			{
-				DelegationScAddress: arg.PublicKeyConverter.Encode(delegationSc[1]),
+				DelegationScAddress: encodedDelegationSc2,
 				Value:               "2",
 			},
 		},
@@ -215,6 +223,16 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 
 	assert.Equal(t, []*api.Delegator{&expectedDelegator1, &expectedDelegator2}, delegatorsValues)
+}
+
+func TestDelegatedListProcessor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var dlp *delegatedListProcessor
+	require.True(t, dlp.IsInterfaceNil())
+
+	dlp, _ = NewDelegatedListProcessor(createMockArgs())
+	require.False(t, dlp.IsInterfaceNil())
 }
 
 func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
@@ -232,7 +250,7 @@ func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte,
 				}
 
 				close(leavesChannels.LeavesChan)
-				close(leavesChannels.ErrChan)
+				leavesChannels.ErrChan.Close()
 			}()
 
 			return nil

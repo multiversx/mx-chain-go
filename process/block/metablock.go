@@ -623,7 +623,7 @@ func (mp *metaProcessor) indexBlock(
 		PreviousHeader:         lastMetaBlock,
 	})
 	if err != nil {
-		log.Warn("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
 		return
 	}
 	mp.outportHandler.SaveBlock(argSaveBlock)
