@@ -39,3 +39,8 @@ func (sm *trieStorageMarker) MarkStorerAsSyncedAndActive(storer common.StorageMa
 	}
 	log.Debug("set activeDB in epoch", "epoch", lastEpoch)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sm *trieStorageMarker) IsInterfaceNil() bool {
+	return sm == nil
+}

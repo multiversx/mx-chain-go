@@ -49,6 +49,7 @@ type TrieStats interface {
 // StorageMarker is used to mark the given storer as synced and active
 type StorageMarker interface {
 	MarkStorerAsSyncedAndActive(storer StorageManager)
+	IsInterfaceNil() bool
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie

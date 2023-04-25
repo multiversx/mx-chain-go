@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
@@ -61,6 +62,10 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
+	if check.IfNil(storageMarker) {
+		return ErrNilStorageMarker
+	}
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 

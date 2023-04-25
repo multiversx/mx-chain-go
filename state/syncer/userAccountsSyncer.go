@@ -103,6 +103,10 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 
 // SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
+	if check.IfNil(storageMarker) {
+		return ErrNilStorageMarker
+	}
+
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
