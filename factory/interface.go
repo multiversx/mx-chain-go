@@ -165,7 +165,6 @@ type CryptoParamsHolder interface {
 	PrivateKey() crypto.PrivateKey
 	PublicKeyString() string
 	PublicKeyBytes() []byte
-	PrivateKeyBytes() []byte
 }
 
 // CryptoComponentsHolder holds the crypto components
@@ -215,7 +214,7 @@ type MiniBlockProvider interface {
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
 	MiniBlocksProvider() MiniBlockProvider
@@ -445,6 +444,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 

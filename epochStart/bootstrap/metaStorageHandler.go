@@ -37,6 +37,7 @@ func NewMetaStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider NodeTypeProviderHandler,
+	nodeProcessingMode common.NodeProcessingMode,
 	snapshotsEnabled bool,
 	managedPeersHolder common.ManagedPeersHolder,
 ) (*metaStorageHandler, error) {
@@ -52,6 +53,7 @@ func NewMetaStorageHandler(
 			CurrentEpoch:                  currentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            nodeProcessingMode,
 			SnapshotsEnabled:              snapshotsEnabled,
 			ManagedPeersHolder:            managedPeersHolder,
 		},

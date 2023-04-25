@@ -18,9 +18,6 @@ import (
 
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -32,9 +29,6 @@ func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -46,9 +40,6 @@ func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -60,9 +51,6 @@ func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T)
 
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -74,9 +62,6 @@ func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) 
 
 func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -88,9 +73,6 @@ func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreArgs := componentsMock.GetCoreArgs()
@@ -103,7 +85,7 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	require.Nil(t, err)
 	networkComponents := componentsMock.GetNetworkComponents(componentsMock.GetCryptoComponents(coreComponents))
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := componentsMock.GetStateComponents(coreComponents)
 
 	statusArgs := statusComp.StatusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
@@ -130,9 +112,6 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -143,9 +122,6 @@ func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 
 func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
@@ -160,9 +136,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
