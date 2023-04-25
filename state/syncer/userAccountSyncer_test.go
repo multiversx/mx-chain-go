@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO add more tests
+
 func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 	return ArgsNewBaseAccountsSyncer{
 		Hasher:                            &hashingMocks.HasherMock{},

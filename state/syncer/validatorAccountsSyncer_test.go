@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO add more tests
+
 func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 	t.Parallel()
 
