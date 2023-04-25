@@ -340,7 +340,7 @@ type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
 	// SetForkDetector should be set before starting Polling for updates
-	SetForkDetector(forkDetector process.ForkDetector)
+	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
 }
 
