@@ -10,3 +10,5 @@ SubscribedAddresses = ["erd1qqqqqqqqqqqqqpgqt6ltx52ukss9d2qag2k67at28a36xc9lkp2s
     RetryDuration = 5
     # Signals if in case of data payload processing error, we should send the ack signal or not
     BlockingAckOnError = false
+    # Possible values: sha256, keccak, blake2b. Should be compatible with mx-chain-node outport driver config
+    HasherType = "blake2b"

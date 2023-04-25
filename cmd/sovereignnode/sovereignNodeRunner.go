@@ -1655,6 +1655,7 @@ func createSovereignWsReceiver(
 		MarshallerType:      config.WebSocketConfig.MarshallerType,
 		SubscribedAddresses: config.SubscribedAddresses,
 		NumOfMainShards:     config.NumOfMainShards,
+		HasherType:          config.WebSocketConfig.HasherType,
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
