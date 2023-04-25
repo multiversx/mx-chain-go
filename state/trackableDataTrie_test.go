@@ -810,17 +810,17 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			{
 				Key:     []byte("key1"),
 				Value:   []byte("value1"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key2"),
 				Value:   []byte("value2"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key3"),
 				Value:   []byte("value3"),
-				Version: core.AutoBalanceEnabled,
+				Version: core.NotSpecified,
 			},
 		}
 		tr := &trieMock.TrieStub{

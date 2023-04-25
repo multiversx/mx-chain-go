@@ -128,10 +128,29 @@ func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDa
 			newVersion: args.NewVersion,
 		}
 
-		tdaw.dirtyData[string(leafData.Key)] = dataEntry
+		originalKey, err := tdaw.getOriginalKeyFromTrieData(leafData)
+		if err != nil {
+			return err
+		}
+
+		tdaw.dirtyData[string(originalKey)] = dataEntry
 	}
 
 	return nil
+}
+
+func (tdaw *trackableDataTrie) getOriginalKeyFromTrieData(trieData core.TrieData) ([]byte, error) {
+	if trieData.Version == core.AutoBalanceEnabled {
+		valWithMetadata := &dataTrieValue.TrieLeafData{}
+		err := tdaw.marshaller.Unmarshal(valWithMetadata, trieData.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		return valWithMetadata.Key, nil
+	}
+
+	return trieData.Key, nil
 }
 
 func (tdaw *trackableDataTrie) getKeyForVersion(key []byte, version core.TrieNodeVersion) []byte {
