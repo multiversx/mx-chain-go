@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -470,21 +469,11 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 
 func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
 	numberOfCallsFromParent := 1
-	numberOfBackTransfers := 1
-	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
-}
-
-func TestAsyncCallTransferESDTAndExecute_CrossShard_Fail(t *testing.T) {
-	// TODO use legacy vault with async call
-	numberOfCallsFromParent := 1
-	numberOfBackTransfers := 1
+	numberOfBackTransfers := 2
 	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
 
 func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-
-	logger.SetLogLevel("*:TRACE")
-
 	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer vaultShard.Close()
@@ -567,14 +556,7 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	for call := 0; call < numberOfCallsFromParent; call++ {
 		scrCall1 := intermediateTxs[call]
 		expectedReturnCode := vmcommon.Ok
-		if numberOfBackTransfers > 1 {
-			expectedReturnCode = vmcommon.UserError
-		}
 		utils.ProcessSCRResult(t, vaultShard, scrCall1, expectedReturnCode, nil)
-	}
-
-	if numberOfBackTransfers > 1 {
-		return
 	}
 
 	vaultIntermediateTxs := vaultShard.GetIntermediateTransactions(t)
@@ -583,6 +565,8 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	for call := 0; call < numberOfCallsFromParent; call++ {
 		scrCall1 := vaultIntermediateTxs[1+2*call]
 		utils.ProcessSCRResult(t, forwarderShard, scrCall1, vmcommon.Ok, nil)
+		scrCall2 := vaultIntermediateTxs[1+2*call+1]
+		utils.ProcessSCRResult(t, forwarderShard, scrCall2, vmcommon.Ok, nil)
 	}
 
 	utils.CheckESDTNFTBalance(t, vaultShard, vaultSCAddress, esdtToken, 0,
