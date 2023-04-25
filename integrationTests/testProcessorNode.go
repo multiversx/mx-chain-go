@@ -2452,9 +2452,13 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 		Options:          tx.Options,
-		Guardian:         TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log),
-		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
+
+	if len(tx.GuardianAddr) > 0 {
+		txArgsLocal.Guardian = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
+		txArgsLocal.GuardianSigHex = hex.EncodeToString(tx.GuardianSignature)
+	}
+
 	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
 	if err != nil {
 		return "", err
