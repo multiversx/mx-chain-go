@@ -11,11 +11,9 @@ import (
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -43,7 +41,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -52,9 +50,6 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -63,7 +58,6 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
@@ -166,7 +160,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -175,9 +169,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -186,7 +177,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func createAccountAdapter(
