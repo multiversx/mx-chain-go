@@ -361,7 +361,7 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 	acntSnd, acntDst state.UserAccountHandler,
 	failureContext *failureContext,
 ) (*vmcommon.VMOutput, vmcommon.ReturnCode, error) {
-	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, vmInput.CurrentTxHash, acntSnd, acntDst, failureContext)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, acntSnd, acntDst, failureContext)
 	if err != nil {
 		return vmOutput, vmcommon.Ok, err
 	}
@@ -381,8 +381,6 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 
 func (sc *scProcessor) executeSmartContractCall(
 	vmInput *vmcommon.ContractCallInput,
-	tx data.TransactionHandler,
-	txHash []byte,
 	acntSnd, acntDst state.UserAccountHandler,
 	failureContext *failureContext,
 ) (*vmcommon.VMOutput, error) {
@@ -786,9 +784,7 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 }
 
 func (sc *scProcessor) resolveFailedTransaction(
-	acntSnd state.UserAccountHandler,
 	tx data.TransactionHandler,
-	txHash []byte,
 ) error {
 	if _, ok := tx.(*transaction.Transaction); ok {
 		err := sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
@@ -901,7 +897,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
-			err := sc.resolveFailedTransaction(acntSnd, tx, txHash)
+			err := sc.resolveFailedTransaction(tx)
 			failureContext.setMessage(vmOutput.ReturnMessage)
 			failureContext.setGasLocked(0)
 			return vmcommon.UserError, err
@@ -1855,11 +1851,11 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
+		scGenerated = append(scGenerated, sc.pubkeyConv.SilentEncode(addr, log))
 	}
 
 	log.Debug("SmartContract deployed",
-		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"owner", sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log),
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 

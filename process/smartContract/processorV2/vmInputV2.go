@@ -20,7 +20,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	vmCreateInput.ContractCode = deployData.Code
 	// when executing SC deploys we should always apply the flags
-	codeMetadata := sc.blockChainHook.ApplyFiltersOnCodeMetadata(deployData.CodeMetadata)
+	codeMetadata := sc.blockChainHook.ApplyFiltersOnSCCodeMetadata(deployData.CodeMetadata)
 	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
 	vmCreateInput.VMInput = vmcommon.VMInput{}
 	err = sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)

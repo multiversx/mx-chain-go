@@ -190,7 +190,9 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): created", "address", oap.sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created",
+			"address", oap.sc.pubkeyConv.SilentEncode(outputAccount.Address, log),
+			"upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
@@ -200,7 +202,9 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	if isUpgrade {
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): upgraded", "address", oap.sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): upgraded",
+			"address", oap.sc.pubkeyConv.SilentEncode(outputAccount.Address, log),
+			"upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
