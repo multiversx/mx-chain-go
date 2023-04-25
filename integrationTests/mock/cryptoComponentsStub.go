@@ -20,7 +20,6 @@ type CryptoComponentsStub struct {
 	P2pPrivKey              crypto.PrivateKey
 	PubKeyBytes             []byte
 	PubKeyString            string
-	PrivKeyBytes            []byte
 	BlockSig                crypto.SingleSigner
 	TxSig                   crypto.SingleSigner
 	P2pSig                  crypto.SingleSigner

@@ -711,6 +711,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	if check.IfNil(args.ProcessComponents.RoundHandler()) {
 		return errors.ErrNilRoundHandler
 	}
+	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
+		return errors.ErrNilHardforkTrigger
+	}
 	if check.IfNil(args.StateComponents) {
 		return errors.ErrNilStateComponentsHolder
 	}
