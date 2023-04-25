@@ -44,7 +44,7 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 		return pc.CreateBasePersister(path)
 	}
 
-	return database.NewShardedPersister(pc, pc.shardIDProvider)
+	return database.NewShardedPersister(path, pc, pc.shardIDProvider)
 }
 
 // CreateBasePersister will create base the persister for the provided path
@@ -60,11 +60,6 @@ func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister,
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
-}
-
-// GetBasePath will return the base string path
-func (pc *persisterCreator) GetBasePath() string {
-	return pc.path
 }
 
 func (pc *persisterCreator) createShardIDProvider() (storage.ShardIDProvider, error) {
