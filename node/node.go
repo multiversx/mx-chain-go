@@ -94,7 +94,7 @@ type Node struct {
 	statusComponents      mainFactory.StatusComponentsHolder
 
 	closableComponents        []mainFactory.Closer
-	mutClosableComponents     syncGo.Mutex
+	mutClosableComponents     syncGo.RWMutex
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -1168,8 +1168,8 @@ func (n *Node) Close() error {
 
 	var closeError error = nil
 
-	n.mutClosableComponents.Lock()
-	defer n.mutClosableComponents.Unlock()
+	n.mutClosableComponents.RLock()
+	defer n.mutClosableComponents.RUnlock()
 
 	allComponents := make([]string, 0, len(n.closableComponents))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {

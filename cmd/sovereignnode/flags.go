@@ -111,7 +111,7 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
-	// configurationFile defines a flag for the path to the sovereign notifier toml configuration file
+	// notifierConfigFile defines a flag for the path to the sovereign notifier toml configuration file
 	notifierConfigFile = cli.StringFlag{
 		Name:  "notifier-config",
 		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
