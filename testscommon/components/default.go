@@ -62,7 +62,6 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		P2pPrivKey:        mock.NewP2pPrivateKeyMock(),
 		P2pSig:            &mock.SinglesignMock{},
 		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
 		PubKeyBytes:       []byte("pubKey"),
 		BlockSig:          &mock.SinglesignMock{},
 		TxSig:             &mock.SinglesignMock{},
