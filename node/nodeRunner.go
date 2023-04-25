@@ -388,7 +388,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
-		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
@@ -443,7 +442,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	if err != nil {
+		return true, err
+	}
+
 	err = managedStatusComponents.StartPolling()
 	if err != nil {
 		return true, err
@@ -1041,7 +1044,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
-	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
@@ -1054,7 +1056,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:       managedCoreComponents,
-		DataComponents:       managedDataComponents,
 		NetworkComponents:    managedNetworkComponents,
 		StateComponents:      managedStateComponents,
 		IsInImportMode:       isInImportMode,

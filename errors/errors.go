@@ -116,6 +116,9 @@ var ErrNilStateComponentsFactory = errors.New("nil state components factory")
 // ErrNilStatusComponentsFactory signals that the provided status components factory is nil
 var ErrNilStatusComponentsFactory = errors.New("nil status components factory")
 
+// ErrNilStatusCoreComponentsFactory signals that an operation has been attempted with nil status core components factory
+var ErrNilStatusCoreComponentsFactory = errors.New("nil status core components factory provided")
+
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
 

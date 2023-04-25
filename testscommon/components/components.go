@@ -147,7 +147,6 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	statusComponents := GetStatusComponents(
 		coreComponents,
 		networkComponents,
-		dataComponents,
 		stateComponents,
 		shardCoordinator,
 		processComponents.NodesCoordinator(),
@@ -433,7 +432,6 @@ func GetProcessArgs(
 	statusComponents := GetStatusComponents(
 		coreComponents,
 		networkComponents,
-		dataComponents,
 		stateComponents,
 		shardCoordinator,
 		nc,
@@ -576,7 +574,6 @@ func GetProcessArgs(
 func GetStatusComponents(
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
@@ -600,7 +597,6 @@ func GetStatusComponents(
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   coreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
@@ -651,13 +647,15 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
+			WebSocketConnector: config.WebSocketDriverConfig{
+				MarshallerType: "json",
+			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
 		StateComponents:      stateComponents,
 		StatusCoreComponents: statusCoreComponents,
