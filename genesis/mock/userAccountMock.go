@@ -146,6 +146,11 @@ func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]core.TrieData, error
 	return nil, nil
 }
 
+// IsGuarded -
+func (uam *UserAccountMock) IsGuarded() bool {
+	return false
+}
+
 // GetAllLeaves -
 func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil

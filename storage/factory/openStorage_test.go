@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
@@ -25,10 +25,8 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 func TestNewStorageUnitOpenHandler(t *testing.T) {
 	t.Parallel()
 
-	suoh, err := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
-
-	assert.NoError(t, err)
-	assert.False(t, check.IfNil(suoh))
+	suoh := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	assert.NotNil(t, suoh)
 }
 
 func TestGetMostUpToDateDirectory(t *testing.T) {
@@ -47,7 +45,7 @@ func TestGetMostUpToDateDirectory(t *testing.T) {
 			}
 		},
 	}
-	suoh, _ := NewStorageUnitOpenHandler(args)
+	suoh := NewStorageUnitOpenHandler(args)
 
 	shardIDsStr := []string{"0", "1"}
 	path := "currPath"
@@ -66,7 +64,7 @@ func TestGetMostRecentBootstrapStorageUnit_GetShardsFromDirectoryErr(t *testing.
 			return nil, localErr
 		},
 	}
-	suoh, _ := NewStorageUnitOpenHandler(args)
+	suoh := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -82,7 +80,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 			return []string{"0", "1"}, nil
 		},
 	}
-	suoh, _ := NewStorageUnitOpenHandler(args)
+	suoh := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -109,7 +107,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
 			}, nil, nil
 		},
 	}
-	suoh, _ := NewStorageUnitOpenHandler(args)
+	suoh := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -135,10 +133,67 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 			}, nil, nil
 		},
 	}
-	suoh, _ := NewStorageUnitOpenHandler(args)
+	suoh := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB)
 	assert.NoError(t, err)
 	assert.NotNil(t, storer)
+}
 
+func TestStorageUnitOpenHandler_OpenDB(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	args := createMockArgsOpenStorageUnits()
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string {
+			return tempDir
+		},
+	}
+	suoh := NewStorageUnitOpenHandler(args)
+
+	// do not run these in parallel as they are using the same temp dir
+	t.Run("create DB fails, should error", func(t *testing.T) {
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "invalid DB type",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
+		}
+
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.NotNil(t, err)
+		expectedErrorString := "not supported db type"
+		assert.Equal(t, expectedErrorString, err.Error())
+		assert.Nil(t, storerInstance)
+	})
+	t.Run("should work", func(t *testing.T) {
+		dbConfig := config.DBConfig{
+			FilePath:          "Test",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 5,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			UseTmpAsFilePath:  false,
+		}
+
+		storerInstance, err := suoh.OpenDB(dbConfig, 0, 0)
+		assert.Nil(t, err)
+		assert.NotNil(t, storerInstance)
+
+		_ = storerInstance.Close()
+	})
+
+}
+
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var osu *openStorageUnits
+	require.True(t, osu.IsInterfaceNil())
+
+	osu = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	require.False(t, osu.IsInterfaceNil())
 }

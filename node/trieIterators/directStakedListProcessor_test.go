@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -45,24 +44,19 @@ func TestNewDirectStakedListProcessor(t *testing.T) {
 			},
 			exError: ErrNilAccountsAdapter,
 		},
-		{
-			name: "ShouldWork",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				return createMockArgs()
-			},
-			exError: nil,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewDirectStakedListProcessor(tt.argsFunc())
+			dslp, err := NewDirectStakedListProcessor(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
+			require.Nil(t, dslp)
 		})
 	}
 
-	dslp, _ := NewDirectStakedListProcessor(createMockArgs())
-	assert.False(t, check.IfNil(dslp))
+	dslp, err := NewDirectStakedListProcessor(createMockArgs())
+	require.NotNil(t, dslp)
+	require.Nil(t, err)
 }
 
 func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
@@ -175,7 +169,7 @@ func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep
 				}
 
 				close(leavesChannels.LeavesChan)
-				close(leavesChannels.ErrChan)
+				leavesChannels.ErrChan.Close()
 			}()
 
 			return nil
@@ -183,4 +177,14 @@ func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep
 	})
 
 	return acc
+}
+
+func TestDirectStakedListProcessor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var dslp *directStakedListProcessor
+	require.True(t, dslp.IsInterfaceNil())
+
+	dslp, _ = NewDirectStakedListProcessor(createMockArgs())
+	require.False(t, dslp.IsInterfaceNil())
 }

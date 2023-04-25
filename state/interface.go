@@ -86,6 +86,7 @@ type UserAccountHandler interface {
 	GetOwnerAddress() []byte
 	SetUserName(userName []byte)
 	GetUserName() []byte
+	IsGuarded() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
 	vmcommon.AccountHandler
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,14 +36,14 @@ func TestNewDisabledDataTrieHandler(t *testing.T) {
 
 		chans := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, 1),
-			ErrChan:    make(chan error),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
 		err := ddth.GetAllLeavesOnChannel(chans, nil, nil, nil, nil)
 		assert.Nil(t, err)
 		_, ok := <-chans.LeavesChan
 		assert.False(t, ok)
-		_, ok = <-chans.ErrChan
-		assert.False(t, ok)
+		err = chans.ErrChan.ReadFromChanNonBlocking()
+		assert.Nil(t, err)
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -203,6 +204,13 @@ func (a *userAccount) SetRootHash(roothash []byte) {
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata
+}
+
+// IsGuarded returns true if the account is in guarded state
+func (a *userAccount) IsGuarded() bool {
+	codeMetaDataBytes := a.GetCodeMetadata()
+	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
+	return codeMetaData.Guarded
 }
 
 // GetAllLeaves returns all the leaves of the account's data trie

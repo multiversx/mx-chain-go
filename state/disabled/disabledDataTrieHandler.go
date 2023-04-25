@@ -31,7 +31,7 @@ func (ddth *disabledDataTrieHandler) GetAllLeavesOnChannel(
 		close(leavesChannels.LeavesChan)
 	}
 	if leavesChannels.ErrChan != nil {
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 	}
 
 	return nil

@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -727,7 +728,7 @@ func TestAccountsDB_LoadDataNilRootShouldRetNil(t *testing.T) {
 	_, account, adb := generateAddressAccountAccountsDB(tr)
 
 	// since root is nil, result should be nil and data trie should be nil
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 	assert.Nil(t, account.DataTrie())
 }
@@ -744,7 +745,7 @@ func TestAccountsDB_LoadDataBadLengthShouldErr(t *testing.T) {
 	account.SetRootHash([]byte("12345"))
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -762,7 +763,7 @@ func TestAccountsDB_LoadDataMalfunctionTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(mockTrie)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 }
 
@@ -780,7 +781,7 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
@@ -824,7 +825,7 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	account.SetRootHash(rootHash)
 
 	// should not return error
-	err := adb.LoadDataTrie(account)
+	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.Nil(t, err)
 
 	// verify data
@@ -1049,7 +1050,7 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 					return true
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
-					iteratorChannels.ErrChan <- expectedErr
+					iteratorChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(iteratorChannels.LeavesChan)
 					stats.SnapshotFinished()
 				},
@@ -1450,7 +1451,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 		GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, builder common.KeyBuilder, _ common.TrieLeafParser) error {
 			getAllLeavesCalled = true
 			close(channels.LeavesChan)
-			close(channels.ErrChan)
+			channels.ErrChan.Close()
 
 			return nil
 		},
@@ -1463,13 +1464,13 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := adb.GetAllLeaves(leavesChannel, context.Background(), []byte("root hash"), parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 }
 
@@ -2361,10 +2362,10 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
-					leavesChannels.ErrChan <- expectedErr
+					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -2392,7 +2393,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
 
 					close(leavesChannels.LeavesChan)
-					close(leavesChannels.ErrChan)
+					leavesChannels.ErrChan.Close()
 				}()
 
 				return nil
@@ -2780,17 +2781,17 @@ func TestEmptyErrChanReturningHadContained(t *testing.T) {
 		t.Run("unbuffered chan", func(t *testing.T) {
 			t.Parallel()
 
-			errChan := make(chan error)
-			assert.False(t, state.EmptyErrChanReturningHadContained(errChan))
-			assert.Equal(t, 0, len(errChan))
+			errChannel := make(chan error)
+			assert.False(t, state.EmptyErrChanReturningHadContained(errChannel))
+			assert.Equal(t, 0, len(errChannel))
 		})
 		t.Run("buffered chan", func(t *testing.T) {
 			t.Parallel()
 
 			for i := 1; i < 10; i++ {
-				errChan := make(chan error, i)
-				assert.False(t, state.EmptyErrChanReturningHadContained(errChan))
-				assert.Equal(t, 0, len(errChan))
+				errChannel := make(chan error, i)
+				assert.False(t, state.EmptyErrChanReturningHadContained(errChannel))
+				assert.Equal(t, 0, len(errChannel))
 			}
 		})
 	})
@@ -2800,27 +2801,27 @@ func TestEmptyErrChanReturningHadContained(t *testing.T) {
 		t.Run("unbuffered chan", func(t *testing.T) {
 			t.Parallel()
 
-			errChan := make(chan error)
+			errChannel := make(chan error)
 			go func() {
-				errChan <- errors.New("test")
+				errChannel <- errors.New("test")
 			}()
 
 			time.Sleep(time.Second) // allow the go routine to start
 
-			assert.True(t, state.EmptyErrChanReturningHadContained(errChan))
-			assert.Equal(t, 0, len(errChan))
+			assert.True(t, state.EmptyErrChanReturningHadContained(errChannel))
+			assert.Equal(t, 0, len(errChannel))
 		})
 		t.Run("buffered chan", func(t *testing.T) {
 			t.Parallel()
 
 			for i := 1; i < 10; i++ {
-				errChan := make(chan error, i)
+				errChannel := make(chan error, i)
 				for j := 0; j < i; j++ {
-					errChan <- errors.New("test")
+					errChannel <- errors.New("test")
 				}
 
-				assert.True(t, state.EmptyErrChanReturningHadContained(errChan))
-				assert.Equal(t, 0, len(errChan))
+				assert.True(t, state.EmptyErrChanReturningHadContained(errChannel))
+				assert.Equal(t, 0, len(errChannel))
 			}
 		})
 	})
@@ -2947,6 +2948,39 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 
 		assert.True(t, isMissingNodeCalled)
 	})
+
+	t.Run("should not deadlock if sync err after another err", func(t *testing.T) {
+		t.Parallel()
+
+		missingNodeError := errors.New("missing trie node")
+		isMissingNodeCalled := false
+
+		memDbMock := testscommon.NewMemDbMock()
+		memDbMock.PutCalled = func(key, val []byte) error {
+			return fmt.Errorf("put error")
+		}
+		memDbMock.GetCalled = func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(common.ActiveDBKey)) {
+				return []byte(common.ActiveDBVal), nil
+			}
+
+			isMissingNodeCalled = true
+			return nil, missingNodeError
+		}
+
+		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
+		prepareTrie(tr, 3)
+
+		rootHash, _ := tr.RootHash()
+
+		adb.SnapshotState(rootHash)
+
+		for tr.GetStorageManager().IsPruningBlocked() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		assert.True(t, isMissingNodeCalled)
+	})
 }
 
 func prepareTrie(tr common.Trie, numKeys int) {
@@ -2979,6 +3013,35 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 	rootHash, _ := adb.Commit()
 
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)
+}
+
+func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+	addr := generateRandomByteArray(32)
+
+	acc, _ := adb.LoadAccount(addr)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(addr)
+	acc.(state.UserAccountHandler).IncreaseNonce(1)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	err := adb.RevertToSnapshot(1)
+	require.Nil(t, err)
+
+	acc, _ = adb.LoadAccount(addr)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(acc)
+
+	_, err = adb.Commit()
+	require.Nil(t, err)
+
+	acc, err = adb.LoadAccount(addr)
+	require.Nil(t, err)
+	require.NotNil(t, acc)
 }
 
 func testAccountMethodsConcurrency(

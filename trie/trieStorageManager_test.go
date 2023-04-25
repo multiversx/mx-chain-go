@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -35,6 +36,12 @@ func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
+}
+
+// errChanWithLen extends the BufferedErrChan interface with a Len method
+type errChanWithLen interface {
+	common.BufferedErrChan
+	Len() int
 }
 
 func TestNewTrieStorageManager(t *testing.T) {
@@ -92,7 +99,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	trieStorage.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
@@ -100,7 +107,10 @@ func TestTrieCheckpoint(t *testing.T) {
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieStorageManager_SetCheckpointNilErrorChan(t *testing.T) {
@@ -132,13 +142,15 @@ func TestTrieStorageManager_SetCheckpointClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
@@ -150,13 +162,15 @@ func TestTrieStorageManager_SetCheckpointEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.SetCheckpoint(rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{})
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
@@ -171,7 +185,7 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorage.SetCheckpoint(rootHash, []byte{}, iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(trieStorage)
@@ -179,7 +193,9 @@ func TestTrieCheckpoint_DoesNotSaveToCheckpointStorageIfNotDirty(t *testing.T) {
 	val, err = trieStorage.GetFromCheckpoint(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieStorageManager_IsPruningEnabled(t *testing.T) {
@@ -345,13 +361,15 @@ func TestTrieStorageManager_TakeSnapshotClosedDb(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
@@ -363,13 +381,15 @@ func TestTrieStorageManager_TakeSnapshotEmptyTrieRootHash(t *testing.T) {
 	rootHash := make([]byte, 32)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, nil, &trieMock.MockStatistics{}, 0)
 
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
-	assert.Equal(t, 0, len(iteratorChannels.ErrChan))
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 0, ch.Len())
 }
 
 func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
@@ -382,15 +402,17 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	rootHash := []byte("rootHash")
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	missingNodesChan := make(chan []byte, 2)
 	ts.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChan, &trieMock.MockStatistics{}, 0)
 	_, ok := <-iteratorChannels.LeavesChan
 	assert.False(t, ok)
 
-	require.Equal(t, 1, len(iteratorChannels.ErrChan))
-	errRecovered := <-iteratorChannels.ErrChan
+	ch, ok := iteratorChannels.ErrChan.(errChanWithLen)
+	assert.True(t, ok)
+	assert.Equal(t, 1, ch.Len())
+	errRecovered := iteratorChannels.ErrChan.ReadFromChanNonBlocking()
 	assert.True(t, strings.Contains(errRecovered.Error(), common.GetNodeFromDBErrorString))
 }
 
@@ -431,20 +453,20 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 	t.Run("unbuffered, reader has been set up, should add", func(t *testing.T) {
 		t.Parallel()
 
-		errChan := make(chan error)
+		errChannel := make(chan error)
 		var recovered error
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
 		// set up the consumer that will be blocked until writing is done
 		go func() {
-			recovered = <-errChan
+			recovered = <-errChannel
 			wg.Done()
 		}()
 
 		time.Sleep(time.Second) // allow the go routine to start
 
-		trie.WriteInChanNonBlocking(errChan, err1)
+		trie.WriteInChanNonBlocking(errChannel, err1)
 		wg.Wait()
 
 		assert.Equal(t, err1, recovered)
@@ -454,8 +476,8 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 
 		chanFinish := make(chan struct{})
 		go func() {
-			errChan := make(chan error)
-			trie.WriteInChanNonBlocking(errChan, err1)
+			errChannel := make(chan error)
+			trie.WriteInChanNonBlocking(errChannel, err1)
 
 			close(chanFinish)
 		}()
@@ -469,53 +491,54 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 	t.Run("buffered (one element), empty chan should add", func(t *testing.T) {
 		t.Parallel()
 
-		errChan := make(chan error, 1)
-		trie.WriteInChanNonBlocking(errChan, err1)
-		require.Equal(t, 1, len(errChan))
-		recovered := <-errChan
+		errChannel := errChan.NewErrChanWrapper()
+		errChannel.WriteInChanNonBlocking(err1)
+
+		require.Equal(t, 1, errChannel.Len())
+		recovered := errChannel.ReadFromChanNonBlocking()
 		assert.Equal(t, err1, recovered)
 	})
 	t.Run("buffered (1 element), full chan should not add, but should finish", func(t *testing.T) {
 		t.Parallel()
 
-		errChan := make(chan error, 1)
-		trie.WriteInChanNonBlocking(errChan, err1)
-		trie.WriteInChanNonBlocking(errChan, err2)
+		errChannel := errChan.NewErrChanWrapper()
+		errChannel.WriteInChanNonBlocking(err1)
+		errChannel.WriteInChanNonBlocking(err2)
 
-		require.Equal(t, 1, len(errChan))
-		recovered := <-errChan
+		require.Equal(t, 1, errChannel.Len())
+		recovered := errChannel.ReadFromChanNonBlocking()
 		assert.Equal(t, err1, recovered)
 	})
 	t.Run("buffered (two elements), empty chan should add", func(t *testing.T) {
 		t.Parallel()
 
-		errChan := make(chan error, 2)
-		trie.WriteInChanNonBlocking(errChan, err1)
-		require.Equal(t, 1, len(errChan))
-		recovered := <-errChan
+		errChannel := make(chan error, 2)
+		trie.WriteInChanNonBlocking(errChannel, err1)
+		require.Equal(t, 1, len(errChannel))
+		recovered := <-errChannel
 		assert.Equal(t, err1, recovered)
 
-		trie.WriteInChanNonBlocking(errChan, err1)
-		trie.WriteInChanNonBlocking(errChan, err2)
-		require.Equal(t, 2, len(errChan))
+		trie.WriteInChanNonBlocking(errChannel, err1)
+		trie.WriteInChanNonBlocking(errChannel, err2)
+		require.Equal(t, 2, len(errChannel))
 
-		recovered = <-errChan
+		recovered = <-errChannel
 		assert.Equal(t, err1, recovered)
-		recovered = <-errChan
+		recovered = <-errChannel
 		assert.Equal(t, err2, recovered)
 	})
 	t.Run("buffered (2 elements), full chan should not add, but should finish", func(t *testing.T) {
 		t.Parallel()
 
-		errChan := make(chan error, 2)
-		trie.WriteInChanNonBlocking(errChan, err1)
-		trie.WriteInChanNonBlocking(errChan, err2)
-		trie.WriteInChanNonBlocking(errChan, err3)
+		errChannel := make(chan error, 2)
+		trie.WriteInChanNonBlocking(errChannel, err1)
+		trie.WriteInChanNonBlocking(errChannel, err2)
+		trie.WriteInChanNonBlocking(errChannel, err3)
 
-		require.Equal(t, 2, len(errChan))
-		recovered := <-errChan
+		require.Equal(t, 2, len(errChannel))
+		recovered := <-errChannel
 		assert.Equal(t, err1, recovered)
-		recovered = <-errChan
+		recovered = <-errChannel
 		assert.Equal(t, err2, recovered)
 	})
 }

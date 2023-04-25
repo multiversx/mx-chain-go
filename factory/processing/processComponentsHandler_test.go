@@ -14,9 +14,6 @@ import (
 // ------------ Test TestManagedProcessComponents --------------------
 func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
@@ -31,9 +28,6 @@ func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
 
 func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
@@ -149,9 +143,6 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 
 func TestManagedProcessComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)

@@ -427,7 +427,7 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT), big.NewInt(int64(numOfDecimals)).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -812,6 +812,9 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
+		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
