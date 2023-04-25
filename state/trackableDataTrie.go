@@ -86,79 +86,6 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 	return val, depth, nil
 }
 
-func (tdaw *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
-	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
-		hashedKey := tdaw.hasher.Compute(string(key))
-		valWithMetadata, depth, err := tdaw.tr.Get(hashedKey)
-		if err != nil {
-			return core.TrieData{}, 0, err
-		}
-		if len(valWithMetadata) != 0 {
-			trieValue := core.TrieData{
-				Key:     hashedKey,
-				Value:   valWithMetadata,
-				Version: core.AutoBalanceEnabled,
-			}
-
-			return trieValue, depth, nil
-		}
-	}
-
-	valWithMetadata, depth, err := tdaw.tr.Get(key)
-	if err != nil {
-		return core.TrieData{}, 0, err
-	}
-	if len(valWithMetadata) != 0 {
-		trieValue := core.TrieData{
-			Key:     key,
-			Value:   valWithMetadata,
-			Version: core.NotSpecified,
-		}
-
-		return trieValue, depth, nil
-	}
-
-	newDataVersion := core.GetVersionForNewData(tdaw.enableEpochsHandler)
-	keyForTrie := tdaw.getKeyForVersion(key, newDataVersion)
-
-	trieValue := core.TrieData{
-		Key:     keyForTrie,
-		Value:   nil,
-		Version: newDataVersion,
-	}
-
-	return trieValue, depth, nil
-}
-
-func (tdaw *trackableDataTrie) getValueWithoutMetadata(key []byte, trieData core.TrieData) ([]byte, error) {
-	if len(trieData.Value) == 0 {
-		return nil, nil
-	}
-
-	if trieData.Version == core.AutoBalanceEnabled {
-		return tdaw.getValueAutoBalanceVersion(trieData.Value)
-	}
-
-	return tdaw.getValueNotSpecifiedVersion(key, trieData.Value)
-}
-
-func (tdaw *trackableDataTrie) getValueAutoBalanceVersion(val []byte) ([]byte, error) {
-	dataTrieVal := &dataTrieValue.TrieLeafData{}
-	err := tdaw.marshaller.Unmarshal(dataTrieVal, val)
-	if err != nil {
-		return nil, err
-	}
-
-	return dataTrieVal.Value, nil
-}
-
-func (tdaw *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte) ([]byte, error) {
-	tailLength := len(key) + len(tdaw.identifier)
-	trimmedValue, _ := common.TrimSuffixFromValue(val, tailLength)
-
-	return trimmedValue, nil
-}
-
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
 func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
@@ -296,6 +223,79 @@ func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error)
 	tdaw.dirtyData = make(map[string]dirtyData)
 
 	return oldValues, nil
+}
+
+func (tdaw *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
+	if tdaw.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+		hashedKey := tdaw.hasher.Compute(string(key))
+		valWithMetadata, depth, err := tdaw.tr.Get(hashedKey)
+		if err != nil {
+			return core.TrieData{}, 0, err
+		}
+		if len(valWithMetadata) != 0 {
+			trieValue := core.TrieData{
+				Key:     hashedKey,
+				Value:   valWithMetadata,
+				Version: core.AutoBalanceEnabled,
+			}
+
+			return trieValue, depth, nil
+		}
+	}
+
+	valWithMetadata, depth, err := tdaw.tr.Get(key)
+	if err != nil {
+		return core.TrieData{}, 0, err
+	}
+	if len(valWithMetadata) != 0 {
+		trieValue := core.TrieData{
+			Key:     key,
+			Value:   valWithMetadata,
+			Version: core.NotSpecified,
+		}
+
+		return trieValue, depth, nil
+	}
+
+	newDataVersion := core.GetVersionForNewData(tdaw.enableEpochsHandler)
+	keyForTrie := tdaw.getKeyForVersion(key, newDataVersion)
+
+	trieValue := core.TrieData{
+		Key:     keyForTrie,
+		Value:   nil,
+		Version: newDataVersion,
+	}
+
+	return trieValue, depth, nil
+}
+
+func (tdaw *trackableDataTrie) getValueWithoutMetadata(key []byte, trieData core.TrieData) ([]byte, error) {
+	if len(trieData.Value) == 0 {
+		return nil, nil
+	}
+
+	if trieData.Version == core.AutoBalanceEnabled {
+		return tdaw.getValueAutoBalanceVersion(trieData.Value)
+	}
+
+	return tdaw.getValueNotSpecifiedVersion(key, trieData.Value)
+}
+
+func (tdaw *trackableDataTrie) getValueAutoBalanceVersion(val []byte) ([]byte, error) {
+	dataTrieVal := &dataTrieValue.TrieLeafData{}
+	err := tdaw.marshaller.Unmarshal(dataTrieVal, val)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataTrieVal.Value, nil
+}
+
+func (tdaw *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte) ([]byte, error) {
+	tailLength := len(key) + len(tdaw.identifier)
+	trimmedValue, _ := common.TrimSuffixFromValue(val, tailLength)
+
+	return trimmedValue, nil
 }
 
 func (tdaw *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
