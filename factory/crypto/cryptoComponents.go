@@ -79,7 +79,6 @@ type cryptoParams struct {
 	privateKey         crypto.PrivateKey
 	publicKeyString    string
 	publicKeyBytes     []byte
-	privateKeyBytes    []byte
 	handledPrivateKeys [][]byte
 }
 
@@ -357,11 +356,6 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		return nil, err
 	}
 
-	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
 	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
@@ -393,11 +387,6 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 
 	var err error
 	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	cp.privateKeyBytes, err = cp.privateKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}

@@ -123,7 +123,7 @@ func TestConsensusComponentsFactory_CreateGenesisBlockNotInitializedShouldErr(t 
 
 	dataComponents := consensusArgs.DataComponents
 
-	dataComponents.SetBlockchain(&testscommon.ChainHandlerStub{
+	_ = dataComponents.SetBlockchain(&testscommon.ChainHandlerStub{
 		GetGenesisHeaderHashCalled: func() []byte {
 			return nil
 		},
