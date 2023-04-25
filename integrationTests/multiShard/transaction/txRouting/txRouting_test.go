@@ -147,7 +147,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint6
 		Signature: nil,
 		Version:   integrationTests.MinTransactionVersion,
 	}
-	marshalizedTxBeforeSigning, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	marshalizedTxBeforeSigning, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	signer := integrationTests.TestSingleSigner
 
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)

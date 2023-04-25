@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -28,6 +29,7 @@ type DataComponentsFactoryArgs struct {
 	Crypto                        factory.CryptoComponentsHolder
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
+	NodeProcessingMode            common.NodeProcessingMode
 	SnapshotsEnabled              bool
 }
 
@@ -40,6 +42,7 @@ type dataComponentsFactory struct {
 	crypto                        factory.CryptoComponentsHolder
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
+	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
 }
 
@@ -61,26 +64,11 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
 	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
-	if check.IfNil(args.Core.EpochStartNotifierWithConfirm()) {
-		return nil, errors.ErrNilEpochStartNotifier
-	}
-	if check.IfNil(args.Core.EconomicsData()) {
-		return nil, errors.ErrNilEconomicsHandler
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
-	}
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
-	}
-	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
-		return nil, errors.ErrNilManagedPeersHolder
 	}
 
 	return &dataComponentsFactory{
@@ -91,6 +79,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		statusCore:                    args.StatusCore,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
+		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.SnapshotsEnabled,
 		crypto:                        args.Crypto,
 	}, nil
@@ -181,6 +170,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
+			NodeProcessingMode:            dcf.nodeProcessingMode,
 			SnapshotsEnabled:              dcf.snapshotsEnabled,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
 		})
