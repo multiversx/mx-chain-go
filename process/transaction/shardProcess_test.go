@@ -73,7 +73,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
 		Accounts:         &stateMock.AccountsStub{},
 		Hasher:           &hashingMocks.HasherMock{},
-		PubkeyConv:       createMockPubkeyConverter(),
+		PubkeyConv:       createMockPubKeyConverter(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		SignMarshalizer:  &mock.MarshalizerMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
