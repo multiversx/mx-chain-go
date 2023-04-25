@@ -2,6 +2,7 @@ package processProxy
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"math/big"
 	"sync"
 	"testing"
@@ -46,13 +47,13 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		BlockChainHook:   &testscommon.BlockChainHookStub{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
+		PubkeyConv:       testscommon.NewPubkeyConverterMock(32),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:     &mock.FeeAccumulatorStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},
