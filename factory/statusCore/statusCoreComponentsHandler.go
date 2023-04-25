@@ -25,7 +25,7 @@ type managedStatusCoreComponents struct {
 // NewManagedStatusCoreComponents creates a new status core components handler implementation
 func NewManagedStatusCoreComponents(sccf *statusCoreComponentsFactory) (*managedStatusCoreComponents, error) {
 	if sccf == nil {
-		return nil, errors.ErrNilCoreComponentsFactory
+		return nil, errors.ErrNilStatusCoreComponentsFactory
 	}
 
 	mcc := &managedStatusCoreComponents{
