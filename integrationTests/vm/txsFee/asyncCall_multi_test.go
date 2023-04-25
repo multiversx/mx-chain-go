@@ -4,6 +4,7 @@
 package txsFee
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -167,12 +168,6 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 
 func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
 	numberOfCallsFromParent := 3
-	numberOfBackTransfers := 1
-	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
-}
-
-func TestAsyncCallTransferESDTAndExecute_Fail(t *testing.T) {
-	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
@@ -231,32 +226,22 @@ func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfB
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
 
-	if numberOfBackTransfers == 1 {
-		utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0,
-			big.NewInt(int64(numberOfCallsFromParent)*esdtToTransferFromParent- /* received */
-				int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
+	utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0,
+		big.NewInt(int64(numberOfCallsFromParent)*esdtToTransferFromParent- /* received */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
 
-		utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0,
-			big.NewInt((esdtBalance.Int64() - /* initial */
-				int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
-				int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
+	utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0,
+		big.NewInt((esdtBalance.Int64() - /* initial */
+			int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
 
-		res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
-		require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
+	res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
 
-		res = vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_async_calls_sent_from_child")
-		require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)), res)
+	res = vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_async_calls_sent_from_child")
+	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)), res)
 
-	} else {
-		utils.CheckESDTNFTBalance(t, testContext, childSCAddress, esdtToken, 0, big.NewInt(0))
-		utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0, esdtBalance)
-		res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
-		require.Equal(t, big.NewInt(int64(0)), res)
-		res = vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_async_calls_sent_from_child")
-		require.Equal(t, big.NewInt(0), res)
-	}
-
-	res := vm.GetIntValueFromSC(nil, testContext.Accounts, forwarderSCAddress, "callback_count")
+	res = vm.GetIntValueFromSC(nil, testContext.Accounts, forwarderSCAddress, "callback_count")
 	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
 }
 
@@ -468,7 +453,7 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 }
 
 func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
-	numberOfCallsFromParent := 1
+	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
@@ -562,11 +547,12 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	vaultIntermediateTxs := vaultShard.GetIntermediateTransactions(t)
 	require.NotNil(t, vaultIntermediateTxs)
 
-	for call := 0; call < numberOfCallsFromParent; call++ {
-		scrCall1 := vaultIntermediateTxs[1+2*call]
+	for call := 0; call < numberOfCallsFromParent*3; call++ {
+		scrCall1 := vaultIntermediateTxs[call]
+		if bytes.Equal(scrCall1.GetSndAddr(), scrCall1.GetRcvAddr()) {
+			continue
+		}
 		utils.ProcessSCRResult(t, forwarderShard, scrCall1, vmcommon.Ok, nil)
-		scrCall2 := vaultIntermediateTxs[1+2*call+1]
-		utils.ProcessSCRResult(t, forwarderShard, scrCall2, vmcommon.Ok, nil)
 	}
 
 	utils.CheckESDTNFTBalance(t, vaultShard, vaultSCAddress, esdtToken, 0,
