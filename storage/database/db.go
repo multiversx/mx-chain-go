@@ -2,7 +2,6 @@ package database
 
 import (
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-storage-go/leveldb"
 	"github.com/multiversx/mx-chain-storage-go/memorydb"
 	"github.com/multiversx/mx-chain-storage-go/sharded"
@@ -35,11 +34,11 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 }
 
 // NewShardIDProvider is a constructor for shard id provider
-func NewShardIDProvider(numShards uint32) (storage.ShardIDProvider, error) {
+func NewShardIDProvider(numShards int32) (storage.ShardIDProvider, error) {
 	return sharded.NewShardIDProvider(numShards)
 }
 
-// NewShardedDB is a constructor for sharded db based on provided db type
-func NewShardedDB(dbType storageunit.DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
-	return sharded.NewShardedPersister(dbType, path, batchDelaySeconds, maxBatchSize, maxOpenFiles, idPersister)
+// NewShardedPersister is a constructor for sharded persister based on provided db type
+func NewShardedPersister(persisterCreator storage.PersisterCreator, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
+	return sharded.NewShardedPersister(persisterCreator, idPersister)
 }

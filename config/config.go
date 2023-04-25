@@ -28,7 +28,7 @@ type DBConfig struct {
 	MaxOpenFiles        int
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
-	NumShards           uint32
+	NumShards           int32
 }
 
 // StorageConfig will map the storage unit configuration

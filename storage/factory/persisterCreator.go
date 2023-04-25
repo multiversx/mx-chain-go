@@ -1,0 +1,82 @@
+package factory
+
+import (
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+)
+
+// persisterCreator is the factory which will handle creating new persisters
+type persisterCreator struct {
+	path                string
+	dbType              string
+	batchDelaySeconds   int
+	maxBatchSize        int
+	maxOpenFiles        int
+	shardIDProviderType string
+	numShards           int32
+	shardIDProvider     storage.ShardIDProvider
+}
+
+func newPersisterCreator(config config.DBConfig) (*persisterCreator, error) {
+	pc := &persisterCreator{
+		dbType:              config.Type,
+		batchDelaySeconds:   config.BatchDelaySeconds,
+		maxBatchSize:        config.MaxBatchSize,
+		maxOpenFiles:        config.MaxOpenFiles,
+		shardIDProviderType: config.ShardIDProviderType,
+		numShards:           config.NumShards,
+	}
+
+	shardIDProvider, err := pc.createShardIDProvider()
+	if err != nil {
+		return nil, err
+	}
+	pc.shardIDProvider = shardIDProvider
+
+	return pc, nil
+}
+
+// Create will create the persister for the provided path
+func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
+	if pc.numShards < 2 {
+		return pc.CreateBasePersister(path)
+	}
+
+	return database.NewShardedPersister(pc, pc.shardIDProvider)
+}
+
+// CreateBasePersister will create base the persister for the provided path
+func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister, error) {
+	var dbType = storageunit.DBType(pc.dbType)
+	switch dbType {
+	case storageunit.LvlDB:
+		return database.NewLevelDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
+	case storageunit.LvlDBSerial:
+		return database.NewSerialDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
+	case storageunit.MemoryDB:
+		return database.NewMemDB(), nil
+	default:
+		return nil, storage.ErrNotSupportedDBType
+	}
+}
+
+// GetBasePath will return the base string path
+func (pc *persisterCreator) GetBasePath() string {
+	return pc.path
+}
+
+func (pc *persisterCreator) createShardIDProvider() (storage.ShardIDProvider, error) {
+	switch storageunit.ShardIDProviderType(pc.shardIDProviderType) {
+	case storageunit.BinarySplit:
+		return database.NewShardIDProvider(pc.numShards)
+	default:
+		return nil, storage.ErrNotSupportedShardIDProviderType
+	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pc *persisterCreator) IsInterfaceNil() bool {
+	return pc == nil
+}

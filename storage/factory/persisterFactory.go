@@ -8,8 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/database"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 const (
@@ -27,7 +25,7 @@ type PersisterFactory struct {
 	maxBatchSize        int
 	maxOpenFiles        int
 	shardIDProviderType string
-	numShards           uint32
+	numShards           int32
 }
 
 // NewPersisterFactory will return a new instance of a PersisterFactory
@@ -53,7 +51,12 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, err
 	}
 
-	persister, err := pf.createDB(path, dbConfig)
+	pc, err := newPersisterCreator(*dbConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	persister, err := pc.Create(path)
 	if err != nil {
 		return nil, err
 	}
@@ -114,26 +117,6 @@ func checkIfDirIsEmpty(path string) bool {
 	return false
 }
 
-func (pf *PersisterFactory) createDB(path string, dbConfig *config.DBConfig) (storage.Persister, error) {
-	dbType := storageunit.DBType(dbConfig.Type)
-	switch dbType {
-	case storageunit.LvlDB:
-		return database.NewLevelDB(path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles)
-	case storageunit.LvlDBSerial:
-		return database.NewSerialDB(path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles)
-	case storageunit.ShardedLvlDBSerial:
-		shardIDProvider, err := pf.createShardIDProvider()
-		if err != nil {
-			return nil, err
-		}
-		return database.NewShardedDB(storageunit.LvlDBSerial, path, dbConfig.BatchDelaySeconds, dbConfig.MaxBatchSize, dbConfig.MaxOpenFiles, shardIDProvider)
-	case storageunit.MemoryDB:
-		return database.NewMemDB(), nil
-	default:
-		return nil, storage.ErrNotSupportedDBType
-	}
-}
-
 func createPersisterConfigFile(path string, dbConfig *config.DBConfig) error {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -170,15 +153,6 @@ func getPersisterConfigFilePath(path string) string {
 		path,
 		dbConfigFileName,
 	)
-}
-
-func (pf *PersisterFactory) createShardIDProvider() (storage.ShardIDProvider, error) {
-	switch storageunit.ShardIDProviderType(pf.shardIDProviderType) {
-	case storageunit.BinarySplit:
-		return database.NewShardIDProvider(pf.numShards)
-	default:
-		return nil, storage.ErrNotSupportedShardIDProviderType
-	}
 }
 
 // CreateDisabled will return a new disabled persister
