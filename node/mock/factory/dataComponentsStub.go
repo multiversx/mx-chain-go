@@ -42,10 +42,11 @@ func (dcm *DataComponentsMock) Blockchain() data.ChainHandler {
 }
 
 // SetBlockchain -
-func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) {
+func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) error {
 	dcm.mutDcm.Lock()
 	dcm.BlockChain = chain
 	dcm.mutDcm.Unlock()
+	return nil
 }
 
 // StorageService -

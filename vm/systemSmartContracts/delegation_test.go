@@ -53,6 +53,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsComputeRewardCheckpointFlagEnabledField:              true,
 			IsValidatorToDelegationFlagEnabledField:                true,
 			IsReDelegateBelowMinCheckFlagEnabledField:              true,
+			IsMultiClaimOnDelegationEnabledField:                   true,
 		},
 	}
 }
@@ -2091,6 +2092,10 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "nothing to unBond")
 
 	gFundData, _ := d.getGlobalFundData()
 	assert.Equal(t, big.NewInt(80), gFundData.TotalUnStaked)
