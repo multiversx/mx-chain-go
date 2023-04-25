@@ -77,12 +77,14 @@ func NewSovereignChainBlockProcessor(
 	scbp.requestMissingHeadersFunc = scbp.requestMissingHeaders
 
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(3)
+	//scbp.addNextTrackedHeadersMock(3)
 
 	return scbp, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersToBeAdded int) {
+	headersPool := scbp.dataPool.Headers()
+
 	lastHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
 	if err != nil {
 		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", err.Error())
@@ -144,6 +146,7 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		}
 		nextCrossNotarizedHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, nextCrossNotarizedHeader)
 
+		headersPool.AddHeader(nextCrossNotarizedHeaderHash, nextCrossNotarizedHeader)
 		scbp.blockTracker.AddTrackedHeader(nextCrossNotarizedHeader, nextCrossNotarizedHeaderHash)
 
 		lastHeader = header
@@ -701,10 +704,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
-	if err != nil {
-		return nil, nil, err
-	}
+	//err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
 
 	//err = scbp.verifyCrossShardMiniBlockDstMe(sovereignChainHeader)
 	//if err != nil {
