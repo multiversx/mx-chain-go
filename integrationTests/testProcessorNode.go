@@ -3180,7 +3180,6 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 		PubKey:                  &mock.PublicKeyMock{},
 		PrivKey:                 &mock.PrivateKeyMock{},
 		PubKeyString:            "pubKey",
-		PrivKeyBytes:            []byte("privKey"),
 		PubKeyBytes:             []byte("pubKey"),
 		BlockSig:                &mock.SignerMock{},
 		TxSig:                   &mock.SignerMock{},
