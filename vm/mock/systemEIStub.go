@@ -38,7 +38,6 @@ type SystemEIStub struct {
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
-	ParseCallDataCalled                 func(data string) (string, [][]byte, error)
 }
 
 // AddLogEntry -
@@ -289,14 +288,6 @@ func (s *SystemEIStub) CleanStorageUpdates() {
 	if s.CleanStorageUpdatesCalled != nil {
 		s.CleanStorageUpdatesCalled()
 	}
-}
-
-func (s *SystemEIStub) ParseCallData(data string) (string, [][]byte, error) {
-	if s.ParseCallDataCalled != nil {
-		return s.ParseCallDataCalled(data)
-	}
-
-	return "", nil, nil
 }
 
 // IsInterfaceNil -

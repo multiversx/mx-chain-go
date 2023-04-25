@@ -811,7 +811,3 @@ func (host *vmContext) CleanStorageUpdates() {
 func (host *vmContext) IsInterfaceNil() bool {
 	return host == nil
 }
-
-func (host *vmContext) ParseCallData(data string) (string, [][]byte, error) {
-	return host.inputParser.ParseData(data)
-}
