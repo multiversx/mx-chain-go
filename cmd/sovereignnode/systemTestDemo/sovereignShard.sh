@@ -1,7 +1,7 @@
 CURRENT_DIR=$(pwd)
 WORKING_DIR="$CURRENT_DIR"
-TESTNET_DIR=$WORKING_DIR/testnet
-TESTNET_OUTPUT_DIR=$TESTNET_DIR/testnet-local
+TESTNET_DIR=$WORKING_DIR/sovereign
+TESTNET_OUTPUT_DIR=$TESTNET_DIR/sovereign-local
 SCRIPTS_DIR=mx-chain-go/scripts/testnet
 VARIABLES_PATH=$SCRIPTS_DIR/variables.sh
 OBSERVERS_PATH=$SCRIPTS_DIR/include/observers.sh
@@ -32,19 +32,6 @@ testnetRemove(){
 }
 
 testnetSetup(){
-  sed -i 's/TransactionSignedWithTxHashEnableEpoch =.*/TransactionSignedWithTxHashEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/BuiltInFunctionsEnableEpoch =.*/BuiltInFunctionsEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/ESDTEnableEpoch =.*/ESDTEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/ESDTMultiTransferEnableEpoch =.*/ESDTMultiTransferEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/ESDTTransferRoleEnableEpoch =.*/ESDTTransferRoleEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/MetaESDTSetEnableEpoch =.*/MetaESDTSetEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/ESDTRegisterAndSetAllRolesEnableEpoch =.*/ESDTRegisterAndSetAllRolesEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/ESDTRegisterAndSetAllRolesEnableEpoch =.*/ESDTRegisterAndSetAllRolesEnableEpoch = 0/' "$ENABLE_EPOCH_DIR"
-
-  sed -i 's/ScheduledMiniBlocksEnableEpoch =.*/ScheduledMiniBlocksEnableEpoch = 1/' "$ENABLE_EPOCH_DIR"
-  sed -i 's/{ StartEpoch = 0, Version = "\*\" },/# Removed headerV1 version/' "$CONFIG_DIR"
-  sed -i 's/{ StartEpoch = 1, Version = "2" },/{ StartEpoch = 0, Version = "2" },/' "$CONFIG_DIR"
-
   mkdir "$TESTNET_OUTPUT_DIR"
   cd "$TESTNET_OUTPUT_DIR"
   ln -s "$TESTNET_DIR"/mx-chain-go mx-chain-go
@@ -61,23 +48,12 @@ testnetPrereq(){
 
 testnetUpdateVariables(){
   sed -i 's/export SHARDCOUNT=.*/export SHARDCOUNT=1/' $VARIABLES_PATH
-  sed -i 's/SHARD_VALIDATORCOUNT=.*/SHARD_VALIDATORCOUNT=1/' $VARIABLES_PATH
+  sed -i 's/SHARD_VALIDATORCOUNT=.*/SHARD_VALIDATORCOUNT=2/' $VARIABLES_PATH
   sed -i 's/SHARD_OBSERVERCOUNT=.*/SHARD_OBSERVERCOUNT=1/' $VARIABLES_PATH
   sed -i 's/SHARD_CONSENSUS_SIZE=.*/SHARD_CONSENSUS_SIZE=$SHARD_VALIDATORCOUNT/' $VARIABLES_PATH
-  sed -i 's/META_VALIDATORCOUNT=.*/META_VALIDATORCOUNT=1/' $VARIABLES_PATH
-  sed -i 's/META_OBSERVERCOUNT=.*/META_OBSERVERCOUNT=1/' $VARIABLES_PATH
-  sed -i 's/META_CONSENSUS_SIZE=.*/META_CONSENSUS_SIZE=$META_VALIDATORCOUNT/' $VARIABLES_PATH
   sed -i 's/export NODE_DELAY=.*/export NODE_DELAY=30/' $VARIABLES_PATH
 
-  sed -i 's/export PORT_SEEDNODE=.*/export PORT_SEEDNODE="9998"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_ORIGIN_OBSERVER=.*/export PORT_ORIGIN_OBSERVER="21110"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_ORIGIN_OBSERVER_REST=.*/export PORT_ORIGIN_OBSERVER_REST="10010"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_ORIGIN_VALIDATOR=.*/export PORT_ORIGIN_VALIDATOR="21510"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_ORIGIN_VALIDATOR_REST=.*/export PORT_ORIGIN_VALIDATOR_REST="9510"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_PROXY=.*/export PORT_PROXY="7960"/' "$VARIABLES_PATH"
-  sed -i 's/export PORT_TXGEN=.*/export PORT_TXGEN="7961"/' "$VARIABLES_PATH"
-
-  sed -i 's/export USETMUX=.*/export USETMUX=0/' "$VARIABLES_PATH"
+  sed -i 's/export LOGLEVEL=.*/export LOGLEVEL="\*\:DEBUG"/' $VARIABLES_PATH
 }
 
 testnetNew(){
@@ -90,7 +66,7 @@ testnetNew(){
 
 testnetStart(){
   cd "$TESTNET_DIR" && \
-    ./mx-chain-go/scripts/testnet/start.sh
+    ./mx-chain-go/scripts/testnet/sovereignStart.sh
 }
 
 testnetReset(){
@@ -105,10 +81,10 @@ testnetStop(){
 
 echoOptions(){
   echo "ERROR!!! Please choose one of the following parameters:
-  - new to create a new testnet
-  - start to start the testnet
-  - reset to reset the testnet
-  - stop to stop the testnet"
+  - new to create a new sovereign shard
+  - start to start the sovereign shard
+  - reset to reset the sovereign shard
+  - stop to stop the sovereign shard"
 }
 
 main(){
