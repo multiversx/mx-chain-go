@@ -2,7 +2,6 @@ package processProxy
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"math/big"
 	"sync"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
