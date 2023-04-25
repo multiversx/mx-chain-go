@@ -85,11 +85,6 @@ func (ccs *CryptoComponentsStub) PublicKeyBytes() []byte {
 	return ccs.PubKeyBytes
 }
 
-// PrivateKeyBytes -
-func (ccs *CryptoComponentsStub) PrivateKeyBytes() []byte {
-	return ccs.PrivKeyBytes
-}
-
 // BlockSigner -
 func (ccs *CryptoComponentsStub) BlockSigner() crypto.SingleSigner {
 	return ccs.BlockSig
@@ -188,7 +183,6 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PrivKey:                 ccs.PrivKey,
 		P2pPrivKey:              ccs.P2pPrivKey,
 		PubKeyString:            ccs.PubKeyString,
-		PrivKeyBytes:            ccs.PrivKeyBytes,
 		PubKeyBytes:             ccs.PubKeyBytes,
 		BlockSig:                ccs.BlockSig,
 		TxSig:                   ccs.TxSig,
