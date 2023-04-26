@@ -151,7 +151,7 @@ func (txc *transactionCounter) displayLogInfo(
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
 		"num shards", numShards,
-		"shard", selfId,
+		"shard", getShardName(selfId),
 	}
 	txc.mutex.RUnlock()
 	log.Debug(message, arguments...)
@@ -174,7 +174,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.GetShardID())}),
+			fmt.Sprintf("%s", getShardName(header.GetShardID()))}),
 	}
 
 	lines := displayHeader(header)
@@ -408,7 +408,7 @@ func DisplayLastNotarized(
 	}
 
 	log.Debug("last notarized block from shard",
-		"shard", shardId,
+		"shard", getShardName(shardId),
 		"epoch", lastNotarizedHdrForShard.GetEpoch(),
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
