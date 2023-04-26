@@ -19,7 +19,7 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.16
 	github.com/multiversx/mx-chain-storage-go v1.0.8
-	github.com/multiversx/mx-chain-vm-common-go v1.4.1
+	github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230426114543-7cbe0054a196
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.53
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.54
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.80
