@@ -269,7 +269,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilNetworkComponentsHolder, err)
 	})
-	t.Run("nil NetworkComponents should error", func(t *testing.T) {
+	t.Run("nil Messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
@@ -316,7 +316,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
 	})
-	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
+	t.Run("nil RoundHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
@@ -330,30 +330,20 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilRoundHandler, err)
 	})
-	t.Run("nil NetworkComponents should error", func(t *testing.T) {
+	t.Run("nil HardforkTrigger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord: nil,
+			NodesCoord:           &shardingMocks.NodesCoordinatorStub{},
+			ShardCoord:           &testscommon.ShardsCoordinatorMock{},
+			RoundHandlerField:    &testscommon.RoundHandlerMock{},
+			HardforkTriggerField: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
 
 		require.Nil(t, ccf)
-		require.Equal(t, errorsMx.ErrNilNodesCoordinator, err)
-	})
-	t.Run("nil NetworkComponents should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord: &shardingMocks.NodesCoordinatorStub{},
-			ShardCoord: nil,
-		}
-		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
-
-		require.Nil(t, ccf)
-		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
+		require.Equal(t, errorsMx.ErrNilHardforkTrigger, err)
 	})
 	t.Run("nil StateComponents should error", func(t *testing.T) {
 		t.Parallel()
