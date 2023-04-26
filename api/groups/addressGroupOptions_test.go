@@ -80,26 +80,32 @@ func TestParseAccountQueryOptions(t *testing.T) {
 
 	options, err := parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onFinalBlock=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onStartOfEpoch=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockNonce=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockHash=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid byte")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockRootHash=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid byte")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("hintEpoch=test"))
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
 	require.Equal(t, api.AccountQueryOptions{}, options)
 
 	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery(""))

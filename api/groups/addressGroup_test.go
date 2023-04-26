@@ -192,7 +192,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error should error", func(t *testing.T) {
 		t.Parallel()
@@ -207,6 +207,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 			t,
 			facade,
 			"/address/addr",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, expectedErr),
@@ -215,7 +216,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{
 					Address:         "addr",
@@ -226,24 +227,15 @@ func TestAddressGroup_getAccount(t *testing.T) {
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
+		response := &shared.GenericAPIResponse{}
+		loadAddressGroupResponse(t, facade, "/address/addr", "GET", nil, response)
 
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/addr", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := shared.GenericAPIResponse{}
-		loadResponse(resp.Body, &response)
 		mapResponse := response.Data.(map[string]interface{})
 		accResp := accountResponse{}
 
 		mapResponseBytes, _ := json.Marshal(&mapResponse)
 		_ = json.Unmarshal(mapResponseBytes, &accResp)
 
-		assert.Equal(t, http.StatusOK, resp.Code)
 		assert.Equal(t, "addr", accResp.Account.Address)
 		assert.Equal(t, uint64(1), accResp.Account.Nonce)
 		assert.Equal(t, "100", accResp.Account.Balance)
@@ -252,14 +244,14 @@ func TestAddressGroup_getAccount(t *testing.T) {
 	})
 }
 
-func TestAddressGroup_GetBalance(t *testing.T) {
+func TestAddressGroup_getBalance(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//balance", nil,
+		testErrorScenario("/address//balance", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetBalance, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/balance?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/balance?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetBalance, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error should error", func(t *testing.T) {
 		t.Parallel()
@@ -274,6 +266,7 @@ func TestAddressGroup_GetBalance(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/balance",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetBalance, expectedErr),
@@ -284,24 +277,21 @@ func TestAddressGroup_GetBalance(t *testing.T) {
 
 		amount := big.NewInt(10)
 		addr := "testAddress"
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
 				return amount, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", addr), nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := shared.GenericAPIResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &shared.GenericAPIResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/address/%s/balance", addr),
+			"GET",
+			nil,
+			response,
+		)
 
 		balanceStr := getValueForKey(response.Data, "balance")
 		balanceResponse, ok := big.NewInt(0).SetString(balanceStr, 10)
@@ -345,7 +335,7 @@ func TestAddressGroup_getAccounts(t *testing.T) {
 		require.Equal(t, shared.ReturnCodeRequestError, response.Code)
 	})
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/bulk?blockNonce=not-uint64", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)),
+		testErrorScenario("/address/bulk?blockNonce=not-uint64", "POST", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)),
 			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error, should err", func(t *testing.T) {
 		t.Parallel()
@@ -378,18 +368,11 @@ func TestAddressGroup_getAccounts(t *testing.T) {
 				Nonce:   37,
 			},
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetAccountsCalled: func(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
 				return expectedAccounts, api.BlockInfo{}, nil
 			},
 		}
-		addrGroup, _ := groups.NewAddressGroup(&facade)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("POST", "/address/bulk", bytes.NewBuffer([]byte(`["erd1", "erd1"]`)))
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
 
 		type responseType struct {
 			Data struct {
@@ -398,8 +381,16 @@ func TestAddressGroup_getAccounts(t *testing.T) {
 			Error string            `json:"error"`
 			Code  shared.ReturnCode `json:"code"`
 		}
-		response := responseType{}
-		loadResponse(resp.Body, &response)
+		response := &responseType{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/bulk",
+			"POST",
+			bytes.NewBuffer([]byte(`["erd1", "erd1"]`)),
+			response,
+		)
+
 		require.Empty(t, response.Error)
 		require.Equal(t, shared.ReturnCodeSuccess, response.Code)
 		require.Equal(t, expectedAccounts, response.Data.Accounts)
@@ -410,10 +401,10 @@ func TestAddressGroup_getUsername(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//username", nil,
+		testErrorScenario("/address//username", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetUsername, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/username?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/username?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetUsername, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error should error", func(t *testing.T) {
 		t.Parallel()
@@ -428,6 +419,7 @@ func TestAddressGroup_getUsername(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/username",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetUsername, expectedErr),
@@ -437,24 +429,21 @@ func TestAddressGroup_getUsername(t *testing.T) {
 		t.Parallel()
 
 		testUsername := "provided username"
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
 				return testUsername, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/username", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		usernameResponseObj := usernameResponse{}
-		loadResponse(resp.Body, &usernameResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		usernameResponseObj := &usernameResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/username",
+			"GET",
+			nil,
+			usernameResponseObj,
+		)
 		assert.Equal(t, testUsername, usernameResponseObj.Data.Username)
 	})
 }
@@ -463,10 +452,10 @@ func TestAddressGroup_getCodeHash(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//code-hash", nil,
+		testErrorScenario("/address//code-hash", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetCodeHash, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/code-hash?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/code-hash?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetCodeHash, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error should error", func(t *testing.T) {
 		t.Parallel()
@@ -481,6 +470,7 @@ func TestAddressGroup_getCodeHash(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/code-hash",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetCodeHash, expectedErr),
@@ -491,24 +481,21 @@ func TestAddressGroup_getCodeHash(t *testing.T) {
 
 		testCodeHash := []byte("value")
 		expectedResponseCodeHash := base64.StdEncoding.EncodeToString(testCodeHash)
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
 				return testCodeHash, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/code-hash", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		codeHashResponseObj := codeHashResponse{}
-		loadResponse(resp.Body, &codeHashResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		codeHashResponseObj := &codeHashResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/code-hash",
+			"GET",
+			nil,
+			codeHashResponseObj,
+		)
 		assert.Equal(t, expectedResponseCodeHash, codeHashResponseObj.Data.CodeHash)
 	})
 }
@@ -517,10 +504,10 @@ func TestAddressGroup_getValueForKey(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//key/test", nil,
+		testErrorScenario("/address//key/test", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetValueForKey, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/key/test?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/key/test?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetValueForKey, apiErrors.ErrBadUrlParams)))
 	t.Run("facade error should error", func(t *testing.T) {
 		t.Parallel()
@@ -535,6 +522,7 @@ func TestAddressGroup_getValueForKey(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/key/test",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetValueForKey, expectedErr),
@@ -544,24 +532,21 @@ func TestAddressGroup_getValueForKey(t *testing.T) {
 		t.Parallel()
 
 		testValue := "value"
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
 				return testValue, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/key/test", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		valueForKeyResponseObj := valueForKeyResponse{}
-		loadResponse(resp.Body, &valueForKeyResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		valueForKeyResponseObj := &valueForKeyResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/key/test",
+			"GET",
+			nil,
+			valueForKeyResponseObj,
+		)
 		assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 	})
 }
@@ -570,10 +555,10 @@ func TestAddressGroup_getGuardianData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//guardian-data", nil,
+		testErrorScenario("/address//guardian-data", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetGuardianData, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/guardian-data?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/guardian-data?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetGuardianData, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -586,7 +571,9 @@ func TestAddressGroup_getGuardianData(t *testing.T) {
 		testAddressGroup(
 			t,
 			facade,
-			"/address/erd1alice/guardian-data", nil,
+			"/address/erd1alice/guardian-data",
+			"GET",
+			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetGuardianData, expectedErr),
 		)
@@ -605,24 +592,21 @@ func TestAddressGroup_getGuardianData(t *testing.T) {
 			},
 			Guarded: true,
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
 				return expectedGuardianData, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/guardian-data", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := guardianDataResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &guardianDataResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/guardian-data",
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, expectedGuardianData, response.Data.GuardianData)
 	})
 }
@@ -631,10 +615,10 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//keys", nil,
+		testErrorScenario("/address//keys", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/keys?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/keys?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -648,6 +632,7 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/keys",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, expectedErr),
@@ -660,24 +645,21 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			"k1": "v1",
 			"k2": "v2",
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 				return pairs, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/keys", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := keyValuePairsResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &keyValuePairsResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/keys",
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, pairs, response.Data.Pairs)
 	})
 }
@@ -686,10 +668,10 @@ func TestAddressGroup_getESDTBalance(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//esdt/newToken", nil,
+		testErrorScenario("/address//esdt/newToken", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTBalance, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/esdt/newToken?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/esdt/newToken?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTBalance, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -703,6 +685,7 @@ func TestAddressGroup_getESDTBalance(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/esdt/newToken",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetESDTBalance, expectedErr),
@@ -713,24 +696,21 @@ func TestAddressGroup_getESDTBalance(t *testing.T) {
 
 		testValue := big.NewInt(100).String()
 		testProperties := []byte{byte(0), byte(1), byte(0)}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 				return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: testProperties}, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/esdt/newToken", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		esdtBalanceResponseObj := esdtTokenResponse{}
-		loadResponse(resp.Body, &esdtBalanceResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		esdtBalanceResponseObj := &esdtTokenResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/esdt/newToken",
+			"GET",
+			nil,
+			esdtBalanceResponseObj,
+		)
 		assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
 		assert.Equal(t, "000100", esdtBalanceResponseObj.Data.Properties)
 	})
@@ -740,10 +720,10 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//esdts/roles", nil,
+		testErrorScenario("/address//esdts/roles", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetRolesForAccount, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/esdts/roles?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/esdts/roles?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetRolesForAccount, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -757,6 +737,7 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/esdts/roles",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetRolesForAccount, expectedErr),
@@ -769,24 +750,21 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 			"token0": {"role0", "role1"},
 			"token1": {"role3", "role1"},
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 				return roles, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/esdts/roles", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := esdtRolesResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &esdtRolesResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/esdts/roles",
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, roles, response.Data.Roles)
 	})
 }
@@ -795,13 +773,13 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//esdts-with-role/ESDTRoleNFTCreate", nil,
+		testErrorScenario("/address//esdts-with-role/ESDTRoleNFTCreate", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, apiErrors.ErrBadUrlParams)))
 	t.Run("invalid role should error",
-		testErrorScenario("/address/erd1alice/esdts-with-role/invalid", nil,
+		testErrorScenario("/address/erd1alice/esdts-with-role/invalid", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, fmt.Errorf("invalid role: %s", "invalid"))))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -815,6 +793,7 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, expectedErr),
@@ -824,24 +803,21 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 		t.Parallel()
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetESDTsWithRoleCalled: func(address string, role string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return expectedTokens, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		esdtResponseObj := esdtsWithRoleResponse{}
-		loadResponse(resp.Body, &esdtResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		esdtResponseObj := &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/esdts-with-role/ESDTRoleNFTCreate",
+			"GET",
+			nil,
+			esdtResponseObj,
+		)
 		assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 	})
 }
@@ -850,10 +826,10 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//registered-nfts", nil,
+		testErrorScenario("/address//registered-nfts", "GET", nil,
 			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/registered-nfts?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/registered-nfts?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -867,6 +843,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/registered-nfts",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, expectedErr),
@@ -876,24 +853,21 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 		t.Parallel()
 
 		expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetNFTTokenIDsRegisteredByAddressCalled: func(address string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 				return expectedTokens, api.BlockInfo{}, nil
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/registered-nfts", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		esdtResponseObj := esdtsWithRoleResponse{}
-		loadResponse(resp.Body, &esdtResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		esdtResponseObj := &esdtsWithRoleResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/registered-nfts",
+			"GET",
+			nil,
+			esdtResponseObj,
+		)
 		assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 	})
 }
@@ -902,13 +876,13 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//nft/newToken/nonce/10", nil,
+		testErrorScenario("/address//nft/newToken/nonce/10", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/nft/newToken/nonce/10?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/nft/newToken/nonce/10?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrBadUrlParams)))
 	t.Run("invalid nonce should error",
-		testErrorScenario("/address/erd1alice/nft/newToken/nonce/not-int", nil,
+		testErrorScenario("/address/erd1alice/nft/newToken/nonce/not-int", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrNonceInvalid)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -922,6 +896,7 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/nft/newToken/nonce/10",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, expectedErr),
@@ -934,7 +909,7 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 		testValue := big.NewInt(100).String()
 		testNonce := uint64(37)
 		testProperties := []byte{byte(1), byte(0), byte(0)}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
 				return &esdt.ESDigitalToken{
 					Value:         big.NewInt(100),
@@ -943,18 +918,15 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/nft/newToken/nonce/10", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		esdtResponseObj := esdtNFTResponse{}
-		loadResponse(resp.Body, &esdtResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		esdtResponseObj := &esdtNFTResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/nft/newToken/nonce/10",
+			"GET",
+			nil,
+			esdtResponseObj,
+		)
 		assert.Equal(t, testValue, esdtResponseObj.Data.Balance)
 		assert.Equal(t, "010000", esdtResponseObj.Data.Properties)
 		assert.Equal(t, testAddress, esdtResponseObj.Data.Creator)
@@ -966,10 +938,10 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("empty address should error",
-		testErrorScenario("/address//esdt", nil,
+		testErrorScenario("/address//esdt", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrEmptyAddress)))
 	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/esdt?blockNonce=not-uint64", nil,
+		testErrorScenario("/address/erd1alice/esdt?blockNonce=not-uint64", "GET", nil,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, apiErrors.ErrBadUrlParams)))
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
@@ -983,6 +955,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 			t,
 			facade,
 			"/address/erd1alice/esdt",
+			"GET",
 			nil,
 			http.StatusInternalServerError,
 			formatExpectedErr(apiErrors.ErrGetESDTNFTData, expectedErr),
@@ -993,7 +966,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 
 		testValue1 := "token1"
 		testValue2 := "token2"
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetAllESDTTokensCalled: func(address string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 				tokens := make(map[string]*esdt.ESDigitalToken)
 				tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
@@ -1002,18 +975,15 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 			},
 		}
 
-		addrGroup, err := groups.NewAddressGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/address/erd1alice/esdt", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		esdtTokenResponseObj := esdtTokensCompleteResponse{}
-		loadResponse(resp.Body, &esdtTokenResponseObj)
-		assert.Equal(t, http.StatusOK, resp.Code)
+		esdtTokenResponseObj := &esdtTokensCompleteResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/erd1alice/esdt",
+			"GET",
+			nil,
+			esdtTokenResponseObj,
+		)
 		assert.Equal(t, 2, len(esdtTokenResponseObj.Data.Tokens))
 	})
 }
@@ -1097,7 +1067,7 @@ func TestAddressGroup_IsInterfaceNil(t *testing.T) {
 	require.False(t, addrGroup.IsInterfaceNil())
 }
 
-func testErrorScenario(url string, body io.Reader, expectedErr string) func(t *testing.T) {
+func testErrorScenario(url string, method string, body io.Reader, expectedErr string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -1105,6 +1075,7 @@ func testErrorScenario(url string, body io.Reader, expectedErr string) func(t *t
 			t,
 			&mock.FacadeStub{},
 			url,
+			method,
 			body,
 			http.StatusBadRequest,
 			expectedErr,
@@ -1112,10 +1083,33 @@ func testErrorScenario(url string, body io.Reader, expectedErr string) func(t *t
 	}
 }
 
+func loadAddressGroupResponse(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	method string,
+	body io.Reader,
+	destination interface{},
+) {
+	addrGroup, err := groups.NewAddressGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+	req, _ := http.NewRequest(method, url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	loadResponse(resp.Body, destination)
+}
+
 func testAddressGroup(
 	t *testing.T,
 	facade shared.FacadeHandler,
 	url string,
+	method string,
 	body io.Reader,
 	expectedRespCode int,
 	expectedRespError string,
@@ -1125,7 +1119,7 @@ func testAddressGroup(
 
 	ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
 
-	req, _ := http.NewRequest("GET", url, body)
+	req, _ := http.NewRequest(method, url, body)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
