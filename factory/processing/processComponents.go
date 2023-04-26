@@ -659,7 +659,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	txSimulatorProcessor, vmFactoryForTxSimulate, err := pcf.createTxSimulatorProcessor()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
 
 	return &processComponents{

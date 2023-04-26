@@ -177,6 +177,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	txProcessor, err := transaction.NewMetaTxProcessor(argsTxProcessor)
@@ -347,6 +349,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)
