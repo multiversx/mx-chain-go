@@ -76,9 +76,6 @@ func NewSovereignChainBlockProcessor(
 
 	scbp.requestMissingHeadersFunc = scbp.requestMissingHeaders
 
-	//TODO: This call and the method itself should be removed when real functionality will be done
-	//scbp.addNextTrackedHeadersMock(3)
-
 	return scbp, nil
 }
 
@@ -104,16 +101,10 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 	lastHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardHeaderExtended.Header.Header)
 
 	for i := 0; i < numHeadersToBeAdded; i++ {
-		randSeed, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(time.Now().String())})
-
-		time.Sleep(10 * time.Millisecond)
-		txHash1, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(time.Now().String())})
-
-		time.Sleep(10 * time.Millisecond)
-		txHash2, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(time.Now().String())})
-
-		time.Sleep(10 * time.Millisecond)
-		txHash3, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(time.Now().String())})
+		randSeed, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(fmt.Sprintf("%d", lastHeader.GetNonce()))})
+		txHash1, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(fmt.Sprintf("%d", lastHeader.GetNonce()+1))})
+		txHash2, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(fmt.Sprintf("%d", lastHeader.GetNonce()+2))})
+		txHash3, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(fmt.Sprintf("%d", lastHeader.GetNonce()+3))})
 
 		incomingTxHashes := [][]byte{
 			txHash1,
@@ -156,6 +147,9 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	//TODO: This call and the method itself should be removed when real functionality will be done
+	scbp.addNextTrackedHeadersMock(3)
+
 	scbp.enableRoundsHandler.CheckRound(round)
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
@@ -546,14 +540,16 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 	return scbp.hdrsForCurrBlock.missingHdrs
 }
 
-func (scbp *sovereignChainBlockProcessor) waitForExtendedShardHdrsHashes(_ time.Duration) error {
-	return nil
-	//select {
-	//case <-scbp.chRcvAllExtendedShardHdrs:
-	//	return nil
-	//case <-time.After(waitTime):
-	//	return process.ErrTimeIsOut
-	//}
+func (scbp *sovereignChainBlockProcessor) waitForExtendedShardHdrsHashes(waitTime time.Duration) error {
+	//TODO: This call and the method itself should be removed when real functionality will be done
+	scbp.addNextTrackedHeadersMock(3)
+
+	select {
+	case <-scbp.chRcvAllExtendedShardHdrs:
+		return nil
+	case <-time.After(waitTime):
+		return process.ErrTimeIsOut
+	}
 }
 
 // ProcessBlock actually processes the selected transaction and will create the final block body
@@ -658,10 +654,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		go scbp.checkAndRequestIfExtendedShardHeadersMissing()
 	}()
 
-	//err = scbp.checkExtendedShardHeadersValidity()
-	//if err != nil {
-	//	return nil, nil, err
-	//}
+	err = scbp.checkExtendedShardHeadersValidity()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	defer func() {
 		if err != nil {
@@ -704,15 +700,22 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	//err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
-	//if err != nil {
-	//	return nil, nil, err
-	//}
+	//TODO: This check could be removed in sovereign implementation
+	err = scbp.txCoordinator.VerifyCreatedBlockTransactions(headerHandler, newBody)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	//err = scbp.verifyCrossShardMiniBlockDstMe(sovereignChainHeader)
-	//if err != nil {
-	//	return nil, nil, err
-	//}
+	//TODO: This check could be removed in sovereign implementation
+	err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = scbp.verifyCrossShardMiniBlockDstMe(sovereignChainHeader)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = scbp.verifyFees(headerHandler)
 	if err != nil {
@@ -789,14 +792,14 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBloc
 }
 
 func (scbp *sovereignChainBlockProcessor) verifyCrossShardMiniBlockDstMe(sovereignChainHeader data.SovereignChainHeaderHandler) error {
-	miniBlockMainChainShardHeaderHashes, err := scbp.getAllMiniBlockDstMeFromMainChain(sovereignChainHeader)
+	miniBlockExtendedShardHeaderHashes, err := scbp.getAllMiniBlockDstMeFromExtendedShardHeaders(sovereignChainHeader)
 	if err != nil {
 		return err
 	}
 
 	crossMiniBlockHashes := sovereignChainHeader.GetMiniBlockHeadersWithDst(core.SovereignChainShardId)
 	for hash := range crossMiniBlockHashes {
-		if _, ok := miniBlockMainChainShardHeaderHashes[hash]; !ok {
+		if _, ok := miniBlockExtendedShardHeaderHashes[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromNotifier
 		}
 	}
@@ -804,7 +807,7 @@ func (scbp *sovereignChainBlockProcessor) verifyCrossShardMiniBlockDstMe(soverei
 	return nil
 }
 
-func (scbp *sovereignChainBlockProcessor) getAllMiniBlockDstMeFromMainChain(sovereignChainHeader data.SovereignChainHeaderHandler) (map[string][]byte, error) {
+func (scbp *sovereignChainBlockProcessor) getAllMiniBlockDstMeFromExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) (map[string][]byte, error) {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
 	if err != nil {
 		return nil, err
@@ -830,7 +833,7 @@ func (scbp *sovereignChainBlockProcessor) getAllMiniBlockDstMeFromMainChain(sove
 		}
 
 		incomingMiniBlocks := shardHeaderExtended.GetIncomingMiniBlocks()
-		for mb := range incomingMiniBlocks {
+		for _, mb := range incomingMiniBlocks {
 			mbHash, errCalculateHash := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
 			if errCalculateHash != nil {
 				return nil, errCalculateHash

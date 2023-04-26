@@ -36,7 +36,7 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 	}
 
 	scsbt.blockProcessor = scbp
-	scsbt.receivedHeaderFunc = scsbt.receivedHeader
+	scsbt.doReceivedHeaderJobFunc = scsbt.doReceivedHeaderJob
 	scsbt.getFinalHeaderFunc = scsbt.getFinalHeader
 
 	err = scsbt.initCrossNotarizedStartHeaders()
@@ -91,7 +91,7 @@ func (scsbt *sovereignChainShardBlockTrack) GetSelfNotarizedHeader(_ uint32, off
 	return scsbt.selfNotarizer.GetNotarizedHeader(scsbt.shardCoordinator.SelfId(), offset)
 }
 
-func (scsbt *sovereignChainShardBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+func (scsbt *sovereignChainShardBlockTrack) doReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
 	extendedShardHeader, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
 	if isExtendedShardHeaderReceived {
 		scsbt.receivedExtendedShardHeader(extendedShardHeader, headerHash)

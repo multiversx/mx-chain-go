@@ -51,7 +51,7 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
-	receivedHeaderFunc          func(headerHandler data.HeaderHandler, headerHash []byte)
+	doReceivedHeaderJobFunc     func(headerHandler data.HeaderHandler, headerHash []byte)
 	getFinalHeaderFunc          func(headerHandler data.HeaderHandler) (data.HeaderHandler, error)
 	mutStartHeaders             sync.RWMutex
 	startHeaders                map[uint32]data.HeaderHandler
@@ -125,6 +125,10 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	bbt.doReceivedHeaderJobFunc(headerHandler, headerHash)
+}
+
+func (bbt *baseBlockTrack) doReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
@@ -271,7 +275,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.receivedHeaderFunc(header, hash)
+	bbt.receivedHeader(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard
