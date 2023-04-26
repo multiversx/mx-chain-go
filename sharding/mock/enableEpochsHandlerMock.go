@@ -566,6 +566,16 @@ func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
 }
 
+// IsSetGuardianEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
+	return false
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return false
+}
+
 // IsMultiClaimOnDelegationEnabled -
 func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
 	return false

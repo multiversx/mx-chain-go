@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,6 +38,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 			bytes.Repeat([]byte{1}, 32),
 		},
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return args
@@ -85,6 +87,8 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTAddUri"] = value
 	gasMap["ESDTNFTUpdateAttributes"] = value
 	gasMap["ESDTNFTMultiTransfer"] = value
+	gasMap["SetGuardian"] = value
+	gasMap["GuardAccount"] = value
 
 	return gasMap
 }
@@ -161,7 +165,7 @@ func TestCreateBuiltInFunctionContainer(t *testing.T) {
 		args := createMockArguments()
 		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
 		assert.Nil(t, err)
-		assert.Equal(t, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()), 32)
+		assert.Equal(t, 35, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
 
 		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 		assert.Nil(t, err)

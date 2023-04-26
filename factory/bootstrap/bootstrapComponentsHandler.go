@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ factory.ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -91,6 +92,18 @@ func (mbf *managedBootstrapComponents) EpochStartBootstrapper() factory.EpochSta
 	}
 
 	return mbf.bootstrapComponents.epochStartBootstrapper
+}
+
+// GuardedAccountHandler returns the guarded account handler
+func (mbf *managedBootstrapComponents) GuardedAccountHandler() process.GuardedAccountHandler {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.guardedAccountHandler
 }
 
 // EpochBootstrapParams returns the epoch start bootstrap parameters handler
