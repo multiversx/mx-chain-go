@@ -39,7 +39,7 @@ func TestNewHardforkGroup(t *testing.T) {
 	})
 }
 
-func TestHardforkGroup_TriggerCanNotExecuteShouldErr(t *testing.T) {
+func TestHardforkGroup_TriggerCannotExecuteShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hardforkFacade := &mock.HardforkFacade{

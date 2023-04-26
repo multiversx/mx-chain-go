@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
@@ -98,7 +97,7 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 			Nonce: 37,
 			Round: 39,
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetBlockByNonceCalled: func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
 				require.Equal(t, providedNonce, nonce)
 				require.Equal(t, expectedOptions, options)
@@ -106,20 +105,15 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 			},
 		}
 
-		blockGroup, err := groups.NewBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
-
-		url := fmt.Sprintf("/block/by-nonce/%d?withTxs=true", providedNonce)
-		req, _ := http.NewRequest("GET", url, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := blockResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
-
+		response := &blockResponse{}
+		loadBlockGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/block/by-nonce/%d?withTxs=true", providedNonce),
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, expectedBlock, response.Data.Block)
 	})
 }
@@ -162,7 +156,7 @@ func TestBlockGroup_getBlockByHash(t *testing.T) {
 			Nonce: 37,
 			Round: 39,
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetBlockByHashCalled: func(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 				require.Equal(t, providedHash, hash)
 				require.Equal(t, expectedOptions, options)
@@ -170,20 +164,15 @@ func TestBlockGroup_getBlockByHash(t *testing.T) {
 			},
 		}
 
-		blockGroup, err := groups.NewBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
-
-		url := fmt.Sprintf("/block/by-hash/%s?withTxs=true", providedHash)
-		req, _ := http.NewRequest("GET", url, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := blockResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusOK, resp.Code)
-
+		response := &blockResponse{}
+		loadBlockGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/block/by-hash/%s?withTxs=true", providedHash),
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, expectedBlock, response.Data.Block)
 	})
 }
@@ -228,7 +217,7 @@ func TestBlockGroup_getBlockByRound(t *testing.T) {
 			Nonce: 37,
 			Round: 39,
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetBlockByRoundCalled: func(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 				require.Equal(t, providedRound, round)
 				require.Equal(t, expectedOptions, options)
@@ -236,20 +225,15 @@ func TestBlockGroup_getBlockByRound(t *testing.T) {
 			},
 		}
 
-		blockGroup, err := groups.NewBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
-
-		url := fmt.Sprintf("/block/by-round/%d?withTxs=true", providedRound)
-		req, _ := http.NewRequest("GET", url, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := blockResponse{}
-		loadResponse(resp.Body, &response)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &blockResponse{}
+		loadBlockGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/block/by-round/%d?withTxs=true", providedRound),
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, expectedBlock, response.Data.Block)
 	})
 }
@@ -300,21 +284,22 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 			},
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 				require.Equal(t, expectedOptions, options)
 				return expectedResponse, nil
 			},
 		}
 
-		blockGroup, err := groups.NewBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
-
-		url := fmt.Sprintf("/block/altered-accounts/by-nonce/%d", providedNonce)
-		response, code := httpGetAlteredAccountsForBlockBlock(ws, url)
-		require.Equal(t, http.StatusOK, code)
+		response := &alteredAccountsForBlockResponse{}
+		loadBlockGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/block/altered-accounts/by-nonce/%d", providedNonce),
+			"GET",
+			nil,
+			response,
+		)
 		require.Equal(t, expectedResponse, response.Data.Accounts)
 		require.Empty(t, response.Error)
 		require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
@@ -368,7 +353,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 			},
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
 				require.Equal(t, providedHash, hex.EncodeToString(options.Hash))
 				require.Equal(t, expectedOptions, options)
@@ -376,14 +361,15 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 			},
 		}
 
-		blockGroup, err := groups.NewBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
-
-		url := fmt.Sprintf("/block/altered-accounts/by-hash/%s", providedHash)
-		response, code := httpGetAlteredAccountsForBlockBlock(ws, url)
-		require.Equal(t, http.StatusOK, code)
+		response := &alteredAccountsForBlockResponse{}
+		loadBlockGroupResponse(
+			t,
+			facade,
+			fmt.Sprintf("/block/altered-accounts/by-hash/%s", providedHash),
+			"GET",
+			nil,
+			response,
+		)
 		require.Equal(t, expectedResponse, response.Data.Accounts)
 		require.Empty(t, response.Error)
 		require.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
@@ -467,14 +453,26 @@ func TestBlockGroup_UpdateFacadeStub(t *testing.T) {
 	})
 }
 
-func httpGetAlteredAccountsForBlockBlock(ws *gin.Engine, url string) (alteredAccountsForBlockResponse, int) {
-	httpRequest, _ := http.NewRequest("GET", url, nil)
-	httpResponse := httptest.NewRecorder()
-	ws.ServeHTTP(httpResponse, httpRequest)
+func loadBlockGroupResponse(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	method string,
+	body io.Reader,
+	destination interface{},
+) {
+	blockGroup, err := groups.NewBlockGroup(facade)
+	require.NoError(t, err)
 
-	response := alteredAccountsForBlockResponse{}
-	loadResponse(httpResponse.Body, &response)
-	return response, httpResponse.Code
+	ws := startWebServer(blockGroup, "block", getBlockRoutesConfig())
+
+	req, _ := http.NewRequest(method, url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	loadResponse(resp.Body, destination)
 }
 
 func testBlockGroupErrorScenario(url string, body io.Reader, expectedErr string) func(t *testing.T) {
