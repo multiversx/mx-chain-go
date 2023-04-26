@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
+	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
@@ -100,7 +101,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errCfg
 	}
 
-	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs.Configs)
 	if errCfgOverride != nil {
 		return errCfgOverride
 	}
@@ -115,7 +116,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		}
 	}
 
-	err := applyFlags(c, cfgs, flagsConfig, log)
+	err := applyFlags(c, cfgs.Configs, flagsConfig, log)
 	if err != nil {
 		return err
 	}
@@ -149,7 +150,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	return err
 }
 
-func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
+func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.SovereignConfig, error) {
 	log.Trace("reading Configs")
 
 	configurationPaths := &config.ConfigurationPathsHolder{}
@@ -224,6 +225,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
+	sovereignNotifierPath := ctx.GlobalString(notifierConfigFile.Name)
+	sovereignNotifierConfig, err := sovereignConfig.LoadSovereignNotifierConfig(sovereignNotifierPath)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", sovereignNotifierPath)
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -237,18 +245,21 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
-	return &config.Configs{
-		GeneralConfig:            generalConfig,
-		ApiRoutesConfig:          apiRoutesConfig,
-		EconomicsConfig:          economicsConfig,
-		SystemSCConfig:           systemSCConfig,
-		RatingsConfig:            ratingsConfig,
-		PreferencesConfig:        preferencesConfig,
-		ExternalConfig:           externalConfig,
-		P2pConfig:                p2pConfig,
-		ConfigurationPathsHolder: configurationPaths,
-		EpochConfig:              epochConfig,
-		RoundConfig:              roundConfig,
+	return &sovereignConfig.SovereignConfig{
+		Configs: &config.Configs{
+			GeneralConfig:            generalConfig,
+			ApiRoutesConfig:          apiRoutesConfig,
+			EconomicsConfig:          economicsConfig,
+			SystemSCConfig:           systemSCConfig,
+			RatingsConfig:            ratingsConfig,
+			PreferencesConfig:        preferencesConfig,
+			ExternalConfig:           externalConfig,
+			P2pConfig:                p2pConfig,
+			ConfigurationPathsHolder: configurationPaths,
+			EpochConfig:              epochConfig,
+			RoundConfig:              roundConfig,
+		},
+		NotifierConfig: sovereignNotifierConfig,
 	}, nil
 }
 
