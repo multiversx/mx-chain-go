@@ -34,6 +34,9 @@ const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
 const changeOwner = "changeOwner"
 const withdraw = "withdraw"
+const claimRewards = "claimRewards"
+const reDelegateRewards = "reDelegateRewards"
+const delegate = "delegate"
 
 const (
 	active    = uint32(0)
@@ -199,7 +202,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unBondNodes(args)
 	case "unJailNodes":
 		return d.unJailNodes(args)
-	case "delegate":
+	case delegate:
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
@@ -215,7 +218,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
-	case "claimRewards":
+	case claimRewards:
 		return d.claimRewards(args)
 	case "getRewardData":
 		return d.getRewardData(args)
@@ -245,7 +248,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	case "unStakeAtEndOfEpoch":
 		return d.unStakeAtEndOfEpoch(args)
-	case "reDelegateRewards":
+	case reDelegateRewards:
 		return d.reDelegateRewards(args)
 	case "reStakeUnStakedNodes":
 		return d.reStakeUnStakedNodes(args)
@@ -2085,6 +2088,9 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if totalUnBondable.Cmp(zero) == 0 {
 		d.eei.AddReturnMessage("nothing to unBond")
+		if d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
