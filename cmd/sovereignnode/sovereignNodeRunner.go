@@ -59,6 +59,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -68,6 +69,9 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
+	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
+	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -84,11 +88,11 @@ const (
 
 // sovereignNodeRunner holds the sovereign node runner configuration and controls running of a node
 type sovereignNodeRunner struct {
-	configs *config.Configs
+	configs *sovereignConfig.SovereignConfig
 }
 
 // NewSovereignNodeRunner creates a sovereignNodeRunner instance
-func NewSovereignNodeRunner(cfgs *config.Configs) (*sovereignNodeRunner, error) {
+func NewSovereignNodeRunner(cfgs *sovereignConfig.SovereignConfig) (*sovereignNodeRunner, error) {
 	if cfgs == nil {
 		return nil, fmt.Errorf("nil configs provided")
 	}
@@ -122,7 +126,7 @@ func (snr *sovereignNodeRunner) Start() error {
 		return err
 	}
 
-	printEnableEpochs(snr.configs)
+	printEnableEpochs(snr.configs.Configs)
 
 	core.DumpGoRoutinesToLog(0, log)
 
@@ -480,7 +484,18 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	headersPool := managedDataComponents.Datapool().Headers()
+	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool, configs.NotifierConfig)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating node structure")
+
+	extraOption := func(n *node.Node) error {
+		n.AddClosableComponent(sovereignWsReceiver)
+		return nil
+	}
 	currentNode, err := node.CreateNode(
 		configs.GeneralConfig,
 		managedStatusCoreComponents,
@@ -496,6 +511,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
+		extraOption,
 	)
 	if err != nil {
 		return true, err
@@ -523,6 +539,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
+
+	go func() {
+		sovereignWsReceiver.Start()
+	}()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -640,7 +660,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
+		Configs:              configs.Configs,
 		CoreComponents:       currentNode.GetCoreComponents(),
 		DataComponents:       currentNode.GetDataComponents(),
 		StateComponents:      currentNode.GetStateComponents(),
@@ -1625,4 +1645,38 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func createSovereignWsReceiver(
+	handler notifierProcess.HeaderSubscriber,
+	config *sovereignConfig.NotifierConfig,
+) (notifierProcess.WSClient, error) {
+	argsNotifier := factory.ArgsCreateSovereignNotifier{
+		MarshallerType:      config.WebSocketConfig.MarshallerType,
+		SubscribedAddresses: config.SubscribedAddresses,
+		NumOfMainShards:     config.NumOfMainShards,
+		HasherType:          config.WebSocketConfig.HasherType,
+	}
+
+	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovereignNotifier.RegisterHandler(handler)
+	if err != nil {
+		return nil, err
+	}
+
+	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
+		WebSocketConfig: notifierCfg.WebSocketConfig{
+			Url:                config.WebSocketConfig.Url,
+			MarshallerType:     config.WebSocketConfig.MarshallerType,
+			RetryDuration:      config.WebSocketConfig.RetryDuration,
+			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+		},
+		SovereignNotifier: sovereignNotifier,
+	}
+
+	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
 }

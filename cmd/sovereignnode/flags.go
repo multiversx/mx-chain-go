@@ -111,6 +111,12 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
+	// notifierConfigFile defines a flag for the path to the sovereign notifier toml configuration file
+	notifierConfigFile = cli.StringFlag{
+		Name:  "notifier-config",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
+		Value: "./config/notifierConfig.toml",
+	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
 		Name: "port",
@@ -405,6 +411,7 @@ func getFlags() []cli.Flag {
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
+		notifierConfigFile,
 		port,
 		profileMode,
 		useHealthService,

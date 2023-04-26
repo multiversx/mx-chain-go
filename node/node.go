@@ -94,6 +94,7 @@ type Node struct {
 	statusComponents      mainFactory.StatusComponentsHolder
 
 	closableComponents        []mainFactory.Closer
+	mutClosableComponents     syncGo.RWMutex
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -1167,6 +1168,9 @@ func (n *Node) Close() error {
 
 	var closeError error = nil
 
+	n.mutClosableComponents.RLock()
+	defer n.mutClosableComponents.RUnlock()
+
 	allComponents := make([]string, 0, len(n.closableComponents))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
 		managedComponent := n.closableComponents[i]
@@ -1333,6 +1337,13 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+// AddClosableComponent adds a closable component to the internal stored components
+func (n *Node) AddClosableComponent(component mainFactory.Closer) {
+	n.mutClosableComponents.Lock()
+	n.closableComponents = append(n.closableComponents, component)
+	n.mutClosableComponents.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
