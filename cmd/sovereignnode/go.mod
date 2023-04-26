@@ -4,8 +4,8 @@ go 1.17
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230420115201-5747fbeb280f
-	github.com/multiversx/mx-chain-go v1.4.14-0.20230425120713-b4db2951470c
+	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230425092651-299f3345e822
+	github.com/multiversx/mx-chain-go v1.4.14-0.20230426222333-aac36b9faae9
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230425114830-42785c3724db
 	github.com/urfave/cli v1.22.10
