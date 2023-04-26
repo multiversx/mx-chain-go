@@ -52,8 +52,9 @@ func (dcm *DataComponentsMock) MiniBlocksProvider() MiniBlockProvider {
 }
 
 // SetBlockchain -
-func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) {
+func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) error {
 	dcm.Blkc = chain
+	return nil
 }
 
 // IsInterfaceNil -
