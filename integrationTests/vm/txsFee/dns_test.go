@@ -110,18 +110,6 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Nil(t, err)
 }
 
-func getNonce(testContext *vm.VMTestContext, address []byte) uint64 {
-	accnt, _ := testContext.Accounts.LoadAccount(address)
-	return accnt.GetNonce()
-}
-
-func getBalance(testContext *vm.VMTestContext, address []byte) *big.Int {
-	accnt, _ := testContext.Accounts.LoadAccount(address)
-	userAccnt, _ := accnt.(state.UserAccountHandler)
-
-	return userAccnt.GetBalance()
-}
-
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
@@ -274,7 +262,7 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 	log.Info("user tx", "tx", txToString(userTx))
 
 	// generate the relayed transaction
-	relayedTxData := utils.PrepareRelayerTxData(userTx) // v1 will suffice
+	relayedTxData := integrationTests.PrepareRelayedTxDataV1(userTx) // v1 will suffice
 	relayedTxGasLimit := userTxGasLimit + 1 + uint64(len(relayedTxData))
 	relayedTx := vm.CreateTransaction(
 		getNonce(args.testContextForRelayerAndUser, args.relayerAddress),
