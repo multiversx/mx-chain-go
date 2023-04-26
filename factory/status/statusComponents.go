@@ -2,7 +2,6 @@ package status
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -45,7 +44,6 @@ type StatusComponentsFactoryArgs struct {
 	EpochStartNotifier   factory.EpochStartNotifier
 	CoreComponents       factory.CoreComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StateComponents      factory.StateComponentsHolder
 	IsInImportMode       bool
@@ -61,7 +59,6 @@ type statusComponentsFactory struct {
 	forkDetector         process.ForkDetector
 	coreComponents       factory.CoreComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
-	dataComponents       factory.DataComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	stateComponents      factory.StateComponentsHolder
 	isInImportMode       bool
@@ -74,17 +71,11 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
 	}
-	if check.IfNil(args.DataComponents) {
-		return nil, errors.ErrNilDataComponentsHolder
+	if check.IfNil(args.CoreComponents.GenesisNodesSetup()) {
+		return nil, errors.ErrNilGenesisNodesSetupHandler
 	}
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
-	}
-	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for address", errors.ErrNilPubKeyConverter)
-	}
-	if check.IfNil(args.CoreComponents.ValidatorPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for validator", errors.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
@@ -98,9 +89,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
-	}
 
 	return &statusComponentsFactory{
 		config:               args.Config,
@@ -111,7 +99,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		epochStartNotifier:   args.EpochStartNotifier,
 		coreComponents:       args.CoreComponents,
 		statusCoreComponents: args.StatusCoreComponents,
-		dataComponents:       args.DataComponents,
 		networkComponents:    args.NetworkComponents,
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
