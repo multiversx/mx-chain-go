@@ -24,8 +24,8 @@ const (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "Tool to check data integration validity into firehose ingestion process"
-	app.Usage = "This tool only works if a local testnet and a firehose node are started. See firehose-node.sh and local-testnet.sh scripts"
+	app.Name = "Tool to send a move balance transaction to one of the subscribed sovereign addresses"
+	app.Usage = "This tool only works if a local testnet, a sovereign shard and a sovereign notifier are started . See README.md"
 	app.Action = func(c *cli.Context) error {
 		return startProcess()
 	}
