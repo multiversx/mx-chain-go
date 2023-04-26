@@ -118,6 +118,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 }
 
@@ -1022,6 +1023,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSetGuardianEnabledField
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (stub *EnableEpochsHandlerStub) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsKeepExecOrderOnCreatedSCRsEnabledField
 }
 
 // IsMultiClaimOnDelegationEnabled -
