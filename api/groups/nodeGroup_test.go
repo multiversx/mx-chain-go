@@ -377,7 +377,6 @@ func TestQueryDebug_ShouldBindJSONErrorsShouldErr(t *testing.T) {
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
 			return nil, expectedErr
@@ -447,7 +446,6 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
 			return nil, expectedErr
@@ -539,7 +537,6 @@ func TestEpochStartData_InvalidEpochShouldErr(t *testing.T) {
 func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
 			return nil, expectedErr
@@ -703,7 +700,6 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 		assert.True(t, keyAndValueFoundInResponse)
 
-		expectedErr := errors.New("expected error")
 		newFacade := mock.FacadeStub{
 			StatusMetricsHandler: func() external.StatusMetricsHandler {
 				return &testscommon.StatusMetricsStub{

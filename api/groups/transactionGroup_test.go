@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -205,7 +206,7 @@ func TestTransactionsGroup_getTransaction(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetTransactionHandler: func(hash string, withEvents bool) (i *dataTx.ApiTransactionResult, e error) {
 				return &dataTx.ApiTransactionResult{
 					Sender:       sender,
@@ -217,20 +218,16 @@ func TestTransactionsGroup_getTransaction(t *testing.T) {
 			},
 		}
 
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/transaction/"+hash, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := transactionResponse{}
-		loadResponse(resp.Body, &response)
-
+		response := &transactionResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/"+hash,
+			"GET",
+			nil,
+			response,
+		)
 		txResp := response.Data.TxResp
-		assert.Equal(t, http.StatusOK, resp.Code)
 		assert.Equal(t, sender, txResp.Sender)
 		assert.Equal(t, receiver, txResp.Receiver)
 		assert.Equal(t, value, txResp.Value)
@@ -330,19 +327,16 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 				return nil
 			},
 		}
-		transactionGroup, err := groups.NewTransactionGroup(facade)
-		require.NoError(t, err)
 
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-		req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonTxStr)))
-
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := sendSingleTxResponse{}
-		loadResponse(resp.Body, &response)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &sendSingleTxResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/send",
+			"POST",
+			bytes.NewBuffer([]byte(jsonTxStr)),
+			response,
+		)
 		assert.Empty(t, response.Error)
 		assert.Equal(t, hexTxHash, response.Data.TxHash)
 	})
@@ -449,11 +443,6 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			},
 		}
 
-		transactionGroup, err := groups.NewTransactionGroup(facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
 		tx0 := groups.SendTxRequest{
 			Sender:    "sender1",
 			Receiver:  "receiver1",
@@ -470,15 +459,15 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 
 		jsonBytes, _ := json.Marshal(txs)
 
-		req, _ := http.NewRequest("POST", "/transaction/send-multiple", bytes.NewBuffer(jsonBytes))
-
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		txCostResp := sendMultipleTxsResponse{}
-		loadResponse(resp.Body, &txCostResp)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &sendMultipleTxsResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/send-multiple",
+			"POST",
+			bytes.NewBuffer(jsonBytes),
+			response,
+		)
 		assert.True(t, createTxWasCalled)
 		assert.True(t, sendBulkTxsWasCalled)
 	})
@@ -536,7 +525,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 
 		expectedGasLimit := uint64(37)
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
 				return &dataTx.Transaction{}, nil, nil
 			},
@@ -547,11 +536,6 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 				}, nil
 			},
 		}
-
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
 
 		tx0 := groups.SendTxRequest{
 			Sender:    "sender1",
@@ -566,16 +550,16 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 
 		jsonBytes, _ := json.Marshal(tx0)
 
-		req, _ := http.NewRequest("POST", "/transaction/cost", bytes.NewBuffer(jsonBytes))
-
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		txCostResp := transactionCostResponse{}
-		loadResponse(resp.Body, &txCostResp)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.Equal(t, expectedGasLimit, txCostResp.Data.Cost)
+		response := &transactionCostResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/cost",
+			"POST",
+			bytes.NewBuffer(jsonBytes),
+			response,
+		)
+		assert.Equal(t, expectedGasLimit, response.Data.Cost)
 	})
 }
 
@@ -661,7 +645,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 
 		processTxWasCalled := false
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
 				processTxWasCalled = true
 				return &txSimData.SimulationResults{
@@ -680,11 +664,6 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			},
 		}
 
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
 		tx := groups.SendTxRequest{
 			Sender:    "sender1",
 			Receiver:  "receiver1",
@@ -697,17 +676,17 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 		}
 		jsonBytes, _ := json.Marshal(tx)
 
-		req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer(jsonBytes))
-
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		simulateResponse := simulateTxResponse{}
-		loadResponse(resp.Body, &simulateResponse)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
+		response := &simulateTxResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/simulate",
+			"POST",
+			bytes.NewBuffer(jsonBytes),
+			response,
+		)
 		assert.True(t, processTxWasCalled)
-		assert.Equal(t, string(shared.ReturnCodeSuccess), simulateResponse.Code)
+		assert.Equal(t, string(shared.ReturnCodeSuccess), response.Code)
 	})
 }
 
@@ -813,25 +792,23 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 				},
 			},
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetTransactionsPoolCalled: func(fields string) (*common.TransactionsPoolAPIResponse, error) {
 				return expectedTxPool, nil
 			},
 		}
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
 
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/transaction/pool", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		txsPoolResp := txsPoolResponse{}
-		loadResponse(resp.Body, &txsPoolResp)
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.Empty(t, txsPoolResp.Error)
-		assert.Equal(t, *expectedTxPool, txsPoolResp.Data.TxPool)
+		response := &txsPoolResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Empty(t, response.Error)
+		assert.Equal(t, *expectedTxPool, response.Data.TxPool)
 	})
 	t.Run("should work for sender", func(t *testing.T) {
 		t.Parallel()
@@ -857,25 +834,23 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 				},
 			},
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetTransactionsPoolForSenderCalled: func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error) {
 				return expectedResp, nil
 			},
 		}
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
 
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		txsForSenderResp := poolForSenderResponse{}
-		loadResponse(resp.Body, &txsForSenderResp)
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.Empty(t, txsForSenderResp.Error)
-		assert.Equal(t, *expectedResp, txsForSenderResp.Data.TxPool)
+		response := &poolForSenderResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool"+query,
+			"GET",
+			nil,
+			response,
+		)
+		assert.Empty(t, response.Error)
+		assert.Equal(t, *expectedResp, response.Data.TxPool)
 	})
 	t.Run("should work for last pool nonce", func(t *testing.T) {
 		t.Parallel()
@@ -883,25 +858,23 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 		expectedSender := "sender"
 		query := "?by-sender=" + expectedSender + "&last-nonce=true"
 		expectedNonce := uint64(33)
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetLastPoolNonceForSenderCalled: func(sender string) (uint64, error) {
 				return expectedNonce, nil
 			},
 		}
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
 
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		lastPoolNonceResp := lastPoolNonceForSenderResponse{}
-		loadResponse(resp.Body, &lastPoolNonceResp)
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.Empty(t, lastPoolNonceResp.Error)
-		assert.Equal(t, expectedNonce, lastPoolNonceResp.Data.Nonce)
+		response := &lastPoolNonceForSenderResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool"+query,
+			"GET",
+			nil,
+			response,
+		)
+		assert.Empty(t, response.Error)
+		assert.Equal(t, expectedNonce, response.Data.Nonce)
 	})
 	t.Run("should work for nonce gaps", func(t *testing.T) {
 		t.Parallel()
@@ -917,28 +890,23 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 				},
 			},
 		}
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetTransactionsPoolNonceGapsForSenderCalled: func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 				return expectedNonceGaps, nil
 			},
 		}
 
-		transactionGroup, err := groups.NewTransactionGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/transaction/pool"+query, nil)
-
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		nonceGapsResp := txPoolNonceGapsForSenderResponse{}
-		loadResponse(resp.Body, &nonceGapsResp)
-
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.Empty(t, nonceGapsResp.Error)
-		assert.Equal(t, *expectedNonceGaps, nonceGapsResp.Data.NonceGaps)
+		response := &txPoolNonceGapsForSenderResponse{}
+		loadTransactionGroupResponse(
+			t,
+			facade,
+			"/transaction/pool"+query,
+			"GET",
+			nil,
+			response,
+		)
+		assert.Empty(t, response.Error)
+		assert.Equal(t, *expectedNonceGaps, response.Data.NonceGaps)
 	})
 }
 
@@ -1046,6 +1014,28 @@ func TestTransactionsGroup_IsInterfaceNil(t *testing.T) {
 
 	transactionGroup, _ = groups.NewTransactionGroup(&mock.FacadeStub{})
 	require.False(t, transactionGroup.IsInterfaceNil())
+}
+
+func loadTransactionGroupResponse(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	method string,
+	body io.Reader,
+	destination interface{},
+) {
+	transactionGroup, err := groups.NewTransactionGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+	req, _ := http.NewRequest(method, url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	loadResponse(resp.Body, destination)
 }
 
 func testTransactionGroupErrorScenario(
