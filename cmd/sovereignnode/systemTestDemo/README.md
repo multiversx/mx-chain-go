@@ -59,14 +59,26 @@ cd scripts
 ```
 
 If you want to send transactions from main chain -> sovereign chain, inside `systemTestDemo` folder, you need to:
+
 ```bash
 go build
 ./sovereignChecker
 ```
+
 Once transaction is executed, one should see a similar log:
+
 ```
 INFO [2023-04-26 14:03:03.196]   loaded                                   address = erd1s3uetuj3g86fx062j9tk9pdsmet7vksrk059xj86drk639dfenys728gme file = scripts/testnet/testnet-local/sandbox/proxy/config/walletKey.pem 
 INFO [2023-04-26 14:03:03.199]   sent transaction                         tx hash = cb23013a0117c6d05d0a27faedcee01fd56e2821197208f6dffa8af87b1a4231 
 INFO [2023-04-26 14:03:03.199]   waiting 5 rounds...                      
 INFO [2023-04-26 14:03:28.237]   finished successfully                    tx result from api = {"data":{"tran...
+```
+
+Once you finished testing, you can close the sovereign notifier (can use CTRL+C) and both the local testnet and the
+sovereign shard, by executing:
+
+```bash
+cd scripts
+./local-testnet.sh stop
+./sovereign-shard.sh stop
 ```
