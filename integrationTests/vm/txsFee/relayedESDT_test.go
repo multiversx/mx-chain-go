@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -31,11 +32,10 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), gasPrice, gasLimit)
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -77,11 +77,10 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100000001), gasPrice, gasLimit)
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 

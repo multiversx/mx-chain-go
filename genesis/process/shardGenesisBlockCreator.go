@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -143,6 +144,7 @@ func createGenesisConfig() config.EnableEpochs {
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
+		SetGuardianEnableEpoch:                            unreachableEpoch,
 	}
 }
 
@@ -418,6 +420,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableEpochsHandler:       enableEpochsHandler,
 		AutomaticCrawlerAddresses: [][]byte{make([]byte, 32)},
 		MaxNumNodesInTransferRole: math.MaxUint32,
+		GuardedAccountHandler:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -600,6 +603,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ScrForwarder:        scForwarder,
 		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    arg.Core.TxVersionChecker(),
+		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

@@ -50,8 +50,8 @@ const (
 	consensusGroupFormat            = "%s_%v_%v_%v"
 )
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
@@ -88,16 +88,19 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 						MaxGasLimitPerMetaMiniBlock: "10000000",
 						MaxGasLimitPerTx:            "10000000",
 						MinGasLimit:                 "10",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				MinGasPrice:      "10",
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
+				MinGasPrice:            "10",
+				GasPerDataByte:         "1",
+				GasPriceModifier:       1.0,
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -1969,7 +1972,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 			go func() {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				close(ch.LeavesChan)
-				close(ch.ErrChan)
+				ch.ErrChan.Close()
 			}()
 
 			return nil
@@ -1983,7 +1986,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		return nil, expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
-	arguments.PubkeyConv = mock.NewPubkeyConverterMock(4)
+	arguments.PubkeyConv = testscommon.NewPubkeyConverterMock(4)
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	validatorInfos, _ := validatorStatistics.GetValidatorInfoForRootHash(hash)
 
@@ -2032,7 +2035,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 				close(ch.LeavesChan)
-				close(ch.ErrChan)
+				ch.ErrChan.Close()
 			}()
 
 			return nil
@@ -2078,7 +2081,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {
-					ch.ErrChan <- expectedErr
+					ch.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(ch.LeavesChan)
 				}()
 
@@ -2108,7 +2111,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 					close(ch.LeavesChan)
-					close(ch.ErrChan)
+					ch.ErrChan.Close()
 				}()
 
 				return nil
@@ -2555,7 +2558,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
 			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
 			close(ch.LeavesChan)
-			close(ch.ErrChan)
+			ch.ErrChan.Close()
 		}()
 
 		return nil

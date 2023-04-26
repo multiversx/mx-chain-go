@@ -1884,11 +1884,11 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
+		scGenerated = append(scGenerated, sc.pubkeyConv.SilentEncode(addr, log))
 	}
 
 	log.Debug("SmartContract deployed",
-		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"owner", sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log),
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
@@ -2879,11 +2879,14 @@ func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
 		return
 	}
 
+	receiver, _ := sc.pubkeyConv.Encode(tx.GetRcvAddr())
+	sender, _ := sc.pubkeyConv.Encode(tx.GetSndAddr())
+
 	logCounters.Trace("blockchain hook counters",
 		"counters", sc.getBlockchainHookCountersString(),
 		"tx hash", sc.computeTxHashUnsafe(tx),
-		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
-		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"receiver", receiver,
+		"sender", sender,
 		"value", tx.GetValue().String(),
 		"data", tx.GetData(),
 	)

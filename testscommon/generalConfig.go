@@ -36,6 +36,7 @@ func GetGeneralConfig() config.Config {
 			Length:          32,
 			Type:            "bech32",
 			SignatureLength: 0,
+			Hrp:             "erd",
 		},
 		ValidatorPubkeyConverter: config.PubkeyConfig{
 			Length:          96,
@@ -54,6 +55,7 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
+			SetGuardianEpochsDelay:               20,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,

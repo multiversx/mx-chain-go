@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/config"
@@ -1737,7 +1738,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash)
 	if err != nil {
@@ -1766,7 +1767,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			if len(rh) != 0 {
 				dataTrie := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-					ErrChan:    make(chan error, 1),
+					ErrChan:    errChan.NewErrChanWrapper(),
 				}
 				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
 				if errDataTrieGet != nil {
@@ -1778,7 +1779,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 					currentSize += len(lf.Value())
 				}
 
-				err = common.GetErrorFromChanNonBlocking(dataTrie.ErrChan)
+				err = dataTrie.ErrChan.ReadFromChanNonBlocking()
 				if err != nil {
 					return err
 				}
@@ -1794,7 +1795,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
 	}
 
-	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}

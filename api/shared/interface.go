@@ -73,6 +73,7 @@ type FacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
@@ -98,13 +99,13 @@ type FacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatings() string
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
-	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)

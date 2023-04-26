@@ -6,14 +6,16 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
@@ -26,7 +28,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -43,7 +45,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -60,7 +62,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -77,7 +79,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		nil,
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -94,7 +96,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		createMockPubkeyConverter(),
 		nil,
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -111,7 +113,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) 
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		nil,
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -145,7 +147,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -163,7 +165,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&storageStubs.ChainStorerStub{},
 		dataRetrieverMock.NewPoolsHolderMock(),
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 	)
 
 	assert.Nil(t, err)

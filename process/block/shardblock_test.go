@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
@@ -49,8 +50,8 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewShardProcessor
@@ -447,11 +448,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -668,11 +669,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -2580,7 +2581,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
@@ -2688,7 +2689,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
@@ -3059,11 +3060,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -3261,7 +3262,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},

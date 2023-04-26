@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,8 +68,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
-	n1, n2, err := inf.CreateTransaction(uint64(0), "", "", []byte{0}, "",
-		[]byte{0}, uint64(0), uint64(0), []byte{0}, "", "", uint32(0), uint32(0))
+	n1, n2, err := inf.CreateTransaction(&external.ArgsCreateTransaction{})
 	assert.Nil(t, n1)
 	assert.Nil(t, n2)
 	assert.Equal(t, errNodeStarting, err)
@@ -227,6 +227,10 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 
 	nonce, err := inf.GetLastPoolNonceForSender("")
 	assert.Equal(t, uint64(0), nonce)
+	assert.Equal(t, errNodeStarting, err)
+
+	guardianData, _, err := inf.GetGuardianData("", api.AccountQueryOptions{})
+	assert.Equal(t, api.GuardianData{}, guardianData)
 	assert.Equal(t, errNodeStarting, err)
 
 	assert.False(t, check.IfNil(inf))
