@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
+const minNumShards = 2
+
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
 	path                string
@@ -16,7 +18,6 @@ type persisterCreator struct {
 	maxOpenFiles        int
 	shardIDProviderType string
 	numShards           int32
-	shardIDProvider     storage.ShardIDProvider
 }
 
 func newPersisterCreator(config config.DBConfig) (*persisterCreator, error) {
@@ -29,22 +30,20 @@ func newPersisterCreator(config config.DBConfig) (*persisterCreator, error) {
 		numShards:           config.NumShards,
 	}
 
-	shardIDProvider, err := pc.createShardIDProvider()
-	if err != nil {
-		return nil, err
-	}
-	pc.shardIDProvider = shardIDProvider
-
 	return pc, nil
 }
 
 // Create will create the persister for the provided path
 func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
-	if pc.numShards < 2 {
+	if pc.numShards < minNumShards {
 		return pc.CreateBasePersister(path)
 	}
 
-	return database.NewShardedPersister(path, pc, pc.shardIDProvider)
+	shardIDProvider, err := pc.createShardIDProvider()
+	if err != nil {
+		return nil, err
+	}
+	return database.NewShardedPersister(path, pc, shardIDProvider)
 }
 
 // CreateBasePersister will create base the persister for the provided path

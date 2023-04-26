@@ -547,7 +547,8 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfActivePersisters: numOfActivePersisters,
 	}
 
-	persisterFactory, err := NewPersisterFactory(storageConfig.DB)
+	dbConfigHandler := NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
 	if err != nil {
 		return pruning.StorerArgs{}, err
 	}

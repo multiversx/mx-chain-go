@@ -194,3 +194,9 @@ type ShardIDProvider interface {
 
 // PersisterCreator defines the behavour of a component which is able to create a persister
 type PersisterCreator = types.PersisterCreator
+
+type DBConfigHandler interface {
+	GetDBConfig(path string) (*config.DBConfig, error)
+	SaveDBConfigToFilePath(path string, dbConfig *config.DBConfig) error
+	IsInterfaceNil() bool
+}

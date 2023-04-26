@@ -48,7 +48,8 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	persisterFactory, err := NewPersisterFactory(dbConfig)
+	dbConfigHandler := NewDBConfigHandler(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,8 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory, err := NewPersisterFactory(dbConfig)
+	dbConfigHandler := NewDBConfigHandler(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
 	if err != nil {
 		return nil, err
 	}
