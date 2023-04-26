@@ -1,14 +1,7 @@
 package postprocess
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // TestIntermediateResProc extends intermediateResultsProcessor and is used in integration tests
@@ -20,16 +13,9 @@ type TestIntermediateResProc struct {
 
 // NewTestIntermediateResultsProcessor creates a new instance of TestIntermediateResProc
 func NewTestIntermediateResultsProcessor(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	coordinator sharding.Coordinator,
-	pubkeyConv core.PubkeyConverter,
-	store dataRetriever.StorageService,
-	blockType block.Type,
-	currTxs dataRetriever.TransactionCacher,
-	economicsFee process.FeeHandler,
+	args ArgsNewIntermediateResultsProcessor,
 ) (*TestIntermediateResProc, error) {
-	interimProc, err := NewIntermediateResultsProcessor(hasher, marshalizer, coordinator, pubkeyConv, store, blockType, currTxs, economicsFee)
+	interimProc, err := NewIntermediateResultsProcessor(args)
 	return &TestIntermediateResProc{interimProc}, err
 }
 
