@@ -53,7 +53,8 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+	dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 	if err != nil {
 		return nil, err
 	}

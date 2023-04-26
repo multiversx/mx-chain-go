@@ -125,7 +125,8 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory, err := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	dbConfigHandler := factory.NewDBConfigHandler(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 	if err != nil {
 		return storage.LatestDataFromStorage{}, err
 	}

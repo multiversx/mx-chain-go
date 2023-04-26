@@ -43,7 +43,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
 	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
-		log.Debug("getDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
+		log.Debug("GetDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
 		return dbConfigFromFile, nil
 	}
 
@@ -56,7 +56,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 			MaxOpenFiles:      defaultMaxOpenFiles,
 		}
 
-		log.Debug("getDBConfig: loaded default db config")
+		log.Debug("GetDBConfig: loaded default db config")
 		return dbConfig, nil
 	}
 
@@ -69,7 +69,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		NumShards:           dh.numShards,
 	}
 
-	log.Debug("getDBConfig: loaded db config from main config file")
+	log.Debug("GetDBConfig: loaded db config from main config file")
 	return dbConfig, nil
 }
 
@@ -79,7 +79,7 @@ func (dh *dbConfigHandler) SaveDBConfigToFilePath(path string, dbConfig *config.
 	if err != nil {
 		if os.IsNotExist(err) {
 			// in memory db, no files available
-			log.Debug("createPersisterConfigFile: provided path not available, config file will not be created")
+			log.Debug("SaveDBConfigToFilePath: provided path not available, config file will not be created")
 			return nil
 		}
 
