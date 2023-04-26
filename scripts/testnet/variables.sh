@@ -12,7 +12,7 @@ export USE_PROXY=1
 
 # Enable the MultiversX Transaction Generator. Note that this is a private
 # repository (mx-chain-txgen-go).
-export USE_TXGEN=0
+export USE_TXGEN=1
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -38,7 +38,7 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=10
+export NODE_NICENESS=
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
@@ -56,7 +56,7 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
-export SHARDCOUNT=2
+export SHARDCOUNT=1
 export SHARD_VALIDATORCOUNT=3
 export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=3
@@ -98,10 +98,10 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=1
+export USETMUX=0
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then
@@ -141,7 +141,7 @@ export NUMACCOUNTS="250"
 # Whether txgen should regenerate its accounts when starting, or not.
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
-export TXGEN_REGENERATE_ACCOUNTS=0
+export TXGEN_REGENERATE_ACCOUNTS=1
 
 # COPY_BACK_CONFIGS when set to 1 will copy back the configs and keys to the ./cmd/node/config directory
 # in order to have a node in the IDE that can run a node in debug mode but in the same network with the rest of the nodes
