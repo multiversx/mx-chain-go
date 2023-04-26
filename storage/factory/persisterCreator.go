@@ -11,7 +11,6 @@ const minNumShards = 2
 
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
-	path                string
 	dbType              string
 	batchDelaySeconds   int
 	maxBatchSize        int

@@ -88,6 +88,38 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &expectedDBConfig, conf)
 	})
+
+	t.Run("getDBConfig twice, should load from config file if file available", func(t *testing.T) {
+		t.Parallel()
+
+		expectedDBConfig := createDefaultDBConfig()
+
+		dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
+
+		dirPath := t.TempDir()
+
+		conf, err := dbConfigHandler.GetDBConfig(dirPath)
+		require.Nil(t, err)
+		require.Equal(t, &expectedDBConfig, conf)
+
+		newDBConfig := config.DBConfig{
+			Type:              "type1",
+			BatchDelaySeconds: 1,
+			MaxBatchSize:      2,
+			MaxOpenFiles:      3,
+			NumShards:         4,
+		}
+
+		configPath := factory.GetPersisterConfigFilePath(dirPath)
+
+		err = core.SaveTomlFile(expectedDBConfig, configPath)
+		require.Nil(t, err)
+
+		dbConfigHandler = factory.NewDBConfigHandler(newDBConfig)
+		conf, err = dbConfigHandler.GetDBConfig(dirPath)
+		require.Nil(t, err)
+		require.Equal(t, &expectedDBConfig, conf)
+	})
 }
 
 func TestDBConfigHandler_SaveDBConfigToFilePath(t *testing.T) {

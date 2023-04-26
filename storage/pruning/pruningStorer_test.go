@@ -1051,7 +1051,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	fmt.Println(testDir)
 	args := getDefaultArgs()
 
-	persisterFactory, err := factory.NewPersisterFactory(
+	dbConfigHandler := factory.NewDBConfigHandler(
 		config.DBConfig{
 			FilePath:          filepath.Join(testDir, dbName),
 			Type:              "LvlDBSerial",
@@ -1060,6 +1060,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 			BatchDelaySeconds: 2,
 		},
 	)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 	require.Nil(t, err)
 
 	args.PersisterFactory = persisterFactory
