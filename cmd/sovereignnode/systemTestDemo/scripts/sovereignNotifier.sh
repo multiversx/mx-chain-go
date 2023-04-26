@@ -3,7 +3,7 @@
 CURRENT_DIR=$(pwd)
 SANDBOX_PATH=$CURRENT_DIR/testnet/testnet-local/sandbox
 KEY_GENERATOR_PATH=$CURRENT_DIR/testnet/mx-chain-go/cmd/keygenerator
-EXTERNAL_CONFIG_DIR=$CURRENT_DIR/sovereignObserver/config/external.toml
+EXTERNAL_CONFIG_DIR=$CURRENT_DIR/sovereignNotifier/config/external.toml
 
 createObserverKey(){
   pushd $CURRENT_DIR
@@ -16,13 +16,13 @@ createObserverKey(){
 }
 
 resetWorkingDir(){
-  rm -rf sovereignObserver
-  mkdir "sovereignObserver/"
-  cd "sovereignObserver/"
+  rm -rf sovereignNotifier
+  mkdir "sovereignNotifier/"
+  cd "sovereignNotifier/"
   mkdir "config/"
 }
 
-setupSovereignObserver(){
+setupSovereignNotifier(){
   SOVEREIGN_OBSERVER_PATH=$(pwd)
   cp $SANDBOX_PATH/node/node $SOVEREIGN_OBSERVER_PATH
   cp -R $SANDBOX_PATH/node/config $SOVEREIGN_OBSERVER_PATH
@@ -37,4 +37,4 @@ setupSovereignObserver(){
 
 createObserverKey
 resetWorkingDir
-setupSovereignObserver
+setupSovereignNotifier

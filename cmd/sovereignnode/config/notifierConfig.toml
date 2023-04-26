@@ -1,6 +1,6 @@
 NumMainShards = 1
 
-SubscribedAddresses = ["erd1qqqqqqqqqqqqqpgqt6ltx52ukss9d2qag2k67at28a36xc9lkp2sr06394"]
+SubscribedAddresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"]
 
 [WebSocket]
     Url = "localhost:22111"
