@@ -198,13 +198,14 @@ func (scsbt *sovereignChainShardBlockTrack) isExtendedShardHeaderOutOfRange(exte
 func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
 
+	log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized: GetLastCrossNotarizedHeader", "nonce", lastCrossNotarizedHeader.GetNonce())
+
 	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
 		lastCrossNotarizedHeader != nil && lastCrossNotarizedHeader.GetNonce() == 0
 	if isFirstCrossNotarizedHeader {
-		trackedHeaders, _ := scsbt.GetTrackedHeaders(core.SovereignChainShardId)
-		if len(trackedHeaders) > 0 {
-			lastCrossNotarizedHeader = trackedHeaders[0]
-		}
+		lastCrossNotarizedHeader = scsbt.getFirstTrackedHeader()
+		log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized: getFirstTrackedHeader", "nonce", lastCrossNotarizedHeader.GetNonce())
+
 	} else {
 		if err != nil {
 			return nil, nil, err
@@ -213,7 +214,23 @@ func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFrom
 
 	hdrsForShard, hdrsHashesForShard := scsbt.ComputeLongestChain(core.SovereignChainShardId, lastCrossNotarizedHeader)
 
+	log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized: ComputeLongestChain", "num headers", len(hdrsForShard))
+	for index := range hdrsForShard {
+		log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized", "round", hdrsForShard[index].GetRound(), "nonce", hdrsForShard[index].GetNonce(), "hash", hdrsHashesForShard[index])
+	}
+
 	return hdrsForShard, hdrsHashesForShard, nil
+}
+
+func (scsbt *sovereignChainShardBlockTrack) getFirstTrackedHeader() data.HeaderHandler {
+	trackedHeaders, _ := scsbt.GetTrackedHeaders(core.SovereignChainShardId)
+	for _, trackedHeader := range trackedHeaders {
+		if trackedHeader.GetNonce() > 0 {
+			return trackedHeader
+		}
+	}
+
+	return nil
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers
