@@ -131,7 +131,8 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 func (scsbt *sovereignChainShardBlockTrack) shouldAddExtendedShardHeader(extendedShardHeaderHandler data.ShardHeaderExtendedHandler) bool {
 	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.SovereignChainShardId)
 
-	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil)
+	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
+		lastNotarizedHeader != nil && lastNotarizedHeader.GetNonce() == 0
 	if isFirstCrossNotarizedHeader {
 		return true
 	}
@@ -176,7 +177,8 @@ func (scsbt *sovereignChainShardBlockTrack) doWhitelistWithExtendedShardHeaderIf
 func (scsbt *sovereignChainShardBlockTrack) isExtendedShardHeaderOutOfRange(extendedShardHeaderHandler data.ShardHeaderExtendedHandler) bool {
 	lastCrossNotarizedHeader, _, err := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
 
-	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil)
+	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
+		lastCrossNotarizedHeader != nil && lastCrossNotarizedHeader.GetNonce() == 0
 	if isFirstCrossNotarizedHeader {
 		return false
 	}
@@ -195,8 +197,18 @@ func (scsbt *sovereignChainShardBlockTrack) isExtendedShardHeaderOutOfRange(exte
 // ComputeLongestExtendedShardChainFromLastNotarized returns the longest valid chain for extended shard chain from its last cross notarized header
 func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
-	if err != nil {
-		return nil, nil, err
+
+	isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
+		lastCrossNotarizedHeader != nil && lastCrossNotarizedHeader.GetNonce() == 0
+	if isFirstCrossNotarizedHeader {
+		trackedHeaders, _ := scsbt.GetTrackedHeaders(core.SovereignChainShardId)
+		if len(trackedHeaders) > 0 {
+			lastCrossNotarizedHeader = trackedHeaders[0]
+		}
+	} else {
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	hdrsForShard, hdrsHashesForShard := scsbt.ComputeLongestChain(core.SovereignChainShardId, lastCrossNotarizedHeader)

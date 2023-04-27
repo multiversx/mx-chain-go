@@ -52,7 +52,8 @@ func (scbp *sovereignChainBlockProcessor) shouldProcessReceivedHeader(headerHand
 	if isExtendedShardHeaderReceived {
 		lastNotarizedHeader, _, err = scbp.crossNotarizer.GetLastNotarizedHeader(core.SovereignChainShardId)
 
-		isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil)
+		isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
+			lastNotarizedHeader != nil && lastNotarizedHeader.GetNonce() == 0
 		if isFirstCrossNotarizedHeader {
 			return true
 		}

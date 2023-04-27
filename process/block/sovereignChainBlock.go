@@ -149,7 +149,6 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		nextCrossNotarizedHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, nextCrossNotarizedHeader)
 
 		headersPool.AddHeader(nextCrossNotarizedHeaderHash, nextCrossNotarizedHeader)
-		//scbp.blockTracker.AddTrackedHeader(nextCrossNotarizedHeader, nextCrossNotarizedHeaderHash)
 
 		lastHeader = header
 		lastHeaderHash, _ = core.CalculateHash(scbp.marshalizer, scbp.hasher, header)
