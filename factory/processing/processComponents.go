@@ -144,7 +144,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportStartHandler     update.ImportStartHandler
 	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
-	SnapshotsEnabled       bool
+	FlagsConfig            config.ContextFlagsConfig
 
 	Data                 factory.DataComponentsHolder
 	CoreData             factory.CoreComponentsHolder
@@ -177,7 +177,7 @@ type processComponentsFactory struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
-	snapshotsEnabled       bool
+	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                 factory.DataComponentsHolder
@@ -224,7 +224,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
-		snapshotsEnabled:       args.SnapshotsEnabled,
+		flagsConfig:            args.FlagsConfig,
 	}, nil
 }
 
@@ -1505,7 +1505,8 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
-			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
@@ -1559,7 +1560,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {
@@ -1592,7 +1593,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 	requestersContainerFactory, err := storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	if err != nil {

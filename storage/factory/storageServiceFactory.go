@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -51,6 +52,7 @@ type StorageServiceFactory struct {
 	storageType                   StorageServiceType
 	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
+	repopulateTokensSupplies      bool
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -67,6 +69,7 @@ type StorageServiceFactoryArgs struct {
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
 	SnapshotsEnabled              bool
+	RepopulateTokensSupplies      bool
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -101,6 +104,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		storageType:                   args.StorageType,
 		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.SnapshotsEnabled,
+		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
 	}, nil
 }
 
@@ -291,12 +295,12 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(psf.shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 
-	err = psf.setupDbLookupExtensions(store)
+	err = psf.setUpDbLookupExtensions(store)
 	if err != nil {
 		return nil, err
 	}
 
-	err = psf.setupLogsAndEventsStorer(store)
+	err = psf.setUpLogsAndEventsStorer(store)
 	if err != nil {
 		return nil, err
 	}
@@ -351,12 +355,12 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
 
-	err = psf.setupDbLookupExtensions(store)
+	err = psf.setUpDbLookupExtensions(store)
 	if err != nil {
 		return nil, err
 	}
 
-	err = psf.setupLogsAndEventsStorer(store)
+	err = psf.setUpLogsAndEventsStorer(store)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +396,7 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	return psf.createTriePruningPersister(pruningStorageArgs)
 }
 
-func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) error {
+func (psf *StorageServiceFactory) setUpLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) error {
 	var txLogsUnit storage.Storer
 	txLogsUnit = storageDisabled.NewStorer()
 
@@ -414,7 +418,7 @@ func (psf *StorageServiceFactory) setupLogsAndEventsStorer(chainStorer *dataRetr
 	return nil
 }
 
-func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetriever.ChainStorer) error {
+func (psf *StorageServiceFactory) setUpDbLookupExtensions(chainStorer *dataRetriever.ChainStorer) error {
 	if !psf.generalConfig.DbLookupExtensions.Enabled {
 		return nil
 	}
@@ -477,18 +481,39 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 
 	chainStorer.AddStorer(dataRetriever.EpochByHashUnit, epochByHashUnit)
 
-	esdtSuppliesConfig := psf.generalConfig.DbLookupExtensions.ESDTSuppliesStorageConfig
-	esdtSuppliesDbConfig := GetDBFromConfig(esdtSuppliesConfig.DB)
-	esdtSuppliesDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, esdtSuppliesConfig.DB.FilePath)
-	esdtSuppliesCacherConfig := GetCacherFromConfig(esdtSuppliesConfig.Cache)
-	esdtSuppliesUnit, err := storageunit.NewStorageUnitFromConf(esdtSuppliesCacherConfig, esdtSuppliesDbConfig)
+	return psf.setUpEsdtSuppliesStorer(chainStorer, shardID)
+}
+
+func (psf *StorageServiceFactory) setUpEsdtSuppliesStorer(chainStorer *dataRetriever.ChainStorer, shardIDStr string) error {
+	esdtSuppliesUnit, err := psf.createEsdtSuppliesUnit(shardIDStr)
 	if err != nil {
 		return fmt.Errorf("%w for DbLookupExtensions.ESDTSuppliesStorageConfig", err)
 	}
 
-	chainStorer.AddStorer(dataRetriever.ESDTSuppliesUnit, esdtSuppliesUnit)
+	if psf.repopulateTokensSupplies {
+		// if the flag is set, then we need to clear the storer at this point. The easiest way is to destroy it and then create it again
+		err = esdtSuppliesUnit.DestroyUnit()
+		if err != nil {
+			return err
+		}
 
+		time.Sleep(time.Second) // making sure the unit was properly closed and destroyed
+		esdtSuppliesUnit, err = psf.createEsdtSuppliesUnit(shardIDStr)
+		if err != nil {
+			return err
+		}
+	}
+
+	chainStorer.AddStorer(dataRetriever.ESDTSuppliesUnit, esdtSuppliesUnit)
 	return nil
+}
+
+func (psf *StorageServiceFactory) createEsdtSuppliesUnit(shardIDStr string) (storage.Storer, error) {
+	esdtSuppliesConfig := psf.generalConfig.DbLookupExtensions.ESDTSuppliesStorageConfig
+	esdtSuppliesDbConfig := GetDBFromConfig(esdtSuppliesConfig.DB)
+	esdtSuppliesDbConfig.FilePath = psf.pathManager.PathForStatic(shardIDStr, esdtSuppliesConfig.DB.FilePath)
+	esdtSuppliesCacherConfig := GetCacherFromConfig(esdtSuppliesConfig.Cache)
+	return storageunit.NewStorageUnitFromConf(esdtSuppliesCacherConfig, esdtSuppliesDbConfig)
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(

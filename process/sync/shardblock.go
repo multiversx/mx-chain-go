@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 
@@ -67,6 +68,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 	}
 
 	if base.isInImportMode {
@@ -134,6 +136,11 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+
+	err := boot.handleAccountsTrieIteration()
+	if err != nil {
+		panic(fmt.Sprintf("cannot handle start-up trie accounts iteration: %s", err.Error()))
+	}
 	go boot.syncBlocks(ctx)
 }
 
