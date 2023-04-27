@@ -205,7 +205,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	messageSigningHandler := &MessageSigningHandlerStub{}
 	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
-	signingHandler := &SigningHandlerStub{}
+	signingHandler := &consensusMocks.SigningHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
