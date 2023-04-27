@@ -85,21 +85,29 @@ func NewSovereignChainBlockProcessor(
 func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersToBeAdded int) {
 	headersPool := scbp.dataPool.Headers()
 
-	lastHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
-	if err != nil {
-		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", err.Error())
-		return
+	var lastHeader data.HeaderHandler
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{},
+		},
 	}
-	if check.IfNil(lastHeader) {
-		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrNilHeaderHandler)
-		return
-	}
+	lastHeader = shardHeaderExtended
 
-	shardHeaderExtended, isShardHeaderExtended := lastHeader.(*block.ShardHeaderExtended)
-	if !isShardHeaderExtended {
-		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrWrongTypeAssertion)
-		return
-	}
+	//lastHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+	//if err != nil {
+	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", err.Error())
+	//	return
+	//}
+	//if check.IfNil(lastHeader) {
+	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrNilHeaderHandler)
+	//	return
+	//}
+
+	//shardHeaderExtended, isShardHeaderExtended := lastHeader.(*block.ShardHeaderExtended)
+	//if !isShardHeaderExtended {
+	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrWrongTypeAssertion)
+	//	return
+	//}
 
 	lastHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardHeaderExtended.Header.Header)
 
@@ -1200,7 +1208,7 @@ func (scbp *sovereignChainBlockProcessor) updateCrossShardInfo(processedExtended
 
 		scbp.saveExtendedShardHeader(hdr, headerHash, marshalledHeader)
 
-		scbp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
+		scbp.processedMiniBlocksTracker.RemoveHeaderHash(headerHash)
 	}
 
 	return nil

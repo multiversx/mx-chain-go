@@ -33,7 +33,7 @@ func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
 	pmbt.RemoveMiniBlockHash(mbHash1)
 	assert.False(t, pmbt.IsMiniBlockFullyProcessed(mtbHash1, mbHash1))
 
-	pmbt.RemoveMetaBlockHash(mtbHash2)
+	pmbt.RemoveHeaderHash(mtbHash2)
 	assert.False(t, pmbt.IsMiniBlockFullyProcessed(mtbHash2, mbHash1))
 }
 
