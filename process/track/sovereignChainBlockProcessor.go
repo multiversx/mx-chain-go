@@ -1,7 +1,6 @@
 package track
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -52,11 +51,11 @@ func (scbp *sovereignChainBlockProcessor) shouldProcessReceivedHeader(headerHand
 	if isExtendedShardHeaderReceived {
 		lastNotarizedHeader, _, err = scbp.crossNotarizer.GetLastNotarizedHeader(core.SovereignChainShardId)
 
-		isFirstCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
-			lastNotarizedHeader != nil && lastNotarizedHeader.GetNonce() == 0
-		if isFirstCrossNotarizedHeader {
-			return true
-		}
+		//isGenesisLastCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
+		//	lastNotarizedHeader != nil && lastNotarizedHeader.GetNonce() == 0
+		//if isGenesisLastCrossNotarizedHeader {
+		//	return true
+		//}
 
 		if err != nil {
 			log.Warn("shouldProcessReceivedHeader: crossNotarizer.GetLastNotarizedHeader",
