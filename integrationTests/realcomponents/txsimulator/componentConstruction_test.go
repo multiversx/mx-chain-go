@@ -19,6 +19,10 @@ import (
 var log = logger.GetOrCreate("integrationTests/realcomponents/txsimulator")
 
 func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cfg := testscommon.CreateTestConfigs(t, "../../../cmd/node/config")
 	cfg.EpochConfig.EnableEpochs.ESDTEnableEpoch = 0
 	cfg.EpochConfig.EnableEpochs.BuiltInFunctionsEnableEpoch = 0
@@ -64,6 +68,10 @@ func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
 }
 
 func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cfg := testscommon.CreateTestConfigs(t, "../../../cmd/node/config")
 	cfg.EpochConfig.EnableEpochs.SCDeployEnableEpoch = 0
 	cfg.PreferencesConfig.Preferences.DestinationShardAsObserver = "0"
