@@ -69,11 +69,6 @@ sovereignStart(){
     ./mx-chain-go/scripts/testnet/sovereignStart.sh
 }
 
-sovereignReset(){
-  cd "$SOVEREIGN_DIR" && \
-    ./mx-chain-go/scripts/testnet/reset.sh
-}
-
 sovereignStop(){
   cd "$SOVEREIGN_DIR" && \
     ./mx-chain-go/scripts/testnet/stop.sh
@@ -94,8 +89,6 @@ main(){
         sovereignNew ;;
       start)
         sovereignStart ;;
-      reset)
-        sovereignReset ;;
       stop)
         sovereignStop ;;
       *)
