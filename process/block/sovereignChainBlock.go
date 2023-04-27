@@ -85,29 +85,33 @@ func NewSovereignChainBlockProcessor(
 func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersToBeAdded int) {
 	headersPool := scbp.dataPool.Headers()
 
-	var lastHeader data.HeaderHandler
-	shardHeaderExtended := &block.ShardHeaderExtended{
-		Header: &block.HeaderV2{
-			Header: &block.Header{},
-		},
+	lastHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+	if err != nil {
+		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", err.Error())
+		return
 	}
-	lastHeader = shardHeaderExtended
+	if check.IfNil(lastHeader) {
+		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrNilHeaderHandler)
+		return
+	}
 
-	//lastHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
-	//if err != nil {
-	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", err.Error())
-	//	return
-	//}
-	//if check.IfNil(lastHeader) {
-	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrNilHeaderHandler)
-	//	return
-	//}
+	if lastHeader.GetNonce() == 0 {
+		lastHeader = &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:    68,
+					Round:    68,
+					RandSeed: []byte("mocked rand seed"),
+				},
+			},
+		}
+	}
 
-	//shardHeaderExtended, isShardHeaderExtended := lastHeader.(*block.ShardHeaderExtended)
-	//if !isShardHeaderExtended {
-	//	log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrWrongTypeAssertion)
-	//	return
-	//}
+	shardHeaderExtended, isShardHeaderExtended := lastHeader.(*block.ShardHeaderExtended)
+	if !isShardHeaderExtended {
+		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrWrongTypeAssertion)
+		return
+	}
 
 	lastHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardHeaderExtended.Header.Header)
 
