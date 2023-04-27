@@ -111,6 +111,9 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
 	)
+	if err != nil {
+		return args, nil, err
+	}
 
 	vmContainer, err := vmContainerFactory.Create()
 	if err != nil {
