@@ -19,8 +19,8 @@ type persisterCreator struct {
 	numShards           int32
 }
 
-func newPersisterCreator(config config.DBConfig) (*persisterCreator, error) {
-	pc := &persisterCreator{
+func newPersisterCreator(config config.DBConfig) *persisterCreator {
+	return &persisterCreator{
 		dbType:              config.Type,
 		batchDelaySeconds:   config.BatchDelaySeconds,
 		maxBatchSize:        config.MaxBatchSize,
@@ -28,12 +28,14 @@ func newPersisterCreator(config config.DBConfig) (*persisterCreator, error) {
 		shardIDProviderType: config.ShardIDProviderType,
 		numShards:           config.NumShards,
 	}
-
-	return pc, nil
 }
 
 // Create will create the persister for the provided path
 func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
+	if len(path) == 0 {
+		return nil, storage.ErrInvalidFilePath
+	}
+
 	if pc.numShards < minNumShards {
 		return pc.CreateBasePersister(path)
 	}

@@ -32,10 +32,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, err
 	}
 
-	pc, err := newPersisterCreator(*dbConfig)
-	if err != nil {
-		return nil, err
-	}
+	pc := newPersisterCreator(*dbConfig)
 
 	persister, err := pc.Create(path)
 	if err != nil {
