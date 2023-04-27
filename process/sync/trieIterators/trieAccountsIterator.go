@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -18,9 +17,8 @@ var log = logger.GetOrCreate("trieIterators")
 type trieAccountIteratorHandler func(account state.UserAccountHandler) error
 
 type trieAccountsIterator struct {
-	marshaller     marshal.Marshalizer
-	storageService dataRetriever.StorageService
-	accounts       state.AccountsAdapter
+	marshaller marshal.Marshalizer
+	accounts   state.AccountsAdapter
 }
 
 // ArgsTrieAccountsIterator holds the arguments needed to create a new trie Accounts iterator
