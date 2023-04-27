@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
@@ -340,4 +342,26 @@ func TestPeerAuthenticationRequestsProcessor_goRoutineIsWorkingAndCloseShouldSto
 
 	time.Sleep(args.DelayBetweenRequests*2 + time.Millisecond*300) // if the go routine did not stop it will set again the flag
 	assert.False(t, keysCalled.IsSet())
+}
+
+func TestPeerAuthenticationRequestsProcessor_CloseCalledTwiceShouldNotPanicNorError(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			require.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	args := createMockArgPeerAuthenticationRequestsProcessor()
+	processor, _ := NewPeerAuthenticationRequestsProcessor(args)
+
+	time.Sleep(args.DelayBetweenRequests*2 + time.Millisecond*300) // wait for the go routine to start and execute at least once
+
+	err := processor.Close()
+	assert.Nil(t, err)
+
+	err = processor.Close()
+	assert.Nil(t, err)
 }
