@@ -30,6 +30,6 @@ type validatorStatsRootHashGetter interface {
 	GetValidatorStatsRootHash() []byte
 }
 
-type mainChainShardHeaderHashesGetter interface {
-	GetMainChainShardHeaderHashes() [][]byte
+type extendedShardHeaderHashesGetter interface {
+	GetExtendedShardHeaderHashes() [][]byte
 }

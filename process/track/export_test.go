@@ -77,7 +77,7 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // baseBlockTrack
 
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	bbt.receivedHeaderFunc(headerHandler, headerHash)
+	bbt.receivedHeader(headerHandler, headerHash)
 }
 
 func CheckTrackerNilParameters(arguments ArgBaseTracker) error {

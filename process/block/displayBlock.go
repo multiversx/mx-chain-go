@@ -151,7 +151,7 @@ func (txc *transactionCounter) displayLogInfo(
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
 		"num shards", numShards,
-		"shard", selfId,
+		"shard", getShardName(selfId),
 	}
 	txc.mutex.RUnlock()
 	log.Debug(message, arguments...)
@@ -174,7 +174,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.GetShardID())}),
+			getShardName(header.GetShardID())}),
 	}
 
 	lines := displayHeader(header)
@@ -183,9 +183,9 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
-	shardHeaderHashesGetter, ok := header.(mainChainShardHeaderHashesGetter)
+	shardHeaderHashesGetter, ok := header.(extendedShardHeaderHashesGetter)
 	if ok {
-		shardLines = txc.displayMainChainShardHeaderHashesIncluded(shardLines, shardHeaderHashesGetter.GetMainChainShardHeaderHashes())
+		shardLines = txc.displayExtendedShardHeaderHashesIncluded(shardLines, shardHeaderHashesGetter.GetExtendedShardHeaderHashes())
 	}
 
 	var varBlockBodyType int32 = math.MaxInt32
@@ -207,22 +207,22 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	return tableHeader, shardLines
 }
 
-func (txc *transactionCounter) displayMainChainShardHeaderHashesIncluded(
+func (txc *transactionCounter) displayExtendedShardHeaderHashesIncluded(
 	lines []*display.LineData,
-	mainChainShardHeaderHashes [][]byte,
+	extendedShardHeaderHashes [][]byte,
 ) []*display.LineData {
 
-	if len(mainChainShardHeaderHashes) == 0 {
+	if len(extendedShardHeaderHashes) == 0 {
 		return lines
 	}
 
-	part := "MainChainShardHeaderHashes"
-	for i := 0; i < len(mainChainShardHeaderHashes); i++ {
-		if i == 0 || i >= len(mainChainShardHeaderHashes)-1 {
+	part := "ExtendedShardHeaderHashes"
+	for i := 0; i < len(extendedShardHeaderHashes); i++ {
+		if i == 0 || i >= len(extendedShardHeaderHashes)-1 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
-				fmt.Sprintf("MainChainShardHeaderHash_%d", i+1),
-				logger.DisplayByteSlice(mainChainShardHeaderHashes[i])}))
+				fmt.Sprintf("ExtendedShardHeaderHash_%d", i+1),
+				logger.DisplayByteSlice(extendedShardHeaderHashes[i])}))
 
 			part = ""
 		} else if i == 1 {
@@ -408,7 +408,7 @@ func DisplayLastNotarized(
 	}
 
 	log.Debug("last notarized block from shard",
-		"shard", shardId,
+		"shard", getShardName(shardId),
 		"epoch", lastNotarizedHdrForShard.GetEpoch(),
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
