@@ -557,11 +557,11 @@ func (pr *ProcessorRunner) ExecuteTransactionAsScheduled(tb testing.TB, tx *tran
 func (pr *ProcessorRunner) CreateDeploySCTx(
 	tb testing.TB,
 	owner []byte,
-	pathToContract string,
+	contractPath string,
 	gasLimit uint64,
 	initialHexParameters []string,
 ) (*transaction.Transaction, []byte) {
-	scCode := wasm.GetSCCode(pathToContract)
+	scCode := wasm.GetSCCode(contractPath)
 	ownerAccount := pr.GetUserAccount(tb, owner)
 
 	txDataComponents := append([]string{wasm.CreateDeployTxData(scCode)}, initialHexParameters...)
