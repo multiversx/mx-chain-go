@@ -692,6 +692,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
 	SetGuardianEnableEpoch = 64
 
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 64
+
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
     MultiClaimOnDelegationEnableEpoch = 65
 
@@ -792,6 +795,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeMemStoreLimitEnableEpoch:             63,
 			SetGuardianEnableEpoch:                      64,
 			MultiClaimOnDelegationEnableEpoch:           65,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:       64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

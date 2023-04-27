@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -277,7 +278,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	sr.Data = []byte("X")
 
 	err := errors.New("create signature share error")
-	signingHandler := &mock.SigningHandlerStub{
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
@@ -287,7 +288,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	r = sr.DoSignatureJob()
 	assert.False(t, r)
 
-	signingHandler = &mock.SigningHandlerStub{
+	signingHandler = &consensusMocks.SigningHandlerStub{
 		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
@@ -367,7 +368,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 
 	errStore := errors.New("signature share store failed")
 	storeSigShareCalled := false
-	signingHandler := &mock.SigningHandlerStub{
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 			return nil
 		},
