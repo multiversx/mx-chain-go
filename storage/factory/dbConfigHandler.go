@@ -75,44 +75,25 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 
 // SaveDBConfigToFilePath will save the provided db config to specified path
 func (dh *dbConfigHandler) SaveDBConfigToFilePath(path string, dbConfig *config.DBConfig) error {
-	shouldCreate, err := checkConfigFilePath(path)
-	if err != nil {
-		return err
-	}
-
-	if !shouldCreate {
-		return nil
-	}
-
-	err = core.SaveTomlFile(dbConfig, getPersisterConfigFilePath(path))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func checkConfigFilePath(path string) (bool, error) {
 	configFilePath := getPersisterConfigFilePath(path)
 
 	loadedDBConfig := &config.DBConfig{}
 	err := core.LoadTomlFile(loadedDBConfig, configFilePath)
 	if err == nil {
 		// config file already exists, no need to save config
-		return false, nil
+		return nil
 	}
 
-	_, err = os.Stat(path)
+	err = core.SaveTomlFile(dbConfig, configFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// in memory db, no files available
-			return false, nil
+			return nil
 		}
-
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 func getPersisterConfigFilePath(path string) string {
