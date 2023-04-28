@@ -107,10 +107,16 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 }
 
 // SetForkDetector sets the fork detector
-func (msc *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
+func (msc *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) error {
+	if check.IfNil(forkDetector) {
+		return errors.ErrNilForkDetector
+	}
+
 	msc.mutStatusComponents.Lock()
 	msc.statusComponentsFactory.forkDetector = forkDetector
 	msc.mutStatusComponents.Unlock()
+
+	return nil
 }
 
 // StartPolling starts polling for the updated status

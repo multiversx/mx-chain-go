@@ -1688,11 +1688,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
-		d.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
