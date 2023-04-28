@@ -254,6 +254,15 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 	headersIndexes := make([]int, 0)
 	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
 
+	for _, sortedHeader := range sortedHeaders {
+		log.Debug("sorted extended header", "round", sortedHeader.GetRound(),
+			"nonce", sortedHeader.GetNonce(),
+			"prev hash", sortedHeader.GetPrevHash(),
+			"rand seed", sortedHeader.GetRandSeed(),
+			"prev rand seed", sortedHeader.GetPrevRandSeed(),
+		)
+	}
+
 	for _, index := range longestChainHeadersIndexes {
 		headers = append(headers, sortedHeaders[index])
 		headersHashes = append(headersHashes, sortedHeadersHashes[index])
@@ -282,16 +291,19 @@ func (bp *blockProcessor) getNextHeader(
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 		if currHeader.GetNonce() > prevHeader.GetNonce()+1 {
+			log.Debug("blockProcessor.getNextHeader", "currHeader.GetNonce()", currHeader.GetNonce(), "prevHeader.GetNonce()+1", prevHeader.GetNonce()+1)
 			break
 		}
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
+			log.Debug("blockProcessor.getNextHeader", "error", err)
 			continue
 		}
 
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
 		if err != nil {
+			log.Debug("blockProcessor.checkHeaderFinality", "error", err)
 			continue
 		}
 
@@ -322,6 +334,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
+			log.Debug("blockProcessor.checkHeaderFinality", "error", err)
 			continue
 		}
 

@@ -53,7 +53,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if prevHeader.GetRound() >= currHeader.GetRound() {
-		log.Trace("round does not match",
+		log.Debug("round does not match",
 			"shard", currHeader.GetShardID(),
 			"local header round", prevHeader.GetRound(),
 			"received round", currHeader.GetRound())
@@ -61,7 +61,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if currHeader.GetNonce() != prevHeader.GetNonce()+1 {
-		log.Trace("nonce does not match",
+		log.Debug("nonce does not match",
 			"shard", currHeader.GetShardID(),
 			"local header nonce", prevHeader.GetNonce(),
 			"received nonce", currHeader.GetNonce())
@@ -74,7 +74,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {
-		log.Trace("header hash does not match",
+		log.Debug("header hash does not match",
 			"shard", currHeader.GetShardID(),
 			"local header hash", prevHeaderHash,
 			"received header with prev hash", currHeader.GetPrevHash(),
@@ -83,7 +83,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
-		log.Trace("header random seed does not match",
+		log.Debug("header random seed does not match",
 			"shard", currHeader.GetShardID(),
 			"local header random seed", prevHeader.GetRandSeed(),
 			"received header with prev random seed", currHeader.GetPrevRandSeed(),
