@@ -8,7 +8,7 @@ import (
 // ProcessedMiniBlocksTrackerStub -
 type ProcessedMiniBlocksTrackerStub struct {
 	SetProcessedMiniBlockInfoCalled            func(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
-	RemoveMetaBlockHashCalled                  func(metaBlockHash []byte)
+	RemoveHeaderHashCalled                     func(metaBlockHash []byte)
 	RemoveMiniBlockHashCalled                  func(miniBlockHash []byte)
 	GetProcessedMiniBlocksInfoCalled           func(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfoCalled            func(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
@@ -25,10 +25,10 @@ func (pmbts *ProcessedMiniBlocksTrackerStub) SetProcessedMiniBlockInfo(metaBlock
 	}
 }
 
-// RemoveMetaBlockHash -
-func (pmbts *ProcessedMiniBlocksTrackerStub) RemoveMetaBlockHash(metaBlockHash []byte) {
-	if pmbts.RemoveMetaBlockHashCalled != nil {
-		pmbts.RemoveMiniBlockHashCalled(metaBlockHash)
+// RemoveHeaderHash -
+func (pmbts *ProcessedMiniBlocksTrackerStub) RemoveHeaderHash(metaBlockHash []byte) {
+	if pmbts.RemoveHeaderHashCalled != nil {
+		pmbts.RemoveHeaderHashCalled(metaBlockHash)
 	}
 }
 

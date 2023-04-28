@@ -1649,7 +1649,7 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
-		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
+		sp.processedMiniBlocksTracker.RemoveHeaderHash(headerHash)
 	}
 
 	return nil

@@ -95,6 +95,18 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		return
 	}
 
+	if lastHeader.GetNonce() == 0 {
+		lastHeader = &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:    68,
+					Round:    68,
+					RandSeed: []byte("mocked rand seed"),
+				},
+			},
+		}
+	}
+
 	shardHeaderExtended, isShardHeaderExtended := lastHeader.(*block.ShardHeaderExtended)
 	if !isShardHeaderExtended {
 		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeaderMock", "error", process.ErrWrongTypeAssertion)
@@ -141,7 +153,8 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		nextCrossNotarizedHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, nextCrossNotarizedHeader)
 
 		headersPool.AddHeader(nextCrossNotarizedHeaderHash, nextCrossNotarizedHeader)
-		//scbp.blockTracker.AddTrackedHeader(nextCrossNotarizedHeader, nextCrossNotarizedHeaderHash)
+
+		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeadersMock", "round", nextCrossNotarizedHeader.GetRound(), "nonce", nextCrossNotarizedHeader.GetNonce(), "hash", nextCrossNotarizedHeaderHash)
 
 		lastHeader = header
 		lastHeaderHash, _ = core.CalculateHash(scbp.marshalizer, scbp.hasher, header)
@@ -151,7 +164,7 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(3)
+	//scbp.addNextTrackedHeadersMock(3)
 
 	scbp.enableRoundsHandler.CheckRound(round)
 	header := &block.SovereignChainHeader{
@@ -545,7 +558,7 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedShardHdrsHashes(waitTime time.Duration) error {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(3)
+	//scbp.addNextTrackedHeadersMock(3)
 
 	select {
 	case <-scbp.chRcvAllExtendedShardHdrs:
@@ -1200,7 +1213,7 @@ func (scbp *sovereignChainBlockProcessor) updateCrossShardInfo(processedExtended
 
 		scbp.saveExtendedShardHeader(hdr, headerHash, marshalledHeader)
 
-		scbp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
+		scbp.processedMiniBlocksTracker.RemoveHeaderHash(headerHash)
 	}
 
 	return nil
