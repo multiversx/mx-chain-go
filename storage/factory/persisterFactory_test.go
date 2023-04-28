@@ -1,10 +1,12 @@
 package factory_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,5 +44,88 @@ func TestPersisterFactory_Create(t *testing.T) {
 		p, err := pf.Create(dir)
 		require.NotNil(t, p)
 		require.Nil(t, err)
+	})
+}
+
+func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should write toml config file for leveldb", func(t *testing.T) {
+		t.Parallel()
+
+		dbConfig := createDefaultBasePersisterConfig()
+		dbConfig.Type = string(storageunit.LvlDB)
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+
+		dir := t.TempDir()
+		path := dir + "storer/"
+
+		p, err := pf.Create(path)
+		require.NotNil(t, p)
+		require.Nil(t, err)
+
+		configPath := factory.GetPersisterConfigFilePath(path)
+		_, err = os.Stat(configPath)
+		require.False(t, os.IsNotExist(err))
+	})
+
+	t.Run("should write toml config file for serial leveldb", func(t *testing.T) {
+		t.Parallel()
+
+		dbConfig := createDefaultBasePersisterConfig()
+		dbConfig.Type = string(storageunit.LvlDBSerial)
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+
+		dir := t.TempDir()
+		path := dir + "storer/"
+
+		p, err := pf.Create(path)
+		require.NotNil(t, p)
+		require.Nil(t, err)
+
+		configPath := factory.GetPersisterConfigFilePath(path)
+		_, err = os.Stat(configPath)
+		require.False(t, os.IsNotExist(err))
+	})
+
+	t.Run("should not write toml config file for memory db", func(t *testing.T) {
+		t.Parallel()
+
+		dbConfig := createDefaultBasePersisterConfig()
+		dbConfig.Type = string(storageunit.MemoryDB)
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+
+		dir := t.TempDir()
+		path := dir + "storer/"
+
+		p, err := pf.Create(path)
+		require.NotNil(t, p)
+		require.Nil(t, err)
+
+		configPath := factory.GetPersisterConfigFilePath(path)
+		_, err = os.Stat(configPath)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("should not create path dir for memory db", func(t *testing.T) {
+		t.Parallel()
+
+		dbConfig := createDefaultBasePersisterConfig()
+		dbConfig.Type = string(storageunit.MemoryDB)
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+
+		dir := t.TempDir()
+		path := dir + "storer/"
+
+		p, err := pf.Create(path)
+		require.NotNil(t, p)
+		require.Nil(t, err)
+
+		_, err = os.Stat(path)
+		require.True(t, os.IsNotExist(err))
 	})
 }
