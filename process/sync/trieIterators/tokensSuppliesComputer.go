@@ -93,18 +93,7 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 
 		tokenName := string(tokenKey)[lenESDTPrefix:]
 		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
-		tokenIDStr := string(tokenID)
-		if nonce > 0 {
-			tokenIDStr += fmt.Sprintf("-%d", nonce)
-		}
-
-		tokenSupply, found := t.tokensSupplies[tokenIDStr]
-		if !found {
-			t.tokensSupplies[tokenIDStr] = esToken.Value
-		} else {
-			tokenSupply = big.NewInt(0).Add(tokenSupply, esToken.Value)
-			t.tokensSupplies[tokenIDStr] = tokenSupply
-		}
+		t.addToBalance(tokenID, nonce, esToken.Value)
 	}
 
 	err := dataTrie.ErrChan.ReadFromChanNonBlocking()
@@ -113,6 +102,31 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 	}
 
 	return nil
+}
+
+func (t *tokensSuppliesProcessor) addToBalance(tokenID []byte, nonce uint64, value *big.Int) {
+	tokenIDStr := string(tokenID)
+	if nonce > 0 {
+		t.putInSuppliesMap(string(tokenID), value) // put for collection as well
+		nonceStr := fmt.Sprintf("%d", nonce)
+		if len(nonceStr)%2 != 0 {
+			nonceStr = "0" + nonceStr
+		}
+		tokenIDStr += fmt.Sprintf("-%s", nonceStr)
+	}
+
+	t.putInSuppliesMap(tokenIDStr, value)
+}
+
+func (t *tokensSuppliesProcessor) putInSuppliesMap(id string, value *big.Int) {
+	currentValue, found := t.tokensSupplies[id]
+	if !found {
+		t.tokensSupplies[id] = value
+		return
+	}
+
+	currentValue = big.NewInt(0).Add(currentValue, value)
+	t.tokensSupplies[id] = currentValue
 }
 
 // SaveSupplies will store the recomputed tokens supplies into the database
@@ -125,7 +139,8 @@ func (t *tokensSuppliesProcessor) SaveSupplies() error {
 	for tokenName, supply := range t.tokensSupplies {
 		log.Trace("repopulate tokens supplies", "token", tokenName, "supply", supply.String())
 		supplyObj := &esdtSupply.SupplyESDT{
-			Supply: supply,
+			Supply:           supply,
+			RecomputedSupply: true,
 		}
 		supplyObjBytes, err := t.marshaller.Marshal(supplyObj)
 		if err != nil {
@@ -138,6 +153,10 @@ func (t *tokensSuppliesProcessor) SaveSupplies() error {
 		}
 	}
 
+	err = suppliesStorer.Put([]byte("recomputed"), []byte("true"))
+	if err != nil {
+		return err
+	}
 	log.Debug("finished the repopulation of the tokens supplies", "num tokens", len(t.tokensSupplies))
 
 	return nil
