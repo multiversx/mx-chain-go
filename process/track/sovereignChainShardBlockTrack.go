@@ -128,7 +128,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		"round", extendedShardHeaderHandler.GetRound(),
 		"nonce", extendedShardHeaderHandler.GetNonce(),
 		"extended shard header hash", extendedShardHeaderHash,
-		"main chain header hash", headerHash,
+		"main chain header V1 hash", headerHash,
 		"main chain header V2 hash", headerV2Hash,
 	)
 
