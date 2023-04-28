@@ -34,7 +34,7 @@ func (schv *sovereignChainHeaderValidator) getHeaderHash(headerHandler data.Head
 			return nil, process.ErrNilHeaderHandler
 		}
 
-		return core.CalculateHash(schv.marshalizer, schv.hasher, shardHeaderExtended.Header.Header)
+		return core.CalculateHash(schv.marshalizer, schv.hasher, shardHeaderExtended.Header)
 	}
 
 	return core.CalculateHash(schv.marshalizer, schv.hasher, headerHandler)

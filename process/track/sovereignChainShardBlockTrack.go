@@ -107,12 +107,18 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 ) {
 
 	var headerHash []byte
+	var headerV2Hash []byte
 	var err error
 	extendedShardHeader, isShardHeaderExtended := extendedShardHeaderHandler.(*block.ShardHeaderExtended)
 	if isShardHeaderExtended {
+		headerV2Hash, err = core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader.Header)
+		if err != nil {
+			log.Debug("sovereignChainShardBlockTrack.receivedExtendedShardHeader: CalculateHash for HeaderV2", "error", err)
+		}
+
 		headerHash, err = core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader.Header.Header)
 		if err != nil {
-			log.Debug("sovereignChainShardBlockTrack.receivedExtendedShardHeader: CalculateHash", "error", err)
+			log.Debug("sovereignChainShardBlockTrack.receivedExtendedShardHeader: CalculateHash for Header", "error", err)
 		}
 	}
 
@@ -123,6 +129,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		"nonce", extendedShardHeaderHandler.GetNonce(),
 		"extended shard header hash", extendedShardHeaderHash,
 		"main chain header hash", headerHash,
+		"main chain header V2 hash", headerV2Hash,
 	)
 
 	// TODO: This condition will permit to the sovereign chain to follow the main chain headers starting with a header
