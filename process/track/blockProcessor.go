@@ -297,13 +297,13 @@ func (bp *blockProcessor) getNextHeader(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
-			log.Debug("blockProcessor.getNextHeader", "error", err)
+			log.Debug("blockProcessor.getNextHeader: IsHeaderConstructionValid", "error", err)
 			continue
 		}
 
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
 		if err != nil {
-			log.Debug("blockProcessor.checkHeaderFinality", "error", err)
+			log.Debug("blockProcessor.getNextHeader: checkHeaderFinality", "error", err)
 			continue
 		}
 
@@ -334,7 +334,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
-			log.Debug("blockProcessor.checkHeaderFinality", "error", err)
+			log.Debug("blockProcessor.checkHeaderFinality: IsHeaderConstructionValid", "error", err)
 			continue
 		}
 

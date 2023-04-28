@@ -76,7 +76,7 @@ func TestGetHeaderHash_ShouldWork(t *testing.T) {
 			},
 		}
 
-		expectedHash, _ := core.CalculateHash(argsHeaderValidator.Marshalizer, argsHeaderValidator.Hasher, shardHeaderExtended.Header.Header)
+		expectedHash, _ := core.CalculateHash(argsHeaderValidator.Marshalizer, argsHeaderValidator.Hasher, shardHeaderExtended.Header)
 		hash, err := schv.GetHeaderHash(shardHeaderExtended)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedHash, hash)

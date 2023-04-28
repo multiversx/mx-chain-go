@@ -106,7 +106,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	extendedShardHeaderHash []byte,
 ) {
 
-	var headerHash []byte
+	var headerV1Hash []byte
 	var headerV2Hash []byte
 	var err error
 	extendedShardHeader, isShardHeaderExtended := extendedShardHeaderHandler.(*block.ShardHeaderExtended)
@@ -116,7 +116,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 			log.Debug("sovereignChainShardBlockTrack.receivedExtendedShardHeader: CalculateHash for HeaderV2", "error", err)
 		}
 
-		headerHash, err = core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader.Header.Header)
+		headerV1Hash, err = core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader.Header.Header)
 		if err != nil {
 			log.Debug("sovereignChainShardBlockTrack.receivedExtendedShardHeader: CalculateHash for Header", "error", err)
 		}
@@ -128,7 +128,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		"round", extendedShardHeaderHandler.GetRound(),
 		"nonce", extendedShardHeaderHandler.GetNonce(),
 		"extended shard header hash", extendedShardHeaderHash,
-		"main chain header V1 hash", headerHash,
+		"main chain header V1 hash", headerV1Hash,
 		"main chain header V2 hash", headerV2Hash,
 	)
 

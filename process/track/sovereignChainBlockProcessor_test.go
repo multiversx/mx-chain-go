@@ -216,7 +216,7 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 		},
 	}
 
-	header1Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended1.Header.Header)
+	header1Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended1.Header)
 	headerHash1 := hasherMock.Compute(string(header1Marshalled))
 
 	shardHeaderExtended2 := &block.ShardHeaderExtended{
@@ -229,7 +229,7 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 		},
 	}
 
-	header2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2.Header.Header)
+	header2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2.Header)
 	headerHash2 := hasherMock.Compute(string(header2Marshalled))
 
 	shardHeaderExtended2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2)
