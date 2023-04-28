@@ -155,8 +155,6 @@ type codeHashResponse struct {
 	Code  string               `json:"code"`
 }
 
-var expectedErr = errors.New("expected err")
-
 func TestNewAddressGroup(t *testing.T) {
 	t.Parallel()
 

@@ -86,6 +86,7 @@ type FacadeStub struct {
 	RestApiInterfaceCalled                      func() string
 	RestAPIServerDebugModeCalled                func() bool
 	PprofEnabledCalled                          func() bool
+	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 }
 
 // GetTokenSupply -
@@ -365,6 +366,9 @@ func (f *FacadeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 
 // DecodeAddressPubkey -
 func (f *FacadeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if f.DecodeAddressPubkeyCalled != nil {
+		return f.DecodeAddressPubkeyCalled(pk)
+	}
 	return hex.DecodeString(pk)
 }
 
