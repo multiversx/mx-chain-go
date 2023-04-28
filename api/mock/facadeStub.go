@@ -83,6 +83,9 @@ type FacadeStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
+	RestApiInterfaceCalled                      func() string
+	RestAPIServerDebugModeCalled                func() bool
+	PprofEnabledCalled                          func() bool
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 }
 
@@ -160,16 +163,25 @@ func (f *FacadeStub) GetThrottlerForEndpoint(endpoint string) (core.Throttler, b
 
 // RestApiInterface -
 func (f *FacadeStub) RestApiInterface() string {
+	if f.RestApiInterfaceCalled != nil {
+		return f.RestApiInterfaceCalled()
+	}
 	return "localhost:8080"
 }
 
 // RestAPIServerDebugMode -
 func (f *FacadeStub) RestAPIServerDebugMode() bool {
+	if f.RestAPIServerDebugModeCalled != nil {
+		return f.RestAPIServerDebugModeCalled()
+	}
 	return false
 }
 
 // PprofEnabled -
 func (f *FacadeStub) PprofEnabled() bool {
+	if f.PprofEnabledCalled != nil {
+		return f.PprofEnabledCalled()
+	}
 	return false
 }
 
