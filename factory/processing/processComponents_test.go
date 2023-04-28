@@ -2,6 +2,7 @@ package processing_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math/big"
 	"strings"
@@ -436,7 +437,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.State = &testscommon.StateComponentsMock{
+		args.State = &factoryMocks.StateComponentsMock{
 			Accounts: nil,
 		}
 		pcf, err := processComp.NewProcessComponentsFactory(args)
@@ -1074,7 +1075,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
 		stateCompMock.Accounts = &state.AccountsStub{
 			GetAllLeavesCalled: realAccounts.GetAllLeaves,
@@ -1103,7 +1104,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
 		stateCompMock.Accounts = &state.AccountsStub{
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
@@ -1134,7 +1135,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
 		stateCompMock.Accounts = &state.AccountsStub{
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
@@ -1184,7 +1185,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			},
 		}
 		realStateComp := args.State
-		args.State = &testscommon.StateComponentsMock{
+		args.State = &factoryMocks.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 					close(leavesChannels.LeavesChan)
@@ -1220,7 +1221,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			},
 		}
 		realStateComp := args.State
-		args.State = &testscommon.StateComponentsMock{
+		args.State = &factoryMocks.StateComponentsMock{
 			Accounts: &state.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("invalid addr"), []byte("value"))
@@ -1400,7 +1401,7 @@ func testWithNilAccountsAdapterAPI(nilStep int, expectedErrSubstr string, metaSt
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		accountsAdapterAPI := stateCompMock.AccountsAdapterAPI()
 		step := 0
 		stateCompMock.AccountsAdapterAPICalled = func() mxState.AccountsAdapter {

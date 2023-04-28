@@ -1,4 +1,4 @@
-package testscommon
+package factory
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
