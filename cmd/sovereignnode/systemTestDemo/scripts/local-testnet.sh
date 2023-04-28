@@ -20,7 +20,7 @@ cloneDependencies(){
 
   git clone https://github.com/multiversx/mx-chain-go "$TESTNET_DIR/mx-chain-go"
   cd $TESTNET_DIR/mx-chain-go
-  git checkout eb383f693d178f7dd33dedc1b42cc1e63bed0d98
+  git checkout 5eaa07d2bbc144a9160fce05732984805bec1d8b
   cd ../..
 
   git clone https://github.com/multiversx/mx-chain-deploy-go "$TESTNET_DIR/mx-chain-deploy-go"
