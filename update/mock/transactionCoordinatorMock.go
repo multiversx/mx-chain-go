@@ -12,7 +12,7 @@ import (
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
 	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, error)
-	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
+	RequestMiniBlocksAndTransactionsCalled               func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
 	SaveTxsToStorageCalled                               func(body *block.Body)
@@ -53,13 +53,13 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 	return []byte("receiptHash"), nil
 }
 
-// RequestMiniBlocks -
-func (tcm *TransactionCoordinatorMock) RequestMiniBlocks(header data.HeaderHandler) {
-	if tcm.RequestMiniBlocksCalled == nil {
+// RequestMiniBlocksAndTransactions -
+func (tcm *TransactionCoordinatorMock) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
+	if tcm.RequestMiniBlocksAndTransactionsCalled == nil {
 		return
 	}
 
-	tcm.RequestMiniBlocksCalled(header)
+	tcm.RequestMiniBlocksAndTransactionsCalled(header)
 }
 
 // RequestBlockTransactions -
