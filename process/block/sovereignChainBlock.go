@@ -164,7 +164,7 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(0)
+	scbp.addNextTrackedHeadersMock(3)
 
 	scbp.enableRoundsHandler.CheckRound(round)
 	header := &block.SovereignChainHeader{
@@ -558,7 +558,7 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedShardHdrsHashes(waitTime time.Duration) error {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(0)
+	scbp.addNextTrackedHeadersMock(3)
 
 	select {
 	case <-scbp.chRcvAllExtendedShardHdrs:
