@@ -2,7 +2,6 @@ package processing_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"math/big"
 	"strings"
@@ -15,6 +14,8 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
@@ -33,7 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -50,8 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -62,20 +61,24 @@ const (
 	testingProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 )
 
-func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
-	addrPubKeyConv, _ := factory.NewPubkeyConverter(config.PubkeyConfig{
+var (
+	gasSchedule, _    = common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+	addrPubKeyConv, _ = factory.NewPubkeyConverter(config.PubkeyConfig{
 		Length:          32,
 		Type:            "bech32",
 		SignatureLength: 0,
 		Hrp:             "erd",
 	})
-	valPubKeyConv, _ := factory.NewPubkeyConverter(config.PubkeyConfig{
+	valPubKeyConv, _ = factory.NewPubkeyConverter(config.PubkeyConfig{
 		Length:          96,
 		Type:            "hex",
 		SignatureLength: 48,
 	})
-	return processComp.ProcessComponentsFactoryArgs{
+)
+
+func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
+
+	args := processComp.ProcessComponentsFactoryArgs{
 		Config:         testscommon.GetGeneralConfig(),
 		EpochConfig:    config.EpochConfig{},
 		PrefConfigs:    config.PreferencesConfig{},
@@ -114,11 +117,11 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
 				},
-				FirstWhitelistedAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				ChangeConfigAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -160,8 +163,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		CoreData: &mock.CoreComponentsMock{
-			IntMarsh:            &testscommon.MarshalizerStub{},
-			TxMarsh:             &testscommon.MarshalizerStub{},
+			IntMarsh:            &marshal.GogoProtoMarshalizer{},
+			TxMarsh:             &marshal.JsonMarshalizer{},
 			UInt64ByteSliceConv: &testsMocks.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      addrPubKeyConv,
 			ValPubKeyConv:       valPubKeyConv,
@@ -179,19 +182,21 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 					return testingProtocolSustainabilityAddress
 				},
 			},
-			Hash:                       &testscommon.HasherStub{},
-			TxVersionCheckHandler:      &testscommon.TxVersionCheckerStub{},
-			RatingHandler:              &testscommon.RaterMock{},
-			EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
-			EnableRoundsHandlerField:   &testscommon.EnableRoundsHandlerStub{},
-			EpochNotifierWithConfirm:   &updateMocks.EpochStartNotifierStub{},
-			RoundHandlerField:          &testscommon.RoundHandlerMock{},
-			ChanStopProcess:            make(chan endProcess.ArgEndProcess, 1),
-			TxSignHasherField:          &testscommon.HasherStub{},
-			HardforkTriggerPubKeyField: []byte("hardfork pub key"),
-			WasmVMChangeLockerInternal: &sync.RWMutex{},
-			NodeTypeProviderField:      &nodeTypeProviderMock.NodeTypeProviderStub{},
-			RatingsConfig:              &testscommon.RatingsInfoMock{},
+			Hash:                         blake2b.NewBlake2b(),
+			TxVersionCheckHandler:        &testscommon.TxVersionCheckerStub{},
+			RatingHandler:                &testscommon.RaterMock{},
+			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
+			EpochNotifierWithConfirm:     &updateMocks.EpochStartNotifierStub{},
+			RoundHandlerField:            &testscommon.RoundHandlerMock{},
+			ChanStopProcess:              make(chan endProcess.ArgEndProcess, 1),
+			TxSignHasherField:            keccak.NewKeccak(),
+			HardforkTriggerPubKeyField:   []byte("hardfork pub key"),
+			WasmVMChangeLockerInternal:   &sync.RWMutex{},
+			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			RatingsConfig:                &testscommon.RatingsInfoMock{},
+			PathHdl:                      &testscommon.PathManagerStub{},
+			ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -208,34 +213,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			PeerSignHandler:         &cryptoMocks.PeerSignatureHandlerStub{},
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
-		},
-		State: &testscommon.StateComponentsMock{
-			Accounts: &state.AccountsStub{
-				CommitCalled: func() ([]byte, error) {
-					return []byte(""), nil
-				},
-				RootHashCalled: func() ([]byte, error) {
-					return []byte("root hash"), nil
-				},
-			},
-			PeersAcc: &state.AccountsStub{
-				CommitCalled: func() ([]byte, error) {
-					return []byte("hash"), nil
-				},
-				RootHashCalled: func() ([]byte, error) {
-					return []byte("root hash"), nil
-				},
-			},
-			Tries: &trie.TriesHolderStub{
-				GetCalled: func(bytes []byte) common.Trie {
-					return &trie.TrieStub{}
-				},
-			},
-			AccountsAPI: &state.AccountsStub{},
-			StorageManagers: map[string]common.StorageManager{
-				trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-				trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
-			},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
 			Messenger:               &p2pmocks.MessengerStub{},
@@ -258,6 +235,10 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
 	}
+
+	args.State = components.GetStateComponents(args.CoreData)
+
+	return args
 }
 
 func TestNewProcessComponentsFactory(t *testing.T) {
@@ -623,7 +604,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
-	t.Run("newStorageResolver fails due to NewStorageServiceFactory failure should error", func(t *testing.T) {
+	t.Run("newStorageRequester fails due to NewStorageServiceFactory failure should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
@@ -631,21 +612,50 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.Config.StoragePruning.NumActivePersisters = 0
 		testCreateWithArgs(t, args, "active persisters")
 	})
-	t.Run("newStorageResolver fails due to CreateForMeta failure should error", func(t *testing.T) {
+	t.Run("newStorageRequester fails due to NewSimpleDataPacker failure on createStorageRequestersForMeta should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.ImportDBConfig.IsImportDBMode = true
+
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		step := 0
+		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
+			step++
+			if step > 3 {
+				return nil
+			}
+			return &testscommon.MarshalizerStub{}
+		}
+		args.CoreData = coreCompStub
+		updateShardCoordinatorForMetaAtStep(t, args, 3)
+		testCreateWithArgs(t, args, "marshalizer")
+	})
+	t.Run("newStorageRequester fails due to NewSimpleDataPacker failure on createStorageRequestersForShard should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.ImportDBConfig.IsImportDBMode = true
+
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		step := 0
+		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
+			step++
+			if step > 3 {
+				return nil
+			}
+			return &testscommon.MarshalizerStub{}
+		}
+		args.CoreData = coreCompStub
+		testCreateWithArgs(t, args, "marshalizer")
+	})
+	t.Run("newStorageRequester fails due to CreateForMeta failure should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.ImportDBConfig.IsImportDBMode = true
 		args.Config.ShardHdrNonceHashStorage.Cache.Type = "invalid"
 		updateShardCoordinatorForMetaAtStep(t, args, 0)
-		testCreateWithArgs(t, args, "ShardHdrNonceHashStorage")
-	})
-	t.Run("newStorageResolver fails due to CreateForMeta failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ImportDBConfig.IsImportDBMode = true
-		args.Config.ShardHdrNonceHashStorage.Cache.Type = "invalid"
 		testCreateWithArgs(t, args, "ShardHdrNonceHashStorage")
 	})
 	t.Run("newResolverContainerFactory fails due to NewPeerAuthenticationPayloadValidator failure should error", func(t *testing.T) {
@@ -657,6 +667,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	})
 	t.Run("newResolverContainerFactory fails due to invalid shard should error",
 		testWithInvalidShard(0, "could not create interceptor and resolver container factory"))
+	t.Run("newRequesterContainerFactory fails due to invalid shard should error",
+		testWithInvalidShard(5, "could not create requester container factory"))
 	t.Run("newMetaResolverContainerFactory fails due to NewSimpleDataPacker failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -676,7 +688,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	})
 	t.Run("newShardResolverContainerFactory fails due to NewSimpleDataPacker failure should error",
 		testWithNilMarshaller(3, "marshalizer", unreachableStep))
-	t.Run("NewResolversFinder fails should error", func(t *testing.T) {
+	t.Run("NewRequestersFinder fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
@@ -697,7 +709,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, "shard coordinator")
 	})
 	t.Run("GetStorer TxLogsUnit fails should error", testWithMissingStorer(0, retriever.TxLogsUnit, unreachableStep))
-	t.Run("NewResolversFinder fails should error", testWithNilMarshaller(5, "Marshalizer", unreachableStep))
+	t.Run("NewRequestersFinder fails should error", testWithNilMarshaller(5, "Marshalizer", unreachableStep))
 	t.Run("generateGenesisHeadersAndApplyInitialBalances fails due to invalid GenesisNodePrice should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -708,7 +720,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, "invalid genesis node price")
 	})
 	t.Run("generateGenesisHeadersAndApplyInitialBalances fails due to NewGenesisBlockCreator failure should error",
-		testWithNilMarshaller(6, "Marshalizer", unreachableStep))
+		testWithNilMarshaller(7, "Marshalizer", unreachableStep))
 	t.Run("setGenesisHeader fails due to invalid shard should error",
 		testWithInvalidShard(8, "genesis block does not exist"))
 	t.Run("newValidatorStatisticsProcessor fails due to nil genesis header should error", func(t *testing.T) {
@@ -726,7 +738,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, errorsMx.ErrGenesisBlockNotInitialized.Error())
 	})
 	t.Run("indexGenesisBlocks fails due to CalculateHash failure should error",
-		testWithNilMarshaller(41, "marshalizer", unreachableStep))
+		testWithNilMarshaller(42, "marshalizer", unreachableStep))
 	t.Run("indexGenesisBlocks fails due to GenerateInitialTransactions failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -743,7 +755,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("newEpochStartTrigger fails due to invalid shard should error",
 		testWithInvalidShard(16, "error creating new start of epoch trigger because of invalid shard id"))
 	t.Run("newEpochStartTrigger fails due to NewHeaderValidator failure should error",
-		testWithNilMarshaller(46, "Marshalizer", unreachableStep))
+		testWithNilMarshaller(47, "Marshalizer", unreachableStep))
 	t.Run("newEpochStartTrigger fails due to NewPeerMiniBlockSyncer failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -789,7 +801,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, errorsMx.ErrGenesisBlockNotInitialized.Error())
 	})
 	t.Run("newEpochStartTrigger fails due to invalid shard should error",
-		testWithInvalidShard(17, "genesis block does not exist"))
+		testWithInvalidShard(17, "error creating new start of epoch trigger because of invalid shard id"))
 	t.Run("NewHeaderValidator fails should error", testWithNilMarshaller(48, "marshalizer", unreachableStep))
 	t.Run("prepareGenesisBlock fails due to CalculateHash failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -830,10 +842,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
 	t.Run("GetStorer TxLogsUnit fails should error", testWithMissingStorer(2, retriever.BootstrapUnit, unreachableStep))
-	t.Run("NewBootstrapStorer fails should error", testWithNilMarshaller(50, "Marshalizer", unreachableStep))
-	t.Run("NewHeaderValidator fails should error", testWithNilMarshaller(51, "Marshalizer", unreachableStep))
+	t.Run("NewBootstrapStorer fails should error", testWithNilMarshaller(51, "Marshalizer", unreachableStep))
+	t.Run("NewHeaderValidator fails should error", testWithNilMarshaller(52, "Marshalizer", unreachableStep))
 	t.Run("newBlockTracker fails due to invalid shard should error",
-		testWithInvalidShard(19, "could not create block tracker"))
+		testWithInvalidShard(20, "could not create block tracker"))
 	t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -857,10 +869,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		bootstrapCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 22 {
+			if cnt > 25 {
 				return nil
 			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
+			return mock.NewMultiShardsCoordinatorMock(2)
 		}
 		testCreateWithArgs(t, args, "shard coordinator")
 	})
@@ -872,7 +884,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		testCreateWithArgs(t, args, "PublicKeyToListenFrom")
 	})
 	t.Run("newInterceptorContainerFactory fails due to invalid shard should error",
-		testWithInvalidShard(23, "could not create interceptor container factory"))
+		testWithInvalidShard(24, "could not create interceptor container factory"))
 	t.Run("createExportFactoryHandler fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -882,15 +894,15 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		bootstrapCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 25 {
+			if cnt > 28 {
 				return nil
 			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
+			return mock.NewMultiShardsCoordinatorMock(2)
 		}
 		testCreateWithArgs(t, args, "shard coordinator")
 	})
 	t.Run("newForkDetector fails due to invalid shard should error",
-		testWithInvalidShard(27, "could not create fork detector"))
+		testWithInvalidShard(28, "could not create fork detector"))
 	t.Run("NewCache fails for vmOutput should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -903,11 +915,11 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("NewScheduledTxsExecution fails should error",
 		testWithNilMarshaller(104, "Marshalizer", unreachableStep))
 	t.Run("NewESDTDataStorage fails should error",
-		testWithNilMarshaller(105, "Marshalizer", unreachableStep))
+		testWithNilMarshaller(106, "Marshalizer", unreachableStep))
 	t.Run("NewReceiptsRepository fails should error",
 		testWithNilMarshaller(107, "marshalizer", unreachableStep))
 	t.Run("newBlockProcessor fails due to invalid shard should error",
-		testWithInvalidShard(31, "could not create block processor"))
+		testWithInvalidShard(32, "could not create block processor"))
 
 	// newShardBlockProcessor
 	t.Run("newShardBlockProcessor: NewESDTTransferParser fails should error",
@@ -1042,7 +1054,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		netwCompStub.MessengerCalled = func() p2p.Messenger {
 			cnt++
-			if cnt > 7 {
+			if cnt > 8 {
 				return nil
 			}
 			return &p2pmocks.MessengerStub{}
@@ -1062,13 +1074,17 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompStub, ok := args.State.(*testscommon.StateComponentsMock)
-		require.True(t, ok)
-		accountsStub, ok := stateCompStub.Accounts.(*state.AccountsStub)
-		require.True(t, ok)
-		accountsStub.RootHashCalled = func() ([]byte, error) {
-			return nil, expectedErr
+		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		realAccounts := stateCompMock.AccountsAdapter()
+		stateCompMock.Accounts = &state.AccountsStub{
+			GetAllLeavesCalled: realAccounts.GetAllLeaves,
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+			CommitCalled: realAccounts.Commit,
 		}
+		args.State = stateCompMock
+
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
 		require.NotNil(t, pcf)
 
@@ -1087,15 +1103,18 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompStub, ok := args.State.(*testscommon.StateComponentsMock)
-		require.True(t, ok)
-		accountsStub, ok := stateCompStub.Accounts.(*state.AccountsStub)
-		require.True(t, ok)
-		accountsStub.GetAllLeavesCalled = func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-			close(leavesChannels.LeavesChan)
-			leavesChannels.ErrChan.Close()
-			return expectedErr
+		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		realAccounts := stateCompMock.AccountsAdapter()
+		stateCompMock.Accounts = &state.AccountsStub{
+			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+				close(leavesChannels.LeavesChan)
+				leavesChannels.ErrChan.Close()
+				return expectedErr
+			},
+			RootHashCalled: realAccounts.RootHash,
+			CommitCalled:   realAccounts.Commit,
 		}
+		args.State = stateCompMock
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
 		require.NotNil(t, pcf)
@@ -1115,17 +1134,23 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompStub, ok := args.State.(*testscommon.StateComponentsMock)
-		require.True(t, ok)
-		accountsStub, ok := stateCompStub.Accounts.(*state.AccountsStub)
-		require.True(t, ok)
-		accountsStub.GetAllLeavesCalled = func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-			leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key_ok"), []byte("value")) // coverage
-			leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key_invalid"), []byte("value"))
-			close(leavesChannels.LeavesChan)
-			leavesChannels.ErrChan.Close()
-			return nil
+		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		realAccounts := stateCompMock.AccountsAdapter()
+		stateCompMock.Accounts = &state.AccountsStub{
+			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+				addrOk, _ := addrPubKeyConv.Decode("erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4")
+				addrNOK, _ := addrPubKeyConv.Decode("erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp")
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrOk, []byte("value")) // coverage
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrNOK, []byte("value"))
+				close(leavesChannels.LeavesChan)
+				leavesChannels.ErrChan.Close()
+				return nil
+			},
+			RootHashCalled: realAccounts.RootHash,
+			CommitCalled:   realAccounts.Commit,
 		}
+		args.State = stateCompMock
+
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		cnt := 0
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
@@ -1158,16 +1183,69 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				return true
 			},
 		}
-		stateCompStub, ok := args.State.(*testscommon.StateComponentsMock)
-		require.True(t, ok)
-		accountsStub, ok := stateCompStub.Accounts.(*state.AccountsStub)
-		require.True(t, ok)
-		accountsStub.GetAllLeavesCalled = func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-			close(leavesChannels.LeavesChan)
-			leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
-			leavesChannels.ErrChan.Close()
-			return nil
+		realStateComp := args.State
+		args.State = &testscommon.StateComponentsMock{
+			Accounts: &state.AccountsStub{
+				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					leavesChannels.ErrChan.Close()
+					return nil
+				},
+				CommitCalled:   realStateComp.AccountsAdapter().Commit,
+				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
+			},
+			PeersAcc:        realStateComp.PeerAccounts(),
+			Tries:           realStateComp.TriesContainer(),
+			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
+			StorageManagers: realStateComp.TrieStorageManagers(),
 		}
+
+		pcf, _ := processComp.NewProcessComponentsFactory(args)
+		require.NotNil(t, pcf)
+
+		instance, err := pcf.Create()
+		require.Nil(t, err)
+		require.NotNil(t, instance)
+	})
+	t.Run("should work with indexAndReturnGenesisAccounts failing due to error on Encode", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		statusCompStub, ok := args.StatusComponents.(*testsMocks.StatusComponentsStub)
+		require.True(t, ok)
+		statusCompStub.Outport = &outport.OutportStub{
+			HasDriversCalled: func() bool {
+				return true
+			},
+		}
+		realStateComp := args.State
+		args.State = &testscommon.StateComponentsMock{
+			Accounts: &state.AccountsStub{
+				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("invalid addr"), []byte("value"))
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan.Close()
+					return nil
+				},
+				CommitCalled:   realStateComp.AccountsAdapter().Commit,
+				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
+			},
+			PeersAcc:        realStateComp.PeerAccounts(),
+			Tries:           realStateComp.TriesContainer(),
+			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
+			StorageManagers: realStateComp.TrieStorageManagers(),
+		}
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
+			return &testscommon.MarshalizerStub{
+				UnmarshalCalled: func(obj interface{}, buff []byte) error {
+					return nil
+				},
+			}
+		}
+		args.CoreData = coreCompStub
+
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
 		require.NotNil(t, pcf)
 
@@ -1176,10 +1254,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		require.NotNil(t, instance)
 	})
 	t.Run("should work - shard", func(t *testing.T) {
-		t.Parallel()
-
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 
@@ -1191,11 +1267,9 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("should work - meta", func(t *testing.T) {
-		t.Parallel()
-
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.CurrentShard = common.MetachainShardId
-		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 
 		shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 			protocolSustainabilityAddr, err := processArgs.CoreData.AddressPubKeyConverter().Decode(testingProtocolSustainabilityAddress)
@@ -1326,17 +1400,17 @@ func testWithNilAccountsAdapterAPI(nilStep int, expectedErrSubstr string, metaSt
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		stateCompStub, ok := args.State.(*testscommon.StateComponentsMock)
-		require.True(t, ok)
-		accountsAdapterAPI := stateCompStub.AccountsAdapterAPI()
+		stateCompMock := testscommon.NewStateComponentsMockFromRealComponent(args.State)
+		accountsAdapterAPI := stateCompMock.AccountsAdapterAPI()
 		step := 0
-		stateCompStub.AccountsAdapterAPICalled = func() mxState.AccountsAdapter {
+		stateCompMock.AccountsAdapterAPICalled = func() mxState.AccountsAdapter {
 			step++
 			if step > nilStep {
 				return nil
 			}
 			return accountsAdapterAPI
 		}
+		args.State = stateCompMock
 		updateShardCoordinatorForMetaAtStep(t, args, metaStep)
 		testCreateWithArgs(t, args, expectedErrSubstr)
 	}
@@ -1374,7 +1448,7 @@ func updateShardCoordinatorForMetaAtStep(t *testing.T, args processComp.ProcessC
 	step := 0
 	bootstrapCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 		step++
-		shardC := testscommon.NewMultiShardsCoordinatorMock(2)
+		shardC := mock.NewMultiShardsCoordinatorMock(2)
 		if step > metaStep {
 			shardC.CurrentShard = common.MetachainShardId
 		}
@@ -1389,6 +1463,8 @@ func testWithInvalidShard(failingStep int, expectedErrSubstr string) func(t *tes
 		args := createMockProcessComponentsFactoryArgs()
 		bootstrapCompStub, ok := args.BootstrapComponents.(*mainFactoryMocks.BootstrapComponentsStub)
 		require.True(t, ok)
+
+		x := bootstrapCompStub.ShardCoordinator()
 		cnt := 0
 		bootstrapCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
@@ -1398,7 +1474,7 @@ func testWithInvalidShard(failingStep int, expectedErrSubstr string) func(t *tes
 					CurrentShard: 3,
 				}
 			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
+			return x
 		}
 		testCreateWithArgs(t, args, expectedErrSubstr)
 	}

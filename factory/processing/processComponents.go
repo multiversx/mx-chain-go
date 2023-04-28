@@ -1395,9 +1395,10 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		return pcf.newStorageRequesters()
 	}
 
+	shardC := pcf.bootstrapComponents.ShardCoordinator()
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
 		RequesterConfig:             pcf.config.Requesters,
-		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:            shardC,
 		Messenger:                   pcf.network.NetworkMessenger(),
 		Marshaller:                  pcf.coreData.InternalMarshalizer(),
 		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
@@ -1408,10 +1409,10 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	if shardC.SelfId() < shardC.NumberOfShards() {
 		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardC.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
@@ -1541,12 +1542,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
-	requestersContainerFactory, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return requestersContainerFactory, nil
+	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 }
 
 func (pcf *processComponentsFactory) createStorageRequestersForShard(
@@ -1574,12 +1570,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
-	requestersContainerFactory, err := storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return requestersContainerFactory, nil
+	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 }
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
