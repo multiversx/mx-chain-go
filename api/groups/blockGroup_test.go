@@ -55,8 +55,6 @@ type blockResponse struct {
 	Code  string            `json:"code"`
 }
 
-var expectedErr = errors.New("expected error")
-
 func TestBlockGroup_getBlockByNonce(t *testing.T) {
 	t.Parallel()
 
@@ -511,10 +509,6 @@ func testBlockGroup(
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, expectedRespCode, resp.Code)
 	assert.True(t, strings.Contains(response.Error, expectedRespError))
-}
-
-func formatExpectedErr(err, innerErr error) string {
-	return fmt.Sprintf("%s: %s", err.Error(), innerErr.Error())
 }
 
 func getBlockRoutesConfig() config.ApiRoutesConfig {
