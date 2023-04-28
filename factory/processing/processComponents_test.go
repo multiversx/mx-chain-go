@@ -29,6 +29,7 @@ import (
 	genesisMocks "github.com/multiversx/mx-chain-go/genesis/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	mxState "github.com/multiversx/mx-chain-go/state"
@@ -272,7 +273,18 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilDataComponentsHolder))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil Blockchain should error", func(t *testing.T) {
+	t.Run("nil BlockChain should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.Data = &testsMocks.DataComponentsStub{
+			BlockChain: nil,
+		}
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilBlockChainHandler))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil DataPool should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
@@ -592,6 +604,13 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.Config.PublicKeyShardId.Type = "invalid"
 		testCreateWithArgs(t, args, "cache type")
 	})
+	t.Run("createNetworkShardingCollector fails due to invalid PeerIdShardId config should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.Config.PeerIdShardId.Type = "invalid"
+		testCreateWithArgs(t, args, "cache type")
+	})
 	t.Run("prepareNetworkShardingCollector fails due to SetPeerShardResolver failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -600,6 +619,19 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		require.True(t, ok)
 		netwCompStub.Messenger = &p2pmocks.MessengerStub{
 			SetPeerShardResolverCalled: func(peerShardResolver p2p.PeerShardResolver) error {
+				return expectedErr
+			},
+		}
+		testCreateWithArgs(t, args, expectedErr.Error())
+	})
+	t.Run("prepareNetworkShardingCollector fails due to SetPeerValidatorMapper failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		netwCompStub, ok := args.Network.(*testsMocks.NetworkComponentsStub)
+		require.True(t, ok)
+		netwCompStub.InputAntiFlood = &testsMocks.P2PAntifloodHandlerStub{
+			SetPeerValidatorMapperCalled: func(validatorMapper process.PeerValidatorMapper) error {
 				return expectedErr
 			},
 		}
@@ -778,7 +810,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				}
 				return dataPool.ValidatorsInfo()
 			},
-			CloseCalled: nil,
+			CloseCalled: dataPool.Close,
 		}
 		testCreateWithArgs(t, args, "validators info pool")
 	})
@@ -895,7 +927,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		bootstrapCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 28 {
+			if cnt > 26 {
 				return nil
 			}
 			return mock.NewMultiShardsCoordinatorMock(2)
@@ -1092,6 +1124,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.Nil(t, err)
 		require.NotNil(t, instance)
+
+		err = instance.Close()
+		require.NoError(t, err)
+		_ = args.State.Close()
 	})
 	t.Run("should work with indexAndReturnGenesisAccounts failing due to GetAllLeaves failure", func(t *testing.T) {
 		t.Parallel()
@@ -1123,6 +1159,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.Nil(t, err)
 		require.NotNil(t, instance)
+
+		err = instance.Close()
+		require.NoError(t, err)
+		_ = args.State.Close()
 	})
 	t.Run("should work with indexAndReturnGenesisAccounts failing due to Unmarshal failure", func(t *testing.T) {
 		t.Parallel()
@@ -1172,6 +1212,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.Nil(t, err)
 		require.NotNil(t, instance)
+
+		err = instance.Close()
+		require.NoError(t, err)
+		_ = args.State.Close()
 	})
 	t.Run("should work with indexAndReturnGenesisAccounts failing due to error on GetAllLeaves", func(t *testing.T) {
 		t.Parallel()
@@ -1208,6 +1252,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.Nil(t, err)
 		require.NotNil(t, instance)
+
+		err = instance.Close()
+		require.NoError(t, err)
+		_ = args.State.Close()
 	})
 	t.Run("should work with indexAndReturnGenesisAccounts failing due to error on Encode", func(t *testing.T) {
 		t.Parallel()
@@ -1253,6 +1301,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.Nil(t, err)
 		require.NotNil(t, instance)
+
+		err = instance.Close()
+		require.NoError(t, err)
+		_ = args.State.Close()
 	})
 	t.Run("should work - shard", func(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -1266,6 +1318,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 
 		err = instance.Close()
 		require.NoError(t, err)
+		_ = processArgs.State.Close()
 	})
 	t.Run("should work - meta", func(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
@@ -1291,6 +1344,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 
 		err = instance.Close()
 		require.NoError(t, err)
+		_ = processArgs.State.Close()
 	})
 }
 
@@ -1489,4 +1543,6 @@ func testCreateWithArgs(t *testing.T, args processComp.ProcessComponentsFactoryA
 	require.Error(t, err)
 	require.True(t, strings.Contains(err.Error(), expectedErrSubstr))
 	require.Nil(t, instance)
+
+	_ = args.State.Close()
 }
