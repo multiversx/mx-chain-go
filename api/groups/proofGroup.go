@@ -115,56 +115,25 @@ type VerifyProofRequest struct {
 func (pg *proofGroup) getProof(c *gin.Context) {
 	rootHash := c.Param("roothash")
 	if rootHash == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyRootHash.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyRootHash)
 		return
 	}
 
 	address := c.Param("address")
 	if address == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyAddress)
 		return
 	}
 
 	response, err := pg.getFacade().GetProof(rootHash, address)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetProof, err)
 		return
 	}
 
 	hexProof := bytesToHex(response.Proof)
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data: gin.H{
-				"proof": hexProof,
-				"value": hex.EncodeToString(response.Value),
-			},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWithSuccess(c, gin.H{"proof": hexProof, "value": hex.EncodeToString(response.Value)})
 }
 
 // getProofDataTrie will receive a rootHash, a key and an address from the client, and it will return the Merkle proofs
@@ -172,53 +141,25 @@ func (pg *proofGroup) getProof(c *gin.Context) {
 func (pg *proofGroup) getProofDataTrie(c *gin.Context) {
 	rootHash := c.Param("roothash")
 	if rootHash == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyRootHash.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyRootHash)
 		return
 	}
 
 	address := c.Param("address")
 	if address == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyAddress)
 		return
 	}
 
 	key := c.Param("key")
 	if key == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyKey.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyKey)
 		return
 	}
 
 	mainTrieResponse, dataTrieResponse, err := pg.getFacade().GetProofDataTrie(rootHash, address, key)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetProof, err)
 		return
 	}
 
@@ -226,18 +167,11 @@ func (pg *proofGroup) getProofDataTrie(c *gin.Context) {
 	proofs["mainProof"] = bytesToHex(mainTrieResponse.Proof)
 	proofs["dataTrieProof"] = bytesToHex(dataTrieResponse.Proof)
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data: gin.H{
-				"proofs":           proofs,
-				"value":            hex.EncodeToString(dataTrieResponse.Value),
-				"dataTrieRootHash": dataTrieResponse.RootHash,
-			},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWithSuccess(c, gin.H{
+		"proofs":           proofs,
+		"value":            hex.EncodeToString(dataTrieResponse.Value),
+		"dataTrieRootHash": dataTrieResponse.RootHash,
+	})
 }
 
 func bytesToHex(bytesValue [][]byte) []string {
@@ -254,44 +188,23 @@ func bytesToHex(bytesValue [][]byte) []string {
 func (pg *proofGroup) getProofCurrentRootHash(c *gin.Context) {
 	address := c.Param("address")
 	if address == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrValidationEmptyAddress)
 		return
 	}
 
 	response, err := pg.getFacade().GetProofCurrentRootHash(address)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInternalError(c, errors.ErrGetProof, err)
 		return
 	}
 
 	hexProof := bytesToHex(response.Proof)
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data: gin.H{
-				"proof":    hexProof,
-				"value":    hex.EncodeToString(response.Value),
-				"rootHash": response.RootHash,
-			},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWithSuccess(c, gin.H{
+		"proof":    hexProof,
+		"value":    hex.EncodeToString(response.Value),
+		"rootHash": response.RootHash,
+	})
 }
 
 // verifyProof will receive a rootHash, an address and a Merkle proof from the client,
@@ -300,14 +213,7 @@ func (pg *proofGroup) verifyProof(c *gin.Context) {
 	var verifyProofParams = &VerifyProofRequest{}
 	err := c.ShouldBindJSON(&verifyProofParams)
 	if err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
+		shared.RespondWithValidationError(c, errors.ErrValidation, err)
 		return
 	}
 
@@ -315,14 +221,7 @@ func (pg *proofGroup) verifyProof(c *gin.Context) {
 	for _, hexProof := range verifyProofParams.Proof {
 		bytesProof, err := hex.DecodeString(hexProof)
 		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
+			shared.RespondWithValidationError(c, errors.ErrValidation, err)
 			return
 		}
 
@@ -332,25 +231,11 @@ func (pg *proofGroup) verifyProof(c *gin.Context) {
 	var proofOk bool
 	proofOk, err = pg.getFacade().VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, proof)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrVerifyProof.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInternalError(c, errors.ErrVerifyProof, err)
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"ok": proofOk},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWithSuccess(c, gin.H{"ok": proofOk})
 }
 
 func (pg *proofGroup) getFacade() proofFacadeHandler {
