@@ -30,11 +30,11 @@ func NewSovereignChainHeaderValidator(
 func (schv *sovereignChainHeaderValidator) getHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
 	shardHeaderExtended, isShardHeaderExtended := headerHandler.(*block.ShardHeaderExtended)
 	if isShardHeaderExtended {
-		if shardHeaderExtended.Header == nil || shardHeaderExtended.Header.Header == nil {
+		if shardHeaderExtended.Header == nil {
 			return nil, process.ErrNilHeaderHandler
 		}
 
-		return core.CalculateHash(schv.marshalizer, schv.hasher, shardHeaderExtended.Header.Header)
+		return core.CalculateHash(schv.marshalizer, schv.hasher, shardHeaderExtended.Header)
 	}
 
 	return core.CalculateHash(schv.marshalizer, schv.hasher, headerHandler)

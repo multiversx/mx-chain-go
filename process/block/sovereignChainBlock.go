@@ -113,7 +113,7 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		return
 	}
 
-	lastHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardHeaderExtended.Header.Header)
+	lastHeaderHash, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardHeaderExtended.Header)
 
 	for i := 0; i < numHeadersToBeAdded; i++ {
 		randSeed, _ := core.CalculateHash(scbp.marshalizer, scbp.hasher, &block.Header{Reserved: []byte(fmt.Sprintf("%d", lastHeader.GetNonce()))})
@@ -157,14 +157,14 @@ func (scbp *sovereignChainBlockProcessor) addNextTrackedHeadersMock(numHeadersTo
 		log.Debug("sovereignChainBlockProcessor.addNextTrackedHeadersMock", "round", nextCrossNotarizedHeader.GetRound(), "nonce", nextCrossNotarizedHeader.GetNonce(), "hash", nextCrossNotarizedHeaderHash)
 
 		lastHeader = header
-		lastHeaderHash, _ = core.CalculateHash(scbp.marshalizer, scbp.hasher, header)
+		lastHeaderHash, _ = core.CalculateHash(scbp.marshalizer, scbp.hasher, nextCrossNotarizedHeader.Header)
 	}
 }
 
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(3)
+	scbp.addNextTrackedHeadersMock(0)
 
 	scbp.enableRoundsHandler.CheckRound(round)
 	header := &block.SovereignChainHeader{
@@ -558,7 +558,7 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedShardHdrsHashes(waitTime time.Duration) error {
 	//TODO: This call and the method itself should be removed when real functionality will be done
-	scbp.addNextTrackedHeadersMock(3)
+	scbp.addNextTrackedHeadersMock(0)
 
 	select {
 	case <-scbp.chRcvAllExtendedShardHdrs:
