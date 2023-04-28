@@ -484,8 +484,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	headersPool := managedDataComponents.Datapool().Headers()
-	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool, configs.NotifierConfig)
+	sovereignWsReceiver, err := createSovereignWsReceiver(managedDataComponents.Datapool(), configs.NotifierConfig)
 	if err != nil {
 		return true, err
 	}
@@ -1648,7 +1647,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createSovereignWsReceiver(
-	handler notifierProcess.HeaderSubscriber,
+	dataPool dataRetriever.PoolsHolder,
 	config *sovereignConfig.NotifierConfig,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
@@ -1663,7 +1662,11 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	err = sovereignNotifier.RegisterHandler(handler)
+	err = sovereignNotifier.RegisterHeaderSubscriber(dataPool.Headers())
+	if err != nil {
+		return nil, err
+	}
+	err = sovereignNotifier.RegisterTxSubscriber(dataPool.Transactions())
 	if err != nil {
 		return nil, err
 	}
