@@ -153,10 +153,6 @@ func (t *tokensSuppliesProcessor) SaveSupplies() error {
 		}
 	}
 
-	err = suppliesStorer.Put([]byte("recomputed"), []byte("true"))
-	if err != nil {
-		return err
-	}
 	log.Debug("finished the repopulation of the tokens supplies", "num tokens", len(t.tokensSupplies))
 
 	return nil
