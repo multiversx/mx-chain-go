@@ -50,7 +50,6 @@ func NewMetaStorageHandler(
 			CurrentEpoch:                  currentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
-			ShardIDProvider:               shardIDProvider,
 		},
 	)
 	if err != nil {

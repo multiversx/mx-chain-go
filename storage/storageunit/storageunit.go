@@ -29,6 +29,9 @@ type CacheType = storageUnit.CacheType
 // DBType represents the type of the supported databases
 type DBType = storageUnit.DBType
 
+// ShardIDProviderType represents the type of the supported shard id providers
+type ShardIDProviderType = storageUnit.ShardIDProviderType
+
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {

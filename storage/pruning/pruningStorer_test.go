@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1052,7 +1051,7 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	fmt.Println(testDir)
 	args := getDefaultArgs()
 
-	persisterFactory, err := factory.NewPersisterFactory(
+	dbConfigHandler := factory.NewDBConfigHandler(
 		config.DBConfig{
 			FilePath:          filepath.Join(testDir, dbName),
 			Type:              "LvlDBSerial",
@@ -1060,8 +1059,8 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 			MaxOpenFiles:      10,
 			BatchDelaySeconds: 2,
 		},
-		&storageStubs.ShardIDProviderStub{},
 	)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 	require.Nil(t, err)
 
 	args.PersisterFactory = persisterFactory

@@ -15,8 +15,11 @@ const (
 	LvlDB = storageUnit.LvlDB
 	// LvlDBSerial represents a levelDB storage with serialized operations identifier
 	LvlDBSerial = storageUnit.LvlDBSerial
-	// ShardedLvlDBSerial represents a sharded levelDB storage with serialized operations identifier
-	ShardedLvlDBSerial = storageUnit.ShardedLvlDBSerial
 	// MemoryDB represents an in memory storage identifier
 	MemoryDB = storageUnit.MemoryDB
+)
+
+// Shard id provider types that are currently supported
+const (
+	BinarySplit = storageUnit.BinarySplit
 )

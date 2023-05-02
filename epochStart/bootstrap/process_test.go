@@ -225,7 +225,6 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		ShardIDProvider:            &storageMocks.ShardIDProviderStub{},
 	}
 }
 
