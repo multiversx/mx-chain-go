@@ -160,7 +160,6 @@ type Config struct {
 	StateTriesConfig                   StateTriesConfig
 	TrieStorageManagerConfig           TrieStorageManagerConfig
 	BadBlocksCache                     CacheConfig
-	StorageShardIDProvider             StorageShardIDProvider
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -613,9 +612,4 @@ type RequesterConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
-}
-
-// StorageShardIDProvider defines the config to set up shard if provider
-type StorageShardIDProvider struct {
-	NumShards uint32
 }

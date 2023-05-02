@@ -40,7 +40,6 @@ func NewShardStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider core.NodeTypeProviderHandler,
-	shardIDProvider storage.ShardIDProvider,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(

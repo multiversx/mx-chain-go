@@ -36,7 +36,6 @@ func NewMetaStorageHandler(
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider NodeTypeProviderHandler,
-	shardIDProvider storage.ShardIDProvider,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
