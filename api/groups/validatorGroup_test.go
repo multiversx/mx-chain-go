@@ -106,6 +106,90 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, validatorStatistics.Result, mapToReturn)
 }
 
+func TestValidatorGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		validatorGroup, err := groups.NewValidatorGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = validatorGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		validatorGroup, err := groups.NewValidatorGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = validatorGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mapToReturn := make(map[string]*state.ValidatorApiResponse)
+		mapToReturn["test"] = &state.ValidatorApiResponse{
+			NumLeaderSuccess:    5,
+			NumLeaderFailure:    2,
+			NumValidatorSuccess: 7,
+			NumValidatorFailure: 3,
+		}
+		facade := mock.FacadeStub{
+			ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+				return mapToReturn, nil
+			},
+		}
+		validatorGroup, err := groups.NewValidatorGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/validator/statistics", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		validatorStatistics := ValidatorStatisticsResponse{}
+		mapResponseData := response.Data.(map[string]interface{})
+		mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+		_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, validatorStatistics.Result, mapToReturn)
+
+		expectedErr := errors.New("expected error")
+		newFacade := mock.FacadeStub{
+			ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+				return nil, expectedErr
+			},
+		}
+
+		err = validatorGroup.UpdateFacade(&newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("GET", "/validator/statistics", nil)
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.Contains(t, response.Error, expectedErr.Error())
+	})
+}
+
+func TestValidatorGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	validatorGroup, _ := groups.NewValidatorGroup(nil)
+	require.True(t, validatorGroup.IsInterfaceNil())
+
+	validatorGroup, _ = groups.NewValidatorGroup(&mock.FacadeStub{})
+	require.False(t, validatorGroup.IsInterfaceNil())
+}
+
 func getValidatorRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
