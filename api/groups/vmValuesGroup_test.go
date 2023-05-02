@@ -247,6 +247,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 		ScAddress: dummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
+		CallValue: "1",
 	}
 
 	response := simpleResponse{}
@@ -274,6 +275,145 @@ func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 	}
 
 	requireErrorOnGetSingleValueRoutes(t, &facade, []byte("dummy"), apiErrors.ErrInvalidJSONRequest)
+}
+
+func TestAllRoutes_DecodeAddressPubkeyFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	cnt := 0
+	facade := mock.FacadeStub{
+		DecodeAddressPubkeyCalled: func(pk string) ([]byte, error) {
+			cnt++
+			if cnt > 1 {
+				return nil, expectedErr
+			}
+			return hex.DecodeString(pk)
+		},
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
+		},
+	}
+
+	request := groups.VMValueRequest{
+		ScAddress:  dummyScAddress,
+		FuncName:   "function",
+		Args:       []string{},
+		CallerAddr: dummyScAddress,
+	}
+	requireErrorOnGetSingleValueRoutes(t, &facade, request, expectedErr)
+}
+
+func TestAllRoutes_SetStringFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
+		},
+	}
+
+	request := groups.VMValueRequest{
+		ScAddress:  dummyScAddress,
+		FuncName:   "function",
+		Args:       []string{},
+		CallerAddr: dummyScAddress, // coverage
+		CallValue:  "not an int",
+	}
+	requireErrorOnGetSingleValueRoutes(t, &facade, request, errors.New("non numeric call value"))
+}
+
+func TestVMValuesGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		group, err := groups.NewVmValuesGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = group.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		group, err := groups.NewVmValuesGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = group.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		valueBuff, _ := hex.DecodeString("DEADBEEF")
+		facade := &mock.FacadeStub{
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+
+				return &vm.VMOutputApi{
+					ReturnData: [][]byte{valueBuff},
+					ReturnCode: "NOK", // coverage
+				}, nil
+			},
+		}
+
+		request := groups.VMValueRequest{
+			ScAddress: dummyScAddress,
+			FuncName:  "function",
+			Args:      []string{},
+		}
+		requestAsBytes, _ := json.Marshal(request)
+		group, err := groups.NewVmValuesGroup(facade)
+		require.NoError(t, err)
+
+		server := startWebServer(group, "vm-values", getVmValuesRoutesConfig())
+
+		httpRequest, _ := http.NewRequest("POST", "/vm-values/hex", bytes.NewBuffer(requestAsBytes))
+		responseRecorder := httptest.NewRecorder()
+		server.ServeHTTP(responseRecorder, httpRequest)
+
+		responseI := shared.GenericAPIResponse{}
+		loadResponse(responseRecorder.Body, &responseI)
+		responseDataMap := responseI.Data.(map[string]interface{})
+		responseDataMapBytes, _ := json.Marshal(responseDataMap)
+		response := &simpleResponse{}
+		_ = json.Unmarshal(responseDataMapBytes, response)
+		require.Equal(t, http.StatusOK, responseRecorder.Code)
+		require.Contains(t, responseI.Error, "NOK")
+		require.Contains(t, "", response.Error)
+		require.Equal(t, hex.EncodeToString(valueBuff), response.Data)
+
+		expectedErr := errors.New("expected error")
+		newFacade := &mock.FacadeStub{
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+
+				return &vm.VMOutputApi{
+					ReturnData: nil,
+				}, expectedErr
+			},
+		}
+
+		err = group.UpdateFacade(newFacade)
+		require.NoError(t, err)
+
+		httpRequest, _ = http.NewRequest("POST", "/vm-values/hex", bytes.NewBuffer(requestAsBytes))
+		responseRecorder = httptest.NewRecorder()
+		server.ServeHTTP(responseRecorder, httpRequest)
+		loadResponse(responseRecorder.Body, &responseI)
+		require.Equal(t, http.StatusBadRequest, responseRecorder.Code)
+		require.Contains(t, responseI.Error, expectedErr.Error())
+	})
+}
+
+func TestVMValuesGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	group, _ := groups.NewVmValuesGroup(nil)
+	require.True(t, group.IsInterfaceNil())
+
+	group, _ = groups.NewVmValuesGroup(&mock.FacadeStub{})
+	require.False(t, group.IsInterfaceNil())
 }
 
 func doPost(t *testing.T, facade interface{}, url string, request interface{}, response interface{}) int {
