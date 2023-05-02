@@ -87,9 +87,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.HardforkExclusionHandler) {
-		return nil, errors.ErrNilHardforkExclusionHandler
-	}
 
 	return &consensusComponentsFactory{
 		config:                   args.Config,
