@@ -447,7 +447,7 @@ func (sc *scProcessor) executeSmartContractCall(
 }
 
 func (sc *scProcessor) isMultiLevelAsync(callType vmData.CallType, vmOutput *vmcommon.VMOutput) bool {
-	if callType != vmData.AsynchronousCall && callType == vmData.AsynchronousCallBack {
+	if callType != vmData.AsynchronousCall && callType != vmData.AsynchronousCallBack {
 		return false
 	}
 	for _, outputAcc := range vmOutput.OutputAccounts {
