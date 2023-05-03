@@ -12,6 +12,7 @@ type StatusCoreComponentsStub struct {
 	NetworkStatisticsField       factory.NetworkStatisticsProvider
 	TrieSyncStatisticsField      factory.TrieSyncStatisticsProvider
 	AppStatusHandlerField        core.AppStatusHandler
+	AppStatusHandlerCalled       func() core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
 	PersistentStatusHandlerField factory.PersistentStatusHandler
 }
@@ -53,6 +54,9 @@ func (stub *StatusCoreComponentsStub) TrieSyncStatistics() factory.TrieSyncStati
 
 // AppStatusHandler -
 func (stub *StatusCoreComponentsStub) AppStatusHandler() core.AppStatusHandler {
+	if stub.AppStatusHandlerCalled != nil {
+		return stub.AppStatusHandlerCalled()
+	}
 	return stub.AppStatusHandlerField
 }
 

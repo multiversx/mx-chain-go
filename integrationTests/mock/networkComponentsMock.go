@@ -9,6 +9,7 @@ import (
 // NetworkComponentsStub -
 type NetworkComponentsStub struct {
 	Messenger               p2p.Messenger
+	MessengerCalled         func() p2p.Messenger
 	InputAntiFlood          factory.P2PAntifloodHandler
 	OutputAntiFlood         factory.P2PAntifloodHandler
 	PeerBlackList           process.PeerBlackListCacher
@@ -45,6 +46,9 @@ func (ncs *NetworkComponentsStub) CheckSubcomponents() error {
 
 // NetworkMessenger -
 func (ncs *NetworkComponentsStub) NetworkMessenger() p2p.Messenger {
+	if ncs.MessengerCalled != nil {
+		return ncs.MessengerCalled()
+	}
 	return ncs.Messenger
 }
 
