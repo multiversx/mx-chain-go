@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -277,22 +278,22 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	sr.Data = []byte("X")
 
 	err := errors.New("create signature share error")
-	signatureHandler := &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+	signingHandler := &consensusMocks.SigningHandlerStub{
+		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 
 	r = sr.DoSignatureJob()
 	assert.False(t, r)
 
-	signatureHandler = &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+	signingHandler = &consensusMocks.SigningHandlerStub{
+		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
@@ -367,7 +368,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 
 	errStore := errors.New("signature share store failed")
 	storeSigShareCalled := false
-	signatureHandler := &mock.SignatureHandlerStub{
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 			return nil
 		},
@@ -378,7 +379,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	}
 
 	container := mock.InitConsensusCore()
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 	sr := *initSubroundSignatureWithContainer(container)
 	sr.Header = &block.Header{}
 

@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -96,7 +97,6 @@ func TestScCallShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -138,7 +138,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	scAddrBytes, _ := hex.DecodeString(scAddress)
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -169,7 +168,6 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -202,7 +200,6 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(9)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -238,7 +235,6 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -274,7 +270,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -313,7 +308,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	owner := []byte("12345678901234567890123456789011")
 	senderBalance := big.NewInt(1000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(2000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
@@ -323,7 +317,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance = big.NewInt(10000000)
-	gasPrice = uint64(10)
 	gasLimit = uint64(30000)
 
 	esdtBalance := big.NewInt(100000000)
@@ -426,7 +419,6 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	sndAddr1 := []byte("12345678901234567890123456789112")
 	sndAddr2 := []byte("12345678901234567890123456789113")
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
@@ -488,7 +480,6 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	sndAddr1 := []byte("12345678901234567890123456789112")
 	sndAddr2 := []byte("12345678901234567890123456789113")
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
@@ -553,12 +544,12 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 
-	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	pkConv, err := pubkeyConverter.NewBech32PubkeyConverter(32, integrationTests.AddressHrp)
+	require.NoError(t, err)
 	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
 	require.Nil(t, err)
 
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(600000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)

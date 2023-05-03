@@ -11,6 +11,7 @@ func GetGeneralConfig() config.Config {
 			Length:          32,
 			Type:            "bech32",
 			SignatureLength: 0,
+			Hrp:             "erd",
 		},
 		ValidatorPubkeyConverter: config.PubkeyConfig{
 			Length:          96,
@@ -168,6 +169,7 @@ func GetGeneralConfig() config.Config {
 			ChainID:                  "undefined",
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
+			SetGuardianEpochsDelay:   20,
 		},
 		Marshalizer: config.MarshalizerConfig{
 			Type:           TestMarshalizer,
@@ -260,11 +262,13 @@ func CreateDummyEconomicsConfig() config.EconomicsConfig {
 					MaxGasLimitPerMetaMiniBlock: "15000000000",
 					MaxGasLimitPerTx:            "1500000000",
 					MinGasLimit:                 "50000",
+					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
 			MinGasPrice:      "1000000000",
 			GasPerDataByte:   "1500",
 			GasPriceModifier: 1,
+			MaxGasPriceSetGuardian: "100000",
 		},
 	}
 }

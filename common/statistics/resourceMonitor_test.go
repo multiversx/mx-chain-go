@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	logger "github.com/multiversx/mx-chain-logger-go"
 	stats "github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 

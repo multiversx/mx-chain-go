@@ -3,6 +3,12 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
+<<<<<<< HEAD
+=======
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+>>>>>>> rc/v1.6.0
 )
 
 // PersisterFactory is the factory which will handle creating new databases
@@ -49,7 +55,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 
 // CreateDisabled will return a new disabled persister
 func (pf *PersisterFactory) CreateDisabled() storage.Persister {
-	return &disabledPersister{}
+	return disabled.NewErrorDisabledPersister()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

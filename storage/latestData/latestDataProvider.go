@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -53,7 +54,17 @@ type latestDataProvider struct {
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
+<<<<<<< HEAD
 	// TODO: check args
+=======
+	if check.IfNil(args.DirectoryReader) {
+		return nil, storage.ErrNilDirectoryReader
+	}
+	if check.IfNil(args.BootstrapDataProvider) {
+		return nil, storage.ErrNilBootstrapDataProvider
+	}
+
+>>>>>>> rc/v1.6.0
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
 		parentDir:             args.ParentDir,

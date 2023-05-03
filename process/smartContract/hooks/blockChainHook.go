@@ -545,7 +545,7 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 	}
 
 	raw := vmcommon.CodeMetadataFromBytes(input)
-	filtered := bh.ApplyFiltersOnCodeMetadata(raw)
+	filtered := bh.ApplyFiltersOnSCCodeMetadata(raw)
 	if bytes.Equal(input, filtered.ToBytes()) {
 		return filtered.ToBytes(), nil
 	}
@@ -553,9 +553,10 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 	return nil, parsers.ErrInvalidCodeMetadata
 }
 
-// ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value
-func (bh *BlockChainHookImpl) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+// ApplyFiltersOnSCCodeMetadata will apply all known filters on the provided code metadata value
+func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
 	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	codeMetadata.Guarded = false
 
 	return codeMetadata
 }

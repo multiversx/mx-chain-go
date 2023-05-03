@@ -12,19 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -39,21 +40,22 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(moveBalanceTx)
-	require.Equal(uint64(50_000), moveBalanceTx.GasUsed)
-	require.Equal("50000000000000", moveBalanceTx.Fee)
+	req.Equal(uint64(50_000), moveBalanceTx.GasUsed)
+	req.Equal("50000000000000", moveBalanceTx.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -76,8 +78,8 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSignalErrorLog)
-	require.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
-	require.Equal("50300000000000", txWithSignalErrorLog.Fee)
+	req.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
+	req.Equal("50300000000000", txWithSignalErrorLog.Fee)
 }
 
 func silentDecodeAddress(address string) []byte {
@@ -88,14 +90,15 @@ func silentDecodeAddress(address string) []byte {
 func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -120,19 +123,20 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(relayedTxWithWriteLog)
-	require.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
-	require.Equal("66350000000000", relayedTxWithWriteLog.Fee)
+	req.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
+	req.Equal("66350000000000", relayedTxWithWriteLog.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.T) {
-	require := require.New(t)
+	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -145,11 +149,14 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 			RcvAddr:  silentDecodeAddress(receiver),
 			Data:     []byte("relayedTx@"),
 		},
+		Sender:   sender,
+		Receiver: receiver,
 		GasLimit: 10_000_000,
 		SmartContractResults: []*transaction.ApiSmartContractResult{
 			{
 				Value:    big.NewInt(66350000000000),
 				IsRefund: true,
+				RcvAddr:  sender,
 			},
 		},
 		Logs: &transaction.ApiLogs{
@@ -163,6 +170,41 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
-	require.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
-	require.Equal("98000000000000", txWithSRefundSCR.Fee)
+	req.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
+	req.Equal("98000000000000", txWithSRefundSCR.Fee)
+}
+
+func TestNFTTransferWithScCall(t *testing.T) {
+	req := require.New(t)
+	feeComp, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+	})
+	computer := fee.NewTestFeeComputer(feeComp)
+	req.Nil(err)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+
+	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
+	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
+
+	tx := &transaction.ApiTransactionResult{
+		Tx: &transaction.Transaction{
+			GasLimit: 55_000_000,
+			GasPrice: 1000000000,
+			SndAddr:  silentDecodeAddress(sender),
+			RcvAddr:  silentDecodeAddress(receiver),
+			Data:     []byte("ESDTNFTTransfer@434f572d636434363364@080c@01@00000000000000000500d3b28828d62052124f07dcd50ed31b0825f60eee1526@616363657074476c6f62616c4f66666572@c3e5q"),
+		},
+		GasLimit:  55_000_000,
+		Receivers: []string{"erd1qqqqqqqqqqqqqpgq6wegs2xkypfpync8mn2sa5cmpqjlvrhwz5nqgepyg8"},
+		Function:  "acceptGlobalOffer",
+		Operation: "ESDTNFTTransfer",
+	}
+	tx.InitiallyPaidFee = feeComp.ComputeTransactionFee(tx).String()
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
+	req.Equal(uint64(55_000_000), tx.GasUsed)
+	req.Equal("822250000000000", tx.Fee)
 }
