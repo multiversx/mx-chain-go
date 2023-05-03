@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/multiversx/mx-chain-vm-go/vmhost/contexts"
 )
 
@@ -37,6 +39,7 @@ var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
+var logCounters = logger.GetOrCreate("process/smartcontract.blockchainHookCounters")
 
 const maxTotalSCRsSize = 3 * (1 << 18) // 768KB
 
@@ -361,7 +364,7 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 	acntSnd, acntDst state.UserAccountHandler,
 	failureContext *failureContext,
 ) (*vmcommon.VMOutput, vmcommon.ReturnCode, error) {
-	vmOutput, err := sc.executeSmartContractCall(vmInput, acntSnd, acntDst, failureContext)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, vmInput.CurrentTxHash, acntSnd, acntDst, failureContext)
 	if err != nil {
 		return vmOutput, vmcommon.Ok, err
 	}
@@ -381,6 +384,8 @@ func (sc *scProcessor) executeSmartContractCallAndCheckGas(
 
 func (sc *scProcessor) executeSmartContractCall(
 	vmInput *vmcommon.ContractCallInput,
+	tx data.TransactionHandler,
+	_ []byte,
 	acntSnd, acntDst state.UserAccountHandler,
 	failureContext *failureContext,
 ) (*vmcommon.VMOutput, error) {
@@ -402,6 +407,9 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, nil
 	}
 
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 
@@ -417,6 +425,11 @@ func (sc *scProcessor) executeSmartContractCall(
 		failureContext.setMessages(err.Error(), []byte(""))
 		return userErrorVmOutput, nil
 	}
+
+	if sc.isMultiLevelAsync(vmInput.CallType, vmOutput) {
+		return nil, vmhost.ErrAsyncNoMultiLevel
+	}
+
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -431,6 +444,20 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	return vmOutput, nil
+}
+
+func (sc *scProcessor) isMultiLevelAsync(callType vmData.CallType, vmOutput *vmcommon.VMOutput) bool {
+	if callType != vmData.AsynchronousCall && callType != vmData.AsynchronousCallBack {
+		return false
+	}
+	for _, outputAcc := range vmOutput.OutputAccounts {
+		for _, outTransfer := range outputAcc.OutputTransfers {
+			if outTransfer.CallType == vmData.AsynchronousCall {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (sc *scProcessor) isInformativeTxHandler(txHandler data.TransactionHandler) bool {
@@ -784,7 +811,9 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 }
 
 func (sc *scProcessor) resolveFailedTransaction(
+	_ state.UserAccountHandler,
 	tx data.TransactionHandler,
+	_ []byte,
 ) error {
 	if _, ok := tx.(*transaction.Transaction); ok {
 		err := sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
@@ -843,6 +872,9 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	failureContext := NewFailureContext()
 	retCode, err := sc.doExecuteBuiltInFunctionWithoutFailureProcessing(tx, acntSnd, acntDst, failureContext)
 	if failureContext.processFail {
@@ -897,7 +929,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
-			err := sc.resolveFailedTransaction(tx)
+			err := sc.resolveFailedTransaction(acntSnd, tx, txHash)
 			failureContext.setMessage(vmOutput.ReturnMessage)
 			failureContext.setGasLocked(0)
 			return vmcommon.UserError, err
@@ -1052,15 +1084,15 @@ func (sc *scProcessor) createAsyncCallBackSCR(inputForCallback *inputDataForCall
 }
 
 func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.AsyncArguments, []byte, error) {
-	function, args, err := sc.argsParser.ParseCallData(string(data))
+	function, args, err := sc.argsParser.ParseCallData(data)
 	dataAsString := function
 	if err != nil {
-		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", string(data))
+		log.Trace("scProcessor.createSCRsWhenError()", "error parsing args", data)
 		return nil, nil, err
 	}
 
 	if len(args) < 2 {
-		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", string(data))
+		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
 		return nil, nil, err
 	}
 
@@ -1723,6 +1755,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	acntSnd state.UserAccountHandler,
 	failureContext *failureContext,
 ) (vmcommon.ReturnCode, error) {
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
 		log.Debug("wrong transaction - not empty address", "error", process.ErrWrongTransaction.Error())
@@ -2316,12 +2351,6 @@ func (sc *scProcessor) preprocessOutTransferToSCR(
 		result.Value.Set(outputTransfer.Value)
 	}
 
-	result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
-		outputTransfer.Data,
-		outputTransfer.AsyncData,
-		sc.argsParser.ParseArguments,
-	)
-
 	result.GasLimit = outputTransfer.GasLimit
 	result.CallType = outputTransfer.CallType
 	setOriginalTxHash(result, txHash, tx)
@@ -2363,13 +2392,6 @@ func (sc *scProcessor) createSmartContractResults(
 		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
-		if result.CallType == vmData.AsynchronousCallBack {
-			if isCrossShard {
-				// backward compatibility
-				createdAsyncCallBack = true
-				result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
-			}
-		}
 
 		useSenderAddressFromOutTransfer :=
 			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
@@ -2384,6 +2406,12 @@ func (sc *scProcessor) createSmartContractResults(
 		if !createdAsyncCallBack && isLastOutTransfer && isOutTransferTxRcvAddr &&
 			sc.useLastTransferAsAsyncCallBackWhenNeeded(vmInput, outAcc, &outputTransferCopy, vmOutput, tx, result, isCrossShard) {
 			createdAsyncCallBack = true
+		} else {
+			result.Data, _ = contexts.AppendTransferAsyncDataToCallData(
+				outputTransfer.Data,
+				outputTransfer.AsyncData,
+				sc.argsParser.ParseArguments,
+			)
 		}
 
 		if result.CallType == vmData.AsynchronousCall {
@@ -2429,19 +2457,18 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 
 	var err error
 	asyncParams := contexts.CreateCallbackAsyncParams(hooks.NewVMCryptoHook(), vmInput.AsyncArguments)
-	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, result.Data)
+	dataBuilder, err := sc.prependAsyncParamsToData(asyncParams, outputTransfer.Data, int(vmOutput.ReturnCode))
 	if err != nil {
 		log.Debug("processed built in functions error (async params extraction)", "error", err.Error())
 		return false
 	}
 
-	dataBuilder.Int(int(vmOutput.ReturnCode))
 	result.Data = dataBuilder.ToBytes()
 
 	return true
 }
 
-func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte) (*txDataBuilder.TxDataBuilder, error) {
+func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byte, returnCode int) (*txDataBuilder.TxDataBuilder, error) {
 	var args [][]byte
 	var err error
 
@@ -2464,6 +2491,8 @@ func (sc *scProcessor) prependAsyncParamsToData(asyncParams [][]byte, data []byt
 	for _, arg := range args {
 		callData.Bytes(arg)
 	}
+
+	callData.Int(returnCode)
 
 	for _, asyncParam := range asyncParams {
 		callData.Bytes(asyncParam)
@@ -2845,4 +2874,44 @@ func (sc *scProcessor) GetTxLogsProcessor() process.TransactionLogProcessor {
 // GetScrForwarder is a getter for scrForwarder
 func (sc *scProcessor) GetScrForwarder() process.IntermediateTransactionHandler {
 	return sc.scrForwarder
+}
+
+func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
+	if logCounters.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	receiver, _ := sc.pubkeyConv.Encode(tx.GetRcvAddr())
+	sender, _ := sc.pubkeyConv.Encode(tx.GetSndAddr())
+
+	logCounters.Trace("blockchain hook counters",
+		"counters", sc.getBlockchainHookCountersString(),
+		"tx hash", sc.computeTxHashUnsafe(tx),
+		"receiver", receiver,
+		"sender", sender,
+		"value", tx.GetValue().String(),
+		"data", tx.GetData(),
+	)
+}
+
+func (sc *scProcessor) getBlockchainHookCountersString() string {
+	counters := sc.blockChainHook.GetCounterValues()
+	keys := make([]string, len(counters))
+
+	idx := 0
+	for key := range counters {
+		keys[idx] = key
+		idx++
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	lines := make([]string, 0, len(counters))
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s: %d", key, counters[key]))
+	}
+
+	return strings.Join(lines, ", ")
 }

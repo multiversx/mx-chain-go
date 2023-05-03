@@ -34,6 +34,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -4198,7 +4199,7 @@ func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
 
 	t.Run("NilAsyncParams", func(t *testing.T) {
 		asyncParams := [][]byte(nil)
-		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, encodedData)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, encodedData, 0)
 		require.Nil(t, err)
 		require.Equal(t, encodedData, dataWithAsyncParams)
 	})
@@ -4216,8 +4217,66 @@ func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
 				"@" +
 				hex.EncodeToString(ok),
 		)
-		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, encodedData)
+		dataWithAsyncParams, err := sc.prependAsyncParamsToData(asyncParams, encodedData, 0)
 		require.Nil(t, err)
 		require.Equal(t, expectedData, dataWithAsyncParams)
 	})
+}
+
+func TestScProcessor_ForbidMultiLevelAsync(t *testing.T) {
+	t.Parallel()
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	accntState := &stateMock.AccountsStub{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	arguments.AccountsDB = accntState
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	scAddress, _ := hex.DecodeString("0000000000000000beaf00000000000022cd8429ce92f8973bba2a9fb51e0eb3a1")
+	vmIntput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallType:    vmData.AsynchronousCall,
+			GasProvided: 0,
+		},
+		RecipientAddr: scAddress,
+	}
+	tx := &transaction.Transaction{
+		SndAddr: []byte("snd"),
+		RcvAddr: scAddress,
+		Value:   big.NewInt(45),
+	}
+
+	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
+		return &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				return &vmcommon.VMOutput{
+					OutputAccounts: makeOutputAccountWithAsyncCallTransfer([]byte("dest")),
+				}, nil
+			},
+		}, nil
+	}
+
+	acntSnd, acndRcv := createAccounts(tx)
+	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
+	failureContext := NewFailureContext()
+
+	_, err = sc.executeSmartContractCall(vmIntput, tx, txHash, acntSnd, acndRcv, failureContext)
+	require.NotNil(t, err)
+	require.Equal(t, vmhost.ErrAsyncNoMultiLevel, err)
+}
+
+func makeOutputAccountWithAsyncCallTransfer(address []byte) map[string]*vmcommon.OutputAccount {
+	accountsMap := make(map[string]*vmcommon.OutputAccount, 1)
+	accountsMap[string(address)] = &vmcommon.OutputAccount{
+		OutputTransfers: []vmcommon.OutputTransfer{
+			{
+				CallType: vmData.AsynchronousCall,
+			},
+		},
+	}
+	return accountsMap
 }

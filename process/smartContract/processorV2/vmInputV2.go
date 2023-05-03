@@ -97,6 +97,11 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.CurrentTxHash = txHash
 	vmCallInput.GasLocked = gasLocked
 
+	gtx, ok := tx.(data.GuardedTransactionHandler)
+	if ok {
+		vmCallInput.TxGuardian = gtx.GetGuardianAddr()
+	}
+
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
 		vmCallInput.OriginalTxHash = scr.GetOriginalTxHash()
