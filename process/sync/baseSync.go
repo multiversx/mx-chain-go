@@ -1195,11 +1195,15 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 }
 
 func (boot *baseBootstrap) handleAccountsTrieIteration() error {
-	// change this if more trie accounts iterators handlers are needed
 	if !boot.repopulateTokensSupplies {
-		return nil
+		return boot.handleTokensSuppliesRepopulation()
 	}
 
+	// add more flags and trie iterators here
+	return nil
+}
+
+func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	argsTrieAccountsIteratorProc := trieIterators.ArgsTrieAccountsIterator{
 		Marshaller: boot.marshalizer,
 		Accounts:   boot.accounts,

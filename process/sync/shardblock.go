@@ -126,7 +126,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 }
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
-func (boot *ShardBootstrap) StartSyncingBlocks() {
+func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
@@ -139,9 +139,11 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 	err := boot.handleAccountsTrieIteration()
 	if err != nil {
-		panic(fmt.Sprintf("cannot handle start-up trie accounts iteration: %s", err.Error()))
+		return fmt.Errorf("%w while handling accounts trie iteration", err)
 	}
+
 	go boot.syncBlocks(ctx)
+	return nil
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool

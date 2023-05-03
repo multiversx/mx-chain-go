@@ -1224,9 +1224,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		MaxRating:              configs.RatingsConfig.General.MaxRating,
 		SystemSCConfig:         configs.SystemSCConfig,
-		Version:                configs.FlagsConfig.Version,
 		ImportStartHandler:     importStartHandler,
-		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
 	}

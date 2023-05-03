@@ -565,9 +565,10 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
 		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
-		FlagsConfig: config.ContextFlagsConfig{},
+		FlagsConfig: config.ContextFlagsConfig{
+			Version: "v1.0.0",
+		},
 	}
 }
 

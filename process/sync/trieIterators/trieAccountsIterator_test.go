@@ -21,6 +21,10 @@ func getTrieAccountsIteratorArgs() ArgsTrieAccountsIterator {
 	}
 }
 
+func dummyIterator(_ state.UserAccountHandler) error {
+	return nil
+}
+
 func TestNewTrieAccountsIterator(t *testing.T) {
 	t.Parallel()
 
@@ -61,6 +65,20 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 
 	var expectedErr = errors.New("expected error")
 
+	t.Run("skip processing if no handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTrieAccountsIteratorArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, errors.New("error that should not be returned")
+			},
+		}
+		tai, _ := NewTrieAccountsIterator(args)
+		err := tai.Process()
+		require.NoError(t, err)
+	})
+
 	t.Run("cannot get root hash", func(t *testing.T) {
 		t.Parallel()
 
@@ -72,7 +90,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
-		err := tai.Process()
+		err := tai.Process(dummyIterator)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -90,7 +108,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
-		err := tai.Process()
+		err := tai.Process(dummyIterator)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -117,7 +135,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
-		err := tai.Process()
+		err := tai.Process(dummyIterator)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -144,7 +162,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		}
 		tai, _ := NewTrieAccountsIterator(args)
 
-		err := tai.Process()
+		err := tai.Process(dummyIterator)
 		require.NoError(t, err)
 	})
 

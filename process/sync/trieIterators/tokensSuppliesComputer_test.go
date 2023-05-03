@@ -1,6 +1,7 @@
 package trieIterators
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math/big"
@@ -94,6 +95,46 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		userAcc := stateMock.NewAccountWrapMock([]byte("addr"))
 		err := tsp.HandleTrieAccountIteration(userAcc)
 		require.NoError(t, err)
+	})
+
+	t.Run("root hash of account is zero only", func(t *testing.T) {
+		t.Parallel()
+
+		tsp, _ := NewTokensSuppliesProcessor(getTokensSuppliesProcessorArgs())
+
+		userAcc := stateMock.NewAccountWrapMock([]byte("addr"))
+		userAcc.SetRootHash(bytes.Repeat([]byte{0}, 32))
+		err := tsp.HandleTrieAccountIteration(userAcc)
+		require.NoError(t, err)
+	})
+
+	t.Run("should not save tokens from the system account", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTokensSuppliesProcessorArgs()
+		tsp, _ := NewTokensSuppliesProcessor(args)
+
+		userAcc, _ := state.NewUserAccount(vmcommon.SystemAccountAddress)
+		userAcc.SetRootHash([]byte("rootHash"))
+		userAcc.SetDataTrie(&trie.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				esToken := &esdt.ESDigitalToken{
+					Value: big.NewInt(37),
+				}
+				esBytes, _ := args.Marshaller.Marshal(esToken)
+				tknKey := []byte("ELRONDesdtTKN-00aacc")
+				value := append(esBytes, tknKey...)
+				value = append(value, []byte("addr")...)
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value)
+
+				close(leavesChannels.LeavesChan)
+				return nil
+			},
+		})
+
+		err := tsp.HandleTrieAccountIteration(userAcc)
+		require.NoError(t, err)
+		require.Empty(t, tsp.tokensSupplies)
 	})
 
 	t.Run("should work", func(t *testing.T) {

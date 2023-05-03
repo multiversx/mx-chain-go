@@ -3,6 +3,7 @@ package trieIterators
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -47,6 +48,7 @@ func NewTokensSuppliesProcessor(args ArgsTokensSuppliesProcessor) (*tokensSuppli
 }
 
 // HandleTrieAccountIteration is the handler for the trie account iteration
+// note that this function is not concurrent safe
 func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.UserAccountHandler) error {
 	if check.IfNil(userAccount) {
 		return errNilUserAccount
@@ -55,8 +57,10 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 		log.Debug("repopulate tokens supplies: skipping system account address")
 		return nil
 	}
+
 	rh := userAccount.GetRootHash()
-	if len(rh) == 0 {
+	isValidRootHashToIterateFor := len(rh) > 0 && !bytes.Equal(rh, make([]byte, len(rh)))
+	if !isValidRootHashToIterateFor {
 		return nil
 	}
 
@@ -67,7 +71,7 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 
 	errDataTrieGet := userAccount.DataTrie().GetAllLeavesOnChannel(dataTrie, context.Background(), rh, keyBuilder.NewKeyBuilder())
 	if errDataTrieGet != nil {
-		return errDataTrieGet
+		return fmt.Errorf("%w while getting all leaves for root hash %s", errDataTrieGet, hex.EncodeToString(rh))
 	}
 
 	log.Trace("extractTokensSupplies - parsing account", "address", userAccount.AddressBytes())
@@ -82,13 +86,12 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 		suffix := append(userLeaf.Key(), userAccount.AddressBytes()...)
 		value, errVal := userLeaf.ValueWithoutSuffix(suffix)
 		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", userLeaf.Key())
-			return errVal
+			return fmt.Errorf("%w while parsing the token with key %s", errVal, hex.EncodeToString(tokenKey))
 		}
 		var esToken esdt.ESDigitalToken
 		err := t.marshaller.Unmarshal(&esToken, value)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w while unmarshaling the token with key %s", err, hex.EncodeToString(tokenKey))
 		}
 
 		tokenName := string(tokenKey)[lenESDTPrefix:]
@@ -98,7 +101,7 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 
 	err := dataTrie.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
-		return fmt.Errorf("error while iterating over an account's trie: %w", err)
+		return fmt.Errorf("%w while parsing errors from the trie iteration", err)
 	}
 
 	return nil
@@ -130,6 +133,7 @@ func (t *tokensSuppliesProcessor) putInSuppliesMap(id string, value *big.Int) {
 }
 
 // SaveSupplies will store the recomputed tokens supplies into the database
+// note that this function is not concurrent safe
 func (t *tokensSuppliesProcessor) SaveSupplies() error {
 	suppliesStorer, err := t.storageService.GetStorer(dataRetriever.ESDTSuppliesUnit)
 	if err != nil {

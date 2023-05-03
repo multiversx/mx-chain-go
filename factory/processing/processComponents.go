@@ -140,9 +140,7 @@ type ProcessComponentsFactoryArgs struct {
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	MaxRating              uint32
 	SystemSCConfig         *config.SystemSmartContractsConfig
-	Version                string
 	ImportStartHandler     update.ImportStartHandler
-	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
 	FlagsConfig            config.ContextFlagsConfig
 
@@ -173,7 +171,6 @@ type processComponentsFactory struct {
 	txLogsProcessor        process.TransactionLogProcessor
 	version                string
 	importStartHandler     update.ImportStartHandler
-	workingDir             string
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
@@ -218,9 +215,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		maxRating:              args.MaxRating,
 		systemSCConfig:         args.SystemSCConfig,
-		version:                args.Version,
 		importStartHandler:     args.ImportStartHandler,
-		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
@@ -863,7 +858,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
 		ImportStartHandler:   pcf.importStartHandler,
-		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
@@ -1754,7 +1748,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
-	exportFolder := filepath.Join(pcf.workingDir, hardforkConfig.ImportFolder)
+	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,
