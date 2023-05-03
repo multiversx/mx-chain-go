@@ -28,6 +28,7 @@ type StorageManagerStub struct {
 	IsClosedCalled                         func() bool
 	RemoveFromCheckpointHashesHolderCalled func([]byte)
 	GetBaseTrieStorageManagerCalled        func() common.StorageManager
+	CloseCalled                            func() error
 }
 
 // Put -
@@ -186,6 +187,9 @@ func (sms *StorageManagerStub) GetLatestStorageEpoch() (uint32, error) {
 
 // Close -
 func (sms *StorageManagerStub) Close() error {
+	if sms.CloseCalled != nil {
+		return sms.CloseCalled()
+	}
 	return nil
 }
 

@@ -18,6 +18,16 @@ const fromConnectedPeer = core.PeerID("from connected peer")
 
 //------- canProcessMessage
 
+func TestMessageProcessor_CanProcessNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mp := &messageProcessor{}
+
+	err := mp.canProcessMessage(nil, "")
+
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessage))
+}
+
 func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 

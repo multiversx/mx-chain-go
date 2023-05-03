@@ -82,3 +82,14 @@ func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	assert.Nil(t, mc.GetCurrentBlockHeader())
 	assert.Empty(t, mc.GetCurrentBlockRootHash())
 }
+
+func TestMetaChain_SettersInvalidValues(t *testing.T) {
+	t.Parallel()
+
+	bc, _ := NewMetaChain(&mock.AppStatusHandlerStub{})
+	err := bc.SetGenesisHeader(&block.Header{})
+	assert.Equal(t, err, ErrWrongTypeInSet)
+
+	err = bc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("root hash"))
+	assert.Equal(t, err, ErrWrongTypeInSet)
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	dataRetrieverStub "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,6 +82,7 @@ func testRequestDataFromHashArray(t *testing.T, requesterType requestHandlerType
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		_ = logger.SetLogLevel("*:TRACE") // coverage
 		providedEpoch := uint32(1234)
 		providedHashes := [][]byte{[]byte("hash 1"), []byte("hash 2"), []byte("hash 3")}
 		args := createMockArgBaseRequester()

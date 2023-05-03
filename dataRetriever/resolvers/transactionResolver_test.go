@@ -269,6 +269,51 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
+func TestTxResolver_ProcessReceivedMessageBatchMarshalFailShouldRetNilAndErr(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	cnt := 0
+	marshalizerStub := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
+			cnt++
+			if cnt > 1 {
+				return nil, expectedErr
+			}
+			return marshalizerMock.Marshal(obj)
+		},
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return marshalizerMock.Unmarshal(obj, buff)
+		},
+	}
+	txReturned := &transaction.Transaction{
+		Nonce: 10,
+	}
+	txPool := testscommon.NewShardedDataStub()
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		if bytes.Equal([]byte("aaa"), key) {
+			return txReturned, true
+		}
+
+		return nil, false
+	}
+
+	arg := createMockArgTxResolver()
+	arg.TxPool = txPool
+	arg.Marshaller = marshalizerStub
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	data, _ := marshalizerMock.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashType, Value: []byte("aaa")})
+
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
 func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t *testing.T) {
 	t.Parallel()
 
@@ -476,6 +521,83 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	assert.NotNil(t, err)
 	assert.True(t, splitSliceWasCalled)
 	assert.True(t, sendWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestTxResolver_ProcessReceivedMessageHashArrayUnmarshalFails(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTxResolver()
+	marshalizer := arg.Marshaller
+	cnt := 0
+	arg.Marshaller = &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			cnt++
+			if cnt > 1 {
+				return expectedErr
+			}
+			return marshalizer.Unmarshal(obj, buff)
+		},
+	}
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	data, _ := marshalizer.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: []byte("buff")})
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestTxResolver_ProcessReceivedMessageHashArrayPackDataInChunksFails(t *testing.T) {
+	t.Parallel()
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+
+	arg := createMockArgTxResolver()
+	arg.DataPacker = &mock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	buff, _ := arg.Marshaller.Marshal(&batch.Batch{Data: [][]byte{txHash1, txHash2}})
+	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestTxResolver_ProcessReceivedMessageHashArraySendFails(t *testing.T) {
+	t.Parallel()
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+
+	arg := createMockArgTxResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			return expectedErr
+		},
+	}
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	buff, _ := arg.Marshaller.Marshal(&batch.Batch{Data: [][]byte{txHash1, txHash2}})
+	data, _ := arg.Marshaller.Marshal(&dataRetriever.RequestData{Type: dataRetriever.HashArrayType, Value: buff})
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
+
+	assert.True(t, errors.Is(err, expectedErr))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }

@@ -331,16 +331,20 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		pk1 := "pk01"
 		pk2 := "pk02"
+		pk3 := "pk03"
 		providedKeys := make(map[string]interface{})
 		providedKeys[pk1] = createMockPeerAuthenticationObject()
 		providedKeys[pk2] = createMockPeerAuthenticationObject()
+		providedKeys[pk3] = createMockPeerAuthenticationObject()
 		pks := make([][]byte, 0)
 		pks = append(pks, []byte(pk1))
 		pks = append(pks, []byte(pk2))
+		pks = append(pks, []byte(pk3))
 
 		hashes := make([][]byte, 0)
 		hashes = append(hashes, []byte("pk01")) // exists in cache
 		hashes = append(hashes, []byte("pk1"))  // no entries
+		hashes = append(hashes, []byte("pk03")) // unmarshal fails
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
 
@@ -366,7 +370,18 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		arg.DataPacker, _ = partitioning.NewSizeDataPacker(arg.Marshaller)
-
+		initialMarshaller := arg.Marshaller
+		cnt := 0
+		arg.Marshaller = &mock.MarshalizerStub{
+			MarshalCalled: initialMarshaller.Marshal,
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				cnt++
+				if cnt == 4 { // pk03
+					return expectedErr
+				}
+				return initialMarshaller.Unmarshal(obj, buff)
+			},
+		}
 		res, err := resolvers.NewPeerAuthenticationResolver(arg)
 		assert.Nil(t, err)
 		assert.False(t, res.IsInterfaceNil())
@@ -374,6 +389,31 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer)
 		assert.Nil(t, err)
 		assert.True(t, wasSent)
+	})
+	t.Run("resolveMultipleHashesRequest: PackDataInChunks returns error", func(t *testing.T) {
+		t.Parallel()
+
+		cache := testscommon.NewCacherStub()
+		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+			return createMockPeerAuthenticationObject(), true
+		}
+
+		arg := createMockArgPeerAuthenticationResolver()
+		arg.PeerAuthenticationPool = cache
+		arg.DataPacker = &mock.DataPackerStub{
+			PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		res, err := resolvers.NewPeerAuthenticationResolver(arg)
+		assert.Nil(t, err)
+		assert.False(t, res.IsInterfaceNil())
+
+		hashes := getKeysSlice()
+		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
+		assert.Nil(t, err)
+		err = res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashes), fromConnectedPeer)
+		assert.True(t, errors.Is(err, expectedErr))
 	})
 	t.Run("resolveMultipleHashesRequest: Send returns error", func(t *testing.T) {
 		t.Parallel()

@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -240,13 +241,24 @@ func TestMiniBlockProvider_GetMiniBlocksFromStorerShouldBeFoundInStorage(t *test
 	existingHashes := [][]byte{
 		[]byte("hash1"),
 		[]byte("hash2"),
+		[]byte("hash3"),
 	}
 	requestedHashes := existingHashes
 
+	cnt := 0
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
+	arg.Marshalizer = &testscommon.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			cnt++
+			if cnt == 1 {
+				return errors.New("unmarshal fails for coverage")
+			}
+			return nil
+		},
+	}
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
 	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromStorer(requestedHashes)
 	assert.Equal(t, 2, len(miniBlocksAndHashes))
-	assert.Equal(t, 0, len(missingHashes))
+	assert.Equal(t, 1, len(missingHashes))
 }

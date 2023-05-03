@@ -239,6 +239,9 @@ func TestBlockChain_GetStorer(t *testing.T) {
 	assert.True(t, peerBlockUnit == storer)
 	storer, _ = b.GetStorer(4)
 	assert.True(t, headerUnit == storer)
+	storer, err := b.GetStorer(5)
+	assert.True(t, errors.Is(err, dataRetriever.ErrStorerNotFound))
+	assert.Nil(t, storer)
 }
 
 func TestBlockChain_GetAllStorers(t *testing.T) {

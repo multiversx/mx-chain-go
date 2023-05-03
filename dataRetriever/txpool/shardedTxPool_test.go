@@ -77,6 +77,13 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
 
 	args = goodArgs
+	args.TxGasHandler = nil
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrNilTxGasHandler.Error())
+
+	args = goodArgs
 	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
 		MinimumGasMove:       50000,
 		MinimumGasPrice:      0,
@@ -167,6 +174,7 @@ func Test_AddData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
+	pool.AddData([]byte("hash-invalid-cache"), createTx("alice", 0), 0, "invalid-cache-id")
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
 	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
@@ -344,6 +352,23 @@ func Test_Keys(t *testing.T) {
 	pool.AddData(txsHashes[3], createTx("bob", 15), 0, "3")
 
 	require.ElementsMatch(t, txsHashes, pool.Keys())
+}
+
+func TestShardedTxPool_Diagnose(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+	pool.AddData([]byte("hash"), createTx("alice", 10), 0, "0")
+	pool.Diagnose(true)
+}
+
+func TestShardedTxPool_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+	pool.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("hash")}, "0")
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
