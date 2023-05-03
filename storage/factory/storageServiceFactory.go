@@ -412,16 +412,12 @@ func (psf *StorageServiceFactory) createTriePruningStorer(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
 ) (storage.Storer, error) {
-<<<<<<< HEAD:storage/factory/pruningStorerFactory.go
 	accountsUnitArgs, err := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
-	if psf.storageType == ProcessStorageService {
-=======
-	accountsUnitArgs := psf.createPruningStorerArgs(storageConfig, customDatabaseRemover)
+
 	if psf.storageType == ProcessStorageService && psf.nodeProcessingMode == common.Normal {
->>>>>>> rc/v1.6.0:storage/factory/storageServiceFactory.go
 		accountsUnitArgs.PersistersTracker = pruning.NewTriePersisterTracker(accountsUnitArgs.EpochsData)
 	}
 

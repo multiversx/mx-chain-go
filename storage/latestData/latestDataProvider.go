@@ -54,9 +54,6 @@ type latestDataProvider struct {
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
-<<<<<<< HEAD
-	// TODO: check args
-=======
 	if check.IfNil(args.DirectoryReader) {
 		return nil, storage.ErrNilDirectoryReader
 	}
@@ -64,7 +61,6 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 		return nil, storage.ErrNilBootstrapDataProvider
 	}
 
->>>>>>> rc/v1.6.0
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
 		parentDir:             args.ParentDir,

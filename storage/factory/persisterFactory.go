@@ -3,12 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
-<<<<<<< HEAD
-=======
-	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
->>>>>>> rc/v1.6.0
 )
 
 // PersisterFactory is the factory which will handle creating new databases

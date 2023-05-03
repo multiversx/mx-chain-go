@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -29,13 +30,8 @@ func TestNewStorageUnitOpenHandler(t *testing.T) {
 		t.Parallel()
 
 		suoh, err := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
-<<<<<<< HEAD
-
 		assert.NoError(t, err)
 		assert.False(t, check.IfNil(suoh))
-=======
-		assert.NoError(t, err)
-		assert.NotNil(t, suoh)
 	})
 	t.Run("nil BootstrapDataProvider should error", func(t *testing.T) {
 		t.Parallel()
@@ -54,7 +50,6 @@ func TestNewStorageUnitOpenHandler(t *testing.T) {
 		suoh, err := NewStorageUnitOpenHandler(args)
 		assert.Equal(t, storage.ErrNilLatestStorageDataProvider, err)
 		assert.Nil(t, suoh)
->>>>>>> rc/v1.6.0
 	})
 }
 

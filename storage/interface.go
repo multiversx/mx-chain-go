@@ -184,7 +184,6 @@ type AdaptedSizedLRUCache interface {
 	IsInterfaceNil() bool
 }
 
-<<<<<<< HEAD
 // ShardIDProvider defines what a component which is able to provide persister id per key should do
 type ShardIDProvider interface {
 	ComputeId(key []byte) uint32
@@ -200,10 +199,11 @@ type PersisterCreator = types.PersisterCreator
 type DBConfigHandler interface {
 	GetDBConfig(path string) (*config.DBConfig, error)
 	SaveDBConfigToFilePath(path string, dbConfig *config.DBConfig) error
-=======
+	IsInterfaceNil() bool
+}
+
 // ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
 type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
->>>>>>> rc/v1.6.0
 	IsInterfaceNil() bool
 }
