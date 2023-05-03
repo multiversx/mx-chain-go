@@ -115,7 +115,6 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
-	shardIDProvider            storage.ShardIDProvider
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -763,7 +762,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
-		e.shardIDProvider,
 	)
 	if err != nil {
 		return err
@@ -930,7 +928,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
-		e.shardIDProvider,
 	)
 	if err != nil {
 		return err

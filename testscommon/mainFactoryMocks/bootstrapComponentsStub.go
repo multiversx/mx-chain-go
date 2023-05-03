@@ -5,19 +5,17 @@ import (
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper           factory.EpochStartBootstrapper
-	BootstrapParams        factory.BootstrapParamsHolder
-	NodeRole               core.NodeType
-	ShCoordinator          sharding.Coordinator
-	HdrVersionHandler      nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory    nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier   nodeFactory.HeaderIntegrityVerifierHandler
-	StorageShardIDProvider storage.ShardIDProvider
+	Bootstrapper         factory.EpochStartBootstrapper
+	BootstrapParams      factory.BootstrapParamsHolder
+	NodeRole             core.NodeType
+	ShCoordinator        sharding.Coordinator
+	HdrVersionHandler    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory  nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 }
 
 // Create -
@@ -74,11 +72,6 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
 	bcs.ShCoordinator = shardCoordinator
 	return nil
-}
-
-// ShardIDProvider -
-func (bcs *BootstrapComponentsStub) ShardIDProvider() storage.ShardIDProvider {
-	return bcs.StorageShardIDProvider
 }
 
 // String -

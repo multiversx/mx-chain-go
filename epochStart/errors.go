@@ -325,6 +325,3 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
-
-// ErrNilShardIDProvider signals that the shard id provider is nil
-var ErrNilShardIDProvider = errors.New("nil shard id provider")
