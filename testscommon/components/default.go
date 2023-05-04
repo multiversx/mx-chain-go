@@ -95,6 +95,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 			dataRetriever.UserAccountsUnit.String(): &testscommon.StorageManagerStub{},
 			dataRetriever.PeerAccountsUnit.String(): &testscommon.StorageManagerStub{},
 		},
+		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 }
 

@@ -180,7 +180,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
 	if core.IsGetNodeFromDBError(err) {
-		getNodeErr := unwrapGetNodeFromDBErr(err)
+		getNodeErr := core.UnwrapGetNodeFromDBErr(err)
 		if getNodeErr == nil {
 			return err
 		}

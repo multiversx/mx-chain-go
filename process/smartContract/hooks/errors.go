@@ -16,3 +16,6 @@ var ErrVMTypeLengthIsNotCorrect = errors.New("vm type length is not correct")
 
 // ErrNilBlockchainHookCounter signals that a nil blockchain hook counter was provided
 var ErrNilBlockchainHookCounter = errors.New("nil blockchain hook counter")
+
+// ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
+var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")

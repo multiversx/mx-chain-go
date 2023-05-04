@@ -199,6 +199,17 @@ func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]c
 	return nil
 }
 
+func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if check.IfNil(msc.missingTrieNodesNotifier) {
+		return nil
+	}
+	
+	return msc.missingTrieNodesNotifier
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (msc *managedStateComponents) IsInterfaceNil() bool {
 	return msc == nil

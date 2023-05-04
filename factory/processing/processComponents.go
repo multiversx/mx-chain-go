@@ -611,6 +611,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		pcf.state.MissingTrieNodesNotifier(),
 	)
 	if err != nil {
 		return nil, err
