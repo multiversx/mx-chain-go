@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/core/tree"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -26,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/hardfork"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -275,6 +277,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
 
+	hardforkExclusionHandler, err := nr.createHardforkExclusionHandler()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
@@ -311,7 +318,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		hardforkExclusionHandler,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -419,6 +432,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
+		hardforkExclusionHandler,
 	)
 	if err != nil {
 		return true, err
@@ -463,6 +477,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		hardforkExclusionHandler,
 	)
 	if err != nil {
 		return true, err
@@ -849,6 +864,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -862,19 +878,20 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	}
 
 	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
-		Config:                *nr.configs.GeneralConfig,
-		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
-		CoreComponents:        coreComponents,
-		NetworkComponents:     networkComponents,
-		CryptoComponents:      cryptoComponents,
-		DataComponents:        dataComponents,
-		ProcessComponents:     processComponents,
-		StateComponents:       stateComponents,
-		StatusComponents:      statusComponents,
-		StatusCoreComponents:  statusCoreComponents,
-		ScheduledProcessor:    scheduledProcessor,
-		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
-		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		Config:                   *nr.configs.GeneralConfig,
+		BootstrapRoundIndex:      nr.configs.FlagsConfig.BootstrapRoundIndex,
+		CoreComponents:           coreComponents,
+		NetworkComponents:        networkComponents,
+		CryptoComponents:         cryptoComponents,
+		DataComponents:           dataComponents,
+		ProcessComponents:        processComponents,
+		StateComponents:          stateComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		ScheduledProcessor:       scheduledProcessor,
+		IsInImportMode:           nr.configs.ImportDbConfig.IsImportDBMode,
+		ShouldDisableWatchdog:    nr.configs.FlagsConfig.DisableConsensusWatchdog,
+		HardforkExclusionHandler: hardforkExclusionHandler,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1129,6 +1146,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1207,32 +1225,33 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            configs.PreferencesConfig.Preferences,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		Version:                configs.FlagsConfig.Version,
-		ImportStartHandler:     importStartHandler,
-		WorkingDir:             configs.FlagsConfig.WorkingDir,
-		HistoryRepo:            historyRepository,
-		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
+		Config:                   *configs.GeneralConfig,
+		EpochConfig:              *configs.EpochConfig,
+		PrefConfigs:              configs.PreferencesConfig.Preferences,
+		ImportDBConfig:           *configs.ImportDbConfig,
+		AccountsParser:           accountsParser,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		Data:                     dataComponents,
+		CoreData:                 coreComponents,
+		Crypto:                   cryptoComponents,
+		State:                    stateComponents,
+		Network:                  networkComponents,
+		BootstrapComponents:      bootstrapComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           configs.SystemSCConfig,
+		Version:                  configs.FlagsConfig.Version,
+		ImportStartHandler:       importStartHandler,
+		WorkingDir:               configs.FlagsConfig.WorkingDir,
+		HistoryRepo:              historyRepository,
+		SnapshotsEnabled:         configs.FlagsConfig.SnapshotsEnabled,
+		HardforkExclusionHandler: hardforkExclusionHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1347,18 +1366,20 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		PrefConfig:           *nr.configs.PreferencesConfig,
-		ImportDbConfig:       *nr.configs.ImportDbConfig,
-		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
+		Config:                   *nr.configs.GeneralConfig,
+		PrefConfig:               *nr.configs.PreferencesConfig,
+		ImportDbConfig:           *nr.configs.ImportDbConfig,
+		FlagsConfig:              *nr.configs.FlagsConfig,
+		WorkingDir:               nr.configs.FlagsConfig.DbDir,
+		CoreComponents:           coreComponents,
+		CryptoComponents:         cryptoComponents,
+		NetworkComponents:        networkComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		HardforkExclusionHandler: hardforkExclusionHandler,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1524,6 +1545,21 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+func (nr *nodeRunner) createHardforkExclusionHandler() (common.HardforkExclusionHandler, error) {
+	intervals := nr.configs.GeneralConfig.HardforkV2.BlocksExceptionsByRound
+	excludedIntervals := make([]tree.BlocksExceptionInterval, 0, len(intervals))
+	for _, interval := range intervals {
+		newInterval := tree.BlocksExceptionInterval{
+			Low:  interval.Low,
+			High: interval.High,
+		}
+		excludedIntervals = append(excludedIntervals, newInterval)
+	}
+
+	excludedRoundsTree := tree.NewIntervalTree(excludedIntervals)
+	return hardfork.NewHardforkExclusionHandler(excludedRoundsTree)
 }
 
 func closeAllComponents(

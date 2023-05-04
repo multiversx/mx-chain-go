@@ -112,6 +112,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
 	}
+	if check.IfNil(args.HardforkExclusionHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHardforkExclusionHandler)
+	}
 
 	return nil
 }

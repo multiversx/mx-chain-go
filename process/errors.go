@@ -1196,3 +1196,9 @@ var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
 
 // ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
 var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")
+
+// ErrExcludedHeader signals that the received header is excluded
+var ErrExcludedHeader = errors.New("excluded header")

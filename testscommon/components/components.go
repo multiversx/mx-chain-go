@@ -160,17 +160,18 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		BootstrapRoundIndex:  0,
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		CryptoComponents:     cryptoComponents,
-		DataComponents:       dataComponents,
-		ProcessComponents:    processComponents,
-		StateComponents:      stateComponents,
-		StatusComponents:     statusComponents,
-		StatusCoreComponents: GetStatusCoreComponents(),
-		ScheduledProcessor:   scheduledProcessor,
+		Config:                   testscommon.GetGeneralConfig(),
+		BootstrapRoundIndex:      0,
+		CoreComponents:           coreComponents,
+		NetworkComponents:        networkComponents,
+		CryptoComponents:         cryptoComponents,
+		DataComponents:           dataComponents,
+		ProcessComponents:        processComponents,
+		StateComponents:          stateComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     GetStatusCoreComponents(),
+		ScheduledProcessor:       scheduledProcessor,
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 
@@ -403,6 +404,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 
@@ -567,6 +569,7 @@ func GetProcessArgs(
 		Version:          "v1.0.0",
 		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
 		SnapshotsEnabled: false,
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 

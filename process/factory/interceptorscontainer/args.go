@@ -2,6 +2,7 @@ package interceptorscontainer
 
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
@@ -39,4 +40,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	HeartbeatExpiryTimespanInSec int64
 	PeerShardMapper              process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
+	HardforkExclusionHandler     common.HardforkExclusionHandler
 }

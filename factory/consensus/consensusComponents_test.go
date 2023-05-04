@@ -153,6 +153,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
+		HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 

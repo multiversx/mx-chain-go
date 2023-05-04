@@ -10,18 +10,20 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
-func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround, hfExclusionHandler common.HardforkExclusionHandler) (bls.SubroundStartRound, error) {
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
 		extend,
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		hfExclusionHandler,
 	)
 
 	return startRound, err
@@ -34,6 +36,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 
 	return startRound
@@ -72,6 +75,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 
 	return srStartRound
@@ -91,6 +95,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&testscommon.HardforkExclusionHandlerStub{},
 	)
 
 	assert.Nil(t, srStartRound)
@@ -107,7 +112,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetBlockchain(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
@@ -123,7 +128,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstrapperShouldFail(t *te
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetBootStrapper(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
@@ -139,7 +144,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	sr, _ := defaultSubround(consensusState, ch, container)
 
 	sr.ConsensusState = nil
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -155,7 +160,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFa
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetMultiSignerContainer(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilMultiSignerContainer, err)
@@ -171,7 +176,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *te
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetRoundHandler(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilRoundHandler, err)
@@ -187,7 +192,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetSyncTimer(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -203,10 +208,26 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 	container.SetValidatorGroupSelector(nil)
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
+}
+
+func TestSubroundStartRound_NewSubroundStartRoundNilHardforkExclusionHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := defaultSubround(consensusState, ch, container)
+
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, nil)
+
+	assert.Nil(t, srStartRound)
+	assert.Equal(t, spos.ErrNilHardforkExclusionHandler, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
@@ -219,7 +240,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
+	srStartRound, err := defaultSubroundStartRoundFromSubround(sr, &testscommon.HardforkExclusionHandlerStub{})
 
 	assert.NotNil(t, srStartRound)
 	assert.Nil(t, err)
@@ -308,6 +329,22 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNot
 	container.SetBootStrapper(bootstrapperMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
+
+	r := srStartRound.InitCurrentRound()
+	assert.False(t, r)
+}
+
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenRoundIsExcluded(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound.SetHardforkExclusionHandler(&testscommon.HardforkExclusionHandlerStub{
+		IsRoundExcludedCalled: func(round uint64) bool {
+			return true
+		},
+	})
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)

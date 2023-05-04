@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -23,6 +24,7 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	outportHandler outport.OutportHandler,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -35,6 +37,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			hardforkExclusionHandler,
 		)
 		if err != nil {
 			return nil, err

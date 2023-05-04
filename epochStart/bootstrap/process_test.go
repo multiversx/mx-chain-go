@@ -225,6 +225,7 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		HardforkExclusionHandler:   &testscommon.HardforkExclusionHandlerStub{},
 	}
 }
 
@@ -594,6 +595,16 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
+	})
+	t.Run("nil hardfork exclusion handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.HardforkExclusionHandler = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.True(t, errors.Is(err, epochStart.ErrNilHardforkExclusionHandler))
+		assert.Nil(t, epochStartProvider)
 	})
 }
 

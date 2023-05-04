@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -633,6 +634,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			HardforkExclusionHandler:  &testscommon.HardforkExclusionHandlerStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

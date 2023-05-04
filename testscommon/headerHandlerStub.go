@@ -11,6 +11,7 @@ import (
 type HeaderHandlerStub struct {
 	EpochField                             uint32
 	TimestampField                         uint64
+	RoundField                             uint64
 	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
 	GetPubKeysBitmapCalled                 func() []byte
@@ -93,7 +94,7 @@ func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 
 // GetRound -
 func (hhs *HeaderHandlerStub) GetRound() uint64 {
-	return 1
+	return hhs.RoundField
 }
 
 // GetTimeStamp -

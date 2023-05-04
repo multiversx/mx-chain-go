@@ -237,3 +237,6 @@ var ErrNilSigningHandler = errors.New("nil signing handler")
 
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -150,6 +151,11 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int64) error
 // InitCurrentRound inits all the stuff needed in the current round
 func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
+}
+
+// SetHardforkExclusionHandler sets the hardfork exclusion handler in the current round
+func (sr *subroundStartRound) SetHardforkExclusionHandler(handler common.HardforkExclusionHandler) {
+	sr.hardforkExclusionHandler = handler
 }
 
 // subroundBlock

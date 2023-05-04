@@ -25,7 +25,8 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	outportHandler outport.OutportHandler
+	outportHandler           outport.OutportHandler
+	hardforkExclusionHandler common.HardforkExclusionHandler
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -35,12 +36,16 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	executeStoredMessages func(),
 	resetConsensusMessages func(),
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(hardforkExclusionHandler) {
+		return nil, spos.ErrNilHardforkExclusionHandler
 	}
 
 	srStartRound := subroundStartRound{
@@ -50,6 +55,7 @@ func NewSubroundStartRound(
 		resetConsensusMessages:        resetConsensusMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		outportMutex:                  sync.RWMutex{},
+		hardforkExclusionHandler:      hardforkExclusionHandler,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -118,6 +124,12 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 func (sr *subroundStartRound) initCurrentRound() bool {
 	nodeState := sr.BootStrapper().GetNodeState()
 	if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		return false
+	}
+
+	currentRound := sr.RoundHandler().Index()
+	if sr.hardforkExclusionHandler.IsRoundExcluded(uint64(currentRound)) {
+		log.Debug("initCurrentRound round excluded in hardfork handler", "round", currentRound)
 		return false
 	}
 

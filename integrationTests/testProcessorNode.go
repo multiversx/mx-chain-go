@@ -1224,6 +1224,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1289,6 +1290,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerShardMapper:              tpn.PeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			HardforkExclusionHandler:     &testscommon.HardforkExclusionHandlerStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 

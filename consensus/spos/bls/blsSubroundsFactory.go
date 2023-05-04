@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/outport"
 )
@@ -16,10 +17,11 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	chainID          []byte
-	currentPid       core.PeerID
+	appStatusHandler         core.AppStatusHandler
+	outportHandler           outport.OutportHandler
+	hardforkExclusionHandler common.HardforkExclusionHandler
+	chainID                  []byte
+	currentPid               core.PeerID
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -30,6 +32,7 @@ func NewSubroundsFactory(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -37,18 +40,20 @@ func NewSubroundsFactory(
 		worker,
 		chainID,
 		appStatusHandler,
+		hardforkExclusionHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	fct := factory{
-		consensusCore:    consensusDataContainer,
-		consensusState:   consensusState,
-		worker:           worker,
-		appStatusHandler: appStatusHandler,
-		chainID:          chainID,
-		currentPid:       currentPid,
+		consensusCore:            consensusDataContainer,
+		consensusState:           consensusState,
+		worker:                   worker,
+		appStatusHandler:         appStatusHandler,
+		chainID:                  chainID,
+		currentPid:               currentPid,
+		hardforkExclusionHandler: hardforkExclusionHandler,
 	}
 
 	return &fct, nil
@@ -60,6 +65,7 @@ func checkNewFactoryParams(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
+	hardforkExclusionHandler common.HardforkExclusionHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -76,6 +82,9 @@ func checkNewFactoryParams(
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
+	}
+	if check.IfNil(hardforkExclusionHandler) {
+		return spos.ErrNilHardforkExclusionHandler
 	}
 
 	return nil
@@ -145,6 +154,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
+		fct.hardforkExclusionHandler,
 	)
 	if err != nil {
 		return err

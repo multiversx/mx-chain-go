@@ -562,3 +562,6 @@ var ErrNilLogger = errors.New("nil logger")
 
 // ErrNilShuffleOutCloser signals that a nil shuffle out closer has been provided
 var ErrNilShuffleOutCloser = errors.New("nil shuffle out closer")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")

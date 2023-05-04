@@ -292,3 +292,6 @@ var ErrNilAppStatusHandler = errors.New("nil app status handler")
 
 // ErrNilAddressConverter signals that a nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrNilHardforkExclusionHandler signals that a nil hardfork exclusion handler was provided
+var ErrNilHardforkExclusionHandler = errors.New("nil hardfork exclusion handler")

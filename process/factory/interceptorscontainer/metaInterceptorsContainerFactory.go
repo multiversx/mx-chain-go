@@ -41,6 +41,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.RequestHandler,
 		args.PeerShardMapper,
 		args.HardforkTrigger,
+		args.HardforkExclusionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -101,24 +102,25 @@ func NewMetaInterceptorsContainerFactory(
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		blockBlackList:         args.BlockBlackList,
-		argInterceptorFactory:  argInterceptorFactory,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		accounts:               args.Accounts,
-		antifloodHandler:       args.AntifloodHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:   args.PreferredPeersHolder,
-		hasher:                 args.CoreComponents.Hasher(),
-		requestHandler:         args.RequestHandler,
-		peerShardMapper:        args.PeerShardMapper,
-		hardforkTrigger:        args.HardforkTrigger,
+		container:                container,
+		shardCoordinator:         args.ShardCoordinator,
+		messenger:                args.Messenger,
+		store:                    args.Store,
+		dataPool:                 args.DataPool,
+		nodesCoordinator:         args.NodesCoordinator,
+		blockBlackList:           args.BlockBlackList,
+		argInterceptorFactory:    argInterceptorFactory,
+		maxTxNonceDeltaAllowed:   args.MaxTxNonceDeltaAllowed,
+		accounts:                 args.Accounts,
+		antifloodHandler:         args.AntifloodHandler,
+		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:     args.PreferredPeersHolder,
+		hasher:                   args.CoreComponents.Hasher(),
+		requestHandler:           args.RequestHandler,
+		peerShardMapper:          args.PeerShardMapper,
+		hardforkTrigger:          args.HardforkTrigger,
+		hardforkExclusionHandler: args.HardforkExclusionHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -248,8 +250,9 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        micf.dataPool.Headers(),
-		BlockBlackList: micf.blockBlackList,
+		Headers:                  micf.dataPool.Headers(),
+		BlockBlackList:           micf.blockBlackList,
+		HardforkExclusionHandler: micf.hardforkExclusionHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

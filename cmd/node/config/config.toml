@@ -784,6 +784,12 @@
             MaxBatchSize = 1000
             MaxOpenFiles = 10
 
+[HardforkV2]
+    BlocksExceptionsByRound = [
+        { Low = 3024122, High = 3028318 },
+        { Low = 5024122, High = 5028318 },
+    ]
+
 [Debug]
     [Debug.InterceptorResolver]
         Enabled = true

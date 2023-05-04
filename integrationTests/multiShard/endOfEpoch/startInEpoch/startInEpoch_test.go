@@ -264,6 +264,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		HardforkExclusionHandler:   &testscommon.HardforkExclusionHandlerStub{},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

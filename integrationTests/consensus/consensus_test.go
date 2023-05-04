@@ -15,6 +15,7 @@ import (
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -146,17 +147,18 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 					SyncProcessTimeInMillis: 6000,
 				},
 			},
-			BootstrapRoundIndex:  0,
-			CoreComponents:       n.Node.GetCoreComponents(),
-			NetworkComponents:    n.Node.GetNetworkComponents(),
-			CryptoComponents:     n.Node.GetCryptoComponents(),
-			DataComponents:       n.Node.GetDataComponents(),
-			ProcessComponents:    n.Node.GetProcessComponents(),
-			StateComponents:      n.Node.GetStateComponents(),
-			StatusComponents:     statusComponents,
-			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
-			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
-			IsInImportMode:       n.Node.IsInImportMode(),
+			BootstrapRoundIndex:      0,
+			CoreComponents:           n.Node.GetCoreComponents(),
+			NetworkComponents:        n.Node.GetNetworkComponents(),
+			CryptoComponents:         n.Node.GetCryptoComponents(),
+			DataComponents:           n.Node.GetDataComponents(),
+			ProcessComponents:        n.Node.GetProcessComponents(),
+			StateComponents:          n.Node.GetStateComponents(),
+			StatusComponents:         statusComponents,
+			StatusCoreComponents:     n.Node.GetStatusCoreComponents(),
+			ScheduledProcessor:       &consensusMocks.ScheduledProcessorStub{},
+			IsInImportMode:           n.Node.IsInImportMode(),
+			HardforkExclusionHandler: &testscommon.HardforkExclusionHandlerStub{},
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
