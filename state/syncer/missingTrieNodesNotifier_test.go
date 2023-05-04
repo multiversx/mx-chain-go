@@ -36,11 +36,14 @@ func TestMissingTrieNodesNotifier_NotifyMissingTrieNode(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
+	mutex := sync.Mutex{}
 
 	notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{
 		MissingDataTrieNodeFoundCalled: func(_ []byte) {
+			mutex.Lock()
 			numMissingDataTrieNodeFoundCalled++
 			wg.Done()
+			mutex.Unlock()
 		},
 	})
 
