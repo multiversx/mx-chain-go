@@ -169,7 +169,6 @@ type processComponentsFactory struct {
 	maxRating              uint32
 	systemSCConfig         *config.SystemSmartContractsConfig
 	txLogsProcessor        process.TransactionLogProcessor
-	version                string
 	importStartHandler     update.ImportStartHandler
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
