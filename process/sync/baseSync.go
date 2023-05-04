@@ -1195,7 +1195,7 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 }
 
 func (boot *baseBootstrap) handleAccountsTrieIteration() error {
-	if !boot.repopulateTokensSupplies {
+	if boot.repopulateTokensSupplies {
 		return boot.handleTokensSuppliesRepopulation()
 	}
 

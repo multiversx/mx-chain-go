@@ -136,7 +136,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	cc.bootstrapper.StartSyncingBlocks()
+	err = cc.bootstrapper.StartSyncingBlocks()
+	if err != nil {
+		return nil, err
+	}
 
 	epoch := ccf.getEpoch()
 	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)

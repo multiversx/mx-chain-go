@@ -14,7 +14,8 @@ import (
 
 var log = logger.GetOrCreate("trieIterators")
 
-type trieAccountIteratorHandler func(account state.UserAccountHandler) error
+// TrieAccountIteratorHandler represents a type that maps a handler for the trie's accounts iterator
+type TrieAccountIteratorHandler func(account state.UserAccountHandler) error
 
 type trieAccountsIterator struct {
 	marshaller marshal.Marshalizer
@@ -43,7 +44,7 @@ func NewTrieAccountsIterator(args ArgsTrieAccountsIterator) (*trieAccountsIterat
 }
 
 // Process will iterate over the entire trie and iterate over the Accounts while calling the received handlers
-func (t *trieAccountsIterator) Process(handlers ...trieAccountIteratorHandler) error {
+func (t *trieAccountsIterator) Process(handlers ...TrieAccountIteratorHandler) error {
 	if len(handlers) == 0 {
 		return nil
 	}
@@ -65,7 +66,7 @@ func (t *trieAccountsIterator) Process(handlers ...trieAccountIteratorHandler) e
 	return t.iterateOverHandlers(iteratorChannels, handlers)
 }
 
-func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.TrieIteratorChannels, handlers []trieAccountIteratorHandler) error {
+func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.TrieIteratorChannels, handlers []TrieAccountIteratorHandler) error {
 	log.Debug("starting the trie's accounts iteration with calling the handlers")
 	for leaf := range iteratorChannels.LeavesChan {
 		userAddress, isAccount := t.getAddress(leaf)
