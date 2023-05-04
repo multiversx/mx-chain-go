@@ -243,6 +243,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	if pcf.prefConfigs.FullArchive {
+		pcf.statusCoreComponents.AppStatusHandler().SetStringValue(common.MetricPeerType, core.ObserverPeer.String())
 		pcf.statusCoreComponents.AppStatusHandler().SetStringValue(common.MetricPeerSubType, core.FullHistoryObserver.String())
 	}
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
