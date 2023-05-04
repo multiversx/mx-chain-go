@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,4 +47,62 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 
 	err = syncer.SyncAccounts([]byte("rootHash"), nil)
 	assert.Equal(t, ErrNilStorageMarker, err)
+}
+
+func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
+	t.Parallel()
+
+	numNodesSynced := 0
+	numProcessedCalled := 0
+	setNumMissingCalled := 0
+	args := ArgsNewUserAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+		ShardId:                   0,
+		Throttler:                 &mock.ThrottlerStub{},
+		AddressPubKeyConverter:    &testscommon.PubkeyConverterStub{},
+	}
+	args.TrieStorageManager = &storageManager.StorageManagerStub{
+		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
+			numNodesSynced++
+			return nil
+		},
+	}
+	args.UserAccountsSyncStatisticsHandler = &testscommon.SizeSyncStatisticsHandlerStub{
+		AddNumProcessedCalled: func(value int) {
+			numProcessedCalled++
+		},
+		SetNumMissingCalled: func(rootHash []byte, value int) {
+			setNumMissingCalled++
+			assert.Equal(t, 0, value)
+		},
+	}
+
+	var serializedLeafNode []byte
+	tsm := &storageManager.StorageManagerStub{
+		PutCalled: func(key []byte, val []byte) error {
+			serializedLeafNode = val
+			return nil
+		},
+	}
+
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, 5)
+	key := []byte("key")
+	value := []byte("value")
+	_ = tr.Update(key, value)
+	rootHash, _ := tr.RootHash()
+	_ = tr.Commit()
+
+	args.Cacher = &testscommon.CacherStub{
+		GetCalled: func(key []byte) (value interface{}, ok bool) {
+			interceptedNode, _ := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
+			return interceptedNode, true
+		},
+	}
+
+	syncer, _ := NewUserAccountsSyncer(args)
+	syncer.MissingDataTrieNodeFound(rootHash)
+
+	assert.Equal(t, 1, numNodesSynced)
+	assert.Equal(t, 1, numProcessedCalled)
+	assert.Equal(t, 1, setNumMissingCalled)
 }
