@@ -34,6 +34,7 @@ type MetaChainSystemSCsCost struct {
 	DelegationMgrOps      uint64
 	ValidatorToDelegation uint64
 	GetAllNodeStates      uint64
+	GetActiveFund         uint64
 	FixWaitingListSize    uint64
 }
 

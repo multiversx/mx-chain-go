@@ -42,6 +42,12 @@ type HeaderResolver interface {
 	SetEpochHandler(epochHandler EpochHandler) error
 }
 
+// HeaderRequester defines what a block header requester should do
+type HeaderRequester interface {
+	Requester
+	SetEpochHandler(epochHandler EpochHandler) error
+}
+
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
 	Send(buff []byte, peer core.PeerID) error
@@ -334,7 +340,6 @@ type PreferredPeersHolderHandler interface {
 
 // PeersRatingHandler represent an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID

@@ -252,6 +252,37 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFound)
 }
 
+func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
+	providedRatings := map[string]string{
+		"pid1": "100",
+		"pid2": "-50",
+		"pid3": "-5",
+	}
+	buff, _ := json.Marshal(providedRatings)
+	facade := mock.FacadeStub{
+		GetConnectedPeersRatingsCalled: func() string {
+			return string(buff)
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+	respMap, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok)
+	ratings, ok := respMap["ratings"].(string)
+	assert.True(t, ok)
+	assert.Equal(t, string(buff), ratings)
+}
+
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
@@ -318,10 +349,34 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.False(t, strings.Contains(respStr, key))
 }
 
+func TestQueryDebug_ShouldBindJSONErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return nil, nil
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer([]byte("invalid data")))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &generalResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, queryResponse.Error, apiErrors.ErrValidation.Error())
+}
+
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
 			return nil, expectedErr
@@ -391,7 +446,6 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
 			return nil, expectedErr
@@ -454,10 +508,35 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	assert.NotNil(t, responseInfo["info"])
 }
 
+func TestEpochStartData_InvalidEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.FacadeStub{
+		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
+			return nil, nil
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/epoch-start/invalid", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrBadUrlParams.Error()))
+}
+
 func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
 			return nil, expectedErr
@@ -572,6 +651,89 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestNodeGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		nodeGroup, err := groups.NewNodeGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = nodeGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		nodeGroup, err := groups.NewNodeGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = nodeGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		statusMetricsProvider := statusHandler.NewStatusMetrics()
+		key := "test-key"
+		value := uint64(37)
+		statusMetricsProvider.SetUInt64Value(key, value)
+
+		facade := mock.FacadeStub{}
+		facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+			return statusMetricsProvider
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/metrics", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		respBytes, _ := ioutil.ReadAll(resp.Body)
+		respStr := string(respBytes)
+		assert.Equal(t, resp.Code, http.StatusOK)
+		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+		assert.True(t, keyAndValueFoundInResponse)
+
+		newFacade := mock.FacadeStub{
+			StatusMetricsHandler: func() external.StatusMetricsHandler {
+				return &testscommon.StatusMetricsStub{
+					StatusMetricsWithoutP2PPrometheusStringCalled: func() (string, error) {
+						return "", expectedErr
+					},
+				}
+			},
+		}
+
+		err = nodeGroup.UpdateFacade(&newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("GET", "/node/metrics", nil)
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+		assert.Equal(t, expectedErr.Error(), response.Error)
+	})
+}
+
+func TestNodeGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	nodeGroup, _ := groups.NewNodeGroup(nil)
+	require.True(t, nodeGroup.IsInterfaceNil())
+
+	nodeGroup, _ = groups.NewNodeGroup(&mock.FacadeStub{})
+	require.False(t, nodeGroup.IsInterfaceNil())
+}
+
 func loadResponseAsString(rsp io.Reader, response *statusResponse) {
 	buff, err := ioutil.ReadAll(rsp)
 	if err != nil {
@@ -595,6 +757,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/peerinfo", Open: true},
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
+					{Name: "/connected-peers-ratings", Open: true},
 				},
 			},
 		},

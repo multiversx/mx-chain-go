@@ -357,7 +357,10 @@ func (gbc *genesisBlockCreator) createHeaders(
 				return fmt.Errorf("'%w' while generating genesis block for metachain", err)
 			}
 
-			metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
+			err = metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
+			if err != nil {
+				return fmt.Errorf("'%w' while setting blockchain for metachain", err)
+			}
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],
@@ -464,7 +467,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
-		dnsSC.AddAddress(gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress))
+
+		encodedSCResultingAddress, err := gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress)
+		if err != nil {
+			return err
+		}
+		dnsSC.AddAddress(encodedSCResultingAddress)
 	}
 
 	return nil

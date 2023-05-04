@@ -86,9 +86,13 @@ type epochFlagsHolder struct {
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
+	runtimeCodeSizeFixFlag                      *atomic.Flag
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
+	setGuardianFlag                             *atomic.Flag
+	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
+	multiClaimOnDelegationFlag                  *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -174,9 +178,13 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
+		runtimeCodeSizeFixFlag:                      &atomic.Flag{},
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
+		setGuardianFlag:                             &atomic.Flag{},
+		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
+		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 	}
 }
 
@@ -638,6 +646,11 @@ func (holder *epochFlagsHolder) IsRuntimeMemStoreLimitEnabled() bool {
 	return holder.runtimeMemStoreLimitFlag.IsSet()
 }
 
+// IsRuntimeCodeSizeFixEnabled returns true if runtimeCodeSizeFixFlag is enabled
+func (holder *epochFlagsHolder) IsRuntimeCodeSizeFixEnabled() bool {
+	return holder.runtimeCodeSizeFixFlag.IsSet()
+}
+
 // IsMaxBlockchainHookCountersFlagEnabled returns true if maxBlockchainHookCountersFlagEnabled is enabled
 func (holder *epochFlagsHolder) IsMaxBlockchainHookCountersFlagEnabled() bool {
 	return holder.maxBlockchainHookCountersFlag.IsSet()
@@ -651,4 +664,19 @@ func (holder *epochFlagsHolder) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 // IsAlwaysSaveTokenMetaDataEnabled returns true if alwaysSaveTokenMetaDataFlag is enabled
 func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
+}
+
+// IsSetGuardianEnabled returns true if setGuardianFlag is enabled
+func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
+	return holder.setGuardianFlag.IsSet()
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled returns true if keepExecOrderOnCreatedSCRsFlag is enabled
+func (holder *epochFlagsHolder) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return holder.keepExecOrderOnCreatedSCRsFlag.IsSet()
+}
+
+// IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
+func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
+	return holder.multiClaimOnDelegationFlag.IsSet()
 }

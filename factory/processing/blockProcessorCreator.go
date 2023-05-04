@@ -162,15 +162,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.data.StorageService(),
-		pcf.data.Datapool(),
-		pcf.coreData.EconomicsData(),
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		Store:               pcf.data.StorageService(),
+		PoolsHolder:         pcf.data.Datapool(),
+		EconomicsFee:        pcf.coreData.EconomicsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +278,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -480,15 +485,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.data.StorageService(),
-		pcf.data.Datapool(),
-		pcf.coreData.EconomicsData(),
-	)
+	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		Store:               pcf.data.StorageService(),
+		PoolsHolder:         pcf.data.Datapool(),
+		EconomicsFee:        pcf.coreData.EconomicsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -579,6 +587,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -953,15 +963,18 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return nil, err
 	}
 
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.coreData.AddressPubKeyConverter(),
-		disabled.NewChainStorer(),
-		pcf.data.Datapool(),
-		&processDisabled.FeeHandler{},
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		Store:               disabled.NewChainStorer(),
+		PoolsHolder:         pcf.data.Datapool(),
+		EconomicsFee:        &processDisabled.FeeHandler{},
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1045,15 +1058,18 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	scProcArgs smartContract.ArgsNewSmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.coreData.AddressPubKeyConverter(),
-		disabled.NewChainStorer(),
-		pcf.data.Datapool(),
-		&processDisabled.FeeHandler{},
-	)
+	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
+		Store:               disabled.NewChainStorer(),
+		PoolsHolder:         pcf.data.Datapool(),
+		EconomicsFee:        &processDisabled.FeeHandler{},
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1124,6 +1140,8 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        &processDisabled.FeeHandler{},
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
@@ -1265,6 +1283,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
+		GuardedAccountHandler:     pcf.bootstrapComponents.GuardedAccountHandler(),
 		AutomaticCrawlerAddresses: convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}

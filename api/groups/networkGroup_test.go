@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -178,6 +179,36 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, expectedErr.Error(), response.Error)
+}
+
+func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := common.MetricExtraGasLimitGuardedTx
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/config", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
@@ -705,7 +736,6 @@ func TestGetGenesisNodes(t *testing.T) {
 	t.Run("facade error, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
 			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
 				return nil, nil, expectedErr
@@ -743,26 +773,21 @@ func TestGetGenesisNodes(t *testing.T) {
 			Waiting:  waiting,
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
 				return eligible, waiting, nil
 			},
 		}
 
-		networkGroup, err := groups.NewNetworkGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/network/genesis-nodes", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		response := genesisNodesConfigResponse{}
-		loadResponse(resp.Body, &response)
-
+		response := &genesisNodesConfigResponse{}
+		loadNetworkGroupResponse(
+			t,
+			facade,
+			"/network/genesis-nodes",
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, expectedOutput, response.Data.Nodes)
 	})
 }
@@ -773,7 +798,6 @@ func TestGetGenesisBalances(t *testing.T) {
 	t.Run("facade error, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
 			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
 				return nil, expectedErr
@@ -810,26 +834,21 @@ func TestGetGenesisBalances(t *testing.T) {
 			},
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
 				return initialAccounts, nil
 			},
 		}
 
-		networkGroup, err := groups.NewNetworkGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/network/genesis-balances", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		response := genesisBalancesResponse{}
-		loadResponse(resp.Body, &response)
-
+		response := &genesisBalancesResponse{}
+		loadNetworkGroupResponse(
+			t,
+			facade,
+			"/network/genesis-balances",
+			"GET",
+			nil,
+			response,
+		)
 		assert.Equal(t, initialAccounts, response.Data.Balances)
 	})
 }
@@ -840,7 +859,6 @@ func TestGetGasConfigs(t *testing.T) {
 	t.Run("facade error, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		facade := mock.FacadeStub{
 			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
 				return nil, expectedErr
@@ -877,12 +895,61 @@ func TestGetGasConfigs(t *testing.T) {
 			common.MetaChainSystemSCsCost: metaChainSystemSCsCost,
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
 				return expectedMap, nil
 			},
 		}
 
+		response := &gasConfigsResponse{}
+		loadNetworkGroupResponse(
+			t,
+			facade,
+			"/network/gas-configs",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
+		assert.Equal(t, metaChainSystemSCsCost, response.Data.Configs.MetaChainSystemSCsCost)
+	})
+}
+
+func TestNetworkGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		networkGroup, err := groups.NewNetworkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = networkGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		networkGroup, err := groups.NewNetworkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = networkGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		builtInCost := map[string]uint64{
+			"val1": 1,
+		}
+		expectedMap := map[string]map[string]uint64{
+			common.BuiltInCost: builtInCost,
+		}
+		facade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return expectedMap, nil
+			},
+		}
 		networkGroup, err := groups.NewNetworkGroup(&facade)
 		require.NoError(t, err)
 
@@ -893,13 +960,59 @@ func TestGetGasConfigs(t *testing.T) {
 		ws.ServeHTTP(resp, req)
 
 		assert.Equal(t, resp.Code, http.StatusOK)
-
 		response := gasConfigsResponse{}
 		loadResponse(resp.Body, &response)
-
 		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
-		assert.Equal(t, metaChainSystemSCsCost, response.Data.Configs.MetaChainSystemSCsCost)
+
+		expectedErr := errors.New("expected error")
+		newFacade := mock.FacadeStub{
+			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
+				return nil, expectedErr
+			},
+		}
+		err = networkGroup.UpdateFacade(&newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("GET", "/network/gas-configs", nil)
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
 	})
+}
+
+func TestNetworkGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	networkGroup, _ := groups.NewNetworkGroup(nil)
+	require.True(t, networkGroup.IsInterfaceNil())
+
+	networkGroup, _ = groups.NewNetworkGroup(&mock.FacadeStub{})
+	require.False(t, networkGroup.IsInterfaceNil())
+}
+
+func loadNetworkGroupResponse(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	method string,
+	body io.Reader,
+	destination interface{},
+) {
+	networkGroup, err := groups.NewNetworkGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest(method, url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	loadResponse(resp.Body, destination)
 }
 
 func getNetworkRoutesConfig() config.ApiRoutesConfig {

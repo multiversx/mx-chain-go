@@ -201,3 +201,9 @@ type DBConfigHandler interface {
 	SaveDBConfigToFilePath(path string, dbConfig *config.DBConfig) error
 	IsInterfaceNil() bool
 }
+
+// ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
+type ManagedPeersHolder interface {
+	IsMultiKeyMode() bool
+	IsInterfaceNil() bool
+}

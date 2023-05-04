@@ -116,6 +116,9 @@ var ErrNilStateComponentsFactory = errors.New("nil state components factory")
 // ErrNilStatusComponentsFactory signals that the provided status components factory is nil
 var ErrNilStatusComponentsFactory = errors.New("nil status components factory")
 
+// ErrNilStatusCoreComponentsFactory signals that an operation has been attempted with nil status core components factory
+var ErrNilStatusCoreComponentsFactory = errors.New("nil status core components factory provided")
+
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
 
@@ -482,9 +485,6 @@ var ErrNilProcessStatusHandler = errors.New("nil process status handler")
 // ErrNilESDTDataStorage signals that a nil esdt data storage has been provided
 var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
-// ErrDBIsClosed is raised when the DB is closed
-var ErrDBIsClosed = errors.New("DB is closed")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -544,3 +544,21 @@ var ErrNilPersistentHandler = errors.New("nil persistent handler")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrEmptyPeerID signals that an empty peer ID has been provided
+var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
+var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
+
+// ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
+var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")
+
+// ErrNilLogger signals that a nil logger instance has been provided
+var ErrNilLogger = errors.New("nil logger")
+
+// ErrNilShuffleOutCloser signals that a nil shuffle out closer has been provided
+var ErrNilShuffleOutCloser = errors.New("nil shuffle out closer")

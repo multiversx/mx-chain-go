@@ -1,12 +1,14 @@
 package factory_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -128,4 +130,27 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 		_, err = os.Stat(path)
 		require.True(t, os.IsNotExist(err))
 	})
+}
+
+func TestPersisterFactory_CreateDisabled(t *testing.T) {
+	t.Parallel()
+
+	dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
+	factoryInstance, err := factory.NewPersisterFactory(dbConfigHandler)
+	require.Nil(t, err)
+
+	persisterInstance := factoryInstance.CreateDisabled()
+	assert.NotNil(t, persisterInstance)
+	assert.Equal(t, "*disabled.errorDisabledPersister", fmt.Sprintf("%T", persisterInstance))
+}
+
+func TestPersisterFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pf *factory.PersisterFactory
+	require.True(t, pf.IsInterfaceNil())
+
+	dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
+	pf, _ = factory.NewPersisterFactory(dbConfigHandler)
+	require.False(t, pf.IsInterfaceNil())
 }
