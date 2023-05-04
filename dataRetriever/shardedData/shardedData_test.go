@@ -311,8 +311,6 @@ func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.
-
 func TestShardedData_RemoveSetOfDataFromPool(t *testing.T) {
 	t.Parallel()
 

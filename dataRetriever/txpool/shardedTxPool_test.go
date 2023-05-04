@@ -446,5 +446,3 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	}
 	return NewShardedTxPool(args)
 }
-
-// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.
