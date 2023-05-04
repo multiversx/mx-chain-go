@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -216,7 +217,7 @@ func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
 
 func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(key)
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close closes the synchronization loop
