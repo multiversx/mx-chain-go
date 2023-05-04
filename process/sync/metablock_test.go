@@ -1681,7 +1681,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	)
 	accountsSyncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 			accountsSyncCalled = true
 			return nil
 		},
@@ -1735,7 +1735,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 		args := CreateMetaBootstrapMockArguments()
 		accountsSyncCalled := false
 		args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-			SyncAccountsCalled: func(rootHash []byte) error {
+			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 				accountsSyncCalled = true
 				return nil
 			},
@@ -1775,7 +1775,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 		args := CreateMetaBootstrapMockArguments()
 		accountsSyncCalled := false
 		args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
-			SyncAccountsCalled: func(rootHash []byte) error {
+			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 				accountsSyncCalled = true
 				return nil
 			},

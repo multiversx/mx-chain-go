@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 
 		trieSyncedKeyPut := false
 		activeDbKeyPut := false
-		storer := &testscommon.StorageManagerStub{
+		storer := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				return 5, nil
 			},
@@ -45,7 +45,7 @@ func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 
 		trieSyncedKeyPut := false
 		activeDbKeyPut := false
-		storer := &testscommon.StorageManagerStub{
+		storer := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				return 0, nil
 			},

@@ -346,7 +346,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
 
-	err = userAccSyncer.SyncAccounts(rootHash)
+	err = userAccSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 	assert.Nil(t, err)
 
 	_ = nRequester.AccntState.RecreateTrie(rootHash)
@@ -588,7 +588,6 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			MaxTrieLevelInMemory:              200,
 			MaxHardCapForMissingNodes:         5000,
 			TrieSyncerVersion:                 version,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  integrationTests.TestAppStatusHandler,
 		},

@@ -1076,7 +1076,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
 		},
@@ -1089,7 +1088,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}
@@ -1147,7 +1146,6 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
 		},
@@ -1157,7 +1155,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}

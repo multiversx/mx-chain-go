@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -69,7 +70,7 @@ func TestAccountDBSyncers_ReplaceShouldWork(t *testing.T) {
 
 	// update
 	newTestVal := &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(_ []byte) error {
+		SyncAccountsCalled: func(_ []byte, _ common.StorageMarker) error {
 			return errors.New("local error")
 		},
 	}

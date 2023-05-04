@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 
 	removeFromCheckpointHashesHolderCalled := false
 	tsm := &trie.StorageManagerExtensionStub{
-		StorageManagerStub: &testscommon.StorageManagerStub{
+		StorageManagerStub: &storageManager.StorageManagerStub{
 			RemoveFromCheckpointHashesHolderCalled: func(hash []byte) {
 				removeFromCheckpointHashesHolderCalled = true
 			},

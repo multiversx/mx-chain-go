@@ -6,8 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -108,7 +108,7 @@ func TestManagedStateComponents_Setters(t *testing.T) {
 	require.NoError(t, err)
 
 	triesContainer := &trieMock.TriesHolderStub{}
-	triesStorageManagers := map[string]common.StorageManager{"a": &testscommon.StorageManagerStub{}}
+	triesStorageManagers := map[string]common.StorageManager{"a": &storageManager.StorageManagerStub{}}
 
 	err = managedStateComponents.SetTriesContainer(triesContainer)
 	require.NoError(t, err)

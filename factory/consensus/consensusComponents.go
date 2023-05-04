@@ -27,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/timecache"
@@ -536,7 +535,6 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
-		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}

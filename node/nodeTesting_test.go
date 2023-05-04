@@ -23,6 +23,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -397,7 +398,7 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PubKeyBytes:             []byte("pubKey"),
 		BlockSig:                &mock.SingleSignerMock{},
 		TxSig:                   &mock.SingleSignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(                cryptoMocks.NewMultiSigner()),
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
 		PeerSignHandler:         &mock.PeerSignatureHandler{},
 		BlKeyGen:                &mock.KeyGenMock{},
 		TxKeyGen:                &mock.KeyGenMock{},
@@ -415,7 +416,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 		AccountsAPI:     &stateMock.AccountsStub{},
 		AccountsRepo:    &stateMock.AccountsRepositoryStub{},
 		Tries:           &trieMock.TriesHolderStub{},
-		StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+		StorageManagers: map[string]common.StorageManager{"0": &storageManager.StorageManagerStub{}},
 	}
 }
 
