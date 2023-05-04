@@ -242,6 +242,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	if pcf.prefConfigs.FullArchive {
+		pcf.statusCoreComponents.AppStatusHandler().SetStringValue(common.MetricPeerSubType, core.FullHistoryObserver.String())
+	}
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
