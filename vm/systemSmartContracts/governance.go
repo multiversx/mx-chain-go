@@ -665,7 +665,7 @@ func (g *governanceContract) addToAccumulatedFees(value *big.Int) {
 
 func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		g.eei.AddReturnMessage("closeProposal callValue expected to be 0")
+		g.eei.AddReturnMessage("callValue expected to be 0")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 0 {
@@ -673,7 +673,7 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, g.changeConfigAddress) {
-		g.eei.AddReturnMessage("claimAccumulatedFees can be called only by owner")
+		g.eei.AddReturnMessage("can be called only by owner")
 		return vmcommon.UserError
 	}
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)

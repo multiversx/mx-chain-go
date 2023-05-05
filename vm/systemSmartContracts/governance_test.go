@@ -1800,3 +1800,43 @@ func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 }
+
+func TestGovernanceContract_ClaimAccumulatedFees(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	callInput := createVMInput(big.NewInt(500), "claimAccumulatedFees", []byte("addr1"), vm.GovernanceSCAddress, [][]byte{{1}})
+
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), "callValue expected to be 0")
+
+	callInput.CallValue = big.NewInt(0)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "invalid number of arguments expected 0"))
+
+	callInput.Arguments = [][]byte{}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "can be called only by owner"))
+
+	gsc.gasCost.MetaChainSystemSCsCost.CloseProposal = 100
+	callInput.CallerAddr = gsc.changeConfigAddress
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.OutOfGas, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "not enough gas"))
+
+	gsc.gasCost.MetaChainSystemSCsCost.CloseProposal = 0
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, big.NewInt(0), eei.GetTotalSentToUser(callInput.CallerAddr))
+
+	gsc.addToAccumulatedFees(big.NewInt(100))
+
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Equal(t, big.NewInt(100), eei.GetTotalSentToUser(callInput.CallerAddr))
+
+	require.Equal(t, big.NewInt(0), gsc.getAccumulatedFees())
+}
