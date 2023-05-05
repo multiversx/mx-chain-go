@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/headerSubscriber"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -1648,14 +1649,13 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createSovereignWsReceiver(
-	handler notifierProcess.HeaderSubscriber,
+	headersPool headerSubscriber.HeadersPool,
 	config *sovereignConfig.NotifierConfig,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
-		MarshallerType:      config.WebSocketConfig.MarshallerType,
-		SubscribedAddresses: config.SubscribedAddresses,
-		NumOfMainShards:     config.NumOfMainShards,
-		HasherType:          config.WebSocketConfig.HasherType,
+		MarshallerType:   config.WebSocketConfig.MarshallerType,
+		SubscribedEvents: getNotifierSubscribedEvents(config.SubscribedEvents),
+		HasherType:       config.WebSocketConfig.HasherType,
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
@@ -1663,7 +1663,12 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	err = sovereignNotifier.RegisterHandler(handler)
+	incomingHeaderHandler, err := headerSubscriber.NewIncomingHeaderHandler(headersPool)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1679,4 +1684,17 @@ func createSovereignWsReceiver(
 	}
 
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+}
+
+func getNotifierSubscribedEvents(events []sovereignConfig.SubscribedEvent) []notifierCfg.SubscribedEvent {
+	ret := make([]notifierCfg.SubscribedEvent, len(events))
+
+	for idx, event := range events {
+		ret[idx] = notifierCfg.SubscribedEvent{
+			Identifier: event.Identifier,
+			Addresses:  event.Addresses,
+		}
+	}
+
+	return ret
 }
