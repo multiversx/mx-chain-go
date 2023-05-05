@@ -1,11 +1,11 @@
-NumMainShards = 3
+NumMainShards = 1
 
-SubscribedAddresses = ["erd1qqqqqqqqqqqqqpgqt6ltx52ukss9d2qag2k67at28a36xc9lkp2sr06394"]
+SubscribedAddresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"]
 
 [WebSocket]
-    Url = "localhost:10001"
+    Url = "localhost:22111"
     # Possible values: json, gogo protobuf. Should be compatible with mx-chain-node outport driver config
-    MarshallerType = "gogo protobuf"
+    MarshallerType = "json"
     # Retry duration (receive/send ack signal) in seconds
     RetryDuration = 5
     # Signals if in case of data payload processing error, we should send the ack signal or not
