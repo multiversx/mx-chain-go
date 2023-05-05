@@ -827,6 +827,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
 			DataPool:           pcf.data.Datapool(),
 		}
+
 		return metachain.NewEpochStartTrigger(argEpochStart)
 	}
 
@@ -1383,6 +1384,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
 		PayloadValidator:           payloadValidator,
 	}
+
 	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 }
 
@@ -1395,10 +1397,10 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		return pcf.newStorageRequesters()
 	}
 
-	shardC := pcf.bootstrapComponents.ShardCoordinator()
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
 		RequesterConfig:             pcf.config.Requesters,
-		ShardCoordinator:            shardC,
+		ShardCoordinator:            shardCoordinator,
 		Messenger:                   pcf.network.NetworkMessenger(),
 		Marshaller:                  pcf.coreData.InternalMarshalizer(),
 		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
@@ -1409,10 +1411,10 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
 	}
 
-	if shardC.SelfId() < shardC.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
-	if shardC.SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
@@ -1542,6 +1544,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
+
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 }
 
@@ -1570,6 +1573,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.snapshotsEnabled,
 	}
+
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 }
 

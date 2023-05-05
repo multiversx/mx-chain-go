@@ -171,4 +171,4 @@ var ErrMissingDeployedSC = errors.New("missing deployed SC")
 var ErrNilEpochConfig = errors.New("nil epoch config")
 
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
-var ErrNilGasSchedule = errors.New("nil GasSchedule")
+var ErrNilGasSchedule = errors.New("nil gas schedule")
