@@ -111,10 +111,7 @@ func (t *tokensSuppliesProcessor) addToBalance(tokenID []byte, nonce uint64, val
 	tokenIDStr := string(tokenID)
 	if nonce > 0 {
 		t.putInSuppliesMap(string(tokenID), value) // put for collection as well
-		nonceStr := fmt.Sprintf("%d", nonce)
-		if len(nonceStr)%2 != 0 {
-			nonceStr = "0" + nonceStr
-		}
+		nonceStr := hex.EncodeToString(big.NewInt(int64(nonce)).Bytes())
 		tokenIDStr += fmt.Sprintf("-%s", nonceStr)
 	}
 

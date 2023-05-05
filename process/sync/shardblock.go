@@ -143,6 +143,7 @@ func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	}
 
 	go boot.syncBlocks(ctx)
+
 	return nil
 }
 

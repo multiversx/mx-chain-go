@@ -108,6 +108,76 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("cannot get all leaves on channel", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTokensSuppliesProcessorArgs()
+		tsp, _ := NewTokensSuppliesProcessor(args)
+
+		expectedErr := errors.New("error")
+		userAcc, _ := state.NewUserAccount([]byte("addr"))
+		userAcc.SetRootHash([]byte("rootHash"))
+		userAcc.SetDataTrie(&trie.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				return expectedErr
+			},
+		})
+
+		err := tsp.HandleTrieAccountIteration(userAcc)
+		require.ErrorIs(t, err, expectedErr)
+		require.Empty(t, tsp.tokensSupplies)
+	})
+
+	t.Run("should ignore non-token keys", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTokensSuppliesProcessorArgs()
+		tsp, _ := NewTokensSuppliesProcessor(args)
+
+		userAcc, _ := state.NewUserAccount([]byte("addr"))
+		userAcc.SetRootHash([]byte("rootHash"))
+		userAcc.SetDataTrie(&trie.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
+
+				close(leavesChannels.LeavesChan)
+				return nil
+			},
+		})
+
+		err := tsp.HandleTrieAccountIteration(userAcc)
+		require.NoError(t, err)
+		require.Empty(t, tsp.tokensSupplies)
+	})
+
+	t.Run("should return error if trie value cannot be extracted", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTokensSuppliesProcessorArgs()
+		tsp, _ := NewTokensSuppliesProcessor(args)
+
+		userAcc, _ := state.NewUserAccount([]byte("addr"))
+		userAcc.SetRootHash([]byte("rootHash"))
+		userAcc.SetDataTrie(&trie.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+				esToken := &esdt.ESDigitalToken{
+					Value: big.NewInt(37),
+				}
+				esBytes, _ := args.Marshaller.Marshal(esToken)
+				tknKey := []byte("ELRONDesdtTKN-00aacc")
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, esBytes)
+
+				close(leavesChannels.LeavesChan)
+				return nil
+			},
+		})
+
+		err := tsp.HandleTrieAccountIteration(userAcc)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "suffix is not present or the position is incorrect")
+		require.Empty(t, tsp.tokensSupplies)
+	})
+
 	t.Run("should not save tokens from the system account", func(t *testing.T) {
 		t.Parallel()
 
@@ -178,7 +248,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		require.NoError(t, err)
 
 		expectedSupplies := map[string]*big.Int{
-			"SFT-00aabb-37": big.NewInt(2),
+			"SFT-00aabb-25": big.NewInt(2),
 			"SFT-00aabb":    big.NewInt(2),
 			"TKN-00aacc":    big.NewInt(74),
 		}

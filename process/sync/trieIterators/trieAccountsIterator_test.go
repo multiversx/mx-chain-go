@@ -139,7 +139,88 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should work without handlers", func(t *testing.T) {
+	t.Run("should ignore non-accounts leaves", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTrieAccountsIteratorArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+				userAcc := &stateMock.AccountWrapMock{
+					RootHash: []byte("rootHash"),
+				}
+				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("non-addr"), []byte("not an account"))
+				close(iter.LeavesChan)
+				return nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.AccountWrapMock{}, nil
+			},
+		}
+		tai, _ := NewTrieAccountsIterator(args)
+
+		err := tai.Process(dummyIterator)
+		require.NoError(t, err)
+	})
+
+	t.Run("should ignore user account without root hash", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTrieAccountsIteratorArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+				userAcc := &stateMock.AccountWrapMock{
+					RootHash: nil,
+				}
+				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				close(iter.LeavesChan)
+				return nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.AccountWrapMock{}, nil
+			},
+		}
+		tai, _ := NewTrieAccountsIterator(args)
+
+		err := tai.Process(dummyIterator)
+		require.NoError(t, err)
+	})
+
+	t.Run("should ignore accounts that cannot be casted", func(t *testing.T) {
+		t.Parallel()
+
+		args := getTrieAccountsIteratorArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+				userAcc := state.NewEmptyUserAccount()
+				userAcc.SetRootHash([]byte("root"))
+				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				close(iter.LeavesChan)
+				return nil
+			},
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return state.NewEmptyPeerAccount(), nil
+			},
+		}
+		tai, _ := NewTrieAccountsIterator(args)
+
+		err := tai.Process(dummyIterator)
+		require.NoError(t, err)
+	})
+
+	t.Run("should work with dummy handler", func(t *testing.T) {
 		t.Parallel()
 
 		args := getTrieAccountsIteratorArgs()
