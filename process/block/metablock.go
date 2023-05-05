@@ -133,6 +133,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffConfig:   arguments.PrefsConfig.BlockProcessingCutoff,
 	}
 
 	mp := metaProcessor{

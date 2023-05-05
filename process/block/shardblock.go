@@ -118,6 +118,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffConfig:   arguments.PrefsConfig.BlockProcessingCutoff,
 	}
 
 	sp := shardProcessor{

@@ -2084,7 +2084,13 @@ func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) 
 	}
 
 	cutOffFunction := func(printArgs ...interface{}) {
-		log.Info("cutting off the block processing. The node will not advance", printArgs)
+		log.Info("cutting off the block processing. The node will not advance", printArgs...)
+		go func() {
+			for {
+				time.Sleep(time.Minute)
+				log.Info("node is in block processing cut-off mode", printArgs...)
+			}
+		}()
 		neverEndingChannel := make(chan struct{})
 		<-neverEndingChannel
 	}
