@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -36,7 +36,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		argsCopy.CoreComponents = nil
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilCoreComponentsHolder, err)
+		require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
 	})
 	t.Run("nil crypto components should error", func(t *testing.T) {
 		t.Parallel()
@@ -45,7 +45,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		argsCopy.CryptoComponents = nil
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilCryptoComponentsHolder, err)
+		require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, err)
 	})
 	t.Run("nil network components should error", func(t *testing.T) {
 		t.Parallel()
@@ -54,7 +54,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		argsCopy.NetworkComponents = nil
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilNetworkComponentsHolder, err)
+		require.Equal(t, errorsMx.ErrNilNetworkComponentsHolder, err)
 	})
 	t.Run("nil status core components should error", func(t *testing.T) {
 		t.Parallel()
@@ -63,7 +63,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		argsCopy.StatusCoreComponents = nil
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilStatusCoreComponents, err)
+		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
 	t.Run("nil trie sync statistics should error", func(t *testing.T) {
 		t.Parallel()
@@ -74,7 +74,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		}
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilTrieSyncStatistics, err)
+		require.Equal(t, errorsMx.ErrNilTrieSyncStatistics, err)
 	})
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
@@ -86,7 +86,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		}
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrNilAppStatusHandler, err)
+		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
@@ -95,7 +95,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		argsCopy.WorkingDir = ""
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
+		require.Equal(t, errorsMx.ErrInvalidWorkingDir, err)
 	})
 }
 
@@ -194,7 +194,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 
 		bc, err := bcf.Create()
 		require.Nil(t, bc)
-		require.True(t, errors.Is(err, errorsErd.ErrNewBootstrapDataProvider))
+		require.True(t, errors.Is(err, errorsMx.ErrNewBootstrapDataProvider))
 	})
 	t.Run("import db mode - NewStorageEpochStartBootstrap fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -209,7 +209,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 
 		bc, err := bcf.Create()
 		require.Nil(t, bc)
-		require.True(t, errors.Is(err, errorsErd.ErrNewStorageEpochStartBootstrap))
+		require.True(t, errors.Is(err, errorsMx.ErrNewStorageEpochStartBootstrap))
 	})
 	t.Run("NewStorageEpochStartBootstrap fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -223,7 +223,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 
 		bc, err := bcf.Create()
 		require.Nil(t, bc)
-		require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
+		require.True(t, errors.Is(err, errorsMx.ErrNewEpochStartBootstrap))
 	})
 }
 func TestBootstrapComponents(t *testing.T) {
