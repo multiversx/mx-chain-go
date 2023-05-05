@@ -198,6 +198,7 @@ type GovernanceConfig struct {
 	MinPassThreshold int32         `protobuf:"varint,3,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
 	MinVetoThreshold int32         `protobuf:"varint,4,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
 	ProposalFee      *math_big.Int `protobuf:"bytes,5,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
+	LostProposalFee  *math_big.Int `protobuf:"bytes,5,opt,name=LostProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"LostProposalFee"`
 }
 
 func (m *GovernanceConfig) Reset()      { *m = GovernanceConfig{} }

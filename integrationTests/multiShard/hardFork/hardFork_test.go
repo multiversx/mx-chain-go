@@ -443,6 +443,7 @@ func hardForkImport(
 						MinQuorum:        0.5,
 						MinPassThreshold: 0.5,
 						MinVetoThreshold: 0.5,
+						LostProposalFee:  "1",
 					},
 					ChangeConfigAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},

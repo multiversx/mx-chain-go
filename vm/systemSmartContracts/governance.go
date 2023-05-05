@@ -1117,11 +1117,17 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		return nil, vm.ErrIncorrectConfig
 	}
 
+	lostProposalFee, success := big.NewInt(0).SetString(config.Active.LostProposalFee, conversionBase)
+	if !success {
+		return nil, vm.ErrIncorrectConfig
+	}
+
 	return &GovernanceConfigV2{
 		MinQuorum:        float32(config.Active.MinQuorum),
 		MinPassThreshold: float32(config.Active.MinPassThreshold),
 		MinVetoThreshold: float32(config.Active.MinVetoThreshold),
 		ProposalFee:      proposalFee,
+		LostProposalFee:  lostProposalFee,
 	}, nil
 }
 

@@ -676,6 +676,7 @@ func CreateFullGenesisBlocks(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
@@ -783,6 +784,7 @@ func CreateGenesisMetaBlock(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
 				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
 			},

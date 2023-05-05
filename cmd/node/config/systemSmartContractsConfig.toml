@@ -26,6 +26,7 @@
         MinVetoThreshold   = 50
     [GovernanceSystemSCConfig.Active]
         ProposalCost       = "1000000000000000000000" #1000 eGLD
+        LostProposalFee    = "10000000000000000000"   #10 eGLD
         MinQuorum          = 0.5  #fraction of value 0.5  - 50%
         MinPassThreshold   = 0.5  #fraction of value 0.5  - 50%
         MinVetoThreshold   = 0.33 #fraction of value 0.33 - 33%
