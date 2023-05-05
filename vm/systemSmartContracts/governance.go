@@ -157,6 +157,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.viewDelegatedVoteInfo(args)
 	case "viewProposal":
 		return g.viewProposal(args)
+	case "claimAccumulatedFees":
+		return g.claimAccumulatedFees(args)
 	}
 
 	g.eei.AddReturnMessage("invalid method to call")
@@ -646,11 +648,50 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) addToAccumulatedFees(value *big.Int) {
+func (g *governanceContract) getAccumulatedFees() *big.Int {
 	currentData := g.eei.GetStorage([]byte(accumulatedFeeKey))
-	currentValue := big.NewInt(0).SetBytes(currentData)
+	return big.NewInt(0).SetBytes(currentData)
+}
+
+func (g *governanceContract) setAccumulatedFees(value *big.Int) {
+	g.eei.SetStorage([]byte(accumulatedFeeKey), value.Bytes())
+}
+
+func (g *governanceContract) addToAccumulatedFees(value *big.Int) {
+	currentValue := g.getAccumulatedFees()
 	currentValue.Add(currentValue, value)
-	g.eei.SetStorage([]byte(accumulatedFeeKey), currentValue.Bytes())
+	g.setAccumulatedFees(currentValue)
+}
+
+func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("closeProposal callValue expected to be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		g.eei.AddReturnMessage("invalid number of arguments expected 0")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, g.changeConfigAddress) {
+		g.eei.AddReturnMessage("claimAccumulatedFees can be called only by owner")
+		return vmcommon.UserError
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+
+	accumulatedFees := g.getAccumulatedFees()
+	g.setAccumulatedFees(big.NewInt(0))
+
+	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 // viewVotingPower returns the total voting power

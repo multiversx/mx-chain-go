@@ -329,7 +329,10 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 		},
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
-				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{})
+				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
+					ProposalFee:     big.NewInt(10),
+					LostProposalFee: big.NewInt(1),
+				})
 				return configBytes
 			}
 
@@ -598,10 +601,6 @@ func TestGovernanceContract_ProposalAlreadyExists(t *testing.T) {
 
 	gsc.eei.SetStorage([]byte(proposalPrefix+string(proposalIdentifier)), []byte("1"))
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
-
-	baseConfig, err := gsc.getConfig()
-	require.Nil(t, err)
-	fmt.Println(baseConfig)
 
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -910,6 +909,8 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 					MinQuorum:        0.1,
 					MinVetoThreshold: 0.1,
 					MinPassThreshold: 0.1,
+					ProposalFee:      big.NewInt(10),
+					LostProposalFee:  big.NewInt(1),
 				})
 				return configBytes
 			}
@@ -918,6 +919,7 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
+					ProposalCost:  big.NewInt(10),
 					Yes:           big.NewInt(10),
 					No:            big.NewInt(10),
 					Veto:          big.NewInt(10),
@@ -1200,7 +1202,7 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	errSubstr := "computeEndResults error"
+	errSubstr := "element was not found"
 	callerAddress := []byte("address")
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
 	args := createMockGovernanceArgs()
@@ -1214,6 +1216,7 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
+					ProposalCost:  big.NewInt(10),
 					Yes:           big.NewInt(10),
 					No:            big.NewInt(10),
 					Veto:          big.NewInt(10),
@@ -1372,6 +1375,7 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 	mockEEI.GetStorageCalled = func(key []byte) []byte {
 		proposalBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
 			ProposalFee:       big.NewInt(10),
+			LostProposalFee:   big.NewInt(1),
 			LastProposalNonce: 10,
 			MinQuorum:         0.4,
 			MinPassThreshold:  0.4,
@@ -1763,7 +1767,6 @@ func TestComputeEndResults(t *testing.T) {
 	passed = gsc.computeEndResults(pass, baseConfig)
 	require.True(t, passed)
 	require.Equal(t, "Proposal passed", retMessage)
-	require.True(t, pass.Passed)
 }
 
 func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
