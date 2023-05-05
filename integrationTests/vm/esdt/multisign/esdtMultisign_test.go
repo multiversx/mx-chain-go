@@ -97,7 +97,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
 	esdt.CheckAddressHasTokens(t, multisignContractAddress, nodes, tokenIdentifier, 0, initalSupply.Int64())
 
-	// checkCallBackWasSaved(t, nodes, multisignContractAddress)
+	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
 	// ----- transfer ESDT token
 	destinationAddress, _ := integrationTests.TestAddressPubkeyConverter.Decode("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5")

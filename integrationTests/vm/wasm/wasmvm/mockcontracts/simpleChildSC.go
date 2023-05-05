@@ -32,7 +32,7 @@ func SimpleCallChildMock(instanceMock *mock.InstanceMock, config interface{}) {
 			return instance
 		}
 
-		host.Storage().SetStorage(test.ChildKey, test.ChildData)
+		_, _ = host.Storage().SetStorage(test.ChildKey, test.ChildData)
 		host.Output().Finish(test.ChildFinish)
 
 		return instance
