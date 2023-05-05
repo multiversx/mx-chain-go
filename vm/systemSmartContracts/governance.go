@@ -18,6 +18,7 @@ import (
 )
 
 const governanceConfigKey = "governanceConfig"
+const accumulatedFeeKey = "accumulatedFee"
 const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
@@ -605,7 +606,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	generalProposal.Closed = true
-	err = g.computeEndResults(generalProposal)
+	baseConfig, err := g.getConfig()
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	generalProposal.Passed = g.computeEndResults(generalProposal, baseConfig)
 	if err != nil {
 		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
 		return vmcommon.UserError
@@ -617,7 +624,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, generalProposal.ProposalCost, nil, 0)
+	tokensToReturn := big.NewInt(0).Set(generalProposal.ProposalCost)
+	if !generalProposal.Passed {
+		tokensToReturn.Sub(tokensToReturn, baseConfig.LostProposalFee)
+		g.addToAccumulatedFees(baseConfig.LostProposalFee)
+	}
+
+	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -631,6 +644,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	g.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) addToAccumulatedFees(value *big.Int) {
+	currentData := g.eei.GetStorage([]byte(accumulatedFeeKey))
+	currentValue := big.NewInt(0).SetBytes(currentData)
+	currentValue.Add(currentValue, value)
+	g.eei.SetStorage([]byte(accumulatedFeeKey), currentValue.Bytes())
 }
 
 // viewVotingPower returns the total voting power
@@ -838,12 +858,7 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
-	baseConfig, err := g.getConfig()
-	if err != nil {
-		return err
-	}
-
+func (g *governanceContract) computeEndResults(proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
@@ -853,27 +868,23 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
-		proposal.Passed = false
-		return nil
+		return false
 	}
 
 	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
-		proposal.Passed = false
 		g.eei.Finish([]byte("Proposal vetoed"))
-		return nil
+		return false
 	}
 
 	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		g.eei.Finish([]byte("Proposal passed"))
-		proposal.Passed = true
-		return nil
+		return true
 	}
 
 	g.eei.Finish([]byte("Proposal rejected"))
-	proposal.Passed = false
-	return nil
+	return false
 }
 
 func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {

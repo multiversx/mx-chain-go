@@ -598,6 +598,11 @@ func TestGovernanceContract_ProposalAlreadyExists(t *testing.T) {
 
 	gsc.eei.SetStorage([]byte(proposalPrefix+string(proposalIdentifier)), []byte("1"))
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
+
+	baseConfig, err := gsc.getConfig()
+	require.Nil(t, err)
+	fmt.Println(baseConfig)
+
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, eei.GetReturnMessage(), "proposal already exists")
@@ -1677,17 +1682,20 @@ func TestGovernanceContract_addNewVote(t *testing.T) {
 func TestComputeEndResults(t *testing.T) {
 	t.Parallel()
 
+	baseConfig := &GovernanceConfigV2{
+		MinQuorum:        0.4,
+		MinPassThreshold: 0.5,
+		MinVetoThreshold: 0.3,
+		ProposalFee:      big.NewInt(10),
+		LostProposalFee:  big.NewInt(1),
+	}
+
 	retMessage := ""
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
-				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
-					MinQuorum:        0.4,
-					MinPassThreshold: 0.5,
-					MinVetoThreshold: 0.3,
-					ProposalFee:      big.NewInt(10),
-				})
+				configBytes, _ := args.Marshalizer.Marshal(baseConfig)
 				return configBytes
 			}
 
@@ -1708,8 +1716,8 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	err := gsc.computeEndResults(didNotPassQuorum)
-	require.Nil(t, err)
+	passed := gsc.computeEndResults(didNotPassQuorum, baseConfig)
+	require.False(t, passed)
 	require.Equal(t, "Proposal did not reach minQuorum", retMessage)
 	require.False(t, didNotPassQuorum.Passed)
 
@@ -1719,8 +1727,8 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	err = gsc.computeEndResults(didNotPassVotes)
-	require.Nil(t, err)
+	passed = gsc.computeEndResults(didNotPassVotes, baseConfig)
+	require.False(t, passed)
 	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes.Passed)
 
@@ -1730,8 +1738,8 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	err = gsc.computeEndResults(didNotPassVotes2)
-	require.Nil(t, err)
+	passed = gsc.computeEndResults(didNotPassVotes2, baseConfig)
+	require.False(t, passed)
 	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes2.Passed)
 
@@ -1741,8 +1749,8 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(70),
 		Abstain: big.NewInt(10),
 	}
-	err = gsc.computeEndResults(didNotPassVeto)
-	require.Nil(t, err)
+	passed = gsc.computeEndResults(didNotPassVeto, baseConfig)
+	require.False(t, passed)
 	require.Equal(t, "Proposal vetoed", retMessage)
 	require.False(t, didNotPassVeto.Passed)
 
@@ -1752,8 +1760,8 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(10),
 		Abstain: big.NewInt(10),
 	}
-	err = gsc.computeEndResults(pass)
-	require.Nil(t, err)
+	passed = gsc.computeEndResults(pass, baseConfig)
+	require.True(t, passed)
 	require.Equal(t, "Proposal passed", retMessage)
 	require.True(t, pass.Passed)
 }
