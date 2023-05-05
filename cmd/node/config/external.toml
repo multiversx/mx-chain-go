@@ -41,10 +41,10 @@
     # marshalled structures in block events data
     MarshallerType = "json"
 
-[WebSocketsConnector]
+[WebSocketConnector]
     # This flag shall only be used for observer nodes
     Enabled = false
-    # This flag will start the WebSockets connector as server or client
+    # This flag will start the WebSocket connector as server or client
     IsServer = false
     # The url of the web-sockets client/server
     URL = "127.0.0.1:22111"
@@ -53,3 +53,4 @@
     MarshallerType = "json"
     # The number of seconds when the client will try again to send the data
     RetryDurationInSec = 5
+    BlockingAckOnError = false
