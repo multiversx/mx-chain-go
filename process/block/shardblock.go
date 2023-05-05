@@ -888,6 +888,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	sp.handleBlockProcessingCutoff(headerHandler)
+
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",

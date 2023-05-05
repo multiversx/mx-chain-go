@@ -114,6 +114,8 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+
+	blockProcessingCutoffConfig config.BlockProcessingCutoffConfig
 }
 
 type bootStorerDataArgs struct {
@@ -2074,4 +2076,33 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 
 	bp.nonceOfFirstCommittedBlock.HasValue = true
 	bp.nonceOfFirstCommittedBlock.Value = nonce
+}
+
+func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) {
+	if !bp.blockProcessingCutoffConfig.Enabled {
+		return
+	}
+
+	cutOffFunction := func(printArgs ...interface{}) {
+		log.Info("cutting off the block processing. The node will not advance", printArgs)
+		neverEndingChannel := make(chan struct{})
+		<-neverEndingChannel
+	}
+
+	value := bp.blockProcessingCutoffConfig.Value
+
+	switch common.BlockProcessingCutoffType(bp.blockProcessingCutoffConfig.Type) {
+	case common.BlockProcessingCutoffByRound:
+		if header.GetRound() == value {
+			cutOffFunction("round", header.GetRound())
+		}
+	case common.BlockProcessingCutoffByNonce:
+		if header.GetNonce() == value {
+			cutOffFunction("nonce", header.GetNonce())
+		}
+	case common.BlockProcessingCutoffByEpoch:
+		if header.IsStartOfEpochBlock() && header.GetEpoch() == uint32(value) {
+			cutOffFunction("epoch", header.GetEpoch())
+		}
+	}
 }

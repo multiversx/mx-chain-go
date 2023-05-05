@@ -65,6 +65,7 @@ type ArgBaseProcessor struct {
 	StatusCoreComponents statusCoreComponentsHolder
 
 	Config                         config.Config
+	PrefsConfig                    config.Preferences
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
 	NodesCoordinator               nodesCoordinator.NodesCoordinator

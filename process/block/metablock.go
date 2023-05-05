@@ -1166,6 +1166,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	mp.handleBlockProcessingCutoff(headerHandler)
+
 	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	header, ok := headerHandler.(*block.MetaBlock)
