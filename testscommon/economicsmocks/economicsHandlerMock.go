@@ -88,7 +88,7 @@ func (ehm *EconomicsHandlerMock) ExtraGasLimitGuardedTx() uint64 {
 }
 
 // MaxGasPriceSetGuardian -
-func (ehm *EconomicsHandlerMock) MaxGasPriceSetGuardian() uint64{
+func (ehm *EconomicsHandlerMock) MaxGasPriceSetGuardian() uint64 {
 	return 0
 }
 

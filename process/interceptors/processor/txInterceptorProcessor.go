@@ -10,7 +10,6 @@ import (
 var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
 var txLog = logger.GetOrCreate("process/interceptors/processor/txlog")
 
-
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {

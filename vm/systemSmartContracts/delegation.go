@@ -268,6 +268,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.correctNodesStatus(args)
 	case changeOwner:
 		return d.changeOwner(args)
+	case "synchronizeOwner":
+		return d.synchronizeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -958,8 +960,57 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+	shouldUpdateAlsoTheAccount := d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled()
+	if shouldUpdateAlsoTheAccount {
+		argsChangeOwner := vm.SetOwnerArguments{
+			SCAddress: args.RecipientAddr,
+			NewOwner:  args.Arguments[0],
+		}
+
+		err = d.eei.SetOwnerOperatingOnAccount(argsChangeOwner)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
 
 	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	functionEnabled := d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled()
+	if !functionEnabled {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("wrong number of arguments, expected no argument")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	argsChangeOwner := vm.SetOwnerArguments{
+		SCAddress: args.RecipientAddr,
+		NewOwner:  ownerAddress,
+	}
+
+	err = d.eei.SetOwnerOperatingOnAccount(argsChangeOwner)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }

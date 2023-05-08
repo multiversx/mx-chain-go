@@ -396,7 +396,7 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PubKeyBytes:             []byte("pubKey"),
 		BlockSig:                &mock.SingleSignerMock{},
 		TxSig:                   &mock.SingleSignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(                cryptoMocks.NewMultiSigner()),
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
 		PeerSignHandler:         &mock.PeerSignatureHandler{},
 		BlKeyGen:                &mock.KeyGenMock{},
 		TxKeyGen:                &mock.KeyGenMock{},

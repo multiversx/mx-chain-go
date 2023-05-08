@@ -19,6 +19,7 @@ type AccountWrapMock struct {
 	CodeHash          []byte
 	CodeMetadata      []byte
 	RootHash          []byte
+	Owner             []byte
 	address           []byte
 	trackableDataTrie state.DataTrieTracker
 	Balance           *big.Int
@@ -88,8 +89,8 @@ func (awm *AccountWrapMock) ChangeOwnerAddress([]byte, []byte) error {
 }
 
 // SetOwnerAddress -
-func (awm *AccountWrapMock) SetOwnerAddress([]byte) {
-
+func (awm *AccountWrapMock) SetOwnerAddress(owner []byte) {
+	awm.Owner = owner
 }
 
 // GetOwnerAddress -

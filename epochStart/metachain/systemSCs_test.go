@@ -1023,6 +1023,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 			},
 		},
 		ValidatorAccountsDB: peerAccountsDB,
+		UserAccountsDB:      userAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
@@ -1113,7 +1114,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData

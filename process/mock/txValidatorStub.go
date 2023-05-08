@@ -6,9 +6,9 @@ import (
 
 // TxValidatorStub -
 type TxValidatorStub struct {
-	CheckTxValidityCalled   func(interceptedTx process.InterceptedTransactionHandler) error
-	CheckTxWhiteListCalled  func(data process.InterceptedData) error
-	RejectedTxsCalled       func() uint64
+	CheckTxValidityCalled  func(interceptedTx process.InterceptedTransactionHandler) error
+	CheckTxWhiteListCalled func(data process.InterceptedData) error
+	RejectedTxsCalled      func() uint64
 }
 
 // CheckTxValidity -

@@ -70,7 +70,7 @@ func createMockArgument(
 			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:           testscommon.NewPubkeyConverterMock(32),
 			Chain:                    "chainID",
-			TxVersionCheck:      &testscommon.TxVersionCheckerStub{},
+			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},

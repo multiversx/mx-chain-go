@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,6 +20,7 @@ type vmContext struct {
 	blockChainHook      vm.BlockchainHook
 	cryptoHook          vmcommon.CryptoHook
 	validatorAccountsDB state.AccountsAdapter
+	userAccountsDB      state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      nodesCoordinator.ChanceComputer
@@ -41,6 +43,7 @@ type VMContextArgs struct {
 	CryptoHook          vmcommon.CryptoHook
 	InputParser         vm.ArgumentsParser
 	ValidatorAccountsDB state.AccountsAdapter
+	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	EnableEpochsHandler common.EnableEpochsHandler
 }
@@ -59,6 +62,9 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, vm.ErrNilUserAccountsDB
+	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
@@ -71,6 +77,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 		cryptoHook:          args.CryptoHook,
 		inputParser:         args.InputParser,
 		validatorAccountsDB: args.ValidatorAccountsDB,
+		userAccountsDB:      args.UserAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}
@@ -727,6 +734,27 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+}
+
+// SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through
+// SC processor is not possible
+func (host *vmContext) SetOwnerOperatingOnAccount(arguments vm.SetOwnerArguments) error {
+	scAccount, err := host.userAccountsDB.LoadAccount(arguments.SCAddress)
+	if err != nil {
+		return err
+	}
+
+	scAccountHandler, okCast := scAccount.(state.UserAccountHandler)
+	if !okCast {
+		return fmt.Errorf("%w, not a user account handler", vm.ErrWrongTypeAssertion)
+	}
+
+	if len(arguments.NewOwner) != len(arguments.SCAddress) {
+		return vm.ErrWrongNewOwnerAddress
+	}
+	scAccountHandler.SetOwnerAddress(arguments.NewOwner)
+
+	return host.userAccountsDB.SaveAccount(scAccountHandler)
 }
 
 // IsValidator returns true if the validator is in eligible or waiting list

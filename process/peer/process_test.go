@@ -100,7 +100,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -2077,7 +2077,6 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	t.Run("should fail on getting all leaves from trie", func(t *testing.T) {
 		peerAdapter := getAccountsMock()
 
-		expectedErr := errors.New("expected error")
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {

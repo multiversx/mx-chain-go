@@ -33,6 +33,12 @@ type SystemSCContainer interface {
 	IsInterfaceNil() bool
 }
 
+// SetOwnerArguments represents the argument for the SetOwnerOperatingOnAccount function
+type SetOwnerArguments struct {
+	SCAddress []byte
+	NewOwner  []byte
+}
+
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
@@ -58,6 +64,7 @@ type SystemEI interface {
 	CleanStorageUpdates()
 	GetTotalSentToUser(dest []byte) *big.Int
 	GetLogs() []*vmcommon.LogEntry
+	SetOwnerOperatingOnAccount(arguments SetOwnerArguments) error
 
 	IsInterfaceNil() bool
 }
