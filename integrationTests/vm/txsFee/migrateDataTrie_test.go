@@ -6,7 +6,6 @@
 package txsFee
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -274,7 +273,7 @@ func migrateDataTrie(
 	testContext.CleanIntermediateTransactions(t)
 
 	gasLocked := "00" //use all available gas
-	txData := core.BuiltInFunctionMigrateDataTrie + "@" + hex.EncodeToString([]byte{byte(core.NotSpecified)}) + "@" + hex.EncodeToString([]byte{byte(core.AutoBalanceEnabled)}) + "@" + gasLocked
+	txData := core.BuiltInFunctionMigrateDataTrie + "@" + gasLocked
 
 	scr := &smartContractResult.SmartContractResult{
 		Value:    big.NewInt(0),
