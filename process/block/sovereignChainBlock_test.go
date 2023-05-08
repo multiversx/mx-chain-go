@@ -117,4 +117,4 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	})
 }
 
-//TODO: More unit tests should be added
+//TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149

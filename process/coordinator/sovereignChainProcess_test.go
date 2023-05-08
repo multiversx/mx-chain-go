@@ -26,4 +26,4 @@ func TestNewSovereignChainTransactionCoordinator_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TODO: Unit tests should be added
+//TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149
