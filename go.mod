@@ -188,4 +188,6 @@ require (
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
-// replace github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230425103418-e8794cf05ba5 => /home/bogdan/go2/src/github.com/multiversx/mx-chain-vm-go
+replace github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230428124145-d89f33fa3b1a => /home/bogdan/go2/src/github.com/multiversx/mx-chain-vm-go
+
+replace github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230425081117-bd6069791f3b => /home/bogdan/Elrond/elrond-vm-common

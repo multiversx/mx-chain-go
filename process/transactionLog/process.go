@@ -156,7 +156,7 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 			Identifier: logEntry.Identifier,
 			Address:    logEntry.Address,
 			Topics:     logEntry.Topics,
-			Data:       logEntry.Data,
+			Data:       logEntry.GetFirstDataItem(),
 		})
 	}
 

@@ -433,8 +433,8 @@ func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCa
 		logEntry := &vmcommon.LogEntry{
 			Identifier: []byte(transferValueOnly),
 			Address:    callInput.RecipientAddr,
-			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
-			Data:       []byte{},
+			Topics:     [][]byte{sender, callInput.CallValue.Bytes()},
+			Data:       vmcommon.FormatLogDataForCall("", callInput.Function, callInput.Arguments),
 		}
 		host.AddLogEntry(logEntry)
 	}

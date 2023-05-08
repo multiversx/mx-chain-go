@@ -1336,7 +1336,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 	retData := [][]byte{[]byte("ret_data_0")}
 	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
 	outAccTransferSndrAddr := []byte("addr1")
-	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, []byte("log_data")
+	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, [][]byte{[]byte("log_data")}
 	vmInput := vmcommon.VMOutput{
 		ReturnData: retData,
 		OutputAccounts: map[string]*vmcommon.OutputAccount{
@@ -1385,7 +1385,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 			Identifier: logId,
 			Address:    convertAddressFunc(logAddr),
 			Topics:     logTopics,
-			Data:       logData,
+			Data:       logData[0],
 		},
 	}
 
