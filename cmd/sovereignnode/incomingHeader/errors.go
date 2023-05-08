@@ -1,4 +1,4 @@
-package headerSubscriber
+package incomingHeader
 
 import "errors"
 

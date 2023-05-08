@@ -1,0 +1,96 @@
+package incomingHeader
+
+import (
+	"encoding/hex"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+)
+
+var log = logger.GetOrCreate("headerSubscriber")
+
+type incomingHeaderHandler struct {
+	headersPool HeadersPool
+	txPool      TransactionPool
+	marshaller  marshal.Marshalizer
+	hasher      hashing.Hasher
+}
+
+// NewIncomingHeaderHandler creates an incoming header handler which should be able to receive incoming headers and events
+// from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
+// incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
+func NewIncomingHeaderHandler(headersPool HeadersPool) (*incomingHeaderHandler, error) {
+	if check.IfNil(headersPool) {
+		return nil, errNilHeadersPool
+	}
+
+	return &incomingHeaderHandler{
+		headersPool: headersPool,
+	}, nil
+}
+
+// AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
+func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) {
+	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
+
+	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
+	if !castOk {
+		log.Error("incoming header is not of type HeaderV2")
+		return
+	}
+
+	incomingSCRs := createIncomingSCRs(header.GetIncomingEventHandlers())
+	incomingMB := createIncomingMb(incomingSCRs)
+
+	extendedHeader := &block.ShardHeaderExtended{
+		Header:             headerV2,
+		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
+	}
+
+	err := ihs.addExtendedHeaderToPool(extendedHeader)
+	if err != nil {
+		log.Error("cannot compute extended header hash", "error", err)
+		return
+	}
+	err = ihs.addSCRsToPool(incomingSCRs)
+	if err != nil {
+		log.Error("cannot compute extended header hash", "error", err)
+	}
+}
+
+// TODO: Implement this in task MX-14128
+func createIncomingSCRs(_ []data.EventHandler) []*smartContractResult.SmartContractResult {
+	return make([]*smartContractResult.SmartContractResult, 0)
+}
+
+// TODO: Implement this in task MX-14129
+func createIncomingMb(_ []*smartContractResult.SmartContractResult) *block.MiniBlock {
+	return &block.MiniBlock{}
+}
+
+func (ihs *incomingHeaderHandler) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
+	extendedHeaderHash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, extendedHeader)
+	if err != nil {
+		return err
+	}
+
+	ihs.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
+	return nil
+}
+
+// TODO: Implement this in task MX-14128
+func (ihs *incomingHeaderHandler) addSCRsToPool(_ []*smartContractResult.SmartContractResult) error {
+	return nil
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (ihs *incomingHeaderHandler) IsInterfaceNil() bool {
+	return ihs == nil
+}

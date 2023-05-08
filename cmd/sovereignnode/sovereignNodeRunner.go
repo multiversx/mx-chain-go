@@ -60,7 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/headerSubscriber"
+	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -1649,7 +1649,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createSovereignWsReceiver(
-	headersPool headerSubscriber.HeadersPool,
+	headersPool incomingHeader.HeadersPool,
 	config *sovereignConfig.NotifierConfig,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
@@ -1663,7 +1663,7 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	incomingHeaderHandler, err := headerSubscriber.NewIncomingHeaderHandler(headersPool)
+	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderHandler(headersPool)
 	if err != nil {
 		return nil, err
 	}
