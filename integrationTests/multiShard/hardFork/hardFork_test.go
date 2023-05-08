@@ -445,7 +445,7 @@ func hardForkImport(
 						MinVetoThreshold: 0.5,
 						LostProposalFee:  "1",
 					},
-					ChangeConfigAddress: integrationTests.DelegationManagerConfigChangeAddress,
+					OwnerAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",

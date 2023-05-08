@@ -667,7 +667,7 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 				V1: config.GovernanceSystemSCConfigV1{
 					ProposalCost: "500",
 				},
@@ -786,7 +786,7 @@ func CreateGenesisMetaBlock(
 					MinVetoThreshold: 0.5,
 					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

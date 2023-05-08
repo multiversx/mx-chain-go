@@ -48,14 +48,14 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 				MinVetoThreshold: 0.5,
 				LostProposalFee:  "1",
 			},
-			ChangeConfigAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 		},
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		ConfigChangeAddress:    bytes.Repeat([]byte{1}, 32),
+		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:   10,
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsGovernanceFlagEnabledField: true,
@@ -257,7 +257,6 @@ func TestGovernanceContract_ExecuteInit(t *testing.T) {
 
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, gsc.ownerAddress, callerAddr)
 }
 
 func TestGovernanceContract_ExecuteInitV2InvalidCaller(t *testing.T) {
@@ -312,7 +311,6 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, gsc.ownerAddress, vm.GovernanceSCAddress)
 }
 
 func TestGovernanceContract_ChangeConfig(t *testing.T) {
@@ -350,7 +348,7 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 	}
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
-	callInput := createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -394,7 +392,7 @@ func TestGovernanceContract_ChangeConfigWrongCallValue(t *testing.T) {
 
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
-	callInput := createVMInput(big.NewInt(10), "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, nil)
+	callInput := createVMInput(big.NewInt(10), "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -417,7 +415,7 @@ func TestGovernanceContract_ChangeConfigWrongArgumentsLength(t *testing.T) {
 
 	initInput := createVMInput(zero, "initV2", vm.GovernanceSCAddress, vm.GovernanceSCAddress, nil)
 	_ = gsc.Execute(initInput)
-	callInput := createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, nil)
+	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, nil)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -447,7 +445,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 		[]byte("10"),
 		[]byte("5"),
 	}
-	callInput := createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -460,7 +458,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 		[]byte("10"),
 		[]byte("5"),
 	}
-	callInput = createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput = createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode = gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -473,7 +471,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 		[]byte("invalid"),
 		[]byte("5"),
 	}
-	callInput = createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput = createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode = gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -486,7 +484,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 		[]byte("10"),
 		[]byte("invalid"),
 	}
-	callInput = createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput = createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode = gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -523,7 +521,7 @@ func TestGovernanceContract_ChangeConfigGetConfigErr(t *testing.T) {
 		[]byte("10"),
 		[]byte("10"),
 	}
-	callInput := createVMInput(zero, "changeConfig", args.ConfigChangeAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -1814,7 +1812,7 @@ func TestGovernanceContract_ClaimAccumulatedFees(t *testing.T) {
 	callInput.CallValue = big.NewInt(0)
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.True(t, strings.Contains(eei.GetReturnMessage(), "invalid number of arguments expected 0"))
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "invalid number of arguments, expected 0"))
 
 	callInput.Arguments = [][]byte{}
 	retCode = gsc.Execute(callInput)
@@ -1822,7 +1820,7 @@ func TestGovernanceContract_ClaimAccumulatedFees(t *testing.T) {
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "can be called only by owner"))
 
 	gsc.gasCost.MetaChainSystemSCsCost.CloseProposal = 100
-	callInput.CallerAddr = gsc.changeConfigAddress
+	callInput.CallerAddr = gsc.ownerAddress
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.OutOfGas, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "not enough gas"))

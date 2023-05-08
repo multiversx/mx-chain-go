@@ -38,7 +38,7 @@ type ArgsNewGovernanceContract struct {
 	GovernanceSCAddress    []byte
 	DelegationMgrSCAddress []byte
 	ValidatorSCAddress     []byte
-	ConfigChangeAddress    []byte
+	OwnerAddress           []byte
 	UnBondPeriodInEpochs   uint32
 	EnableEpochsHandler    common.EnableEpochsHandler
 }
@@ -51,7 +51,6 @@ type governanceContract struct {
 	governanceSCAddress    []byte
 	delegationMgrSCAddress []byte
 	validatorSCAddress     []byte
-	changeConfigAddress    []byte
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	governanceConfig       config.GovernanceSystemSCConfig
@@ -89,7 +88,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if len(args.GovernanceSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.ConfigChangeAddress) < 1 {
+	if len(args.OwnerAddress) < 1 {
 		return nil, fmt.Errorf("%w for change config address", vm.ErrInvalidAddress)
 	}
 
@@ -97,7 +96,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		eei:                    args.Eei,
 		gasCost:                args.GasCost,
 		baseProposalCost:       baseProposalCost,
-		ownerAddress:           nil,
+		ownerAddress:           args.OwnerAddress,
 		governanceSCAddress:    args.GovernanceSCAddress,
 		delegationMgrSCAddress: args.DelegationMgrSCAddress,
 		validatorSCAddress:     args.ValidatorSCAddress,
@@ -106,7 +105,6 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		governanceConfig:       args.GovernanceConfig,
 		enableEpochsHandler:    args.EnableEpochsHandler,
 		unBondPeriodInEpochs:   args.UnBondPeriodInEpochs,
-		changeConfigAddress:    args.ConfigChangeAddress,
 	}
 
 	return g, nil
@@ -178,8 +176,6 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
-	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
 	return vmcommon.Ok
 }
 
@@ -201,8 +197,6 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
-	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
 
 	return vmcommon.Ok
 }
@@ -213,7 +207,7 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 //  args.Arguments[2] - minVeto   - 0-10000 - represents percentage
 //  args.Arguments[3] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(g.changeConfigAddress, args.CallerAddr) {
+	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
 		return vmcommon.UserError
 	}
@@ -669,10 +663,10 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 0 {
-		g.eei.AddReturnMessage("invalid number of arguments expected 0")
+		g.eei.AddReturnMessage("invalid number of arguments, expected 0")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(args.CallerAddr, g.changeConfigAddress) {
+	if !bytes.Equal(args.CallerAddr, g.ownerAddress) {
 		g.eei.AddReturnMessage("can be called only by owner")
 		return vmcommon.UserError
 	}
