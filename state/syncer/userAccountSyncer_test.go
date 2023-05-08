@@ -100,6 +100,8 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	}
 
 	syncer, _ := NewUserAccountsSyncer(args)
+	// test that timeout watchdog is reset
+	time.Sleep(args.Timeout * 2)
 	syncer.MissingDataTrieNodeFound(rootHash)
 
 	assert.Equal(t, 1, numNodesSynced)

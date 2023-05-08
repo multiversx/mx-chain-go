@@ -339,6 +339,8 @@ func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
+	u.timeoutHandler.ResetWatchdog()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
 		u.cacher.Clear()
