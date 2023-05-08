@@ -512,7 +512,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	}
 	if ctx.IsSet(blockProcessingCutoff.Name) {
 		cfgs.PreferencesConfig.BlockProcessingCutoff.Enabled = true
-		cfgs.FlagsConfig.DisableConsensusWatchdog = true
+		flagsConfig.DisableConsensusWatchdog = true
 	}
 	if ctx.IsSet(memoryUsageToCreateProfiles.Name) {
 		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))
