@@ -93,6 +93,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
 	ctx context.Context,
+	accLeavesChan *common.TrieIteratorChannels,
 ) (common.Trie, error) {
 	b.rootHash = rootHash
 	atomic.AddInt32(&b.numMaxTries, 1)
@@ -116,6 +117,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
+		AccLeavesChannels:         accLeavesChan,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {

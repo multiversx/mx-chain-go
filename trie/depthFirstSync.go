@@ -2,10 +2,12 @@ package trie
 
 import (
 	"context"
+	"encoding/hex"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -32,6 +34,7 @@ type depthFirstTrieSyncer struct {
 	checkNodesOnDisk          bool
 	nodes                     *trieNodesHandler
 	requestedHashes           map[string]*request
+	accLeavesChannels         *common.TrieIteratorChannels
 }
 
 // NewDepthFirstTrieSyncer creates a new instance of trieSyncer that uses the depth-first algorithm
@@ -59,6 +62,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
+		accLeavesChannels:         arg.AccLeavesChannels,
 	}
 
 	return d, nil
@@ -258,7 +262,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 	childrenNotLeaves := make([]node, 0, len(children))
 	for _, element := range children {
-		_, isLeaf := element.(*leafNode)
+		leafNodeElement, isLeaf := element.(*leafNode)
 		if !isLeaf {
 			childrenNotLeaves = append(childrenNotLeaves, element)
 			continue
@@ -268,6 +272,16 @@ func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		log.Trace("storeLeaves: found leaf node", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
+
+		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+		// TODO: analize error chan
+		if d.accLeavesChannels.LeavesChan != nil {
+			d.accLeavesChannels.LeavesChan <- trieLeaf
+		}
+
+		log.Trace("storeLeaves: found leaf node - DONE", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
 	}
 
 	return childrenNotLeaves, nil

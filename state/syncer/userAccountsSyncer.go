@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -17,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -119,23 +119,42 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	go u.printStatisticsAndUpdateMetrics(ctx)
 
-	mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
-	if err != nil {
-		return err
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
-	defer func() {
-		_ = mainTrie.Close()
+	wgSync := &sync.WaitGroup{}
+	wgSync.Add(1)
+
+	go func() {
+		mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
+		if err != nil {
+			log.Error("syncMainTrie:", "error", err.Error())
+			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
+		}
+
+		defer func() {
+			_ = mainTrie.Close()
+		}()
+
+		log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
+
+		u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+
+		wgSync.Done()
 	}()
 
-	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
+	go func() {
+		err := u.syncAccountDataTries(leavesChannels, ctx)
+		if err != nil {
+			log.Error("syncAccountDataTries:", "error", err.Error())
+			return
+		}
+	}()
 
-	err = u.syncAccountDataTries(mainTrie, ctx)
-	if err != nil {
-		return err
-	}
-
-	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	wgSync.Wait()
+	//u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }
@@ -151,6 +170,11 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
+	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
+		LeavesChan: nil,
+		ErrChan:    nil,
+	}
+
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
@@ -163,6 +187,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          u.checkNodesOnDisk,
+		AccLeavesChannels:         iteratorChannelsForDataTries,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
@@ -202,34 +227,21 @@ func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer
 }
 
 func (u *userAccountsSyncer) syncAccountDataTries(
-	mainTrie common.Trie,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
 	defer u.printDataTrieStatistics()
-
-	mainRootHash, err := mainTrie.RootHash()
-	if err != nil {
-		return err
-	}
-
-	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
-	if err != nil {
-		return err
-	}
 
 	var errFound error
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
 	for leaf := range leavesChannels.LeavesChan {
+		log.Trace("syncAccountDataTries:", "leaf key", hex.EncodeToString(leaf.Key()))
 		u.resetTimeoutHandlerWatchdog()
 
 		account := state.NewEmptyUserAccount()
-		err = u.marshalizer.Unmarshal(account, leaf.Value())
+		err := u.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
@@ -266,7 +278,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	wg.Wait()
 
-	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}

@@ -58,6 +58,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
+	AccLeavesChannels         *common.TrieIteratorChannels
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
