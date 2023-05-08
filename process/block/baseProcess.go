@@ -558,12 +558,12 @@ func checkBlockProcessingCutoffConfig(cutOffConfig config.BlockProcessingCutoffC
 		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffMode, mode)
 	}
 
-	cutOffType := common.BlockProcessingCutoffType(cutOffConfig.CutoffType)
-	isValidCutOffType := cutOffType == common.BlockProcessingCutoffByRound ||
-		cutOffType == common.BlockProcessingCutoffByNonce ||
-		cutOffType == common.BlockProcessingCutoffByEpoch
-	if !isValidCutOffType {
-		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffType, cutOffType)
+	cutOffTrigger := common.BlockProcessingCutoffTrigger(cutOffConfig.CutoffTrigger)
+	isValidCutOffTrigger := cutOffTrigger == common.BlockProcessingCutoffByRound ||
+		cutOffTrigger == common.BlockProcessingCutoffByNonce ||
+		cutOffTrigger == common.BlockProcessingCutoffByEpoch
+	if !isValidCutOffTrigger {
+		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffTrigger, cutOffTrigger)
 	}
 
 	return nil
@@ -2113,7 +2113,7 @@ func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) 
 	cutOffFunction := getCutoffFunction(bp.blockProcessingCutoffConfig)
 	value := bp.blockProcessingCutoffConfig.Value
 
-	switch common.BlockProcessingCutoffType(bp.blockProcessingCutoffConfig.CutoffType) {
+	switch common.BlockProcessingCutoffTrigger(bp.blockProcessingCutoffConfig.CutoffTrigger) {
 	case common.BlockProcessingCutoffByRound:
 		if header.GetRound() == value {
 			err := cutOffFunction("round", header.GetRound())

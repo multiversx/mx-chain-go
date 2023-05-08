@@ -833,16 +833,16 @@ const (
 	BlockProcessingCutoffModeProcessError = "process-error"
 )
 
-// BlockProcessingCutoffType represents the type of cutoff potentially used in block processing
-type BlockProcessingCutoffType string
+// BlockProcessingCutoffTrigger represents the trigger of the cutoff potentially used in block processing
+type BlockProcessingCutoffTrigger string
 
 const (
 	// BlockProcessingCutoffByNonce represents the cutoff by nonce
-	BlockProcessingCutoffByNonce BlockProcessingCutoffType = "nonce"
+	BlockProcessingCutoffByNonce BlockProcessingCutoffTrigger = "nonce"
 	// BlockProcessingCutoffByRound represents the cutoff by round
-	BlockProcessingCutoffByRound BlockProcessingCutoffType = "round"
+	BlockProcessingCutoffByRound BlockProcessingCutoffTrigger = "round"
 	// BlockProcessingCutoffByEpoch represents the cutoff by epoch
-	BlockProcessingCutoffByEpoch BlockProcessingCutoffType = "epoch"
+	BlockProcessingCutoffByEpoch BlockProcessingCutoffTrigger = "epoch"
 )
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block

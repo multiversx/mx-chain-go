@@ -3127,10 +3127,10 @@ func TestBaseProcessor_HandleBlockProcessingBackoff(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:    true,
-			Mode:       common.BlockProcessingCutoffModeProcessError,
-			CutoffType: string(common.BlockProcessingCutoffByRound),
-			Value:      20,
+			Enabled:       true,
+			Mode:          common.BlockProcessingCutoffModeProcessError,
+			CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+			Value:         20,
 		}
 		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
 
@@ -3145,10 +3145,10 @@ func TestBaseProcessor_HandleBlockProcessingBackoff(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:    true,
-			Mode:       common.BlockProcessingCutoffModeProcessError,
-			CutoffType: string(common.BlockProcessingCutoffByNonce),
-			Value:      20,
+			Enabled:       true,
+			Mode:          common.BlockProcessingCutoffModeProcessError,
+			CutoffTrigger: string(common.BlockProcessingCutoffByNonce),
+			Value:         20,
 		}
 		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
 
@@ -3163,10 +3163,10 @@ func TestBaseProcessor_HandleBlockProcessingBackoff(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:    true,
-			Mode:       common.BlockProcessingCutoffModeProcessError,
-			CutoffType: string(common.BlockProcessingCutoffByEpoch),
-			Value:      20,
+			Enabled:       true,
+			Mode:          common.BlockProcessingCutoffModeProcessError,
+			CutoffTrigger: string(common.BlockProcessingCutoffByEpoch),
+			Value:         20,
 		}
 		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
 
@@ -3188,10 +3188,10 @@ func TestBaseProcessor_HandleBlockProcessingBackoff(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:    true,
-			Mode:       common.BlockProcessingCutoffModePause,
-			CutoffType: string(common.BlockProcessingCutoffByRound),
-			Value:      20,
+			Enabled:       true,
+			Mode:          common.BlockProcessingCutoffModePause,
+			CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+			Value:         20,
 		}
 		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
 

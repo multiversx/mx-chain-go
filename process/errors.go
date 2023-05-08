@@ -1200,5 +1200,5 @@ var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expec
 // ErrInvalidBlockProcessingCutOffMode signals that an invalid block processing cutoff mode has been provided
 var ErrInvalidBlockProcessingCutOffMode = errors.New("invalid block processing cutoff mode")
 
-// ErrInvalidBlockProcessingCutOffType signals that an invalid block processing cutoff type has been provided
-var ErrInvalidBlockProcessingCutOffType = errors.New("invalid block processing cutoff type")
+// ErrInvalidBlockProcessingCutOffTrigger signals that an invalid block processing cutoff trigger has been provided
+var ErrInvalidBlockProcessingCutOffTrigger = errors.New("invalid block processing cutoff trigger")

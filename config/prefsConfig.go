@@ -28,10 +28,10 @@ type OverridableConfig struct {
 
 // BlockProcessingCutoffConfig holds the configuration for the block processing cutoff
 type BlockProcessingCutoffConfig struct {
-	Enabled    bool `toml:"-"`
-	Mode       string
-	CutoffType string
-	Value      uint64
+	Enabled       bool `toml:"-"`
+	Mode          string
+	CutoffTrigger string
+	Value         uint64
 }
 
 // NamedIdentity will hold the fields which are node named identities
