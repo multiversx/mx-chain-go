@@ -16,6 +16,14 @@ import (
 
 var log = logger.GetOrCreate("headerSubscriber")
 
+// ArgsIncomingHeaderHandler is a struct placeholder for args needed to create a new incoming header handler
+type ArgsIncomingHeaderHandler struct {
+	HeadersPool HeadersPool
+	TxPool      TransactionPool
+	Marshaller  marshal.Marshalizer
+	Hasher      hashing.Hasher
+}
+
 type incomingHeaderHandler struct {
 	headersPool HeadersPool
 	txPool      TransactionPool
@@ -26,24 +34,35 @@ type incomingHeaderHandler struct {
 // NewIncomingHeaderHandler creates an incoming header handler which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
-func NewIncomingHeaderHandler(headersPool HeadersPool) (*incomingHeaderHandler, error) {
-	if check.IfNil(headersPool) {
+func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHandler, error) {
+	if check.IfNil(args.HeadersPool) {
 		return nil, errNilHeadersPool
+	}
+	if check.IfNil(args.TxPool) {
+		return nil, errNilTxPool
+	}
+	if check.IfNil(args.Marshaller) {
+		return nil, core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, core.ErrNilHasher
 	}
 
 	return &incomingHeaderHandler{
-		headersPool: headersPool,
+		headersPool: args.HeadersPool,
+		txPool:      args.TxPool,
+		marshaller:  args.Marshaller,
+		hasher:      args.Hasher,
 	}, nil
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
-func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) {
+func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
 
 	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
 	if !castOk {
-		log.Error("incoming header is not of type HeaderV2")
-		return
+		return errInvalidHeaderType
 	}
 
 	incomingSCRs := createIncomingSCRs(header.GetIncomingEventHandlers())
@@ -56,13 +75,10 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 
 	err := ihs.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
-		log.Error("cannot compute extended header hash", "error", err)
-		return
+		return err
 	}
-	err = ihs.addSCRsToPool(incomingSCRs)
-	if err != nil {
-		log.Error("cannot compute extended header hash", "error", err)
-	}
+
+	return ihs.addSCRsToPool(incomingSCRs)
 }
 
 // TODO: Implement this in task MX-14128

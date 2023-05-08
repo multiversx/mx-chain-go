@@ -23,6 +23,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -485,8 +487,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	headersPool := managedDataComponents.Datapool().Headers()
-	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool, configs.NotifierConfig)
+	sovereignWsReceiver, err := createSovereignWsReceiver(managedDataComponents.Datapool(), configs.NotifierConfig)
 	if err != nil {
 		return true, err
 	}
@@ -1649,7 +1650,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createSovereignWsReceiver(
-	headersPool incomingHeader.HeadersPool,
+	dataPool dataRetriever.PoolsHolder,
 	config *sovereignConfig.NotifierConfig,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
@@ -1663,7 +1664,22 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderHandler(headersPool)
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return nil, err
+	}
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	if err != nil {
+		return nil, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderHandler{
+		HeadersPool: dataPool.Headers(),
+		TxPool:      dataPool.Transactions(),
+		Marshaller:  marshaller,
+		Hasher:      hasher,
+	}
+	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderHandler(argsIncomingHeaderHandler)
 	if err != nil {
 		return nil, err
 	}

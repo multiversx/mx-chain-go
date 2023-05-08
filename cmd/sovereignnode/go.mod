@@ -7,7 +7,7 @@ require (
 	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230504120948-26a3dd106fb5
 	github.com/multiversx/mx-chain-go v1.4.14-0.20230426120506-8743a639ce12
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230505111818-feb72327389c
+	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230508081737-6c79f0ac712a
 	github.com/urfave/cli v1.22.10
 )
 
