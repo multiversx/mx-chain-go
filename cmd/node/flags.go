@@ -384,6 +384,12 @@ var (
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
+
+	// blockProcessingCutoff defines if the node should be started with the block processing cutoff feature
+	blockProcessingCutoff = cli.BoolFlag{
+		Name:  "block-processing-cutoff",
+		Usage: "Boolean option for enabling the block processing cutoff feature that is able to pause the processing at a given time. The configuration should be filled inside the `prefs.toml` file.",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -443,6 +449,7 @@ func getFlags() []cli.Flag {
 		dbDirectory,
 		logsDirectory,
 		operationMode,
+		blockProcessingCutoff,
 	}
 }
 
@@ -502,6 +509,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	}
 	if ctx.IsSet(fullArchive.Name) {
 		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(blockProcessingCutoff.Name) {
+		cfgs.PreferencesConfig.BlockProcessingCutoff.Enabled = true
+		cfgs.FlagsConfig.DisableConsensusWatchdog = true
 	}
 	if ctx.IsSet(memoryUsageToCreateProfiles.Name) {
 		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))

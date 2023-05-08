@@ -51,7 +51,7 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -313,6 +313,11 @@ func (sp *shardProcessor) ProcessBlock(
 			sp.RevertCurrentBlock()
 		}
 	}()
+
+	err = sp.handleBlockProcessingCutoff(header)
+	if err != nil {
+		return err
+	}
 
 	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
 	miniBlocks := body.MiniBlocks[mbIndex:]
@@ -889,7 +894,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.handleBlockProcessingCutoff(headerHandler)
+	err = sp.handleBlockProcessingCutoff(headerHandler)
+	if err != nil {
+		return err
+	}
 
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 

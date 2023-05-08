@@ -3104,3 +3104,110 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 	assert.True(t, len(values) <= 1) // we can have the situation when all reads are done before the first set
 	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
 }
+
+func TestBaseProcessor_HandleBlockProcessingBackoff(t *testing.T) {
+	t.Parallel()
+
+	t.Run("disabled or nil header - should exit", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled: false,
+		}
+		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
+
+		err := bp.HandleBlockProcessingCutoff(nil)
+		require.NoError(t, err)
+
+		err = bp.HandleBlockProcessingCutoff(&block.MetaBlock{})
+		require.NoError(t, err)
+	})
+
+	t.Run("process error via round", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled:    true,
+			Mode:       common.BlockProcessingCutoffModeProcessError,
+			CutoffType: string(common.BlockProcessingCutoffByRound),
+			Value:      20,
+		}
+		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
+
+		err := bp.HandleBlockProcessingCutoff(&block.MetaBlock{Round: 19}) // not the desired round
+		require.NoError(t, err)
+
+		err = bp.HandleBlockProcessingCutoff(&block.MetaBlock{Round: 20})
+		require.Equal(t, errors.New("block processing cuttoff - error"), err)
+	})
+
+	t.Run("process error via nonce", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled:    true,
+			Mode:       common.BlockProcessingCutoffModeProcessError,
+			CutoffType: string(common.BlockProcessingCutoffByNonce),
+			Value:      20,
+		}
+		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
+
+		err := bp.HandleBlockProcessingCutoff(&block.MetaBlock{Nonce: 19}) // not the desired nonce
+		require.NoError(t, err)
+
+		err = bp.HandleBlockProcessingCutoff(&block.MetaBlock{Nonce: 20})
+		require.Equal(t, errors.New("block processing cuttoff - error"), err)
+	})
+
+	t.Run("process error via epoch", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled:    true,
+			Mode:       common.BlockProcessingCutoffModeProcessError,
+			CutoffType: string(common.BlockProcessingCutoffByEpoch),
+			Value:      20,
+		}
+		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
+
+		dummyEpochStartData := block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID: 0,
+				},
+			},
+		}
+		err := bp.HandleBlockProcessingCutoff(&block.MetaBlock{Epoch: 19, EpochStart: dummyEpochStartData}) // not the desired nonce
+		require.NoError(t, err)
+
+		err = bp.HandleBlockProcessingCutoff(&block.MetaBlock{Epoch: 20, EpochStart: dummyEpochStartData})
+		require.Equal(t, errors.New("block processing cuttoff - error"), err)
+	})
+
+	t.Run("pause - should block the processing", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled:    true,
+			Mode:       common.BlockProcessingCutoffModePause,
+			CutoffType: string(common.BlockProcessingCutoffByRound),
+			Value:      20,
+		}
+		bp := blproc.NewBaseProcessorWithBlockProcessingCutoffConfig(cfg)
+
+		err := bp.HandleBlockProcessingCutoff(&block.MetaBlock{Round: 19}) // not the desired round
+		require.NoError(t, err)
+
+		done := make(chan struct{})
+		go func() {
+			_ = bp.HandleBlockProcessingCutoff(&block.MetaBlock{Round: 20})
+			done <- struct{}{}
+		}()
+
+		select {
+		case <-done:
+			require.Fail(t, "should have not advanced")
+		case <-time.After(time.Second):
+		}
+	})
+}

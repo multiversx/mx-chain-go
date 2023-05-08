@@ -1196,3 +1196,9 @@ var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
 
 // ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
 var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
+
+// ErrInvalidBlockProcessingCutOffMode signals that an invalid block processing cutoff mode has been provided
+var ErrInvalidBlockProcessingCutOffMode = errors.New("invalid block processing cutoff mode")
+
+// ErrInvalidBlockProcessingCutOffType signals that an invalid block processing cutoff type has been provided
+var ErrInvalidBlockProcessingCutOffType = errors.New("invalid block processing cutoff type")

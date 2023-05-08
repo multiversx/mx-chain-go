@@ -51,12 +51,20 @@
    #]
 
 # BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.
-# The Rest API endpoints will return values for the cutoff time.
-# This can be useful for snapshotting different stuff.
+# This can be useful for snapshotting different stuff and also for debugging purposes.
+# It can only be enabled by using the `--block-processing-cutoff` CLI flag when starting the node
 [BlockProcessingCutoff]
-   Enabled = false
-   Type = "round" # possible values: "round", "nonce", or "epoch". For epoch, it resembles the start of the specified epoch
-   Value = 20 # the value of the cutoff. For example, if Type is "round", then Value is the round number to stop processing at
+   # Mode represents the cutoff mode. possible values: "pause" or "processError".
+   # "pause" mode will halt the processing at the block with the given coordinates. Useful for snapshots/analytics
+   # "process-error" will return an error when processing the block with the given coordinates. Useful for debugging
+   Mode = "pause"
+
+   # CutoffType represents the kind of coordinate to look after when cutting off the processing.
+   # Possible values: "round", "nonce", or "epoch"
+   CutoffType = "round"
+
+   # The value of the cutoff. For example, if CutoffType is set to "round", and Value to 20, then the node will stop processing at round 20
+   Value = 20
 
 # NamedIdentity represents an identity that runs nodes on the multikey
 # There can be multiple identities set on the same node, each one of them having different bls keys, just by duplicating the NamedIdentity

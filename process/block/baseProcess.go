@@ -419,8 +419,8 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	}
 }
 
-// checkProcessorNilParameters will check the input parameters for nil values
-func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
+// checkProcessorParameters will check the input parameters values
+func checkProcessorParameters(arguments ArgBaseProcessor) error {
 
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {
@@ -537,6 +537,33 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return process.ErrNilReceiptsRepository
+	}
+	err := checkBlockProcessingCutoffConfig(arguments.PrefsConfig.BlockProcessingCutoff)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkBlockProcessingCutoffConfig(cutOffConfig config.BlockProcessingCutoffConfig) error {
+	if !cutOffConfig.Enabled {
+		// don't even check the configs if the feature is disabled. Useful when a node doesn't update `prefs.toml` with
+		// the new configuration
+		return nil
+	}
+	mode := common.BlockProcessingCutoffMode(cutOffConfig.Mode)
+	isValidMode := mode == common.BlockProcessingCutoffModePause || mode == common.BlockProcessingCutoffModeProcessError
+	if !isValidMode {
+		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffMode, mode)
+	}
+
+	cutOffType := common.BlockProcessingCutoffType(cutOffConfig.CutoffType)
+	isValidCutOffType := cutOffType == common.BlockProcessingCutoffByRound ||
+		cutOffType == common.BlockProcessingCutoffByNonce ||
+		cutOffType == common.BlockProcessingCutoffByEpoch
+	if !isValidCutOffType {
+		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffType, cutOffType)
 	}
 
 	return nil
@@ -2078,12 +2105,51 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.nonceOfFirstCommittedBlock.Value = nonce
 }
 
-func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) {
-	if !bp.blockProcessingCutoffConfig.Enabled {
-		return
+func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) error {
+	if !bp.blockProcessingCutoffConfig.Enabled || check.IfNil(header) {
+		return nil
 	}
 
-	cutOffFunction := func(printArgs ...interface{}) {
+	cutOffFunction := getCutoffFunction(bp.blockProcessingCutoffConfig)
+	value := bp.blockProcessingCutoffConfig.Value
+
+	switch common.BlockProcessingCutoffType(bp.blockProcessingCutoffConfig.CutoffType) {
+	case common.BlockProcessingCutoffByRound:
+		if header.GetRound() == value {
+			err := cutOffFunction("round", header.GetRound())
+			if err != nil {
+				return err
+			}
+		}
+	case common.BlockProcessingCutoffByNonce:
+		if header.GetNonce() == value {
+			err := cutOffFunction("nonce", header.GetNonce())
+			if err != nil {
+				return err
+			}
+		}
+	case common.BlockProcessingCutoffByEpoch:
+		if header.IsStartOfEpochBlock() && header.GetEpoch() == uint32(value) {
+			err := cutOffFunction("epoch", header.GetEpoch())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func getCutoffFunction(cfg config.BlockProcessingCutoffConfig) func(printArgs ...interface{}) error {
+	processErr := fmt.Errorf("block processing cuttoff - error")
+	if cfg.Mode == common.BlockProcessingCutoffModeProcessError {
+		return func(printArgs ...interface{}) error {
+			log.Info("block processing cutoff - return err", printArgs...)
+			return processErr
+		}
+	}
+
+	blockingCutoffFunction := func(printArgs ...interface{}) error {
 		log.Info("cutting off the block processing. The node will not advance", printArgs...)
 		go func() {
 			for {
@@ -2093,22 +2159,9 @@ func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) 
 		}()
 		neverEndingChannel := make(chan struct{})
 		<-neverEndingChannel
+
+		return nil // should not reach this point
 	}
 
-	value := bp.blockProcessingCutoffConfig.Value
-
-	switch common.BlockProcessingCutoffType(bp.blockProcessingCutoffConfig.Type) {
-	case common.BlockProcessingCutoffByRound:
-		if header.GetRound() == value {
-			cutOffFunction("round", header.GetRound())
-		}
-	case common.BlockProcessingCutoffByNonce:
-		if header.GetNonce() == value {
-			cutOffFunction("nonce", header.GetNonce())
-		}
-	case common.BlockProcessingCutoffByEpoch:
-		if header.IsStartOfEpochBlock() && header.GetEpoch() == uint32(value) {
-			cutOffFunction("epoch", header.GetEpoch())
-		}
-	}
+	return blockingCutoffFunction
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -62,6 +63,16 @@ func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 
 func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
 	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
+}
+
+func NewBaseProcessorWithBlockProcessingCutoffConfig(cfg config.BlockProcessingCutoffConfig) *baseProcessor {
+	return &baseProcessor{
+		blockProcessingCutoffConfig: cfg,
+	}
+}
+
+func (bp *baseProcessor) HandleBlockProcessingCutoff(hdr data.HeaderHandler) error {
+	return bp.handleBlockProcessingCutoff(hdr)
 }
 
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
@@ -495,7 +506,7 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 }
 
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
+	return checkProcessorParameters(arguments)
 }
 
 func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {

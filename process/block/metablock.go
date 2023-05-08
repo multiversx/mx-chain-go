@@ -46,7 +46,7 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +262,11 @@ func (mp *metaProcessor) ProcessBlock(
 			mp.RevertCurrentBlock()
 		}
 	}()
+
+	err = mp.handleBlockProcessingCutoff(header)
+	if err != nil {
+		return err
+	}
 
 	err = mp.createBlockStarted()
 	if err != nil {
@@ -1167,7 +1172,10 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	mp.handleBlockProcessingCutoff(headerHandler)
+	err = mp.handleBlockProcessingCutoff(headerHandler)
+	if err != nil {
+		return err
+	}
 
 	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 

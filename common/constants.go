@@ -823,6 +823,16 @@ const (
 	ApiOutputFormatProto ApiOutputFormat = 1
 )
 
+// BlockProcessingCutoffMode represents the type to be used to identify the mode of the block processing cutoff
+type BlockProcessingCutoffMode string
+
+const (
+	// BlockProcessingCutoffModePause represents the mode where the node will pause the processing at the given coordinates
+	BlockProcessingCutoffModePause = "pause"
+	// BlockProcessingCutoffModeProcessError represents the mode where the node will reprocess with error the block at the given coordinates
+	BlockProcessingCutoffModeProcessError = "process-error"
+)
+
 // BlockProcessingCutoffType represents the type of cutoff potentially used in block processing
 type BlockProcessingCutoffType string
 
