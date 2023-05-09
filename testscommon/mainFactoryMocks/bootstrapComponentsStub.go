@@ -14,6 +14,7 @@ type BootstrapComponentsStub struct {
 	BootstrapParams            factory.BootstrapParamsHolder
 	NodeRole                   core.NodeType
 	ShCoordinator              sharding.Coordinator
+	ShardCoordinatorCalled     func() sharding.Coordinator
 	HdrVersionHandler          nodeFactory.HeaderVersionHandler
 	VersionedHdrFactory        nodeFactory.VersionedHeaderFactory
 	HdrIntegrityVerifier       nodeFactory.HeaderIntegrityVerifierHandler
@@ -52,6 +53,9 @@ func (bcs *BootstrapComponentsStub) NodeType() core.NodeType {
 
 // ShardCoordinator -
 func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator {
+	if bcs.ShardCoordinatorCalled != nil {
+		return bcs.ShardCoordinatorCalled()
+	}
 	return bcs.ShCoordinator
 }
 

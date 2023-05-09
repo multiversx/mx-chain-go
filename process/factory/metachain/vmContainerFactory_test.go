@@ -94,7 +94,7 @@ func TestNewVMContainerFactory_NilMessageSignVerifier(t *testing.T) {
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
-	assert.True(t, errors.Is(err, process.ErrNilKeyGen))
+	assert.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
 }
 
 func TestNewVMContainerFactory_NilNodesConfigProvider(t *testing.T) {

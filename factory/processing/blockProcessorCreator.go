@@ -65,7 +65,8 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
 ) (*blockProcessorAndVmFactories, error) {
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return pcf.newShardBlockProcessor(
 			requestHandler,
 			forkDetector,
@@ -81,7 +82,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 		)
 	}
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return pcf.newMetaBlockProcessor(
 			requestHandler,
 			forkDetector,
@@ -438,13 +439,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	blockProcessorComponents := &blockProcessorAndVmFactories{
+	return &blockProcessorAndVmFactories{
 		blockProcessor:         blockProcessor,
 		vmFactoryForTxSimulate: vmFactoryTxSimulator,
 		vmFactoryForProcessing: vmFactory,
-	}
-
-	return blockProcessorComponents, nil
+	}, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
