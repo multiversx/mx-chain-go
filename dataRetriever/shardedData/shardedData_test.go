@@ -78,7 +78,7 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 	}
 
 	assert.Less(t, sd.ShardDataStore("1").Len(), int(defaultTestConfig.Capacity),
-		"Transaction pool entries excedes the maximum configured number")
+		"Transaction pool entries exceeds the maximum configured number")
 }
 
 func TestShardedData_NoDuplicates(t *testing.T) {
@@ -228,7 +228,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 	}
 }
 
-func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
+func TestShardedData_RegisterAddedDataHandlerReallyAddsHandler(t *testing.T) {
 	t.Parallel()
 
 	f := func(key []byte, value interface{}) {

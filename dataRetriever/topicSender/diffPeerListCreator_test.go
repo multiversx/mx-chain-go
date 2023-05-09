@@ -75,7 +75,7 @@ func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	assert.Equal(t, excludedTopic, dplc.ExcludedPeersOnTopic())
 }
 
-func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
+func TestMakeDiffList_EmptyExcludedShouldRetAllPeersList(t *testing.T) {
 	t.Parallel()
 
 	allPeers := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer2")}

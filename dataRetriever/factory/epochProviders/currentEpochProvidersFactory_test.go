@@ -25,7 +25,7 @@ func TestCreateCurrentEpochProvider_NilCurrentEpochProvider(t *testing.T) {
 	assert.IsType(t, disabled.NewEpochProvider(), cnep)
 }
 
-func TestCreateCurrentEpochProvider_ArithemticEpochProvider(t *testing.T) {
+func TestCreateCurrentEpochProvider_ArithmeticEpochProvider(t *testing.T) {
 	t.Parallel()
 
 	cnep, err := CreateCurrentEpochProvider(

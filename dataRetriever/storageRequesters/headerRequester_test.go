@@ -1,7 +1,6 @@
 package storagerequesters
 
 import (
-	"errors"
 	"math"
 	"testing"
 	"time"
@@ -140,7 +139,6 @@ func TestHeaderRequester_SetEpochHandlerShouldWork(t *testing.T) {
 func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -173,7 +171,6 @@ func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(
 func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -248,7 +245,6 @@ func TestHeaderRequester_RequestDataFromHashShouldWork(t *testing.T) {
 func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -343,10 +339,9 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 		err := hdReq.RequestDataFromEpoch(epochIdentifier)
 		assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
 	})
-	t.Run("identifier not found should error should error", func(t *testing.T) {
+	t.Run("identifier not found should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
 		epochIdentifier := []byte(core.EpochStartIdentifier(100))
 		arg := createMockHeaderRequesterArg()
 		arg.HdrStorage = &storageStubs.StorerStub{

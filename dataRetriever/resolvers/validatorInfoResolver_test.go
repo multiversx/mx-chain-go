@@ -379,7 +379,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		require.NotNil(t, err)
 		assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrValidatorInfoNotFound.Error()))
 	})
-	t.Run("pack data in chuncks returns error", func(t *testing.T) {
+	t.Run("pack data in chunks returns error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
