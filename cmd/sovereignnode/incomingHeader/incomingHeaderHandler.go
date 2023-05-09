@@ -69,10 +69,9 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 		return err
 	}
 
-	incomingMB := createIncomingMb(incomingSCRs)
 	extendedHeader := &block.ShardHeaderExtended{
 		Header:             headerV2,
-		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
+		IncomingMiniBlocks: createIncomingMb(incomingSCRs),
 	}
 
 	err = ihs.addExtendedHeaderToPool(extendedHeader)
@@ -82,11 +81,6 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 
 	ihs.addSCRsToPool(incomingSCRs)
 	return nil
-}
-
-// TODO: Implement this in task MX-14129
-func createIncomingMb(_ []*scrInfo) *block.MiniBlock {
-	return &block.MiniBlock{}
 }
 
 func (ihs *incomingHeaderHandler) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
