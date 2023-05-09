@@ -2,6 +2,7 @@ package incomingHeader
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -81,9 +82,46 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 	return ihs.addSCRsToPool(incomingSCRs)
 }
 
-// TODO: Implement this in task MX-14128
-func createIncomingSCRs(_ []data.EventHandler) []*smartContractResult.SmartContractResult {
-	return make([]*smartContractResult.SmartContractResult, 0)
+func createIncomingSCRs(events []data.EventHandler) []*smartContractResult.SmartContractResult {
+	scrs := make([]*smartContractResult.SmartContractResult, len(events))
+
+	for idx, event := range events {
+		topics := event.GetTopics()
+		if len(topics) < 4 || len(topics[1:])%3 != 0 {
+			log.Error("incomingHeaderHandler.createIncomingSCRs",
+				"error", errInvalidNumTopicsIncomingEvent,
+				"num topics", len(topics))
+			continue
+		}
+
+		scrs[idx] = &smartContractResult.SmartContractResult{
+			RcvAddr: topics[0],
+			SndAddr: core.ESDTSCAddress,
+			Data:    createSCRData(topics),
+		}
+	}
+
+	return scrs
+}
+
+func createSCRData(topics [][]byte) []byte {
+	numTokensToTransfer := len(topics[1:]) / 3
+	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
+
+	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + hex.EncodeToString(topics[0]) + // topics[0] = address
+		"@" + hex.EncodeToString(numTokensToTransferBytes))
+
+	for idx := 1; idx < len(topics[1:]); idx += 3 {
+		transfer := []byte("@" +
+			hex.EncodeToString(topics[idx]) + // tokenID
+			"@" + hex.EncodeToString(topics[idx+1]) + //nonce
+			"@" + hex.EncodeToString(topics[idx+2])) //value
+
+		ret = append(ret, transfer...)
+	}
+
+	return ret
 }
 
 // TODO: Implement this in task MX-14129

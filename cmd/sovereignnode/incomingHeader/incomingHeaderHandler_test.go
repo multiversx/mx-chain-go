@@ -2,6 +2,7 @@ package incomingHeader
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -123,6 +124,28 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
+	addr1 := []byte("addr1")
+	transfer1 := [][]byte{
+		[]byte("token1"),
+		big.NewInt(4).Bytes(),
+		big.NewInt(100).Bytes(),
+	}
+	transfer2 := [][]byte{
+		[]byte("token2"),
+		big.NewInt(0).Bytes(),
+		big.NewInt(50).Bytes(),
+	}
+	topic1 := append([][]byte{addr1}, transfer1...)
+	topic1 = append(topic1, transfer2...)
+
+	addr2 := []byte("addr2")
+	transfer3 := [][]byte{
+		[]byte("token1"),
+		big.NewInt(1).Bytes(),
+		big.NewInt(150).Bytes(),
+	}
+	topic2 := append([][]byte{addr2}, transfer3...)
+
 	handler, _ := NewIncomingHeaderHandler(args)
 	incomingHeader := &sovereign.IncomingHeader{
 		Header: &block.HeaderV2{},
@@ -130,11 +153,17 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 			{
 				Address:    []byte("addr"),
 				Identifier: []byte("deposit"),
+				Topics:     topic1,
+			},
+			{
+				Address:    []byte("addr"),
+				Identifier: []byte("deposit"),
+				Topics:     topic2,
 			},
 		},
 	}
 	err := handler.AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)
 	require.True(t, wasAddedInHeaderPool)
-	require.True(t, wasAddedInTxPool)
+	require.False(t, wasAddedInTxPool)
 }
