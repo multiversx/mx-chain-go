@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -65,24 +64,28 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 		return errInvalidHeaderType
 	}
 
-	incomingSCRs := createIncomingSCRs(header.GetIncomingEventHandlers())
-	incomingMB := createIncomingMb(incomingSCRs)
+	incomingSCRs, err := ihs.createIncomingSCRs(header.GetIncomingEventHandlers())
+	if err != nil {
+		return err
+	}
 
+	incomingMB := createIncomingMb(incomingSCRs)
 	extendedHeader := &block.ShardHeaderExtended{
 		Header:             headerV2,
 		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
 	}
 
-	err := ihs.addExtendedHeaderToPool(extendedHeader)
+	err = ihs.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	return ihs.addSCRsToPool(incomingSCRs)
+	ihs.addSCRsToPool(incomingSCRs)
+	return nil
 }
 
 // TODO: Implement this in task MX-14129
-func createIncomingMb(_ []*smartContractResult.SmartContractResult) *block.MiniBlock {
+func createIncomingMb(_ []*scrInfo) *block.MiniBlock {
 	return &block.MiniBlock{}
 }
 

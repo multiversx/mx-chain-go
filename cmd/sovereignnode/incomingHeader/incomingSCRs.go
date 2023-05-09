@@ -15,8 +15,13 @@ const (
 	numTransferTopics = 3
 )
 
-func createIncomingSCRs(events []data.EventHandler) []*smartContractResult.SmartContractResult {
-	scrs := make([]*smartContractResult.SmartContractResult, 0, len(events))
+type scrInfo struct {
+	scr  *smartContractResult.SmartContractResult
+	hash []byte
+}
+
+func (ihs *incomingHeaderHandler) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
+	scrs := make([]*scrInfo, 0, len(events))
 
 	for _, event := range events {
 		topics := event.GetTopics()
@@ -28,14 +33,24 @@ func createIncomingSCRs(events []data.EventHandler) []*smartContractResult.Smart
 			continue
 		}
 
-		scrs = append(scrs, &smartContractResult.SmartContractResult{
+		scr := &smartContractResult.SmartContractResult{
 			RcvAddr: topics[0],
 			SndAddr: core.ESDTSCAddress,
 			Data:    createSCRData(topics),
+		}
+
+		hash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, scr)
+		if err != nil {
+			return nil, err
+		}
+
+		scrs = append(scrs, &scrInfo{
+			scr:  scr,
+			hash: hash,
 		})
 	}
 
-	return scrs
+	return scrs, nil
 }
 
 func createSCRData(topics [][]byte) []byte {
@@ -58,17 +73,10 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (ihs *incomingHeaderHandler) addSCRsToPool(scrs []*smartContractResult.SmartContractResult) error {
+func (ihs *incomingHeaderHandler) addSCRsToPool(scrs []*scrInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
-	for _, scr := range scrs {
-		hash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, scr)
-		if err != nil {
-			return err
-		}
-
-		ihs.txPool.AddData(hash, scr, scr.Size(), cacheID)
+	for _, scrData := range scrs {
+		ihs.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
 	}
-
-	return nil
 }
