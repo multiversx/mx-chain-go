@@ -59,13 +59,14 @@ func createSCRData(topics [][]byte) []byte {
 }
 
 func (ihs *incomingHeaderHandler) addSCRsToPool(scrs []*smartContractResult.SmartContractResult) error {
+	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
+
 	for _, scr := range scrs {
 		hash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, scr)
 		if err != nil {
 			return err
 		}
 
-		cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 		ihs.txPool.AddData(hash, scr, scr.Size(), cacheID)
 	}
 
