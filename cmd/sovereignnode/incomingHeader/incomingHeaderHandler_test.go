@@ -1,6 +1,7 @@
 package incomingHeader
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
@@ -9,8 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	sovereignTests "github.com/multiversx/mx-chain-go/sovereignnode/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -104,6 +107,77 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), &sovereign.IncomingHeader{Header: &block.HeaderV2{}})
 		require.Equal(t, errMarshaller, err)
 	})
+
+	t.Run("invalid num topics in event, should skip events", func(t *testing.T) {
+		args := createArgs()
+
+		numSCRsAdded := 0
+		args.TxPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+				numSCRsAdded++
+			},
+		}
+
+		incomingHeader := &sovereign.IncomingHeader{
+			Header: &block.HeaderV2{},
+			IncomingEvents: []*transaction.Event{
+				{
+					Topics: [][]byte{[]byte("addr")},
+				},
+				{
+					Topics: [][]byte{[]byte("addr"), []byte("tokenID1")},
+				},
+				{
+					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")},
+				},
+				{
+					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")},
+				},
+			},
+		}
+
+		handler, _ := NewIncomingHeaderHandler(args)
+		err := handler.AddHeader([]byte("hash"), incomingHeader)
+		require.Nil(t, err)
+		require.Equal(t, 0, numSCRsAdded)
+	})
+
+	t.Run("cannot compute scr hash, should return error", func(t *testing.T) {
+		args := createArgs()
+
+		numSCRsAdded := 0
+		args.TxPool = &testscommon.ShardedDataStub{
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+				numSCRsAdded++
+			},
+		}
+
+		errMarshaller := errors.New("cannot marshal")
+		args.Marshaller = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				_, isSCR := obj.(*smartContractResult.SmartContractResult)
+				if isSCR {
+					return nil, errMarshaller
+				}
+
+				return json.Marshal(obj)
+			},
+		}
+
+		incomingHeader := &sovereign.IncomingHeader{
+			Header: &block.HeaderV2{},
+			IncomingEvents: []*transaction.Event{
+				{
+					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+				},
+			},
+		}
+
+		handler, _ := NewIncomingHeaderHandler(args)
+		err := handler.AddHeader([]byte("hash"), incomingHeader)
+		require.Equal(t, errMarshaller, err)
+		require.Equal(t, 0, numSCRsAdded)
+	})
 }
 
 func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
@@ -112,6 +186,46 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	args := createArgs()
 
 	wasAddedInHeaderPool := false
+
+	addr1 := []byte("addr1")
+	addr2 := []byte("addr2")
+
+	scr1 := &smartContractResult.SmartContractResult{
+		RcvAddr: addr1,
+		SndAddr: core.ESDTSCAddress,
+		Data:    []byte("MultiESDTNFTTransfer@6164647231@02@746f6b656e31@04@64@746f6b656e32@@32"),
+	}
+	scr2 := &smartContractResult.SmartContractResult{
+		RcvAddr: addr2,
+		SndAddr: core.ESDTSCAddress,
+		Data:    []byte("MultiESDTNFTTransfer@6164647232@01@746f6b656e31@01@96"),
+	}
+
+	scrHash1, err := core.CalculateHash(args.Marshaller, args.Hasher, scr1)
+	require.Nil(t, err)
+	scrHash2, err := core.CalculateHash(args.Marshaller, args.Hasher, scr2)
+	require.Nil(t, err)
+
+	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
+
+	type scrInPool struct {
+		data        *smartContractResult.SmartContractResult
+		sizeInBytes int
+		cacheID     string
+	}
+	expectedSCRsInPool := map[string]*scrInPool{
+		string(scrHash1): {
+			data:        scr1,
+			sizeInBytes: scr1.Size(),
+			cacheID:     cacheID,
+		},
+		string(scrHash2): {
+			data:        scr2,
+			sizeInBytes: scr2.Size(),
+			cacheID:     cacheID,
+		},
+	}
+
 	args.HeadersPool = &mock.HeadersCacherStub{
 		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
 			wasAddedInHeaderPool = true
@@ -120,11 +234,17 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	wasAddedInTxPool := false
 	args.TxPool = &testscommon.ShardedDataStub{
 		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+			expectedSCR, found := expectedSCRsInPool[string(key)]
+			require.True(t, found)
+
+			require.Equal(t, expectedSCR.data, data)
+			require.Equal(t, expectedSCR.sizeInBytes, sizeInBytes)
+			require.Equal(t, expectedSCR.cacheID, cacheID)
+
 			wasAddedInTxPool = true
 		},
 	}
 
-	addr1 := []byte("addr1")
 	transfer1 := [][]byte{
 		[]byte("token1"),
 		big.NewInt(4).Bytes(),
@@ -138,7 +258,6 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	topic1 := append([][]byte{addr1}, transfer1...)
 	topic1 = append(topic1, transfer2...)
 
-	addr2 := []byte("addr2")
 	transfer3 := [][]byte{
 		[]byte("token1"),
 		big.NewInt(1).Bytes(),
@@ -151,19 +270,17 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		Header: &block.HeaderV2{},
 		IncomingEvents: []*transaction.Event{
 			{
-				Address:    []byte("addr"),
 				Identifier: []byte("deposit"),
 				Topics:     topic1,
 			},
 			{
-				Address:    []byte("addr"),
 				Identifier: []byte("deposit"),
 				Topics:     topic2,
 			},
 		},
 	}
-	err := handler.AddHeader([]byte("hash"), incomingHeader)
+	err = handler.AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)
 	require.True(t, wasAddedInHeaderPool)
-	require.False(t, wasAddedInTxPool)
+	require.True(t, wasAddedInTxPool)
 }
