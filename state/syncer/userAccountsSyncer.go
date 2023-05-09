@@ -124,8 +124,12 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
-	wgSync := &sync.WaitGroup{}
-	wgSync.Add(1)
+	wgSyncMainTrie := &sync.WaitGroup{}
+	wgSyncMainTrie.Add(1)
+	wgSyncDatatries := &sync.WaitGroup{}
+	wgSyncDatatries.Add(1)
+
+	mainTreeChan := make(chan common.Trie)
 
 	go func() {
 		mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
@@ -134,15 +138,17 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		defer func() {
-			_ = mainTrie.Close()
-		}()
-
 		log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
-		u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+		mainTreeChan <- mainTrie
 
-		wgSync.Done()
+		log.Debug("syncMainTrie goroutine: closing leaver channel")
+
+		if leavesChannels.LeavesChan != nil {
+			close(leavesChannels.LeavesChan)
+		}
+
+		wgSyncMainTrie.Done()
 	}()
 
 	go func() {
@@ -151,10 +157,21 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 			log.Error("syncAccountDataTries:", "error", err.Error())
 			return
 		}
+
+		wgSyncDatatries.Done()
 	}()
 
-	wgSync.Wait()
-	//u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	mainTrie := <-mainTreeChan
+	defer func() {
+		_ = mainTrie.Close()
+	}()
+
+	log.Debug("StartSyncing: wait for goroutines to finish")
+
+	wgSyncMainTrie.Wait()
+	wgSyncDatatries.Wait()
+
+	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
 
 	return nil
 }
@@ -267,6 +284,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			newErr := u.syncDataTrie(trieRootHash, address, ctx)
 			if newErr != nil {
 				errMutex.Lock()
+				log.Error("syncDataTrie: error found", "error", errFound.Error())
 				errFound = newErr
 				errMutex.Unlock()
 			}
@@ -276,6 +294,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		}(account.RootHash, account.Address)
 	}
 
+	log.Debug("syncDataTrie: wait for goroutines to finish")
 	wg.Wait()
 
 	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
