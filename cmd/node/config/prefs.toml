@@ -63,7 +63,7 @@
    # Possible values: "round", "nonce", or "epoch"
    CutoffTrigger = "round"
 
-   # The value of the cutoff. For example, if CutoffType is set to "round", and Value to 20, then the node will stop processing at round 20
+   # The minimum value of the cutoff. For example, if CutoffType is set to "round", and Value to 20, then the node will stop processing at round 20+
    Value = 20
 
 # NamedIdentity represents an identity that runs nodes on the multikey

@@ -263,11 +263,6 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}()
 
-	err = mp.handleBlockProcessingCutoff(header)
-	if err != nil {
-		return err
-	}
-
 	err = mp.createBlockStarted()
 	if err != nil {
 		return err
@@ -398,6 +393,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.handleBlockProcessingCutoff(header)
 	if err != nil {
 		return err
 	}

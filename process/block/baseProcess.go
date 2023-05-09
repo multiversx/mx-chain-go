@@ -2115,21 +2115,21 @@ func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) 
 
 	switch common.BlockProcessingCutoffTrigger(bp.blockProcessingCutoffConfig.CutoffTrigger) {
 	case common.BlockProcessingCutoffByRound:
-		if header.GetRound() == value {
+		if header.GetRound() >= value {
 			err := cutOffFunction("round", header.GetRound())
 			if err != nil {
 				return err
 			}
 		}
 	case common.BlockProcessingCutoffByNonce:
-		if header.GetNonce() == value {
+		if header.GetNonce() >= value {
 			err := cutOffFunction("nonce", header.GetNonce())
 			if err != nil {
 				return err
 			}
 		}
 	case common.BlockProcessingCutoffByEpoch:
-		if header.IsStartOfEpochBlock() && header.GetEpoch() == uint32(value) {
+		if header.GetEpoch() >= uint32(value) {
 			err := cutOffFunction("epoch", header.GetEpoch())
 			if err != nil {
 				return err

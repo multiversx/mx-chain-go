@@ -314,11 +314,6 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	err = sp.handleBlockProcessingCutoff(header)
-	if err != nil {
-		return err
-	}
-
 	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
@@ -349,6 +344,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = sp.handleBlockProcessingCutoff(header)
+	if err != nil {
 		return err
 	}
 
