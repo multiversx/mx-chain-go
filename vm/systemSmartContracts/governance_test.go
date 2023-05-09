@@ -342,6 +342,7 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		[]byte("1"),
+		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
 		[]byte("15"),
@@ -403,7 +404,7 @@ func TestGovernanceContract_ChangeConfigWrongArgumentsLength(t *testing.T) {
 	t.Parallel()
 
 	retMessage := ""
-	errSubstr := "changeConfig needs 4 arguments"
+	errSubstr := "changeConfig needs 5 arguments"
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
 		AddReturnMessageCalled: func(msg string) {
@@ -441,6 +442,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 
 	callInputArgs := [][]byte{
 		[]byte("invalid"),
+		[]byte("invalid"),
 		[]byte("10"),
 		[]byte("10"),
 		[]byte("5"),
@@ -451,8 +453,37 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, retMessage, errSubstr)
 
+	errSubstr = "changeConfig second argument is incorrectly formatted"
+	callInputArgs = [][]byte{
+		[]byte("1"),
+		[]byte("invalid"),
+		[]byte("10"),
+		[]byte("10"),
+		[]byte("5"),
+	}
+	callInput = createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
+	retCode = gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, retMessage, errSubstr)
+
+	errSubstr = vm.ErrIncorrectConfig.Error() + " proposal fee is smaller than lost proposal fee "
+	callInputArgs = [][]byte{
+		[]byte("1"),
+		[]byte("10"),
+		[]byte("10"),
+		[]byte("10"),
+		[]byte("5"),
+	}
+	callInput = createVMInput(zero, "changeConfig", args.OwnerAddress, vm.GovernanceSCAddress, callInputArgs)
+	retCode = gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, retMessage, errSubstr)
+
 	errSubstr = "config incorrect minQuorum"
 	callInputArgs = [][]byte{
+		[]byte("1"),
 		[]byte("1"),
 		[]byte("invalid"),
 		[]byte("10"),
@@ -467,6 +498,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 	errSubstr = "config incorrect minVeto"
 	callInputArgs = [][]byte{
 		[]byte("1"),
+		[]byte("1"),
 		[]byte("10"),
 		[]byte("invalid"),
 		[]byte("5"),
@@ -479,6 +511,7 @@ func TestGovernanceContract_ChangeConfigInvalidParams(t *testing.T) {
 
 	errSubstr = "config incorrect minPass"
 	callInputArgs = [][]byte{
+		[]byte("1"),
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
@@ -516,6 +549,7 @@ func TestGovernanceContract_ChangeConfigGetConfigErr(t *testing.T) {
 	_ = gsc.Execute(initInput)
 
 	callInputArgs := [][]byte{
+		[]byte("1"),
 		[]byte("1"),
 		[]byte("10"),
 		[]byte("10"),
@@ -1773,7 +1807,7 @@ func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
 	callerAddress := bytes.Repeat([]byte{2}, 32)
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
 
-	gsc, blockchainHook, _ := createGovernanceBlockChainHookStubContextHandler()
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
 
 	callInputArgs := [][]byte{
 		proposalIdentifier,
@@ -1797,6 +1831,44 @@ func TestGovernanceContract_ProposeVoteClose(t *testing.T) {
 	callInput = createVMInput(big.NewInt(0), "closeProposal", callerAddress, vm.GovernanceSCAddress, [][]byte{big.NewInt(1).Bytes()})
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	proposal, _ := gsc.getProposalFromNonce(big.NewInt(1))
+	require.True(t, proposal.Closed)
+	require.True(t, proposal.Passed)
+	require.Equal(t, big.NewInt(500), eei.GetTotalSentToUser(callInput.CallerAddr))
+}
+
+func TestGovernanceContract_ProposeClosePayFee(t *testing.T) {
+	t.Parallel()
+
+	callerAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		big.NewInt(50).Bytes(),
+		big.NewInt(55).Bytes(),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	currentEpoch := uint32(52)
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return currentEpoch
+	}
+
+	currentEpoch = 56
+	callInput = createVMInput(big.NewInt(0), "closeProposal", callerAddress, vm.GovernanceSCAddress, [][]byte{big.NewInt(1).Bytes()})
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	proposal, _ := gsc.getProposalFromNonce(big.NewInt(1))
+	require.True(t, proposal.Closed)
+	require.False(t, proposal.Passed)
+	require.Equal(t, big.NewInt(499), eei.GetTotalSentToUser(callInput.CallerAddr))
 }
 
 func TestGovernanceContract_ClaimAccumulatedFees(t *testing.T) {

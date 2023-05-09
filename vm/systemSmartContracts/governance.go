@@ -203,9 +203,10 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 
 // changeConfig allows the owner to change the configuration for requesting proposals
 //  args.Arguments[0] - proposalFee - as string
-//  args.Arguments[1] - minQuorum - 0-10000 - represents percentage
-//  args.Arguments[2] - minVeto   - 0-10000 - represents percentage
-//  args.Arguments[3] - minPass   - 0-10000 - represents percentage
+//  args.Arguments[1] - lostProposalFee - as string
+//  args.Arguments[2] - minQuorum - 0-10000 - represents percentage
+//  args.Arguments[3] - minVeto   - 0-10000 - represents percentage
+//  args.Arguments[4] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
@@ -215,8 +216,8 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig can be called only without callValue")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("changeConfig needs 4 arguments")
+	if len(args.Arguments) != 5 {
+		g.eei.AddReturnMessage("changeConfig needs 5 arguments")
 		return vmcommon.UserError
 	}
 
@@ -225,17 +226,28 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minQuorum, err := convertDecimalToPercentage(args.Arguments[1])
+	lostProposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
+	if !okConvert || proposalFee.Cmp(zero) <= 0 {
+		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
+		return vmcommon.UserError
+	}
+	if proposalFee.Cmp(lostProposalFee) < 0 {
+		errLocal := fmt.Errorf("%w proposal fee is smaller than lost proposal fee ", vm.ErrIncorrectConfig)
+		g.eei.AddReturnMessage(errLocal.Error())
+		return vmcommon.UserError
+	}
+
+	minQuorum, err := convertDecimalToPercentage(args.Arguments[2])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minQuorum")
 		return vmcommon.UserError
 	}
-	minVeto, err := convertDecimalToPercentage(args.Arguments[2])
+	minVeto, err := convertDecimalToPercentage(args.Arguments[3])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minVeto")
 		return vmcommon.UserError
 	}
-	minPass, err := convertDecimalToPercentage(args.Arguments[3])
+	minPass, err := convertDecimalToPercentage(args.Arguments[4])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minPass")
 		return vmcommon.UserError
@@ -251,6 +263,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	scConfig.MinVetoThreshold = minVeto
 	scConfig.MinPassThreshold = minPass
 	scConfig.ProposalFee = proposalFee
+	scConfig.LostProposalFee = lostProposalFee
 
 	g.baseProposalCost.Set(proposalFee)
 	err = g.saveConfig(scConfig)
@@ -1166,6 +1179,10 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	lostProposalFee, success := big.NewInt(0).SetString(config.Active.LostProposalFee, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
+	}
+
+	if proposalFee.Cmp(lostProposalFee) < 0 {
+		return nil, fmt.Errorf("%w proposal fee is smaller than lost proposal fee ", vm.ErrIncorrectConfig)
 	}
 
 	return &GovernanceConfigV2{
