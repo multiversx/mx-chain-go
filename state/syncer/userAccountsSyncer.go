@@ -38,6 +38,7 @@ type stats struct {
 type userAccountsSyncer struct {
 	*baseAccountsSyncer
 	throttler      data.GoRoutineThrottler
+	syncerMutex    sync.Mutex
 	pubkeyCoverter core.PubkeyConverter
 
 	mutStatistics sync.RWMutex
@@ -154,15 +155,15 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
-	u.mutex.Lock()
+	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
-		u.mutex.Unlock()
+		u.syncerMutex.Unlock()
 		return nil
 	}
 
 	u.dataTries[string(rootHash)] = struct{}{}
-	u.mutex.Unlock()
+	u.syncerMutex.Unlock()
 
 	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
 		LeavesChan: nil,

@@ -102,9 +102,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		return nil, err
 	}
 
-	b.mutex.Lock()
 	b.dataTries[string(rootHash)] = struct{}{}
-	b.mutex.Unlock()
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            b.requestHandler,
 		InterceptedNodes:          b.cacher,
