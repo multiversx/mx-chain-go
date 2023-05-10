@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-core-go/webSocket/data"
 	outportStubs "github.com/multiversx/mx-chain-go/testscommon/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
@@ -48,7 +47,7 @@ func TestNewWebsocketOutportDriverNodePart(t *testing.T) {
 
 		o, err := NewHostDriver(args)
 		require.Nil(t, o)
-		require.Equal(t, data.ErrNilLogger, err)
+		require.Equal(t, core.ErrNilLogger, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
