@@ -1,12 +1,9 @@
 package processing
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -44,11 +41,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	}
 
 	return blockProcessorComponents.blockProcessor, nil
-}
-
-// IndexGenesisBlocks -
-func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
-	return pcf.indexGenesisBlocks(genesisBlocks, indexingData, map[string]*outport.AlteredAccount{})
 }
 
 // CreateTxSimulatorProcessor -
