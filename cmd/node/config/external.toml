@@ -41,12 +41,12 @@
     # marshalled structures in block events data
     MarshallerType = "json"
 
-[WebSocketConnector]
+[HostDriverConfig]
     # This flag shall only be used for observer nodes
     Enabled = false
     # This flag will start the WebSocket connector as server or client
     IsServer = false
-    # The url of the web-sockets client/server
+    # The url of the WebSocket client/server
     URL = "127.0.0.1:22111"
     WithAcknowledge = true
     # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported

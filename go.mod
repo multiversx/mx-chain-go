@@ -13,7 +13,8 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230505112603-2cb497577ad1
+	github.com/multiversx/mx-chain-communication-go v0.0.0-20230510122527-a68a0a8118b3
+	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230509110712-7a0e0a14ffa7
 	github.com/multiversx/mx-chain-crypto-go v1.2.5
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.1-0.20230331083741-0fd8a2156e96
 	github.com/multiversx/mx-chain-logger-go v1.0.11
@@ -26,7 +27,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.5.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
