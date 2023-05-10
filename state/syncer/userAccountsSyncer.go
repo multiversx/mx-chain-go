@@ -2,7 +2,6 @@ package syncer
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -39,7 +38,6 @@ type stats struct {
 type userAccountsSyncer struct {
 	*baseAccountsSyncer
 	throttler      data.GoRoutineThrottler
-	syncerMutex    sync.Mutex
 	pubkeyCoverter core.PubkeyConverter
 
 	mutStatistics sync.RWMutex
@@ -134,8 +132,6 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		//log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
-
 		log.Debug("syncMainTrie goroutine: closing leaver channel")
 
 		if leavesChannels.LeavesChan != nil {
@@ -151,8 +147,6 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	log.Debug("StartSyncing: wait for goroutines to finish")
-
 	wgSyncMainTrie.Wait()
 
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
@@ -161,15 +155,15 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
-	u.syncerMutex.Lock()
+	u.mutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
-		u.syncerMutex.Unlock()
+		u.mutex.Unlock()
 		return nil
 	}
 
 	u.dataTries[string(rootHash)] = struct{}{}
-	u.syncerMutex.Unlock()
+	u.mutex.Unlock()
 
 	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
 		LeavesChan: nil,
@@ -240,17 +234,17 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	numInterations := 0
 	for leaf := range leavesChannels.LeavesChan {
 		numInterations++
-		log.Trace("syncAccountDataTries:", "leaf key", hex.EncodeToString(leaf.Key()))
+		log.Trace("syncAccountDataTries:", "leaf key", leaf.Key())
 		u.resetTimeoutHandlerWatchdog()
 
 		account := state.NewEmptyUserAccount()
 		err := u.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
-			log.Trace("this must be a leaf with code", "leaf key", hex.EncodeToString(leaf.Key()), "err", err)
+			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue
 		}
 
-		if len(account.RootHash) == 0 {
+		if common.IsEmptyTrie(account.RootHash) {
 			continue
 		}
 
@@ -281,7 +275,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	log.Debug("syncDataTrie: num leaves chan interations", "count", numInterations)
-	log.Debug("syncDataTrie: wait for goroutines to finish")
 	wg.Wait()
 
 	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
