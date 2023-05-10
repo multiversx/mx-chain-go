@@ -136,5 +136,5 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	err := handler.AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)
 	require.True(t, wasAddedInHeaderPool)
-	require.True(t, wasAddedInTxPool)
+	require.False(t, wasAddedInTxPool)
 }

@@ -20,3 +20,7 @@ func (ihs *IncomingHeaderStub) GetHeaderHandler() data.HeaderHandler {
 
 	return &block.HeaderV2{}
 }
+
+func (ihs *IncomingHeaderStub) IsInterfaceNil() bool {
+	return ihs == nil
+}
