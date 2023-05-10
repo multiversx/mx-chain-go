@@ -126,8 +126,6 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	wgSyncMainTrie := &sync.WaitGroup{}
 	wgSyncMainTrie.Add(1)
-	wgSyncDatatries := &sync.WaitGroup{}
-	wgSyncDatatries.Add(1)
 
 	go func() {
 		_, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
@@ -147,20 +145,15 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		wgSyncMainTrie.Done()
 	}()
 
-	go func() {
-		err := u.syncAccountDataTries(leavesChannels, ctx)
-		if err != nil {
-			log.Error("syncAccountDataTries:", "error", err.Error())
-			return
-		}
-
-		wgSyncDatatries.Done()
-	}()
+	err := u.syncAccountDataTries(leavesChannels, ctx)
+	if err != nil {
+		log.Error("syncAccountDataTries:", "error", err.Error())
+		return err
+	}
 
 	log.Debug("StartSyncing: wait for goroutines to finish")
 
 	wgSyncMainTrie.Wait()
-	wgSyncDatatries.Wait()
 
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
@@ -244,7 +237,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
+	numInterations := 0
 	for leaf := range leavesChannels.LeavesChan {
+		numInterations++
 		log.Trace("syncAccountDataTries:", "leaf key", hex.EncodeToString(leaf.Key()))
 		u.resetTimeoutHandlerWatchdog()
 
@@ -285,6 +280,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		}(account.RootHash, account.Address)
 	}
 
+	log.Debug("syncDataTrie: num leaves chan interations", "count", numInterations)
 	log.Debug("syncDataTrie: wait for goroutines to finish")
 	wg.Wait()
 
