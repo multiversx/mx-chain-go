@@ -339,6 +339,7 @@ type EnableEpochsHandler interface {
 	IsSetGuardianEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
+	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
 }

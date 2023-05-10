@@ -85,10 +85,10 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilSystemSCConfig)
 	}
 	if check.IfNil(args.ValidatorAccountsDB) {
-		return nil, fmt.Errorf("%w in NewVMContainerFactory for validator accounts", vm.ErrNilValidatorAccountsDB)
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilValidatorAccountsDB)
 	}
 	if check.IfNil(args.UserAccountsDB) {
-		return nil, fmt.Errorf("%w in NewVMContainerFactory for user accounts", vm.ErrNilValidatorAccountsDB)
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilUserAccountsDB)
 	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilChanceComputer)

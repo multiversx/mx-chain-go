@@ -1,6 +1,7 @@
 package enablers
 
 import (
+	"math"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -93,6 +94,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RuntimeCodeSizeFixEnableEpoch:                     77,
 		MultiClaimOnDelegationEnableEpoch:                 78,
 		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
+		FixDelegationChangeOwnerOnAccountEnableEpoch:      80,
 	}
 }
 
@@ -217,11 +219,12 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
+		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
-	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
+	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(79)
+		epoch := uint32(math.MaxUint32)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
@@ -318,6 +321,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -414,5 +418,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 }

@@ -309,11 +309,8 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 			},
 		}
 		vmCtx, _ := NewVMContext(args)
-		argsSetOwner := vm.SetOwnerArguments{
-			SCAddress: scAddress,
-			NewOwner:  ownerAddress,
-		}
-		err := vmCtx.SetOwnerOperatingOnAccount(argsSetOwner)
+		vmCtx.SetSCAddress(scAddress)
+		err := vmCtx.SetOwnerOperatingOnAccount(ownerAddress)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("wrong type assertion, should error", func(t *testing.T) {
@@ -330,11 +327,8 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 			},
 		}
 		vmCtx, _ := NewVMContext(args)
-		argsSetOwner := vm.SetOwnerArguments{
-			SCAddress: scAddress,
-			NewOwner:  ownerAddress,
-		}
-		err := vmCtx.SetOwnerOperatingOnAccount(argsSetOwner)
+		vmCtx.SetSCAddress(scAddress)
+		err := vmCtx.SetOwnerOperatingOnAccount(ownerAddress)
 		assert.ErrorIs(t, err, vm.ErrWrongTypeAssertion)
 	})
 	t.Run("wrong size for the owner, should error", func(t *testing.T) {
@@ -351,11 +345,8 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 			},
 		}
 		vmCtx, _ := NewVMContext(args)
-		argsSetOwner := vm.SetOwnerArguments{
-			SCAddress: scAddress,
-			NewOwner:  []byte("wrong size"),
-		}
-		err := vmCtx.SetOwnerOperatingOnAccount(argsSetOwner)
+		vmCtx.SetSCAddress(scAddress)
+		err := vmCtx.SetOwnerOperatingOnAccount([]byte("wrong size"))
 		assert.ErrorIs(t, err, vm.ErrWrongNewOwnerAddress)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -381,11 +372,8 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 			},
 		}
 		vmCtx, _ := NewVMContext(args)
-		argsSetOwner := vm.SetOwnerArguments{
-			SCAddress: scAddress,
-			NewOwner:  ownerAddress,
-		}
-		err := vmCtx.SetOwnerOperatingOnAccount(argsSetOwner)
+		vmCtx.SetSCAddress(scAddress)
+		err := vmCtx.SetOwnerOperatingOnAccount(ownerAddress)
 		assert.Nil(t, err)
 		assert.Equal(t, ownerAddress, account.Owner)
 		assert.True(t, saveWasCalled)

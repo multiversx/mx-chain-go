@@ -738,8 +738,8 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 
 // SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through
 // SC processor is not possible
-func (host *vmContext) SetOwnerOperatingOnAccount(arguments vm.SetOwnerArguments) error {
-	scAccount, err := host.userAccountsDB.LoadAccount(arguments.SCAddress)
+func (host *vmContext) SetOwnerOperatingOnAccount(newOwner []byte) error {
+	scAccount, err := host.userAccountsDB.LoadAccount(host.scAddress)
 	if err != nil {
 		return err
 	}
@@ -749,10 +749,10 @@ func (host *vmContext) SetOwnerOperatingOnAccount(arguments vm.SetOwnerArguments
 		return fmt.Errorf("%w, not a user account handler", vm.ErrWrongTypeAssertion)
 	}
 
-	if len(arguments.NewOwner) != len(arguments.SCAddress) {
+	if len(newOwner) != len(host.scAddress) {
 		return vm.ErrWrongNewOwnerAddress
 	}
-	scAccountHandler.SetOwnerAddress(arguments.NewOwner)
+	scAccountHandler.SetOwnerAddress(newOwner)
 
 	return host.userAccountsDB.SaveAccount(scAccountHandler)
 }

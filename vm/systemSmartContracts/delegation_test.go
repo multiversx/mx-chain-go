@@ -4878,7 +4878,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-	epochHandler.IsMultiClaimOnDelegationEnabledField = true
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
 	account := &stateMock.AccountWrapMock{}
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
@@ -4900,6 +4900,8 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
 	ownerAddress := bytes.Repeat([]byte{1}, len(vmInput.RecipientAddr))
 	newOwnerAddress := bytes.Repeat([]byte{2}, len(vmInput.RecipientAddr))
+	scAddress := bytes.Repeat([]byte{1}, len(vmInput.RecipientAddr))
+	eei.SetSCAddress(scAddress)
 
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = ownerAddress
@@ -4926,7 +4928,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-	epochHandler.IsMultiClaimOnDelegationEnabledField = false
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
 
 	account := &stateMock.AccountWrapMock{}
 
@@ -4948,6 +4950,8 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 
 	delegationsMap := map[string][]byte{}
 	ownerAddress := []byte("1111")
+	scAddress := bytes.Repeat([]byte{1}, len(ownerAddress))
+	eei.SetSCAddress(scAddress)
 	delegationsMap[ownerKey] = ownerAddress
 	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
 	delegationsMap[string(ownerAddress)] = marshalledData
@@ -4966,7 +4970,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		assert.Equal(t, "synchronizeOwner is an unknown function", eei.GetReturnMessage())
 	})
 
-	epochHandler.IsMultiClaimOnDelegationEnabledField = true
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
 	eei.ResetReturnMessage()
 
 	t.Run("transfer value is not zero", func(t *testing.T) {
@@ -4981,12 +4985,12 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		vmInput := getDefaultVmInputForFunc("synchronizeOwner", [][]byte{[]byte("argument")})
 		returnCode := d.Execute(vmInput)
 		assert.Equal(t, vmcommon.UserError, returnCode)
-		assert.Equal(t, "wrong number of arguments, expected no argument", eei.GetReturnMessage())
+		assert.Equal(t, "invalid number of arguments, expected 0", eei.GetReturnMessage())
 		eei.ResetReturnMessage()
 	})
 	t.Run("wrong stored address", func(t *testing.T) {
 		vmInput := getDefaultVmInputForFunc("synchronizeOwner", vmInputArgs)
-		vmInput.RecipientAddr = []byte("1")
+		eei.SetSCAddress(scAddress[:1])
 		returnCode := d.Execute(vmInput)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 		assert.Equal(t, "wrong new owner address", eei.GetReturnMessage())
@@ -4995,6 +4999,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 	})
 	t.Run("should work", func(t *testing.T) {
 		vmInput := getDefaultVmInputForFunc("synchronizeOwner", vmInputArgs)
+		eei.SetSCAddress(scAddress)
 		returnCode := d.Execute(vmInput)
 		assert.Equal(t, vmcommon.Ok, returnCode)
 		assert.Equal(t, "", eei.GetReturnMessage())

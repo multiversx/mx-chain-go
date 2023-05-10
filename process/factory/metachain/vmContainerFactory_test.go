@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -155,7 +154,6 @@ func TestNewVMContainerFactory_NilValidatorAccountsDB(t *testing.T) {
 
 	assert.True(t, check.IfNil(vmf))
 	assert.True(t, errors.Is(err, vm.ErrNilValidatorAccountsDB))
-	assert.True(t, strings.Contains(err.Error(), "for validator accounts"))
 }
 
 func TestNewVMContainerFactory_NilUserAccountsDB(t *testing.T) {
@@ -167,8 +165,7 @@ func TestNewVMContainerFactory_NilUserAccountsDB(t *testing.T) {
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.True(t, check.IfNil(vmf))
-	assert.True(t, errors.Is(err, vm.ErrNilValidatorAccountsDB))
-	assert.True(t, strings.Contains(err.Error(), "for user accounts"))
+	assert.True(t, errors.Is(err, vm.ErrNilUserAccountsDB))
 }
 
 func TestNewVMContainerFactory_NilChanceComputer(t *testing.T) {

@@ -93,6 +93,7 @@ type epochFlagsHolder struct {
 	setGuardianFlag                             *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
+	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -185,6 +186,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		setGuardianFlag:                             &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
+		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 	}
 }
 
@@ -679,4 +681,9 @@ func (holder *epochFlagsHolder) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
 // IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
 func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 	return holder.multiClaimOnDelegationFlag.IsSet()
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled returns true if the fix for the delegation change owner on account is enabled
+func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return holder.fixDelegationChangeOwnerOnAccountFlag.IsSet()
 }

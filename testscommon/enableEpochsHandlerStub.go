@@ -120,6 +120,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetGuardianEnabledField                                    bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
+	FixDelegationChangeOwnerOnAccountEnabledField                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1039,6 +1040,14 @@ func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsMultiClaimOnDelegationEnabledField
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixDelegationChangeOwnerOnAccountEnabledField
 }
 
 // IsInterfaceNil -

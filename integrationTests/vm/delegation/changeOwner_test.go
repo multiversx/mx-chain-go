@@ -68,7 +68,7 @@ func TestDelegationChangeOwnerOnAccountHandler(t *testing.T) {
 
 func testDelegationChangeOwnerOnAccountHandler(t *testing.T, epochToTest uint32) (*integrationTests.TestProcessorNode, []byte, state.UserAccountHandler) {
 	cfg := integrationTests.GetDefaultEnableEpochsConfig()
-	cfg.MultiClaimOnDelegationEnableEpoch = 2
+	cfg.FixDelegationChangeOwnerOnAccountEnableEpoch = 2
 	tpn := integrationTests.NewTestProcessorNode(
 		integrationTests.ArgTestProcessorNode{
 			MaxShards:            1,
