@@ -52,9 +52,11 @@
 
 # BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.
 # This can be useful for snapshotting different stuff and also for debugging purposes.
-# It can only be enabled by using the `--block-processing-cutoff` CLI flag when starting the node
 [BlockProcessingCutoff]
-   # Mode represents the cutoff mode. possible values: "pause" or "processError".
+   # If set to true, the node will stop at the given coordinate
+   Enabled = false
+
+   # Mode represents the cutoff mode. possible values: "pause" or "process-error".
    # "pause" mode will halt the processing at the block with the given coordinates. Useful for snapshots/analytics
    # "process-error" will return an error when processing the block with the given coordinates. Useful for debugging
    Mode = "pause"

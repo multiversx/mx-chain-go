@@ -1131,6 +1131,9 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
+// ErrNilBlockProcessingCutoffHandler signals that a nil block processing cutoff handler has been provided
+var ErrNilBlockProcessingCutoffHandler = errors.New("nil block processing cutoff handler")
+
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
 
@@ -1196,9 +1199,3 @@ var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
 
 // ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
 var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
-
-// ErrInvalidBlockProcessingCutOffMode signals that an invalid block processing cutoff mode has been provided
-var ErrInvalidBlockProcessingCutOffMode = errors.New("invalid block processing cutoff mode")
-
-// ErrInvalidBlockProcessingCutOffTrigger signals that an invalid block processing cutoff trigger has been provided
-var ErrInvalidBlockProcessingCutOffTrigger = errors.New("invalid block processing cutoff trigger")

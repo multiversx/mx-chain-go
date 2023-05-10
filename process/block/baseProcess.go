@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -89,6 +90,7 @@ type baseProcessor struct {
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -114,8 +116,6 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
-
-	blockProcessingCutoffConfig config.BlockProcessingCutoffConfig
 }
 
 type bootStorerDataArgs struct {
@@ -538,32 +538,8 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return process.ErrNilReceiptsRepository
 	}
-	err := checkBlockProcessingCutoffConfig(arguments.PrefsConfig.BlockProcessingCutoff)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func checkBlockProcessingCutoffConfig(cutOffConfig config.BlockProcessingCutoffConfig) error {
-	if !cutOffConfig.Enabled {
-		// don't even check the configs if the feature is disabled. Useful when a node doesn't update `prefs.toml` with
-		// the new configuration
-		return nil
-	}
-	mode := common.BlockProcessingCutoffMode(cutOffConfig.Mode)
-	isValidMode := mode == common.BlockProcessingCutoffModePause || mode == common.BlockProcessingCutoffModeProcessError
-	if !isValidMode {
-		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffMode, mode)
-	}
-
-	cutOffTrigger := common.BlockProcessingCutoffTrigger(cutOffConfig.CutoffTrigger)
-	isValidCutOffTrigger := cutOffTrigger == common.BlockProcessingCutoffByRound ||
-		cutOffTrigger == common.BlockProcessingCutoffByNonce ||
-		cutOffTrigger == common.BlockProcessingCutoffByEpoch
-	if !isValidCutOffTrigger {
-		return fmt.Errorf("%w. provided value=%s", process.ErrInvalidBlockProcessingCutOffTrigger, cutOffTrigger)
+	if check.IfNil(arguments.BlockProcessingCutoffHandler) {
+		return process.ErrNilBlockProcessingCutoffHandler
 	}
 
 	return nil
@@ -2103,65 +2079,4 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 
 	bp.nonceOfFirstCommittedBlock.HasValue = true
 	bp.nonceOfFirstCommittedBlock.Value = nonce
-}
-
-func (bp *baseProcessor) handleBlockProcessingCutoff(header data.HeaderHandler) error {
-	if !bp.blockProcessingCutoffConfig.Enabled || check.IfNil(header) {
-		return nil
-	}
-
-	cutOffFunction := getCutoffFunction(bp.blockProcessingCutoffConfig)
-	value := bp.blockProcessingCutoffConfig.Value
-
-	switch common.BlockProcessingCutoffTrigger(bp.blockProcessingCutoffConfig.CutoffTrigger) {
-	case common.BlockProcessingCutoffByRound:
-		if header.GetRound() >= value {
-			err := cutOffFunction("round", header.GetRound())
-			if err != nil {
-				return err
-			}
-		}
-	case common.BlockProcessingCutoffByNonce:
-		if header.GetNonce() >= value {
-			err := cutOffFunction("nonce", header.GetNonce())
-			if err != nil {
-				return err
-			}
-		}
-	case common.BlockProcessingCutoffByEpoch:
-		if header.GetEpoch() >= uint32(value) {
-			err := cutOffFunction("epoch", header.GetEpoch())
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func getCutoffFunction(cfg config.BlockProcessingCutoffConfig) func(printArgs ...interface{}) error {
-	processErr := fmt.Errorf("block processing cuttoff - error")
-	if cfg.Mode == common.BlockProcessingCutoffModeProcessError {
-		return func(printArgs ...interface{}) error {
-			log.Info("block processing cutoff - return err", printArgs...)
-			return processErr
-		}
-	}
-
-	blockingCutoffFunction := func(printArgs ...interface{}) error {
-		log.Info("cutting off the block processing. The node will not advance", printArgs...)
-		go func() {
-			for {
-				time.Sleep(time.Minute)
-				log.Info("node is in block processing cut-off mode", printArgs...)
-			}
-		}()
-		neverEndingChannel := make(chan struct{})
-		<-neverEndingChannel
-
-		return nil // should not reach this point
-	}
-
-	return blockingCutoffFunction
 }

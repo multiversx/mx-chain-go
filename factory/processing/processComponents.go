@@ -43,6 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -598,6 +599,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	blockCutoffProcessingHandler, err := cutoff.CreateBlockProcessingCutoffHandler(pcf.prefConfigs.BlockProcessingCutoff)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -612,6 +618,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockCutoffProcessingHandler,
 	)
 	if err != nil {
 		return nil, err

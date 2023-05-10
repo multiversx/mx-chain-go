@@ -28,7 +28,7 @@ type OverridableConfig struct {
 
 // BlockProcessingCutoffConfig holds the configuration for the block processing cutoff
 type BlockProcessingCutoffConfig struct {
-	Enabled       bool `toml:"-"`
+	Enabled       bool
 	Mode          string
 	CutoffTrigger string
 	Value         uint64

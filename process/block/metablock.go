@@ -133,7 +133,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffConfig:   arguments.PrefsConfig.BlockProcessingCutoff,
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 	}
 
 	mp := metaProcessor{
@@ -397,7 +397,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.handleBlockProcessingCutoff(header)
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return err
 	}
@@ -1172,11 +1172,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.handleBlockProcessingCutoff(headerHandler)
-	if err != nil {
-		return err
-	}
-
 	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	header, ok := headerHandler.(*block.MetaBlock)
@@ -1343,6 +1338,8 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+
+	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

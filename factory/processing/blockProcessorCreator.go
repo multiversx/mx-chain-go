@@ -21,6 +21,7 @@ import (
 	factoryOutportProvider "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -64,6 +65,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
+	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -80,6 +82,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
 			receiptsRepository,
+			blockCutoffProcessingHandler,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -97,6 +100,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
 			receiptsRepository,
+			blockCutoffProcessingHandler,
 		)
 	}
 
@@ -118,6 +122,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
+	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -425,6 +430,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
+		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -461,6 +467,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
+	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -844,6 +851,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
+		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

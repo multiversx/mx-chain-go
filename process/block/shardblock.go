@@ -118,7 +118,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffConfig:   arguments.PrefsConfig.BlockProcessingCutoff,
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 	}
 
 	sp := shardProcessor{
@@ -347,7 +347,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.handleBlockProcessingCutoff(header)
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return err
 	}
@@ -894,11 +894,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.handleBlockProcessingCutoff(headerHandler)
-	if err != nil {
-		return err
-	}
-
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",
@@ -1087,6 +1082,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

@@ -325,7 +325,7 @@ func TestTomlPreferencesParser(t *testing.T) {
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
 		BlockProcessingCutoff: BlockProcessingCutoffConfig{
-			Enabled:       false, // even though the TOML value is set to true, it should be ignored because of the "-" toml tag
+			Enabled:       true,
 			Mode:          "pause",
 			CutoffTrigger: "round",
 			Value:         55,
