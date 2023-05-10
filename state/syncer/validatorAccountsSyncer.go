@@ -77,7 +77,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	go v.printStatisticsAndUpdateMetrics(ctx)
 
 	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: nil,
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx, leavesChannels)

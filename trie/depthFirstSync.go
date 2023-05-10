@@ -277,9 +277,11 @@ func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 
 		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
 		// TODO: analize error chan
-		if d.accLeavesChannels.LeavesChan != nil {
-			d.accLeavesChannels.LeavesChan <- trieLeaf
+		if d.accLeavesChannels.LeavesChan == nil {
+			log.Trace("storeLeaves: nil leaves chan", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
+			continue
 		}
+		d.accLeavesChannels.LeavesChan <- trieLeaf
 
 		log.Trace("storeLeaves: found leaf node - DONE", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
 	}

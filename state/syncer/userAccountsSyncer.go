@@ -129,18 +129,14 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	wgSyncDatatries := &sync.WaitGroup{}
 	wgSyncDatatries.Add(1)
 
-	mainTreeChan := make(chan common.Trie)
-
 	go func() {
-		mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
+		_, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
 		if err != nil {
 			log.Error("syncMainTrie:", "error", err.Error())
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
-
-		mainTreeChan <- mainTrie
+		//log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
 		log.Debug("syncMainTrie goroutine: closing leaver channel")
 
@@ -161,17 +157,12 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		wgSyncDatatries.Done()
 	}()
 
-	mainTrie := <-mainTreeChan
-	defer func() {
-		_ = mainTrie.Close()
-	}()
-
 	log.Debug("StartSyncing: wait for goroutines to finish")
 
 	wgSyncMainTrie.Wait()
 	wgSyncDatatries.Wait()
 
-	u.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
 	return nil
 }
@@ -260,7 +251,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		account := state.NewEmptyUserAccount()
 		err := u.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
+			log.Trace("this must be a leaf with code", "leaf key", hex.EncodeToString(leaf.Key()), "err", err)
 			continue
 		}
 
