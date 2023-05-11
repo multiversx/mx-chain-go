@@ -33,7 +33,7 @@ func TestNewIncomingHeaderHandler(t *testing.T) {
 		args := createArgs()
 		args.HeadersPool = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, errNilHeadersPool, err)
 		require.Nil(t, handler)
 	})
@@ -42,32 +42,32 @@ func TestNewIncomingHeaderHandler(t *testing.T) {
 		args := createArgs()
 		args.TxPool = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, errNilTxPool, err)
 		require.Nil(t, handler)
 	})
 
-	t.Run("nil headers pool, should return error", func(t *testing.T) {
+	t.Run("nil marshaller, should return error", func(t *testing.T) {
 		args := createArgs()
 		args.Marshaller = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, core.ErrNilMarshalizer, err)
 		require.Nil(t, handler)
 	})
 
-	t.Run("nil headers pool, should return error", func(t *testing.T) {
+	t.Run("nil hasher, should return error", func(t *testing.T) {
 		args := createArgs()
 		args.Hasher = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, core.ErrNilHasher, err)
 		require.Nil(t, handler)
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		args := createArgs()
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(handler))
 	})
@@ -78,7 +78,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
 		args := createArgs()
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
 
 		incomingHeader := &sovereignTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
@@ -98,7 +98,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 				return nil, errMarshaller
 			},
 		}
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
 
 		err := handler.AddHeader([]byte("hash"), &sovereign.IncomingHeader{Header: &block.HeaderV2{}})
 		require.Equal(t, errMarshaller, err)
@@ -123,7 +123,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
-	handler, _ := NewIncomingHeaderHandler(args)
+	handler, _ := NewIncomingHeaderProcessor(args)
 	incomingHeader := &sovereign.IncomingHeader{
 		Header: &block.HeaderV2{},
 		IncomingEvents: []*transaction.Event{

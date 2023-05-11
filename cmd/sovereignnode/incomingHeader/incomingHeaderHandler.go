@@ -24,17 +24,17 @@ type ArgsIncomingHeaderHandler struct {
 	Hasher      hashing.Hasher
 }
 
-type incomingHeaderHandler struct {
+type incomingHeaderProcessor struct {
 	headersPool HeadersPool
 	txPool      TransactionPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
 }
 
-// NewIncomingHeaderHandler creates an incoming header handler which should be able to receive incoming headers and events
+// NewIncomingHeaderProcessor creates an incoming header handler which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
-func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHandler, error) {
+func NewIncomingHeaderProcessor(args ArgsIncomingHeaderHandler) (*incomingHeaderProcessor, error) {
 	if check.IfNil(args.HeadersPool) {
 		return nil, errNilHeadersPool
 	}
@@ -48,7 +48,7 @@ func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHa
 		return nil, core.ErrNilHasher
 	}
 
-	return &incomingHeaderHandler{
+	return &incomingHeaderProcessor{
 		headersPool: args.HeadersPool,
 		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
@@ -57,7 +57,7 @@ func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHa
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
-func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
+func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
 
 	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
@@ -73,12 +73,12 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
 	}
 
-	err := ihs.addExtendedHeaderToPool(extendedHeader)
+	err := ihp.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	return ihs.addSCRsToPool(incomingSCRs)
+	return ihp.addSCRsToPool(incomingSCRs)
 }
 
 // TODO: Implement this in task MX-14128
@@ -91,22 +91,22 @@ func createIncomingMb(_ []*smartContractResult.SmartContractResult) *block.MiniB
 	return &block.MiniBlock{}
 }
 
-func (ihs *incomingHeaderHandler) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
-	extendedHeaderHash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, extendedHeader)
+func (ihp *incomingHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
+	extendedHeaderHash, err := core.CalculateHash(ihp.marshaller, ihp.hasher, extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	ihs.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
+	ihp.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
 	return nil
 }
 
 // TODO: Implement this in task MX-14128
-func (ihs *incomingHeaderHandler) addSCRsToPool(_ []*smartContractResult.SmartContractResult) error {
+func (ihp *incomingHeaderProcessor) addSCRsToPool(_ []*smartContractResult.SmartContractResult) error {
 	return nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (ihs *incomingHeaderHandler) IsInterfaceNil() bool {
-	return ihs == nil
+func (ihp *incomingHeaderProcessor) IsInterfaceNil() bool {
+	return ihp == nil
 }

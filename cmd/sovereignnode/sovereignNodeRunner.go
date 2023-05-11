@@ -1679,7 +1679,7 @@ func createSovereignWsReceiver(
 		Marshaller:  marshaller,
 		Hasher:      hasher,
 	}
-	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderHandler(argsIncomingHeaderHandler)
+	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 	if err != nil {
 		return nil, err
 	}
