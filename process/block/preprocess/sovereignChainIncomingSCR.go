@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -39,8 +38,6 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
 	}
-
-	// TODO: Should we handle any gas? Since txs are already executed on main chain
 
 	log.Info("sovereignChainIncomingSCR.ProcessBlockTransactions called")
 
@@ -118,7 +115,6 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 	}
 
 	numSCRsProcessed := 0
-	var gasProvidedByTxInSelfShard uint64
 	var err error
 	var txIndex int
 	processedTxHashes := make([][]byte, 0)
@@ -138,37 +134,9 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
-	gasInfo := gasConsumedInfo{
-		gasConsumedByMiniBlockInReceiverShard: uint64(0),
-		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
-		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
-	}
-
-	var maxGasLimitUsedForDestMeTxs uint64
-	isFirstMiniBlockDestMe := gasInfo.totalGasConsumedInSelfShard == 0
-	if isFirstMiniBlockDestMe {
-		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId())
-	} else {
-		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
-	}
-
-	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
-		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
-		"total gas provided", scr.gasHandler.TotalGasProvided(),
-		"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
-		"total gas refunded", scr.gasHandler.TotalGasRefunded(),
-		"total gas penalized", scr.gasHandler.TotalGasPenalized(),
-	)
+	log.Debug("smartContractResults.ProcessMiniBlock: before processing")
 	defer func() {
-		log.Debug("smartContractResults.ProcessMiniBlock after processing",
-			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
-			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
-			"num scrs processed", numSCRsProcessed,
-			"total gas provided", scr.gasHandler.TotalGasProvided(),
-			"total gas provided as scheduled", scr.gasHandler.TotalGasProvidedAsScheduled(),
-			"total gas refunded", scr.gasHandler.TotalGasRefunded(),
-			"total gas penalized", scr.gasHandler.TotalGasPenalized(),
-		)
+		log.Debug("smartContractResults.ProcessMiniBlock after processing")
 	}()
 
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockScrs); txIndex++ {
@@ -177,26 +145,8 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 			break
 		}
 
-		if miniBlock.SenderShardID != core.SovereignChainShardId {
-			gasProvidedByTxInSelfShard = 0
-		}
-
-		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID,
-			miniBlockScrs[txIndex],
-			miniBlockTxHashes[txIndex],
-			&gasInfo)
-
 		if err != nil {
 			break
-		}
-
-		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
-			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
-				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
-				break
-			}
 		}
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
@@ -204,12 +154,10 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
-			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
+			scr.handleProcessSovereignSCRError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
 			break
 		}
 
-		scr.updateGasConsumedWithGasRefundedAndGasPenalized(miniBlockTxHashes[txIndex], &gasInfo)
-		scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, miniBlockTxHashes[txIndex])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[txIndex])
 		numSCRsProcessed++
 	}
@@ -230,4 +178,13 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
 	return nil, txIndex - 1, false, err
+}
+
+func (scr *sovereignChainIncomingSCR) handleProcessSovereignSCRError(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, snapshot int, txHash []byte) {
+	errRevert := scr.accounts.RevertToSnapshot(snapshot)
+	if errRevert != nil {
+		log.Debug("scr.sovereignChainIncomingSCR: RevertToSnapshot", "error", errRevert.Error())
+	}
+
+	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
 }
