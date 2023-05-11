@@ -344,10 +344,10 @@ func TestTomlPreferencesParser(t *testing.T) {
     ]
 
 [BlockProcessingCutoff]
-	Enabled = true
-	Mode = "pause"
-	CutoffTrigger = "round"
-	Value = 55
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
