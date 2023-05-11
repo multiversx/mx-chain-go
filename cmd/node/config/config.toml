@@ -104,8 +104,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [ReceiptsStorage]
     [ReceiptsStorage.Cache]
@@ -119,8 +117,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [ScheduledSCRsStorage]
     [ScheduledSCRsStorage.Cache]
@@ -134,8 +130,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -149,8 +143,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -164,8 +156,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
@@ -179,8 +169,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -194,8 +182,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [TxStorage]
     [TxStorage.Cache]
@@ -209,8 +195,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
@@ -224,8 +208,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
@@ -239,8 +221,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [SmartContractsStorage]
     [SmartContractsStorage.Cache]
@@ -254,8 +234,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [SmartContractsStorageSimulate]
     [SmartContractsStorageSimulate.Cache]
@@ -269,8 +247,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [SmartContractsStorageForSCQuery]
     [SmartContractsStorageForSCQuery.Cache]
@@ -284,8 +260,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
@@ -311,8 +285,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 500
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
@@ -326,8 +298,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
@@ -341,8 +311,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -386,8 +354,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [PeerAccountsTrieCheckpointsStorage]
     [PeerAccountsTrieCheckpointsStorage.Cache]
@@ -401,8 +367,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
-        ShardIDProviderType = "BinarySplit"
-        NumShards = 4
 
 [StorageShardIDProvider]
     NumShards = 4
