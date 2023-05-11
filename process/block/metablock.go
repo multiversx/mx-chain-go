@@ -397,12 +397,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(

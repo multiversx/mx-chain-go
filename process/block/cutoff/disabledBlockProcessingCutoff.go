@@ -11,15 +11,15 @@ func NewDisabledBlockProcessingCutoff() *disabledBlockProcessingCutoff {
 }
 
 // HandleProcessErrorCutoff returns nil
-func (d disabledBlockProcessingCutoff) HandleProcessErrorCutoff(_ data.HeaderHandler) error {
+func (d *disabledBlockProcessingCutoff) HandleProcessErrorCutoff(_ data.HeaderHandler) error {
 	return nil
 }
 
 // HandlePauseCutoff does nothing
-func (d disabledBlockProcessingCutoff) HandlePauseCutoff(_ data.HeaderHandler) {
+func (d *disabledBlockProcessingCutoff) HandlePauseCutoff(_ data.HeaderHandler) {
 }
 
 // IsInterfaceNil returns true since this structure uses value receivers
-func (d disabledBlockProcessingCutoff) IsInterfaceNil() bool {
-	return false
+func (d *disabledBlockProcessingCutoff) IsInterfaceNil() bool {
+	return d == nil
 }

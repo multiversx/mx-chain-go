@@ -22,7 +22,7 @@ func TestNewBlockProcessingCutoffHandler(t *testing.T) {
 			Mode:    "invalid",
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.Equal(t, "invalid block processing cutoff mode. provided value=invalid", err.Error())
+		require.Equal(t, "invalid block processing cutoff mode, provided value=invalid", err.Error())
 		require.Nil(t, b)
 	})
 
@@ -35,7 +35,7 @@ func TestNewBlockProcessingCutoffHandler(t *testing.T) {
 			CutoffTrigger: "invalid",
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.Equal(t, "invalid block processing cutoff trigger. provided value=invalid", err.Error())
+		require.Equal(t, "invalid block processing cutoff trigger, provided value=invalid", err.Error())
 		require.Nil(t, b)
 	})
 
@@ -65,7 +65,9 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 		}()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled: false,
+			Enabled:       false,
+			Mode:          "pause",
+			CutoffTrigger: "nonce",
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
@@ -88,8 +90,7 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
 
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Round: 19}) // not the desired round
-		require.NoError(t, err)
+		b.HandlePauseCutoff(&block.MetaBlock{Round: 19}) // not the desired round
 
 		done := make(chan struct{})
 		go func() {
@@ -116,8 +117,7 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
 
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Nonce: 19}) // not the desired round
-		require.NoError(t, err)
+		b.HandlePauseCutoff(&block.MetaBlock{Nonce: 19}) // not the desired round
 
 		done := make(chan struct{})
 		go func() {
@@ -144,8 +144,7 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
 
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Epoch: 19}) // not the desired round
-		require.NoError(t, err)
+		b.HandlePauseCutoff(&block.MetaBlock{Epoch: 19}) // not the desired round
 
 		done := make(chan struct{})
 		go func() {
@@ -173,7 +172,9 @@ func TestBlockProcessingCutoffHandler_HandleProcessErrorBackoff(t *testing.T) {
 		}()
 
 		cfg := config.BlockProcessingCutoffConfig{
-			Enabled: false,
+			Enabled:       false,
+			Mode:          "pause",
+			CutoffTrigger: "nonce",
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)

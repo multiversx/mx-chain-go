@@ -66,7 +66,7 @@
    CutoffTrigger = "round"
 
    # The minimum value of the cutoff. For example, if CutoffType is set to "round", and Value to 20, then the node will stop processing at round 20+
-   Value = 20
+   Value = 0
 
 # NamedIdentity represents an identity that runs nodes on the multikey
 # There can be multiple identities set on the same node, each one of them having different bls keys, just by duplicating the NamedIdentity

@@ -2,6 +2,7 @@ package cutoff
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -14,19 +15,50 @@ import (
 var log = logger.GetOrCreate("process/block/cutoff")
 
 type blockProcessingCutoffHandler struct {
-	config config.BlockProcessingCutoffConfig
+	config    config.BlockProcessingCutoffConfig
+	stopRound uint64
+	stopNonce uint64
+	stopEpoch uint32
 }
 
 // NewBlockProcessingCutoffHandler will return a new instance of blockProcessingCutoffHandler
 func NewBlockProcessingCutoffHandler(cfg config.BlockProcessingCutoffConfig) (*blockProcessingCutoffHandler, error) {
-	err := checkConfig(cfg)
+	b := &blockProcessingCutoffHandler{
+		config:    cfg,
+		stopEpoch: math.MaxUint32,
+		stopNonce: math.MaxUint64,
+		stopRound: math.MaxUint64,
+	}
+
+	err := b.applyConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &blockProcessingCutoffHandler{
-		config: cfg,
-	}, nil
+	log.Warn("node is started by using block processing cutoff and will pause/error at the provided coordinate", cfg.CutoffTrigger, cfg.Value)
+	return b, nil
+}
+
+func (b *blockProcessingCutoffHandler) applyConfig(cfg config.BlockProcessingCutoffConfig) error {
+	switch common.BlockProcessingCutoffMode(cfg.Mode) {
+	case common.BlockProcessingCutoffModeProcessError:
+	case common.BlockProcessingCutoffModePause:
+	default:
+		return fmt.Errorf("%w, provided value=%s", errInvalidBlockProcessingCutOffMode, cfg.Mode)
+	}
+
+	switch common.BlockProcessingCutoffTrigger(cfg.CutoffTrigger) {
+	case common.BlockProcessingCutoffByRound:
+		b.stopRound = cfg.Value
+	case common.BlockProcessingCutoffByNonce:
+		b.stopNonce = cfg.Value
+	case common.BlockProcessingCutoffByEpoch:
+		b.stopEpoch = uint32(cfg.Value)
+	default:
+		return fmt.Errorf("%w, provided value=%s", errInvalidBlockProcessingCutOffTrigger, cfg.CutoffTrigger)
+	}
+
+	return nil
 }
 
 // HandlePauseCutoff will pause the processing if the required coordinates are met
@@ -38,22 +70,20 @@ func (b *blockProcessingCutoffHandler) HandlePauseCutoff(header data.HeaderHandl
 		return
 	}
 
-	blockingCutoffFunction := func(printArgs ...interface{}) error {
-		log.Info("cutting off the block processing. The node will not advance", printArgs...)
-		go func() {
-			for {
-				time.Sleep(time.Minute)
-				log.Info("node is in block processing cut-off mode", printArgs...)
-			}
-		}()
-		neverEndingChannel := make(chan struct{})
-		<-neverEndingChannel
-
-		return nil // should not reach this point
+	trigger, value, isTriggered := b.isTriggered(header)
+	if !isTriggered {
+		return
 	}
 
-	_ = b.handleCutoffIfCoordinatesAreMet(header, blockingCutoffFunction)
-	// should never reach this point
+	log.Info("cutting off the block processing. The node will not advance", trigger, value)
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			log.Info("node is in block processing cut-off mode", trigger, value)
+		}
+	}()
+	neverEndingChannel := make(chan struct{})
+	<-neverEndingChannel
 }
 
 // HandleProcessErrorCutoff will return error if the processing the block at the required coordinates
@@ -65,66 +95,30 @@ func (b *blockProcessingCutoffHandler) HandleProcessErrorCutoff(header data.Head
 		return nil
 	}
 
-	return b.handleCutoffIfCoordinatesAreMet(header, func(printArgs ...interface{}) error {
-		log.Info("block processing cutoff - return err", printArgs...)
-		return errProcess
-	})
-}
-
-func (b *blockProcessingCutoffHandler) handleCutoffIfCoordinatesAreMet(header data.HeaderHandler, cutOffFunction func(printArgs ...interface{}) error) error {
-	value := b.config.Value
-
-	switch common.BlockProcessingCutoffTrigger(b.config.CutoffTrigger) {
-	case common.BlockProcessingCutoffByRound:
-		if header.GetRound() >= value {
-			err := cutOffFunction("round", header.GetRound())
-			if err != nil {
-				return err
-			}
-		}
-	case common.BlockProcessingCutoffByNonce:
-		if header.GetNonce() >= value {
-			err := cutOffFunction("nonce", header.GetNonce())
-			if err != nil {
-				return err
-			}
-		}
-	case common.BlockProcessingCutoffByEpoch:
-		if header.GetEpoch() >= uint32(value) {
-			err := cutOffFunction("epoch", header.GetEpoch())
-			if err != nil {
-				return err
-			}
-		}
+	trigger, value, isTriggered := b.isTriggered(header)
+	if !isTriggered {
+		return nil
 	}
 
-	return nil
+	log.Info("block processing cutoff - return err", trigger, value)
+	return errProcess
+}
+
+func (b *blockProcessingCutoffHandler) isTriggered(header data.HeaderHandler) (common.BlockProcessingCutoffTrigger, uint64, bool) {
+	if header.GetRound() >= b.stopRound {
+		return common.BlockProcessingCutoffByRound, header.GetRound(), true
+	}
+	if header.GetNonce() >= b.stopNonce {
+		return common.BlockProcessingCutoffByNonce, header.GetNonce(), true
+	}
+	if header.GetEpoch() >= b.stopEpoch {
+		return common.BlockProcessingCutoffByEpoch, uint64(header.GetEpoch()), true
+	}
+
+	return "", 0, false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *blockProcessingCutoffHandler) IsInterfaceNil() bool {
 	return b == nil
-}
-
-func checkConfig(cutOffConfig config.BlockProcessingCutoffConfig) error {
-	if !cutOffConfig.Enabled {
-		// don't even check the configs if the feature is disabled. Useful when a node doesn't update `prefs.toml` with
-		// the new configuration
-		return nil
-	}
-	mode := common.BlockProcessingCutoffMode(cutOffConfig.Mode)
-	isValidMode := mode == common.BlockProcessingCutoffModePause || mode == common.BlockProcessingCutoffModeProcessError
-	if !isValidMode {
-		return fmt.Errorf("%w. provided value=%s", errInvalidBlockProcessingCutOffMode, mode)
-	}
-
-	cutOffTrigger := common.BlockProcessingCutoffTrigger(cutOffConfig.CutoffTrigger)
-	isValidCutOffTrigger := cutOffTrigger == common.BlockProcessingCutoffByRound ||
-		cutOffTrigger == common.BlockProcessingCutoffByNonce ||
-		cutOffTrigger == common.BlockProcessingCutoffByEpoch
-	if !isValidCutOffTrigger {
-		return fmt.Errorf("%w. provided value=%s", errInvalidBlockProcessingCutOffTrigger, cutOffTrigger)
-	}
-
-	return nil
 }

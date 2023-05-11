@@ -19,4 +19,7 @@ func TestDisabledBlockProcessingCutoff_FunctionsShouldNotPanic(t *testing.T) {
 	d.HandlePauseCutoff(&block.MetaBlock{Nonce: 37})
 	_ = d.HandleProcessErrorCutoff(&block.MetaBlock{Round: 37})
 	_ = d.IsInterfaceNil()
+
+	var nilObj *disabledBlockProcessingCutoff
+	_ = nilObj.IsInterfaceNil()
 }
