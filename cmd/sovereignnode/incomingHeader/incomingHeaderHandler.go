@@ -31,7 +31,7 @@ type incomingHeaderProcessor struct {
 	hasher      hashing.Hasher
 }
 
-// NewIncomingHeaderProcessor creates an incoming header handler which should be able to receive incoming headers and events
+// NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
 func NewIncomingHeaderProcessor(args ArgsIncomingHeaderHandler) (*incomingHeaderProcessor, error) {
