@@ -17,9 +17,10 @@ func TestDisabledBlockProcessingCutoff_FunctionsShouldNotPanic(t *testing.T) {
 	d := NewDisabledBlockProcessingCutoff()
 
 	d.HandlePauseCutoff(&block.MetaBlock{Nonce: 37})
-	_ = d.HandleProcessErrorCutoff(&block.MetaBlock{Round: 37})
-	_ = d.IsInterfaceNil()
+	err := d.HandleProcessErrorCutoff(&block.MetaBlock{Round: 37})
+	require.NoError(t, err)
+	require.False(t, d.IsInterfaceNil())
 
 	var nilObj *disabledBlockProcessingCutoff
-	_ = nilObj.IsInterfaceNil()
+	require.True(t, nilObj.IsInterfaceNil())
 }

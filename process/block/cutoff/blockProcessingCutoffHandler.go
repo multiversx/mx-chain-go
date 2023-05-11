@@ -86,7 +86,7 @@ func (b *blockProcessingCutoffHandler) HandlePauseCutoff(header data.HeaderHandl
 	<-neverEndingChannel
 }
 
-// HandleProcessErrorCutoff will return error if the processing the block at the required coordinates
+// HandleProcessErrorCutoff will return error if the processing block matches the required coordinates
 func (b *blockProcessingCutoffHandler) HandleProcessErrorCutoff(header data.HeaderHandler) error {
 	shouldSkip := !b.config.Enabled ||
 		check.IfNil(header) ||

@@ -78,23 +78,37 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 		b.HandlePauseCutoff(&block.MetaBlock{})
 	})
 
-	t.Run("pause via round - should work", func(t *testing.T) {
+	t.Run("pause via round - should work", testHandlePauseCutoff(string(common.BlockProcessingCutoffByRound)))
+	t.Run("pause via nonce - should work", testHandlePauseCutoff(string(common.BlockProcessingCutoffByNonce)))
+	t.Run("pause via epoch - should work", testHandlePauseCutoff(string(common.BlockProcessingCutoffByEpoch)))
+}
+
+func testHandlePauseCutoff(trigger string) func(t *testing.T) {
+	return func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
 			Enabled:       true,
 			Mode:          common.BlockProcessingCutoffModePause,
-			CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+			CutoffTrigger: trigger,
 			Value:         20,
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
 
-		b.HandlePauseCutoff(&block.MetaBlock{Round: 19}) // not the desired round
+		b.HandlePauseCutoff(&block.MetaBlock{
+			Epoch: 19, // not the desired epoch
+			Nonce: 19, // not the desired nonce
+			Round: 19, // not the desired round
+		})
 
 		done := make(chan struct{})
 		go func() {
-			b.HandlePauseCutoff(&block.MetaBlock{Round: 20})
+			b.HandlePauseCutoff(&block.MetaBlock{
+				Epoch: 20,
+				Nonce: 20,
+				Round: 20,
+			})
 			done <- struct{}{}
 		}()
 
@@ -103,61 +117,7 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 			require.Fail(t, "should have not advanced")
 		case <-time.After(100 * time.Millisecond):
 		}
-	})
-
-	t.Run("pause via nonce - should work", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:       true,
-			Mode:          common.BlockProcessingCutoffModePause,
-			CutoffTrigger: string(common.BlockProcessingCutoffByNonce),
-			Value:         20,
-		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.NoError(t, err)
-
-		b.HandlePauseCutoff(&block.MetaBlock{Nonce: 19}) // not the desired round
-
-		done := make(chan struct{})
-		go func() {
-			b.HandlePauseCutoff(&block.MetaBlock{Nonce: 20})
-			done <- struct{}{}
-		}()
-
-		select {
-		case <-done:
-			require.Fail(t, "should have not advanced")
-		case <-time.After(100 * time.Millisecond):
-		}
-	})
-
-	t.Run("pause via epoch - should work", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:       true,
-			Mode:          common.BlockProcessingCutoffModePause,
-			CutoffTrigger: string(common.BlockProcessingCutoffByEpoch),
-			Value:         20,
-		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.NoError(t, err)
-
-		b.HandlePauseCutoff(&block.MetaBlock{Epoch: 19}) // not the desired round
-
-		done := make(chan struct{})
-		go func() {
-			b.HandlePauseCutoff(&block.MetaBlock{Epoch: 20})
-			done <- struct{}{}
-		}()
-
-		select {
-		case <-done:
-			require.Fail(t, "should have not advanced")
-		case <-time.After(time.Millisecond):
-		}
-	})
+	}
 }
 
 func TestBlockProcessingCutoffHandler_HandleProcessErrorBackoff(t *testing.T) {
@@ -188,67 +148,36 @@ func TestBlockProcessingCutoffHandler_HandleProcessErrorBackoff(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("process error via round", func(t *testing.T) {
+	t.Run("process error via round - should work", testHandleProcessErrorCutoff(string(common.BlockProcessingCutoffByRound)))
+	t.Run("process error via nonce - should work", testHandleProcessErrorCutoff(string(common.BlockProcessingCutoffByNonce)))
+	t.Run("process error via epoch - should work", testHandleProcessErrorCutoff(string(common.BlockProcessingCutoffByEpoch)))
+}
+
+func testHandleProcessErrorCutoff(trigger string) func(t *testing.T) {
+	return func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.BlockProcessingCutoffConfig{
 			Enabled:       true,
 			Mode:          common.BlockProcessingCutoffModeProcessError,
-			CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+			CutoffTrigger: trigger,
 			Value:         20,
 		}
 		b, err := NewBlockProcessingCutoffHandler(cfg)
 		require.NoError(t, err)
 
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Round: 19}) // not the desired round
+		err = b.HandleProcessErrorCutoff(&block.MetaBlock{
+			Epoch: 19, // not the desired epoch
+			Nonce: 19, // not the desired nonce
+			Round: 19, // not the desired round
+		})
 		require.NoError(t, err)
 
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Round: 20})
+		err = b.HandleProcessErrorCutoff(&block.MetaBlock{
+			Epoch: 20,
+			Nonce: 20,
+			Round: 20,
+		})
 		require.Equal(t, errProcess, err)
-	})
-
-	t.Run("process error via nonce", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:       true,
-			Mode:          common.BlockProcessingCutoffModeProcessError,
-			CutoffTrigger: string(common.BlockProcessingCutoffByNonce),
-			Value:         20,
-		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.NoError(t, err)
-
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Nonce: 19}) // not the desired nonce
-		require.NoError(t, err)
-
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Nonce: 20})
-		require.Equal(t, errProcess, err)
-	})
-
-	t.Run("process error via epoch", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := config.BlockProcessingCutoffConfig{
-			Enabled:       true,
-			Mode:          common.BlockProcessingCutoffModeProcessError,
-			CutoffTrigger: string(common.BlockProcessingCutoffByEpoch),
-			Value:         20,
-		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
-		require.NoError(t, err)
-
-		dummyEpochStartData := block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{
-					ShardID: 0,
-				},
-			},
-		}
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Epoch: 19, EpochStart: dummyEpochStartData}) // not the desired nonce
-		require.NoError(t, err)
-
-		err = b.HandleProcessErrorCutoff(&block.MetaBlock{Epoch: 20, EpochStart: dummyEpochStartData})
-		require.Equal(t, errProcess, err)
-	})
+	}
 }

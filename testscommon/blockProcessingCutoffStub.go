@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
+// BlockProcessingCutoffStub -
 type BlockProcessingCutoffStub struct {
 	HandleProcessErrorCutoffCalled func(header data.HeaderHandler) error
 	HandlePauseCutoffCalled        func(header data.HeaderHandler)
