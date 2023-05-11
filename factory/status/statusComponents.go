@@ -262,17 +262,17 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFacto
 }
 
 func (scf *statusComponentsFactory) makeHostDriverArgs() (outportDriverFactory.ArgsHostDriverFactory, error) {
-	if !scf.externalConfig.HostDriverConnector.Enabled {
+	if !scf.externalConfig.HostDriverConfig.Enabled {
 		return outportDriverFactory.ArgsHostDriverFactory{}, nil
 	}
 
-	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.HostDriverConnector.MarshallerType)
+	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.HostDriverConfig.MarshallerType)
 	if err != nil {
 		return outportDriverFactory.ArgsHostDriverFactory{}, err
 	}
 
 	return outportDriverFactory.ArgsHostDriverFactory{
 		Marshaller: marshaller,
-		HostConfig: scf.externalConfig.HostDriverConnector,
+		HostConfig: scf.externalConfig.HostDriverConfig,
 	}, nil
 }

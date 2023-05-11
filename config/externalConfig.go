@@ -4,7 +4,7 @@ package config
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
-	HostDriverConnector    HostDriverConfig
+	HostDriverConfig       HostDriverConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
