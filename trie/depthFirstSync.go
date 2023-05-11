@@ -261,6 +261,13 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 	d.updateStats(uint64(numBytes), element)
 
+	leafNodeElement, isLeaf := element.(*leafNode)
+	if isLeaf && d.accLeavesChannels.LeavesChan != nil {
+		log.Debug("storeTrieNode: found leaf node")
+		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+		d.accLeavesChannels.LeavesChan <- trieLeaf
+	}
+
 	return nil
 }
 
