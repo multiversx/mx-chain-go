@@ -90,6 +90,9 @@ func (msc *managedStateComponents) CheckSubcomponents() error {
 			return errors.ErrNilTrieStorageManager
 		}
 	}
+	if check.IfNil(msc.missingTrieNodesNotifier) {
+		return errors.ErrNilMissingTrieNodesNotifier
+	}
 
 	return nil
 }
@@ -199,14 +202,15 @@ func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]c
 	return nil
 }
 
+// MissingTrieNodesNotifier returns the missing trie nodes notifier
 func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
 	msc.mutStateComponents.RLock()
 	defer msc.mutStateComponents.RUnlock()
 
-	if check.IfNil(msc.missingTrieNodesNotifier) {
+	if msc.stateComponents == nil {
 		return nil
 	}
-	
+
 	return msc.missingTrieNodesNotifier
 }
 

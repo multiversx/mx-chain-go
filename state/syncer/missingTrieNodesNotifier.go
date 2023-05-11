@@ -21,19 +21,20 @@ func NewMissingTrieNodesNotifier() *missingTrieNodesNotifier {
 }
 
 // RegisterHandler registers a new handler for the missing trie nodes notifier
-func (mtnn *missingTrieNodesNotifier) RegisterHandler(handler common.StateSyncNotifierSubscriber) {
+func (mtnn *missingTrieNodesNotifier) RegisterHandler(handler common.StateSyncNotifierSubscriber) error {
 	if check.IfNil(handler) {
-		log.Warn("missingTrieNodesNotifier: nil handler")
-		return
+		return common.ErrNilStateSyncNotifierSubscriber
 	}
 
 	mtnn.mutex.Lock()
 	mtnn.handlers = append(mtnn.handlers, handler)
 	mtnn.mutex.Unlock()
+
+	return nil
 }
 
-// NotifyMissingTrieNode notifies all the registered handlers that a trie node is missing
-func (mtnn *missingTrieNodesNotifier) NotifyMissingTrieNode(hash []byte) {
+// AsyncNotifyMissingTrieNode asynchronously notifies all the registered handlers that a trie node is missing
+func (mtnn *missingTrieNodesNotifier) AsyncNotifyMissingTrieNode(hash []byte) {
 	if common.IsEmptyTrie(hash) {
 		log.Warn("missingTrieNodesNotifier: empty trie hash")
 		return

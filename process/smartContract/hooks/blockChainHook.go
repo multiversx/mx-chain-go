@@ -270,7 +270,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 		messages = append(messages, "error")
 		messages = append(messages, err)
 
-		bh.syncMissingDataTrieNode(err)
+		bh.syncIfMissingDataTrieNode(err)
 	}
 	log.Trace("GetStorageData ", messages...)
 
@@ -279,7 +279,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	return value, trieDepth, nil
 }
 
-func (bh *BlockChainHookImpl) syncMissingDataTrieNode(err error) {
+func (bh *BlockChainHookImpl) syncIfMissingDataTrieNode(err error) {
 	if !core.IsGetNodeFromDBError(err) {
 		return
 	}
@@ -289,7 +289,7 @@ func (bh *BlockChainHookImpl) syncMissingDataTrieNode(err error) {
 		return
 	}
 
-	bh.missingTrieNodesNotifier.NotifyMissingTrieNode(getNodeErr.GetKey())
+	bh.missingTrieNodesNotifier.AsyncNotifyMissingTrieNode(getNodeErr.GetKey())
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {

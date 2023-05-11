@@ -479,7 +479,10 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	if !ok {
 		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
 	}
-	ccf.stateComponents.MissingTrieNodesNotifier().RegisterHandler(stateNodesNotifierSubscriber)
+	err = ccf.stateComponents.MissingTrieNodesNotifier().RegisterHandler(stateNodesNotifierSubscriber)
+	if err != nil {
+		return nil, err
+	}
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  ccf.dataComponents.Datapool(),

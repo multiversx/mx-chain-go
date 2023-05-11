@@ -553,7 +553,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 			},
 		}
 		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
-			NotifyMissingTrieNodeCalled: func(hash []byte) {
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
 				assert.Equal(t, missingDataTrieKey, hash)
 				notifyMissingTrieNodeCalled = true
 			},
@@ -583,7 +583,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 			},
 		}
 		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
-			NotifyMissingTrieNodeCalled: func(hash []byte) {
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
 				assert.Fail(t, "should not have been called")
 			},
 		}
@@ -591,7 +591,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
 	})
-	t.Run("unwrapped err is not of wanted type", func(t *testing.T) {
+	t.Run("unwrapped err is not of wanted type, should not call missingTrieNodesNotifier", func(t *testing.T) {
 		t.Parallel()
 
 		missingDataTrieKey := []byte("missingDataTrieKey")
@@ -612,7 +612,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 			},
 		}
 		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
-			NotifyMissingTrieNodeCalled: func(hash []byte) {
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
 				assert.Fail(t, "should not have been called")
 			},
 		}

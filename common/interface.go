@@ -362,8 +362,8 @@ type ManagedPeersHolder interface {
 
 // MissingTrieNodesNotifier defines the operations of an entity that notifies about missing trie nodes
 type MissingTrieNodesNotifier interface {
-	RegisterHandler(handler StateSyncNotifierSubscriber)
-	NotifyMissingTrieNode(hash []byte)
+	RegisterHandler(handler StateSyncNotifierSubscriber) error
+	AsyncNotifyMissingTrieNode(hash []byte)
 	IsInterfaceNil() bool
 }
 

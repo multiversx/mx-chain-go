@@ -66,6 +66,7 @@ func (scm *StateComponentsMock) String() string {
 	return "StateComponentsMock"
 }
 
+// MissingTrieNodesNotifier -
 func (scm *StateComponentsMock) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
 	return scm.MissingNodesNotifier
 }

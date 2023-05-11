@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,25 +21,27 @@ func TestMissingTrieNodesNotifier_RegisterHandler(t *testing.T) {
 
 	notifier := NewMissingTrieNodesNotifier()
 
-	notifier.RegisterHandler(nil)
-	notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{})
-	notifier.RegisterHandler(nil)
+	err := notifier.RegisterHandler(nil)
+	assert.Equal(t, common.ErrNilStateSyncNotifierSubscriber, err)
+
+	err = notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{})
+	assert.Nil(t, err)
 
 	assert.Equal(t, 1, notifier.GetNumHandlers())
 }
 
-func TestMissingTrieNodesNotifier_NotifyMissingTrieNode(t *testing.T) {
+func TestMissingTrieNodesNotifier_AsyncNotifyMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
 	numMissingDataTrieNodeFoundCalled := 0
 	notifier := NewMissingTrieNodesNotifier()
-	notifier.NotifyMissingTrieNode([]byte("hash1"))
+	notifier.AsyncNotifyMissingTrieNode([]byte("hash1"))
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	mutex := sync.Mutex{}
 
-	notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{
+	err := notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{
 		MissingDataTrieNodeFoundCalled: func(_ []byte) {
 			mutex.Lock()
 			numMissingDataTrieNodeFoundCalled++
@@ -46,10 +49,11 @@ func TestMissingTrieNodesNotifier_NotifyMissingTrieNode(t *testing.T) {
 			mutex.Unlock()
 		},
 	})
+	assert.Nil(t, err)
 
-	notifier.NotifyMissingTrieNode(nil)
-	notifier.NotifyMissingTrieNode([]byte("hash2"))
-	notifier.NotifyMissingTrieNode([]byte("hash3"))
+	notifier.AsyncNotifyMissingTrieNode(nil)
+	notifier.AsyncNotifyMissingTrieNode([]byte("hash2"))
+	notifier.AsyncNotifyMissingTrieNode([]byte("hash3"))
 
 	wg.Wait()
 

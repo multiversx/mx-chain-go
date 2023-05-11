@@ -4,22 +4,27 @@ import "github.com/multiversx/mx-chain-go/common"
 
 // MissingTrieNodesNotifierStub -
 type MissingTrieNodesNotifierStub struct {
-	RegisterHandlerCalled       func(handler common.StateSyncNotifierSubscriber)
-	NotifyMissingTrieNodeCalled func(hash []byte)
+	RegisterHandlerCalled            func(handler common.StateSyncNotifierSubscriber) error
+	AsyncNotifyMissingTrieNodeCalled func(hash []byte)
 }
 
-func (mtnns *MissingTrieNodesNotifierStub) RegisterHandler(handler common.StateSyncNotifierSubscriber) {
+// RegisterHandler -
+func (mtnns *MissingTrieNodesNotifierStub) RegisterHandler(handler common.StateSyncNotifierSubscriber) error {
 	if mtnns.RegisterHandlerCalled != nil {
-		mtnns.RegisterHandlerCalled(handler)
+		return mtnns.RegisterHandlerCalled(handler)
+	}
+
+	return nil
+}
+
+// AsyncNotifyMissingTrieNode -
+func (mtnns *MissingTrieNodesNotifierStub) AsyncNotifyMissingTrieNode(hash []byte) {
+	if mtnns.AsyncNotifyMissingTrieNodeCalled != nil {
+		mtnns.AsyncNotifyMissingTrieNodeCalled(hash)
 	}
 }
 
-func (mtnns *MissingTrieNodesNotifierStub) NotifyMissingTrieNode(hash []byte) {
-	if mtnns.NotifyMissingTrieNodeCalled != nil {
-		mtnns.NotifyMissingTrieNodeCalled(hash)
-	}
-}
-
+// IsInterfaceNil returns true if there is no value under the interface
 func (mtnns *MissingTrieNodesNotifierStub) IsInterfaceNil() bool {
 	return mtnns == nil
 }
