@@ -346,7 +346,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.Node = &mock.NodeStub{
-			GetAccountCalled: func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{}, api.BlockInfo{}, expectedErr
 			},
 		}
