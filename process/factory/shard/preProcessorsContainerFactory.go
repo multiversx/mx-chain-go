@@ -2,6 +2,7 @@ package shard
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -207,7 +208,14 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcf.processedMiniBlocksTracker,
 	)
 
-	return scrPreprocessor, err
+	switch ppcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return scrPreprocessor, err
+	case common.ChainRunTypeSovereign:
+		return preprocess.NewSovereignChainIncomingSCR(scrPreprocessor)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, ppcf.chainRunType)
+	}
 }
 
 func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
