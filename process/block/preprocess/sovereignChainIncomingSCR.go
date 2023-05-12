@@ -76,6 +76,7 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 			scr.scrForBlock.mutTxsForBlock.RLock()
 			txInfoFromMap, ok := scr.scrForBlock.txHashAndInfo[string(txHash)]
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
+
 			if !ok || check.IfNil(txInfoFromMap.tx) {
 				log.Warn("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
 				return nil, process.ErrMissingTransaction
