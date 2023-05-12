@@ -136,27 +136,6 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
-
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
