@@ -23,6 +23,7 @@ func TestMissingTrieNodesNotifier_RegisterHandler(t *testing.T) {
 
 	err := notifier.RegisterHandler(nil)
 	assert.Equal(t, common.ErrNilStateSyncNotifierSubscriber, err)
+	assert.Equal(t, 0, notifier.GetNumHandlers())
 
 	err = notifier.RegisterHandler(&testscommon.StateSyncNotifierSubscriberStub{})
 	assert.Nil(t, err)

@@ -211,7 +211,7 @@ func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrie
 		return nil
 	}
 
-	return msc.missingTrieNodesNotifier
+	return msc.stateComponents.missingTrieNodesNotifier
 }
 
 // IsInterfaceNil returns true if the interface is nil

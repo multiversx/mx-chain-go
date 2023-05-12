@@ -152,7 +152,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
-	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash)
+	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash, u.checkNodesOnDisk)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,11 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	return nil
 }
 
-func (u *userAccountsSyncer) createAndStartSyncer(ctx context.Context, hash []byte) (trie.TrieSyncer, error) {
+func (u *userAccountsSyncer) createAndStartSyncer(
+	ctx context.Context,
+	hash []byte,
+	checkNodesOnDisk bool,
+) (trie.TrieSyncer, error) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
@@ -174,7 +178,7 @@ func (u *userAccountsSyncer) createAndStartSyncer(ctx context.Context, hash []by
 		TrieSyncStatistics:        u.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
-		CheckNodesOnDisk:          u.checkNodesOnDisk,
+		CheckNodesOnDisk:          checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
@@ -336,8 +340,7 @@ func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 // MissingDataTrieNodeFound is called whenever a missing data trie node is found.
 // This will trigger the sync process for the whole sub trie, starting from the given hash.
 func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	defer u.printDataTrieStatistics()
 
 	u.timeoutHandler.ResetWatchdog()
 
@@ -347,11 +350,13 @@ func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
 		cancel()
 	}()
 
-	_, err := u.createAndStartSyncer(ctx, hash)
+	trieSyncer, err := u.createAndStartSyncer(ctx, hash, true)
 	if err != nil {
 		log.Error("cannot sync trie", "err", err, "hash", hash)
 		return
 	}
+
+	u.updateDataTrieStatistics(trieSyncer, hash)
 
 	log.Debug("finished sync data trie", "hash", hash)
 }
