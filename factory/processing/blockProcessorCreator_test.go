@@ -31,9 +31,6 @@ import (
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
@@ -69,9 +66,6 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardC := mock.NewMultiShardsCoordinatorMock(1)

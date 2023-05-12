@@ -55,6 +55,8 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
+			SetGuardianEpochsDelay:               20,
+			StatusPollingIntervalSec:             10,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,

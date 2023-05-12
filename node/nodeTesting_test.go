@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -394,7 +395,6 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 		PrivKey:                 &mock.PrivateKeyStub{},
 		P2pPrivKey:              &mock.PrivateKeyStub{},
 		PubKeyString:            "pubKey",
-		PrivKeyBytes:            []byte("privKey"),
 		PubKeyBytes:             []byte("pubKey"),
 		BlockSig:                &mock.SingleSignerMock{},
 		TxSig:                   &mock.SingleSignerMock{},
@@ -409,8 +409,8 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 	}
 }
 
-func getDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func getDefaultStateComponents() *factoryMocks.StateComponentsMock {
+	return &factoryMocks.StateComponentsMock{
 		PeersAcc:        &stateMock.AccountsStub{},
 		Accounts:        &stateMock.AccountsStub{},
 		AccountsAPI:     &stateMock.AccountsStub{},

@@ -199,18 +199,6 @@ func (mcc *managedCryptoComponents) PublicKeyBytes() []byte {
 	return mcc.cryptoParams.publicKeyBytes
 }
 
-// PrivateKeyBytes returns the configured validator private key bytes
-func (mcc *managedCryptoComponents) PrivateKeyBytes() []byte {
-	mcc.mutCryptoComponents.RLock()
-	defer mcc.mutCryptoComponents.RUnlock()
-
-	if mcc.cryptoComponents == nil {
-		return nil
-	}
-
-	return mcc.cryptoParams.privateKeyBytes
-}
-
 // TxSingleSigner returns the transaction signer
 func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 	mcc.mutCryptoComponents.RLock()
@@ -260,6 +248,10 @@ func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSig
 
 // SetMultiSignerContainer sets the multiSigner container in the crypto components
 func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	if check.IfNil(ms) {
+		return errors.ErrNilMultiSignerContainer
+	}
+
 	mcc.mutCryptoComponents.Lock()
 	mcc.multiSignerContainer = ms
 	mcc.mutCryptoComponents.Unlock()

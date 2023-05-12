@@ -79,6 +79,11 @@ func (s *StateComponentsHolderStub) MissingTrieNodesNotifier() common.MissingTri
 	return nil
 }
 
+// Close -
+func (s *StateComponentsHolderStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (s *StateComponentsHolderStub) IsInterfaceNil() bool {
 	return s == nil

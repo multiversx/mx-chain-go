@@ -1,3 +1,8 @@
+//go:build !race
+// +build !race
+
+// TODO reinstate test after Wasm VM pointer fix
+
 package process
 
 import (
@@ -64,6 +69,7 @@ func createMockArgument(
 			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:           testscommon.NewPubkeyConverterMock(32),
 			Chain:                    "chainID",
+			TxVersionCheck:      &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
@@ -90,13 +96,16 @@ func createMockArgument(
 				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost: "500",
+				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     nodePrice.Text(10),
@@ -204,11 +213,6 @@ func createMockArgument(
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
@@ -269,11 +273,6 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
@@ -318,11 +317,6 @@ func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAndDNS(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
@@ -398,11 +392,6 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 }
 
 func TestGenesisBlockCreator_GetIndexingDataShouldWork(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")

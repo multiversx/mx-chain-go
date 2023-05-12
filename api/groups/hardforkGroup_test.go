@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type TriggerResponse struct {
+type triggerResponse struct {
 	Status string `json:"status"`
 }
 
@@ -38,10 +39,9 @@ func TestNewHardforkGroup(t *testing.T) {
 	})
 }
 
-func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
+func TestHardforkGroup_TriggerCannotExecuteShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	hardforkFacade := &mock.HardforkFacade{
 		TriggerCalled: func(_ uint32, _ bool) error {
 			return expectedErr
@@ -69,7 +69,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 	assert.Contains(t, response.Error, expectedErr.Error())
 }
 
-func TestTrigger_TriggerWrongRequestTypeShouldErr(t *testing.T) {
+func TestHardforkGroup_TriggerWrongRequestTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hardforkGroup, err := groups.NewHardforkGroup(&mock.HardforkFacade{})
@@ -81,13 +81,13 @@ func TestTrigger_TriggerWrongRequestTypeShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
+	triggerResp := triggerResponse{}
+	loadResponse(resp.Body, &triggerResp)
 
 	assert.Equal(t, resp.Code, http.StatusBadRequest)
 }
 
-func TestTrigger_ManualShouldWork(t *testing.T) {
+func TestHardforkGroup_ManualShouldWork(t *testing.T) {
 	t.Parallel()
 
 	recoveredEpoch := uint32(0)
@@ -118,17 +118,17 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	triggerResponse := TriggerResponse{}
+	triggerResp := triggerResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseBytes, _ := json.Marshal(&mapResponseData)
-	_ = json.Unmarshal(mapResponseBytes, &triggerResponse)
+	_ = json.Unmarshal(mapResponseBytes, &triggerResp)
 
 	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, groups.ExecManualTrigger, triggerResponse.Status)
+	assert.Equal(t, groups.ExecManualTrigger, triggerResp.Status)
 	assert.Equal(t, hr.Epoch, atomic.LoadUint32(&recoveredEpoch))
 }
 
-func TestTrigger_BroadcastShouldWork(t *testing.T) {
+func TestHardforkGroup_BroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hardforkFacade := &mock.HardforkFacade{
@@ -156,13 +156,99 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	triggerResponse := TriggerResponse{}
+	triggerResp := triggerResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseBytes, _ := json.Marshal(&mapResponseData)
-	_ = json.Unmarshal(mapResponseBytes, &triggerResponse)
+	_ = json.Unmarshal(mapResponseBytes, &triggerResp)
 
 	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, groups.ExecBroadcastTrigger, triggerResponse.Status)
+	assert.Equal(t, groups.ExecBroadcastTrigger, triggerResp.Status)
+}
+
+func TestHardforkGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	hardforkGroup, _ := groups.NewHardforkGroup(nil)
+	require.True(t, hardforkGroup.IsInterfaceNil())
+
+	hardforkGroup, _ = groups.NewHardforkGroup(&mock.FacadeStub{})
+	require.False(t, hardforkGroup.IsInterfaceNil())
+}
+
+func TestHardforkGroup_UpdateFacadeStub(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		hardforkGroup, err := groups.NewHardforkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = hardforkGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		hardforkGroup, err := groups.NewHardforkGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = hardforkGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		hardforkFacade := &mock.HardforkFacade{
+			TriggerCalled: func(_ uint32, _ bool) error {
+				return nil
+			},
+			IsSelfTriggerCalled: func() bool {
+				return true
+			},
+		}
+
+		hardforkGroup, err := groups.NewHardforkGroup(hardforkFacade)
+		require.NoError(t, err)
+
+		ws := startWebServer(hardforkGroup, "hardfork", getHardforkRoutesConfig())
+
+		hr := &groups.HardforkRequest{
+			Epoch: 4,
+		}
+		buffHr, _ := json.Marshal(hr)
+		req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(buffHr))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+
+		triggerResp := triggerResponse{}
+		mapResponseData := response.Data.(map[string]interface{})
+		mapResponseBytes, _ := json.Marshal(&mapResponseData)
+		_ = json.Unmarshal(mapResponseBytes, &triggerResp)
+
+		assert.Equal(t, resp.Code, http.StatusOK)
+		assert.Equal(t, groups.ExecBroadcastTrigger, triggerResp.Status)
+
+		newFacade := &mock.HardforkFacade{
+			TriggerCalled: func(_ uint32, _ bool) error {
+				return expectedErr
+			},
+		}
+		err = hardforkGroup.UpdateFacade(newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(buffHr))
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response = shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
 }
 
 func getHardforkRoutesConfig() config.ApiRoutesConfig {
