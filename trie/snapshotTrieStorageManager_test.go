@@ -34,7 +34,7 @@ func TestNewSnapshotTrieStorageManager(t *testing.T) {
 	assert.False(t, check.IfNil(stsm))
 }
 
-func TestNewSnapshotTrieStorageManager_Get(t *testing.T) {
+func TestSnapshotTrieStorageManager_Get(t *testing.T) {
 	t.Parallel()
 
 	t.Run("closed storage manager should error", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestNewSnapshotTrieStorageManager_Get(t *testing.T) {
 	})
 }
 
-func TestNewSnapshotTrieStorageManager_Put(t *testing.T) {
+func TestSnapshotTrieStorageManager_Put(t *testing.T) {
 	t.Parallel()
 
 	t.Run("closed storage manager should error", func(t *testing.T) {
@@ -114,7 +114,7 @@ func TestNewSnapshotTrieStorageManager_Put(t *testing.T) {
 	})
 }
 
-func TestNewSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
+func TestSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
 	t.Parallel()
 
 	t.Run("closed storage manager should error", func(t *testing.T) {

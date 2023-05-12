@@ -98,7 +98,7 @@ func TestTrieSyncers_AddMultiple(t *testing.T) {
 		err := tsc.AddMultiple([]string{testKey0}, nil)
 		require.Equal(t, update.ErrLenMismatch, err)
 	})
-	t.Run("duplicated keys should should error on Add", func(t *testing.T) {
+	t.Run("duplicated keys should error on Add", func(t *testing.T) {
 		t.Parallel()
 
 		tsc := NewTrieSyncersContainer()

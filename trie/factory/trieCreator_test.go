@@ -176,7 +176,7 @@ func TestTrieCreator_CreateWithInvalidMaxTrieLevelInMemShouldErr(t *testing.T) {
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
 	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), trie.ErrInvalidLevelValue.Error()))
+	require.Contains(t, err.Error(), trie.ErrInvalidLevelValue.Error())
 }
 
 func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {

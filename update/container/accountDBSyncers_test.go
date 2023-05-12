@@ -100,15 +100,14 @@ func TestAccountDBSyncers_AddMultiple(t *testing.T) {
 		err := adsc.AddMultiple([]string{testKey0}, nil)
 		require.Equal(t, update.ErrLenMismatch, err)
 	})
-	t.Run("duplicated keys should should error on Add", func(t *testing.T) {
+	t.Run("duplicated keys should error on Add", func(t *testing.T) {
 		t.Parallel()
 
 		adsc := NewAccountsDBSyncersContainer()
 		err := adsc.AddMultiple([]string{testKey0, testKey1, testKey1}, []update.AccountsDBSyncer{testAccountsDBSyncersVal0, testAccountsDBSyncersVal1, testAccountsDBSyncersVal1})
 		require.Equal(t, update.ErrContainerKeyAlreadyExists, err)
 	})
-	t.Run("should work"+
-		"", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		adsc := NewAccountsDBSyncersContainer()
