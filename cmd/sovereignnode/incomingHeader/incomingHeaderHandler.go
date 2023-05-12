@@ -15,8 +15,8 @@ import (
 
 var log = logger.GetOrCreate("headerSubscriber")
 
-// ArgsIncomingHeaderHandler is a struct placeholder for args needed to create a new incoming header handler
-type ArgsIncomingHeaderHandler struct {
+// ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
+type ArgsIncomingHeaderProcessor struct {
 	HeadersPool HeadersPool
 	TxPool      TransactionPool
 	Marshaller  marshal.Marshalizer
@@ -33,7 +33,7 @@ type incomingHeaderProcessor struct {
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
-func NewIncomingHeaderProcessor(args ArgsIncomingHeaderHandler) (*incomingHeaderProcessor, error) {
+func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHeaderProcessor, error) {
 	if check.IfNil(args.HeadersPool) {
 		return nil, errNilHeadersPool
 	}

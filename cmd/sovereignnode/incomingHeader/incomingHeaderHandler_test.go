@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createArgs() ArgsIncomingHeaderHandler {
-	return ArgsIncomingHeaderHandler{
+func createArgs() ArgsIncomingHeaderProcessor {
+	return ArgsIncomingHeaderProcessor{
 		HeadersPool: &mock.HeadersCacherStub{},
 		TxPool:      &testscommon.ShardedDataStub{},
 		Marshaller:  &testscommon.MarshalizerMock{},

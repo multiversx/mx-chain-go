@@ -20,7 +20,7 @@ type scrInfo struct {
 	hash []byte
 }
 
-func (ihs *incomingHeaderHandler) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
+func (ihp *incomingHeaderProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
 	scrs := make([]*scrInfo, 0, len(events))
 
 	for _, event := range events {
@@ -39,7 +39,7 @@ func (ihs *incomingHeaderHandler) createIncomingSCRs(events []data.EventHandler)
 			Data:    createSCRData(topics),
 		}
 
-		hash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, scr)
+		hash, err := core.CalculateHash(ihp.marshaller, ihp.hasher, scr)
 		if err != nil {
 			return nil, err
 		}
@@ -73,10 +73,10 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (ihs *incomingHeaderHandler) addSCRsToPool(scrs []*scrInfo) {
+func (ihp *incomingHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
 	for _, scrData := range scrs {
-		ihs.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+		ihp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
 	}
 }
