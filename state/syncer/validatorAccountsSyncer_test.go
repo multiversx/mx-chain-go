@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,5 +52,33 @@ func TestNewValidatorAccountsSyncer(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, v)
 	})
+}
 
+func TestValidatorAccountsSyncer(t *testing.T) {
+	t.Parallel()
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+	}
+
+	key := []byte("rootHash")
+	serializedLeafNode := getSerializedTrieNode(key, args.Marshalizer, args.Hasher)
+	itn, err := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
+	require.Nil(t, err)
+
+	args.TrieStorageManager = &testscommon.StorageManagerStub{
+		GetCalled: func(b []byte) ([]byte, error) {
+			return serializedLeafNode, nil
+		},
+	}
+
+	cacher := testscommon.NewCacherMock()
+	cacher.Put(key, itn, 0)
+	args.Cacher = cacher
+
+	v, err := syncer.NewValidatorAccountsSyncer(args)
+	require.Nil(t, err)
+
+	err = v.SyncAccounts(key)
+	require.Nil(t, err)
 }
