@@ -22,9 +22,9 @@ require (
 	github.com/multiversx/mx-chain-storage-go v1.0.8
 	github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230509130344-9d241d34991f
 	github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230509130604-825e323f67b6
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54-0.20230425091341-4a24504bcde4
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55-0.20230425093821-9ea20e2ba44d
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81-0.20230425093655-5bda00c8ebe7
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54-0.20230512081309-5a21e9f58f75
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55-0.20230512080225-93b429c3fad7
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81-0.20230512080139-c7f54612ba66
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
