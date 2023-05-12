@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -470,6 +471,15 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	}
 
 	accountsDBSyncer, err := ccf.createUserAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
+	stateNodesNotifierSubscriber, ok := accountsDBSyncer.(common.StateSyncNotifierSubscriber)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
+	}
+	err = ccf.stateComponents.MissingTrieNodesNotifier().RegisterHandler(stateNodesNotifierSubscriber)
 	if err != nil {
 		return nil, err
 	}

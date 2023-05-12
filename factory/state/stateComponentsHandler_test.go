@@ -47,6 +47,7 @@ func TestManagedStateComponents_CreateShouldWork(t *testing.T) {
 	require.Nil(t, managedStateComponents.PeerAccounts())
 	require.Nil(t, managedStateComponents.TriesContainer())
 	require.Nil(t, managedStateComponents.TrieStorageManagers())
+	require.Nil(t, managedStateComponents.MissingTrieNodesNotifier())
 
 	err = managedStateComponents.Create()
 	require.NoError(t, err)
@@ -54,6 +55,7 @@ func TestManagedStateComponents_CreateShouldWork(t *testing.T) {
 	require.NotNil(t, managedStateComponents.PeerAccounts())
 	require.NotNil(t, managedStateComponents.TriesContainer())
 	require.NotNil(t, managedStateComponents.TrieStorageManagers())
+	require.NotNil(t, managedStateComponents.MissingTrieNodesNotifier())
 }
 
 func TestManagedStateComponents_Close(t *testing.T) {

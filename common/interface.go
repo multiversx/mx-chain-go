@@ -359,3 +359,16 @@ type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }
+
+// MissingTrieNodesNotifier defines the operations of an entity that notifies about missing trie nodes
+type MissingTrieNodesNotifier interface {
+	RegisterHandler(handler StateSyncNotifierSubscriber) error
+	AsyncNotifyMissingTrieNode(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
+type StateSyncNotifierSubscriber interface {
+	MissingDataTrieNodeFound(hash []byte)
+	IsInterfaceNil() bool
+}

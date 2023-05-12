@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -64,6 +65,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (*blockProcessorAndVmFactories, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -79,6 +81,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			scheduledTxsExecutionHandler,
 			processedMiniBlocksTracker,
 			receiptsRepository,
+			missingTrieNodesNotifier,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -117,6 +120,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -141,6 +145,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	vmFactory, err := pcf.createVMFactoryShard(
 		pcf.state.AccountsAdapter(),
+		missingTrieNodesNotifier,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
@@ -974,6 +979,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	smartContractStorageSimulate := pcf.config.SmartContractsStorageSimulate
 	vmFactory, err := pcf.createVMFactoryShard(
 		readOnlyAccountsDB,
+		syncer.NewMissingTrieNodesNotifier(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
@@ -1138,6 +1144,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 
 func (pcf *processComponentsFactory) createVMFactoryShard(
 	accounts state.AccountsAdapter,
+	notifier common.MissingTrieNodesNotifier,
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	esdtTransferParser vmcommon.ESDTTransferParser,
 	wasmVMChangeLocker common.Locker,
@@ -1151,25 +1158,26 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              accounts,
-		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
-		StorageService:        pcf.data.StorageService(),
-		BlockChain:            pcf.data.Blockchain(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:           pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:       pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		DataPool:              pcf.data.Datapool(),
-		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
-		WorkingDir:            pcf.workingDir,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
-		EpochNotifier:         pcf.coreData.EpochNotifier(),
-		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
-		NilCompiledSCStore:    false,
-		ConfigSCStorage:       configSCStorage,
-		GasSchedule:           pcf.gasSchedule,
-		Counter:               counter,
+		Accounts:                 accounts,
+		PubkeyConv:               pcf.coreData.AddressPubKeyConverter(),
+		StorageService:           pcf.data.StorageService(),
+		BlockChain:               pcf.data.Blockchain(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:          pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:         builtInFuncs,
+		DataPool:                 pcf.data.Datapool(),
+		CompiledSCPool:           pcf.data.Datapool().SmartContracts(),
+		WorkingDir:               pcf.workingDir,
+		NFTStorageHandler:        nftStorageHandler,
+		GlobalSettingsHandler:    globalSettingsHandler,
+		EpochNotifier:            pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		NilCompiledSCStore:       false,
+		ConfigSCStorage:          configSCStorage,
+		GasSchedule:              pcf.gasSchedule,
+		Counter:                  counter,
+		MissingTrieNodesNotifier: notifier,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1201,25 +1209,26 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              accounts,
-		PubkeyConv:            pcf.coreData.AddressPubKeyConverter(),
-		StorageService:        pcf.data.StorageService(),
-		BlockChain:            pcf.data.Blockchain(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:           pcf.coreData.InternalMarshalizer(),
-		Uint64Converter:       pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		DataPool:              pcf.data.Datapool(),
-		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:       configSCStorage,
-		WorkingDir:            pcf.workingDir,
-		NFTStorageHandler:     nftStorageHandler,
-		GlobalSettingsHandler: globalSettingsHandler,
-		EpochNotifier:         pcf.coreData.EpochNotifier(),
-		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
-		NilCompiledSCStore:    false,
-		GasSchedule:           pcf.gasSchedule,
-		Counter:               counters.NewDisabledCounter(),
+		Accounts:                 accounts,
+		PubkeyConv:               pcf.coreData.AddressPubKeyConverter(),
+		StorageService:           pcf.data.StorageService(),
+		BlockChain:               pcf.data.Blockchain(),
+		ShardCoordinator:         pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64Converter:          pcf.coreData.Uint64ByteSliceConverter(),
+		BuiltInFunctions:         builtInFuncs,
+		DataPool:                 pcf.data.Datapool(),
+		CompiledSCPool:           pcf.data.Datapool().SmartContracts(),
+		ConfigSCStorage:          configSCStorage,
+		WorkingDir:               pcf.workingDir,
+		NFTStorageHandler:        nftStorageHandler,
+		GlobalSettingsHandler:    globalSettingsHandler,
+		EpochNotifier:            pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		NilCompiledSCStore:       false,
+		GasSchedule:              pcf.gasSchedule,
+		Counter:                  counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

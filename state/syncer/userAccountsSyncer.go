@@ -152,6 +152,21 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
+	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash, u.checkNodesOnDisk)
+	if err != nil {
+		return err
+	}
+
+	u.updateDataTrieStatistics(trieSyncer, address)
+
+	return nil
+}
+
+func (u *userAccountsSyncer) createAndStartSyncer(
+	ctx context.Context,
+	hash []byte,
+	checkNodesOnDisk bool,
+) (trie.TrieSyncer, error) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
@@ -163,22 +178,19 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		TrieSyncStatistics:        u.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
-		CheckNodesOnDisk:          u.checkNodesOnDisk,
+		CheckNodesOnDisk:          checkNodesOnDisk,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
-
-		return err
+		return nil, err
 	}
 
-	err = trieSyncer.StartSyncing(rootHash, ctx)
+	err = trieSyncer.StartSyncing(hash, ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	u.updateDataTrieStatistics(trieSyncer, address)
-
-	return nil
+	return trieSyncer, nil
 }
 
 func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer, address []byte) {
@@ -323,6 +335,30 @@ func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error
 // requesting trie nodes as to prevent the sync process being terminated prematurely.
 func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 	u.timeoutHandler.ResetWatchdog()
+}
+
+// MissingDataTrieNodeFound is called whenever a missing data trie node is found.
+// This will trigger the sync process for the whole sub trie, starting from the given hash.
+func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
+	defer u.printDataTrieStatistics()
+
+	u.timeoutHandler.ResetWatchdog()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		u.cacher.Clear()
+		cancel()
+	}()
+
+	trieSyncer, err := u.createAndStartSyncer(ctx, hash, true)
+	if err != nil {
+		log.Error("cannot sync trie", "err", err, "hash", hash)
+		return
+	}
+
+	u.updateDataTrieStatistics(trieSyncer, hash)
+
+	log.Debug("finished sync data trie", "hash", hash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -26,6 +26,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository factory.ReceiptsRepository,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -41,6 +42,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		missingTrieNodesNotifier,
 	)
 	if err != nil {
 		return nil, nil, err

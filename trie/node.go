@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
@@ -124,11 +123,11 @@ func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marsh
 
 		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
 		if !ok {
-			getNodeFromDbErr := errors.NewGetNodeFromDBErrWithKey(n, err, "")
+			getNodeFromDbErr := core.NewGetNodeFromDBErrWithKey(n, err, "")
 			return nil, fmt.Errorf("db does not have an identifier, db type: %T, error: %w", db, getNodeFromDbErr)
 		}
 
-		return nil, errors.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())
+		return nil, core.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -20,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -2065,7 +2065,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := commonErrors.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "")
+	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "")
 	blockProcessor := createBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB
@@ -2155,24 +2155,4 @@ func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 
 	bootstrapper := &sync.ShardBootstrap{}
 	assert.Nil(t, bootstrapper.Close())
-}
-
-func TestUnwrapGetNodeFromDBErr(t *testing.T) {
-	t.Parallel()
-
-	key := []byte("key")
-	identifier := "identifier"
-	err := fmt.Errorf("key not found")
-
-	getNodeFromDbErr := commonErrors.NewGetNodeFromDBErrWithKey(key, err, identifier)
-	wrappedErr1 := fmt.Errorf("wrapped error 1: %w", getNodeFromDbErr)
-	wrappedErr2 := fmt.Errorf("wrapped error 2: %w", wrappedErr1)
-	wrappedErr3 := fmt.Errorf("wrapped error 3: %w", wrappedErr2)
-
-	assert.Nil(t, sync.UnwrapGetNodeFromDBErr(nil))
-	assert.Nil(t, sync.UnwrapGetNodeFromDBErr(err))
-	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(getNodeFromDbErr))
-	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr1))
-	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr2))
-	assert.Equal(t, getNodeFromDbErr, sync.UnwrapGetNodeFromDBErr(wrappedErr3))
 }

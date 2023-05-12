@@ -552,3 +552,6 @@ var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
 
 // ErrNilPeersRatingMonitor signals that a nil peers rating monitor implementation has been provided
 var ErrNilPeersRatingMonitor = errors.New("nil peers rating monitor")
+
+// ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
+var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")

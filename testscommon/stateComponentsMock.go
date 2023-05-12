@@ -7,12 +7,13 @@ import (
 
 // StateComponentsMock -
 type StateComponentsMock struct {
-	PeersAcc        state.AccountsAdapter
-	Accounts        state.AccountsAdapter
-	AccountsAPI     state.AccountsAdapter
-	AccountsRepo    state.AccountsRepository
-	Tries           common.TriesHolder
-	StorageManagers map[string]common.StorageManager
+	PeersAcc             state.AccountsAdapter
+	Accounts             state.AccountsAdapter
+	AccountsAPI          state.AccountsAdapter
+	AccountsRepo         state.AccountsRepository
+	Tries                common.TriesHolder
+	StorageManagers      map[string]common.StorageManager
+	MissingNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // Create -
@@ -63,6 +64,11 @@ func (scm *StateComponentsMock) TrieStorageManagers() map[string]common.StorageM
 // String -
 func (scm *StateComponentsMock) String() string {
 	return "StateComponentsMock"
+}
+
+// MissingTrieNodesNotifier -
+func (scm *StateComponentsMock) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
+	return scm.MissingNodesNotifier
 }
 
 // IsInterfaceNil -
