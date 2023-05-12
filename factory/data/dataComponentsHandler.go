@@ -103,10 +103,16 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 }
 
 // SetBlockchain sets the blockchain subcomponent
-func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) {
+func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) error {
+	if check.IfNil(chain) {
+		return errors.ErrNilBlockChainHandler
+	}
+
 	mdc.mutDataComponents.Lock()
 	mdc.blkc = chain
 	mdc.mutDataComponents.Unlock()
+
+	return nil
 }
 
 // StorageService returns the storage service

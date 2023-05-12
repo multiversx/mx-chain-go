@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -31,10 +32,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -405,6 +407,16 @@ func TestGasScheduleChangeShouldWork(t *testing.T) {
 
 // ===================== TestDeploySmartContract =====================
 
+func createTxLogsProcessor() process.TransactionLogProcessor {
+	argsTxLogs := transactionLog.ArgTxLogProcessor{
+		Storer:               &testsCommonStorage.StorerStub{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		SaveInStorageEnabled: false,
+	}
+	txLogsProc, _ := transactionLog.NewTxLogProcessor(argsTxLogs)
+	return txLogsProc
+}
+
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
@@ -412,6 +424,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
+	arguments.TxLogsProcessor = createTxLogsProcessor()
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -444,8 +457,12 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tsc := NewTestScProcessor(sc)
 
 	scrs := tsc.GetAllSCRs()
+	require.Equal(t, 0, len(scrs))
 	expectedError := "@" + hex.EncodeToString([]byte(parseError.Error()))
-	require.Equal(t, expectedError, string(scrs[0].GetData()))
+
+	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
+	require.Equal(t, 1, len(allLogs))
+	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -460,6 +477,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	arguments.AccountsDB = &stateMock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
+	arguments.TxLogsProcessor = createTxLogsProcessor()
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -487,9 +505,11 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	tsc := NewTestScProcessor(sc)
-	scrs := tsc.GetAllSCRs()
+
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
-	require.Equal(t, expectedError, string(scrs[0].GetData()))
+	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
+	require.Equal(t, 1, len(allLogs))
+	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
 }
 
 func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
@@ -546,7 +566,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 
 	_, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrFailedTransaction, err)
-	require.True(t, scrAdded)
+	require.False(t, scrAdded)
 	require.True(t, badTxAdded)
 
 	_, err = sc.ExecuteSmartContractTransaction(tx, nil, acntSrc)

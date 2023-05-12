@@ -149,7 +149,6 @@ func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []
 	if !exists {
 		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
-
 	length := len(value)
 	host.storageUpdate[strAdr][string(key)] = make([]byte, length)
 	copy(host.storageUpdate[strAdr][string(key)][:length], value[:length])
@@ -170,17 +169,9 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	}
 
 	account, err := host.blockChainHook.GetUserAccount(addr)
-	if err == state.ErrAccNotFound {
+	if err != nil {
 		return big.NewInt(0)
 	}
-	if err != nil {
-		return nil
-	}
-
-	host.outputAccounts[strAdr] = &vmcommon.OutputAccount{
-		Balance:      big.NewInt(0).Set(account.GetBalance()),
-		BalanceDelta: big.NewInt(0),
-		Address:      addr}
 
 	return account.GetBalance()
 }

@@ -1474,7 +1474,8 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.isInformativeTxHandler(scrIfError) {
+	isRecvSelfShard := sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(scrIfError.RcvAddr)
+	if !isRecvSelfShard && !sc.isInformativeTxHandler(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
