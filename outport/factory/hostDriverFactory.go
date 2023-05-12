@@ -17,12 +17,13 @@ type ArgsHostDriverFactory struct {
 
 var log = logger.GetOrCreate("outport/factory/hostdriver")
 
+// CreateHostDriver will create a new instance of outport.Driver
 func CreateHostDriver(args ArgsHostDriverFactory) (outport.Driver, error) {
 	wsHost, err := factory.CreateWebSocketHost(factory.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                args.HostConfig.URL,
 			WithAcknowledge:    args.HostConfig.WithAcknowledge,
-			IsServer:           args.HostConfig.IsServer,
+			Mode:               args.HostConfig.Mode,
 			RetryDurationInSec: args.HostConfig.RetryDurationInSec,
 			BlockingAckOnError: args.HostConfig.BlockingAckOnError,
 		},

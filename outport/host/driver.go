@@ -24,6 +24,7 @@ type hostDriver struct {
 	log        core.Logger
 }
 
+// NewHostDriver will create a new instance of hostDriver
 func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	if check.IfNil(args.SenderHost) {
 		return nil, ErrNilHost
@@ -43,6 +44,7 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	}, nil
 }
 
+// SaveBlock will handle the saving of block
 func (o *hostDriver) SaveBlock(outportBlock *outport.OutportBlock) error {
 	return o.handleAction(outportBlock, outport.TopicSaveBlock)
 }
@@ -89,14 +91,12 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 
 	marshalledPayload, err := o.marshaller.Marshal(args)
 	if err != nil {
-		o.log.Error("cannot marshal block", "topic", topic, "error", err)
 		return fmt.Errorf("%w while marshaling block for topic %s", err, topic)
 	}
 
 	err = o.senderHost.Send(marshalledPayload, topic)
 	if err != nil {
-		o.log.Error("cannot send on route", "topic", topic, "error", err)
-		return fmt.Errorf("%w while sending data on route for topic %s", err, topic)
+		return fmt.Errorf("%w while sendcing data on route for topic %s", err, topic)
 	}
 
 	return nil
