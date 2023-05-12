@@ -15,18 +15,19 @@ type StateComponentsMock struct {
 	AccountsRepo             state.AccountsRepository
 	Tries                    common.TriesHolder
 	StorageManagers          map[string]common.StorageManager
-	MissingNodesNotifier common.MissingTrieNodesNotifier
+	MissingNodesNotifier     common.MissingTrieNodesNotifier
 }
 
 // NewStateComponentsMockFromRealComponent -
 func NewStateComponentsMockFromRealComponent(stateComponents factory.StateComponentsHolder) *StateComponentsMock {
 	return &StateComponentsMock{
-		PeersAcc:        stateComponents.PeerAccounts(),
-		Accounts:        stateComponents.AccountsAdapter(),
-		AccountsAPI:     stateComponents.AccountsAdapterAPI(),
-		AccountsRepo:    stateComponents.AccountsRepository(),
-		Tries:           stateComponents.TriesContainer(),
-		StorageManagers: stateComponents.TrieStorageManagers(),
+		PeersAcc:             stateComponents.PeerAccounts(),
+		Accounts:             stateComponents.AccountsAdapter(),
+		AccountsAPI:          stateComponents.AccountsAdapterAPI(),
+		AccountsRepo:         stateComponents.AccountsRepository(),
+		Tries:                stateComponents.TriesContainer(),
+		StorageManagers:      stateComponents.TrieStorageManagers(),
+		MissingNodesNotifier: stateComponents.MissingTrieNodesNotifier(),
 	}
 }
 
