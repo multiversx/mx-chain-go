@@ -165,13 +165,49 @@ func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
 }
 
-func TestTrieCreator_CreateTriesComponentsForShardIdMissingStorer(t *testing.T) {
+func TestTrieCreator_CreateWithInvalidMaxTrieLevelInMemShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgs()
+	tf, _ := factory.NewTrieFactory(args)
+
+	createArgs := getCreateArgs()
+	createArgs.MaxTrieLevelInMem = 0
+	_, tr, err := tf.Create(createArgs)
+	require.Nil(t, tr)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), trie.ErrInvalidLevelValue.Error())
+}
+
+func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 	t.Parallel()
 
 	t.Run("missing UserAccountsUnit", testWithMissingStorer(dataRetriever.UserAccountsUnit))
 	t.Run("missing UserAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.UserAccountsCheckpointsUnit))
 	t.Run("missing PeerAccountsUnit", testWithMissingStorer(dataRetriever.PeerAccountsUnit))
 	t.Run("missing PeerAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.PeerAccountsCheckpointsUnit))
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
+			false,
+			testscommon.GetGeneralConfig(),
+			&mock.CoreComponentsStub{
+				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				HasherField:                  &hashingMocks.HasherMock{},
+				PathHandlerField:             &testscommon.PathManagerStub{},
+				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+			},
+			&storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &storageStubs.StorerStub{}, nil
+				},
+			},
+		)
+		require.NotNil(t, holder)
+		require.NotNil(t, storageManager)
+		require.Nil(t, err)
+	})
 }
 
 func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
