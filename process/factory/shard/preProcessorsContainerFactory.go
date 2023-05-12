@@ -174,19 +174,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
 	}
 
-	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
-	if err != nil {
-		return nil, err
-	}
-
-	switch ppcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return txPreprocessor, nil
-	case common.ChainRunTypeSovereign:
-		return preprocess.NewSovereignChainTransactionPreprocessor(txPreprocessor)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, ppcf.chainRunType)
-	}
+	return preprocess.NewTransactionPreprocessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
