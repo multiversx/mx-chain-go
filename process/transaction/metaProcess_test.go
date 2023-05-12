@@ -5,16 +5,20 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	txproc "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -26,12 +30,14 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		Accounts:            &stateMock.AccountsStub{},
-		PubkeyConv:          createMockPubkeyConverter(),
+		PubkeyConv:          createMockPubKeyConverter(),
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -215,7 +221,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -266,7 +272,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewUserAccount(tx.SndAddr)
@@ -316,7 +322,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -354,7 +360,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    createMockPubkeyConverter(),
+		PubkeyConverter:    createMockPubKeyConverter(),
 		ShardCoordinator:   shardCoordinator,
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
@@ -386,7 +392,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -445,4 +451,43 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	assert.Nil(t, err)
 	assert.True(t, builtInCalled)
 	assert.Equal(t, 0, saveAccountCalled)
+}
+
+func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = bytes.Repeat([]byte{1}, 32)
+	tx.RcvAddr = vm.GovernanceSCAddress
+	tx.RcvUserName = []byte("username")
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	called := false
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntDst, acntDst)
+	scProcessor := &testscommon.SCProcessorMock{
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+			called = true
+			return nil
+		},
+	}
+
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessor
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
+
+	err = txProc.VerifyTransaction(tx)
+	assert.Equal(t, err, process.ErrUserNameDoesNotMatchInCrossShardTx)
+
+	returnCode, err := txProc.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, called)
 }

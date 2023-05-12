@@ -1222,11 +1222,6 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
@@ -1541,10 +1536,6 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 		v.eei.AddReturnMessage("should have specified one argument containing the unstake value")
 		return vmcommon.UserError
 	}
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
 
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
 	unStakedEpoch := v.eei.BlockChainHook().CurrentEpoch()
@@ -1709,6 +1700,9 @@ func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 	if totalUnBond.Cmp(zero) == 0 {
 		v.eei.AddReturnMessage("no tokens that can be unbond at this time")
+		if v.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -2134,6 +2128,9 @@ func (v *validatorSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommo
 
 	if len(registrationData.BlsPubKeys) == 0 {
 		v.eei.AddReturnMessage("no bls keys")
+		if v.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 

@@ -2,6 +2,7 @@ package trie
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -9,10 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
@@ -519,7 +523,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), tr.root.getHash(), keyBuilder.NewKeyBuilder())
 	assert.Nil(t, err)
@@ -529,7 +533,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 		leaves[string(l.Key())] = l.Value()
 	}
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, len(leaves))
@@ -628,6 +632,50 @@ func TestShouldStopIfContextDoneBlockingIfBusy(t *testing.T) {
 		case <-time.After(time.Second):
 			assert.Fail(t, "timeout while waiting for the shouldStopIfContextDone call to write the result")
 		}
+	})
+}
+
+func TestTreatLogError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("logger instance is not in Trace mode, should not call", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		err := errors.New("trie was not found")
+		logInstance := &testscommon.LoggerStub{
+			GetLevelCalled: func() logger.LogLevel {
+				return logger.LogDebug
+			},
+			TraceCalled: func(message string, args ...interface{}) {
+				assert.Fail(t, "should have not called Log")
+			},
+		}
+
+		treatLogError(logInstance, err, key)
+		treatLogError(log, err, key) //display only
+	})
+	t.Run("logger instance is in Trace mode, should call", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("key")
+		wasCalled := false
+		err := errors.New("error")
+		logInstance := &testscommon.LoggerStub{
+			GetLevelCalled: func() logger.LogLevel {
+				return logger.LogTrace
+			},
+			TraceCalled: func(message string, args ...interface{}) {
+				wasCalled = true
+				require.Equal(t, core.GetNodeFromDBErrorString, message)
+				require.Equal(t, 6, len(args))
+				expectedFirst5Args := []interface{}{"error", err, "key", key, "stack trace"}
+				require.Equal(t, expectedFirst5Args, args[:5])
+			},
+		}
+
+		treatLogError(logInstance, err, key)
+		assert.True(t, wasCalled)
 	})
 }
 

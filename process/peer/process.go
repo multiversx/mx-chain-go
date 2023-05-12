@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -450,7 +451,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +566,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
