@@ -93,6 +93,7 @@ type epochFlagsHolder struct {
 	setGuardianFlag                             *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
+	consistentTokensValuesCheckFlag             *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -669,6 +670,11 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled
 func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled returns true if consistentTokensValuesCheckFlag is enabled
+func (holder *epochFlagsHolder) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return holder.consistentTokensValuesCheckFlag.IsSet()
 }
 
 // IsKeepExecOrderOnCreatedSCRsEnabled returns true if keepExecOrderOnCreatedSCRsFlag is enabled

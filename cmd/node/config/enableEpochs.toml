@@ -246,22 +246,25 @@
     KeepExecOrderOnCreatedSCRsEnableEpoch = 2
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
-    MultiClaimOnDelegationEnableEpoch = 3
+MultiClaimOnDelegationEnableEpoch = 3
 
-    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
-    BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 1, Type = "KOSK"}
-    ]
+# BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
+BLSMultiSignerEnableEpoch = [
+    { EnableEpoch = 0, Type = "no-KOSK" },
+    { EnableEpoch = 1, Type = "KOSK" }
+]
 
-    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    SetGuardianEnableEpoch = 2
+# SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+SetGuardianEnableEpoch = 2
 
-    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
-    MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
-    ]
+# ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+ConsistentTokensValuesLengthCheckEnableEpoch = 2
+
+# MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+MaxNodesChangeEnableEpoch = [
+    { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
+    { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+]
 
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
