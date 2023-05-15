@@ -6,18 +6,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	trieMocks "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -171,43 +173,15 @@ func emptyTrie() common.Trie {
 func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 	t.Parallel()
 
-	t.Run("failed to get trie root hash", func(t *testing.T) {
+	t.Run("nil leaves chan should fail", func(t *testing.T) {
 		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		tr := &trieMocks.TrieStub{
-			RootCalled: func() ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
 
 		args := getDefaultUserAccountsSyncerArgs()
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		err = s.SyncAccountDataTries(tr, context.TODO())
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("failed to get all leaves on channel", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		tr := &trieMocks.TrieStub{
-			RootCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
-			},
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
-				return expectedErr
-			},
-		}
-
-		args := getDefaultUserAccountsSyncerArgs()
-		s, err := syncer.NewUserAccountsSyncer(args)
-		require.Nil(t, err)
-
-		err = s.SyncAccountDataTries(tr, context.TODO())
-		require.Equal(t, expectedErr, err)
+		err = s.SyncAccountDataTries(nil, context.TODO())
+		require.Equal(t, trie.ErrNilTrieIteratorChannels, err)
 	})
 
 	t.Run("throttler cannot process and closed context should fail", func(t *testing.T) {
@@ -254,10 +228,21 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_ = tr.Update([]byte("ddog"), accountBytes)
 		_ = tr.Commit()
 
+		leavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+		require.Nil(t, err)
+
 		ctx, cancel := context.WithCancel(context.TODO())
 		cancel()
 
-		err = s.SyncAccountDataTries(tr, ctx)
+		err = s.SyncAccountDataTries(leavesChannels, ctx)
 		require.Equal(t, data.ErrTimeIsOut, err)
 	})
 
@@ -300,7 +285,18 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_ = tr.Update([]byte("ddog"), accountBytes)
 		_ = tr.Commit()
 
-		err = s.SyncAccountDataTries(tr, context.TODO())
+		leavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+		require.Nil(t, err)
+
+		err = s.SyncAccountDataTries(leavesChannels, context.TODO())
 		require.Nil(t, err)
 	})
 }

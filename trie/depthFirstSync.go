@@ -35,7 +35,6 @@ type depthFirstTrieSyncer struct {
 	nodes                     *trieNodesHandler
 	requestedHashes           map[string]*request
 	accLeavesChannels         *common.TrieIteratorChannels
-	numLeavesStoreIt          int
 }
 
 // NewDepthFirstTrieSyncer creates a new instance of trieSyncer that uses the depth-first algorithm
@@ -64,7 +63,6 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
 		accLeavesChannels:         arg.AccLeavesChannels,
-		numLeavesStoreIt:          0,
 	}
 
 	return d, nil
@@ -94,9 +92,6 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	timeStart := time.Now()
 	defer func() {
 		d.setSyncDuration(time.Since(timeStart))
-		if d.accLeavesChannels.LeavesChan != nil {
-			log.Debug("StartSyncing: numLeavesStoreIt", "count", d.numLeavesStoreIt)
-		}
 	}()
 
 	for {
@@ -263,7 +258,6 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 
 	leafNodeElement, isLeaf := element.(*leafNode)
 	if isLeaf && d.accLeavesChannels.LeavesChan != nil {
-		log.Debug("storeTrieNode: found leaf node")
 		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
 		d.accLeavesChannels.LeavesChan <- trieLeaf
 	}
@@ -285,10 +279,6 @@ func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 			return nil, err
 		}
 
-		d.numLeavesStoreIt++
-
-		log.Trace("storeLeaves: found leaf node", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
-
 		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
 		// TODO: analize error chan
 		if d.accLeavesChannels.LeavesChan == nil {
@@ -296,8 +286,6 @@ func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 			continue
 		}
 		d.accLeavesChannels.LeavesChan <- trieLeaf
-
-		log.Trace("storeLeaves: found leaf node - DONE", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
 	}
 
 	return childrenNotLeaves, nil

@@ -225,15 +225,17 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
+	if leavesChannels == nil {
+		return trie.ErrNilTrieIteratorChannels
+	}
+
 	defer u.printDataTrieStatistics()
 
 	var errFound error
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
-	numInterations := 0
 	for leaf := range leavesChannels.LeavesChan {
-		numInterations++
 		log.Trace("syncAccountDataTries:", "leaf key", leaf.Key())
 		u.resetTimeoutHandlerWatchdog()
 
@@ -264,8 +266,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			newErr := u.syncDataTrie(trieRootHash, address, ctx)
 			if newErr != nil {
 				errMutex.Lock()
-				log.Error("syncDataTrie: error found", "error", errFound.Error())
 				errFound = newErr
+				log.Error("syncDataTrie: error found", "error", errFound.Error())
 				errMutex.Unlock()
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
@@ -274,7 +276,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		}(account.RootHash, account.Address)
 	}
 
-	log.Debug("syncDataTrie: num leaves chan interations", "count", numInterations)
 	wg.Wait()
 
 	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()

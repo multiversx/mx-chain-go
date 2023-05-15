@@ -123,12 +123,6 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if arg.AccLeavesChannels == nil {
 		return ErrNilTrieIteratorChannels
 	}
-	if arg.AccLeavesChannels.LeavesChan == nil {
-		return ErrNilTrieIteratorLeavesChannel
-	}
-	if arg.AccLeavesChannels.ErrChan == nil {
-		return ErrNilTrieIteratorErrChannel
-	}
 
 	return nil
 }

@@ -162,34 +162,6 @@ func TestNewTrieSyncer(t *testing.T) {
 		assert.True(t, errors.Is(err, ErrNilTrieIteratorChannels))
 	})
 
-	t.Run("nil leaves channel", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(time.Minute)
-		arg.AccLeavesChannels = &common.TrieIteratorChannels{
-			LeavesChan: nil,
-			ErrChan:    errChan.NewErrChanWrapper(),
-		}
-
-		ts, err := NewTrieSyncer(arg)
-		assert.True(t, check.IfNil(ts))
-		assert.True(t, errors.Is(err, ErrNilTrieIteratorLeavesChannel))
-	})
-
-	t.Run("nil err channel", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(time.Minute)
-		arg.AccLeavesChannels = &common.TrieIteratorChannels{
-			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    nil,
-		}
-
-		ts, err := NewTrieSyncer(arg)
-		assert.True(t, check.IfNil(ts))
-		assert.True(t, errors.Is(err, ErrNilTrieIteratorErrChannel))
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
