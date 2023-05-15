@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -22,16 +24,19 @@ import (
 )
 
 type sovereignSCProcessor struct {
-	blockChainHook   process.BlockChainHookHandler
-	shardCoordinator sharding.Coordinator
-	pubkeyConv       core.PubkeyConverter
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	txTypeHandler    process.TxTypeHandler
-	accounts         state.AccountsAdapter
-	argsParser       process.ArgumentsParser
-	txLogsProcessor  process.TransactionLogProcessor
-	vmOutputCacher   storage.Cacher
+	blockChainHook     process.BlockChainHookHandler
+	shardCoordinator   sharding.Coordinator
+	pubkeyConv         core.PubkeyConverter
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	txTypeHandler      process.TxTypeHandler
+	accounts           state.AccountsAdapter
+	argsParser         process.ArgumentsParser
+	txLogsProcessor    process.TransactionLogProcessor
+	vmOutputCacher     storage.Cacher
+	esdtTransferParser vmcommon.ESDTTransferParser
+	wasmVMChangeLocker common.Locker
+	vmContainer        process.VirtualMachinesContainer
 }
 
 func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
@@ -149,8 +154,6 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 		return sc.finishSCExecution(txHash, tx, vmOutput)
 	}
 
-	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
-
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -159,11 +162,9 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
-		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-		if len(scTxs) > 0 {
-			scrResults = append(scrResults, scTxs...)
-		}
+		scTxs := sc.createSmartContractResults(outAcc, tx, txHash)
+		scrResults = append(scrResults, scTxs...)
+
 	}
 
 	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
@@ -176,16 +177,6 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 	}
 
 	if isSCCallSelfShard {
-		err = sc.gasConsumedChecks(tx, newVMInput.GasProvided, newVMInput.GasLocked, newVMOutput)
-		if err != nil {
-			log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
-			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
-		}
-
-		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
-			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
-		}
-
 		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
 		var newSCRTxs []data.TransactionHandler
 		tmpCreatedAsyncCallback := false
@@ -200,38 +191,6 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 		}
 
 		mergeVMOutputLogs(newVMOutput, vmOutput)
-	}
-
-	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
-	if !isSCCallCrossShard {
-		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
-			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
-		}
-
-		scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
-		if errCreateSCR != nil {
-			return 0, errCreateSCR
-		}
-
-		if !createdAsyncCallback {
-			if vmInput.CallType == vmData.AsynchronousCall {
-				asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
-				scrResults = append(scrResults, asyncCallBackSCR)
-			} else {
-				scrResults = append(scrResults, scrForSender)
-			}
-		}
-
-		if !check.IfNil(scrForRelayer) {
-			scrResults = append(scrResults, scrForRelayer)
-		}
-	}
-
-	if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled() {
-		errCheck := sc.checkSCRSizeInvariant(scrResults)
-		if errCheck != nil {
-			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, errCheck.Error(), []byte(errCheck.Error()), snapshot, vmInput.GasLocked)
-		}
 	}
 
 	return sc.finishSCExecution(txHash, tx, newVMOutput)
@@ -317,6 +276,160 @@ func (sc *sovereignSCProcessor) finishSCExecution(
 
 	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 	return vmcommon.Ok, nil
+}
+
+func (sc *sovereignSCProcessor) createSmartContractResults(
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) []data.TransactionHandler {
+	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
+	for i, outputTransfer := range outAcc.OutputTransfers {
+		result := sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
+		scResults = append(scResults, result)
+	}
+
+	return scResults
+}
+
+func (sc *sovereignSCProcessor) preprocessOutTransferToSCR(
+	index int,
+	outputTransfer vmcommon.OutputTransfer,
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+) *smartContractResult.SmartContractResult {
+	transferNonce := uint64(index)
+	result := createBaseSCR(outAcc, tx, txHash, transferNonce)
+
+	if outputTransfer.Value != nil {
+		result.Value.Set(outputTransfer.Value)
+	}
+	result.Data = outputTransfer.Data
+	setOriginalTxHash(result, txHash, tx)
+	return result
+}
+
+func (sc *sovereignSCProcessor) treatExecutionAfterBuiltInFunc(
+	tx data.TransactionHandler,
+	vmInput *vmcommon.ContractCallInput,
+	vmOutput *vmcommon.VMOutput,
+	acntSnd state.UserAccountHandler,
+	snapshot int,
+) (bool, *vmcommon.VMOutput, *vmcommon.ContractCallInput, error) {
+	newVMInput, err := sc.isSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
+	userErrorVmOutput := &vmcommon.VMOutput{
+		ReturnCode: vmcommon.UserError,
+	}
+	if err != nil {
+		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+	}
+
+	newDestSC, err := sc.getAccountFromAddress(vmInput.RecipientAddr)
+	if err != nil {
+		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+	}
+
+	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC, vmOutput)
+	if err != nil {
+		return true, userErrorVmOutput, newVMInput, err
+	}
+	if newVMOutput.ReturnCode != vmcommon.Ok {
+		return true, newVMOutput, newVMInput, nil
+	}
+
+	return true, newVMOutput, newVMInput, nil
+}
+
+func (sc *sovereignSCProcessor) executeSmartContractCall(
+	vmInput *vmcommon.ContractCallInput,
+	tx data.TransactionHandler,
+	txHash []byte,
+	snapshot int,
+	acntSnd, acntDst state.UserAccountHandler,
+	prevVmOutput *vmcommon.VMOutput,
+) (*vmcommon.VMOutput, error) {
+	if check.IfNil(acntDst) {
+		return nil, process.ErrNilSCDestAccount
+	}
+
+	sc.wasmVMChangeLocker.RLock()
+
+	userErrorVmOutput := &vmcommon.VMOutput{
+		ReturnCode: vmcommon.UserError,
+	}
+	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
+	if err != nil {
+		sc.wasmVMChangeLocker.RUnlock()
+		returnMessage := "cannot get vm from address"
+		log.Trace("get vm from address error", "error", err.Error())
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
+	}
+
+	sc.blockChainHook.ResetCounters()
+	defer sc.printBlockchainHookCounters(tx)
+
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	sc.wasmVMChangeLocker.RUnlock()
+	if err != nil {
+		log.Debug("run smart contract call error", "error", err.Error())
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+	}
+	if vmOutput == nil {
+		err = process.ErrNilVMOutput
+		log.Debug("run smart contract call error", "error", err.Error())
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return userErrorVmOutput, errors.New("smt went wrong") //TODO: HERE ???? processIfErrorWithAddedLogs
+	}
+
+	return vmOutput, nil
+}
+
+func (sc *sovereignSCProcessor) isSCExecutionAfterBuiltInFunc(
+	tx data.TransactionHandler,
+	vmInput *vmcommon.ContractCallInput,
+	vmOutput *vmcommon.VMOutput,
+) (*vmcommon.ContractCallInput, error) {
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, nil
+	}
+
+	parsedTransfer, err := sc.esdtTransferParser.ParseESDTTransfers(vmInput.CallerAddr, vmInput.RecipientAddr, vmInput.Function, vmInput.Arguments)
+	if err != nil {
+		return nil, nil
+	}
+
+	callType := determineCallType(tx)
+	outAcc, ok := vmOutput.OutputAccounts[string(parsedTransfer.RcvAddr)]
+	if !ok {
+		return nil, nil
+	}
+	if len(outAcc.OutputTransfers) != 1 {
+		return nil, nil
+	}
+
+	return &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            parsedTransfer.CallArgs,
+			CallValue:            big.NewInt(0),
+			CallType:             callType,
+			GasPrice:             0,
+			GasProvided:          0,
+			GasLocked:            0,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
+			ESDTTransfers:        parsedTransfer.ESDTTransfers,
+		},
+		RecipientAddr:     parsedTransfer.RcvAddr,
+		Function:          parsedTransfer.CallFunction,
+		AllowInitFunction: false,
+	}, nil
 }
 
 // todo: reuse these from scProc
