@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 
@@ -9,11 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -26,6 +29,9 @@ type sovereignSCProcessor struct {
 	marshalizer      marshal.Marshalizer
 	txTypeHandler    process.TxTypeHandler
 	accounts         state.AccountsAdapter
+	argsParser       process.ArgumentsParser
+	txLogsProcessor  process.TransactionLogProcessor
+	vmOutputCacher   storage.Cacher
 }
 
 func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
@@ -126,144 +132,194 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 	sc.blockChainHook.ResetCounters()
 	defer sc.printBlockchainHookCounters(tx)
 
-	/*
-		returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, true)
-		if err != nil || returnCode != vmcommon.Ok {
-			return returnCode, err
+	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst)
+	if err != nil || returnCode != vmcommon.Ok {
+		return returnCode, err
+	}
+
+	snapshot := sc.accounts.JournalLen()
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
+	if err != nil {
+		log.Debug("processed built in functions error", "error", err.Error())
+		return 0, err
+	}
+
+	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
+		return sc.finishSCExecution(txHash, tx, vmOutput)
+	}
+
+	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+	}
+
+	createdAsyncCallback := false
+	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
+		tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
+		if len(scTxs) > 0 {
+			scrResults = append(scrResults, scTxs...)
 		}
+	}
 
-		snapshot := sc.accounts.JournalLen()
-		if !sc.enableEpochsHandler.IsBuiltInFunctionsFlagEnabled() {
-			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
-		}
+	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
+	if err != nil {
+		log.Debug("treat execution after built in function", "error", err.Error())
+		return 0, err
+	}
+	if newVMOutput.ReturnCode != vmcommon.Ok {
+		return vmcommon.UserError, nil
+	}
 
-		var vmOutput *vmcommon.VMOutput
-		vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
-		if err != nil {
-			log.Debug("processed built in functions error", "error", err.Error())
-			return 0, err
-		}
-
-		acntSnd, err = sc.reloadLocalAccount(acntSnd)
-		if err != nil {
-			return 0, err
-		}
-
-		if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
-			return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
-		}
-
-		_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
-		builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining, check.IfNil(acntSnd))
-		log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
-
-		if txTypeOnDst != process.SCInvoking {
-			vmOutput.GasRemaining += vmInput.GasLocked
-		}
-
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			if !check.IfNil(acntSnd) {
-				return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
-			}
-			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
-		}
-
-		if vmInput.CallType == vmData.AsynchronousCallBack {
-			// in case of asynchronous callback - the process of built-in function is a must
-			snapshot = sc.accounts.JournalLen()
-		}
-
-		err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
+	if isSCCallSelfShard {
+		err = sc.gasConsumedChecks(tx, newVMInput.GasProvided, newVMInput.GasLocked, newVMOutput)
 		if err != nil {
 			log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 		}
 
-		createdAsyncCallback := false
-		scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
-		outputAccounts := process.SortVMOutputInsideData(vmOutput)
-		for _, outAcc := range outputAccounts {
-			tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
-			createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-			if len(scTxs) > 0 {
-				scrResults = append(scrResults, scTxs...)
-			}
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
 		}
 
-		isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
+		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
+		var newSCRTxs []data.TransactionHandler
+		tmpCreatedAsyncCallback := false
+		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
-			log.Debug("treat execution after built in function", "error", err.Error())
-			return 0, err
+			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
-		if newVMOutput.ReturnCode != vmcommon.Ok {
-			return vmcommon.UserError, nil
-		}
+		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 
-		if isSCCallSelfShard {
-			err = sc.gasConsumedChecks(tx, newVMInput.GasProvided, newVMInput.GasLocked, newVMOutput)
-			if err != nil {
-				log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
-				return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
-			}
-
-			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
-				sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
-			}
-
-			outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
-			var newSCRTxs []data.TransactionHandler
-			tmpCreatedAsyncCallback := false
-			tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
-			if err != nil {
-				return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
-			}
-			createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-
-			if len(newSCRTxs) > 0 {
-				scrResults = append(scrResults, newSCRTxs...)
-			}
-
-			mergeVMOutputLogs(newVMOutput, vmOutput)
+		if len(newSCRTxs) > 0 {
+			scrResults = append(scrResults, newSCRTxs...)
 		}
 
-		isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
-		if !isSCCallCrossShard {
-			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
-				sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
-			}
+		mergeVMOutputLogs(newVMOutput, vmOutput)
+	}
 
-			scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
-			if errCreateSCR != nil {
-				return 0, errCreateSCR
-			}
+	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
+	if !isSCCallCrossShard {
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
+		}
 
-			if !createdAsyncCallback {
-				if vmInput.CallType == vmData.AsynchronousCall {
-					asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
-					scrResults = append(scrResults, asyncCallBackSCR)
-				} else {
-					scrResults = append(scrResults, scrForSender)
-				}
-			}
+		scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
+		if errCreateSCR != nil {
+			return 0, errCreateSCR
+		}
 
-			if !check.IfNil(scrForRelayer) {
-				scrResults = append(scrResults, scrForRelayer)
+		if !createdAsyncCallback {
+			if vmInput.CallType == vmData.AsynchronousCall {
+				asyncCallBackSCR := sc.createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
+				scrResults = append(scrResults, asyncCallBackSCR)
+			} else {
+				scrResults = append(scrResults, scrForSender)
 			}
 		}
 
-		if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled() {
-			errCheck := sc.checkSCRSizeInvariant(scrResults)
-			if errCheck != nil {
-				return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, errCheck.Error(), []byte(errCheck.Error()), snapshot, vmInput.GasLocked)
-			}
+		if !check.IfNil(scrForRelayer) {
+			scrResults = append(scrResults, scrForRelayer)
 		}
+	}
 
-		return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
-	*/
-	return 0, nil
+	if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled() {
+		errCheck := sc.checkSCRSizeInvariant(scrResults)
+		if errCheck != nil {
+			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, errCheck.Error(), []byte(errCheck.Error()), snapshot, vmInput.GasLocked)
+		}
+	}
+
+	return sc.finishSCExecution(txHash, tx, newVMOutput)
 }
 
-// todo: reuse this from scProc
+func (sc *sovereignSCProcessor) prepareExecution(
+	tx data.TransactionHandler,
+	acntSnd, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, *vmcommon.ContractCallInput, []byte, error) {
+	var txHash []byte
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return 0, nil, nil, err
+	}
+
+	err = sc.accounts.SaveAccount(acntDst)
+	if err != nil {
+		log.Debug("sovereignSCProcessor.accounts.SaveAccount error", "error", err)
+		return 0, nil, nil, err
+	}
+
+	snapshot := sc.accounts.JournalLen()
+
+	var vmInput *vmcommon.ContractCallInput
+	vmInput, err = sc.createVMCallInput(tx, txHash)
+	if err != nil {
+		returnMessage := "cannot create VMInput, check the transaction data field"
+		log.Debug("create vm call input error", "error", err.Error())
+		return vmcommon.UserError, vmInput, txHash, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, 0)
+	}
+
+	return vmcommon.Ok, vmInput, txHash, nil
+}
+
+func (sc *sovereignSCProcessor) createVMCallInput(
+	tx data.TransactionHandler,
+	txHash []byte,
+) (*vmcommon.ContractCallInput, error) {
+	callType := determineCallType(tx)
+	txData := string(tx.GetData())
+
+	function, arguments, err := sc.argsParser.ParseCallData(txData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:    nil,
+			Arguments:     arguments,
+			CallValue:     big.NewInt(0).Set(tx.GetValue()),
+			CallType:      callType,
+			CurrentTxHash: txHash,
+		},
+		RecipientAddr: tx.GetRcvAddr(),
+		Function:      function,
+	}, nil
+}
+
+func (sc *sovereignSCProcessor) resolveBuiltInFunctions(vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	vmOutput, err := sc.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return &vmcommon.VMOutput{
+			ReturnCode:    vmcommon.UserError,
+			ReturnMessage: err.Error(),
+			GasRemaining:  0,
+		}, nil
+	}
+
+	return vmOutput, nil
+}
+
+func (sc *sovereignSCProcessor) finishSCExecution(
+	txHash []byte,
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+) (vmcommon.ReturnCode, error) {
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
+	return vmcommon.Ok, nil
+}
+
+// todo: reuse these from scProc
 func (sc *sovereignSCProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
 	if logCounters.GetLevel() > logger.LogTrace {
 		return
