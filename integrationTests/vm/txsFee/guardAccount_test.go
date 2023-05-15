@@ -402,6 +402,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 		Address:    alice,
 		Identifier: []byte(core.BuiltInFunctionSetGuardian),
 		Topics:     [][]byte{bob, uuid},
+		Data:       []byte{},
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 
@@ -459,6 +460,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	require.Equal(t, &transaction.Event{
 		Address:    alice,
 		Identifier: []byte(core.BuiltInFunctionGuardAccount),
+		Data:       []byte{},
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 }
