@@ -379,3 +379,35 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 		assert.True(t, saveWasCalled)
 	})
 }
+
+func TestVmContext_UpdateCodeDeployerAddress(t *testing.T) {
+	t.Parallel()
+
+	scAddress := "sc-address-01234"
+	ownerAddress := []byte("owner-address-01")
+
+	t.Run("programming error: account is missing, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultEeiArgs()
+		vmCtx, _ := NewVMContext(args)
+
+		err := vmCtx.UpdateCodeDeployerAddress(scAddress, ownerAddress)
+		assert.Equal(t, vm.ErrInternalErrorWhileSettingNewOwner, err)
+	})
+	t.Run("account exists, should update", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultEeiArgs()
+		vmCtx, _ := NewVMContext(args)
+
+		account := &vmcommon.OutputAccount{
+			CodeDeployerAddress: []byte("deployer"),
+		}
+		vmCtx.outputAccounts[scAddress] = account
+
+		err := vmCtx.UpdateCodeDeployerAddress(scAddress, ownerAddress)
+		assert.Nil(t, err)
+		assert.Equal(t, ownerAddress, vmCtx.outputAccounts[scAddress].CodeDeployerAddress)
+	})
+}

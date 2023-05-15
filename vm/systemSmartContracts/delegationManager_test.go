@@ -1249,3 +1249,66 @@ func TestDelegationManagerSystemSC_ReDelegateMulti(t *testing.T) {
 	require.Equal(t, len(eei.output), 1)
 	require.Equal(t, eei.output[0], big.NewInt(20).Bytes())
 }
+
+func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
+	t.Parallel()
+
+	delegationAddress := []byte("delegation address")
+	arguments := [][]byte{[]byte("caller")}
+	t.Run("the fix is disabled, returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForDelegationManager()
+		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
+		args.Eei = &mock.SystemEIStub{
+			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
+				assert.Fail(t, "should have not called UpdateCodeDeployerAddress")
+				return nil
+			},
+		}
+
+		dm, _ := NewDelegationManagerSystemSC(args)
+		err := dm.correctOwnerOnAccount(delegationAddress, arguments)
+		assert.Nil(t, err)
+	})
+	t.Run("the fix is enabled but arguments are nil, should return", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForDelegationManager()
+		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+		args.Eei = &mock.SystemEIStub{
+			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
+				assert.Fail(t, "should have not called UpdateCodeDeployerAddress")
+				return nil
+			},
+		}
+
+		dm, _ := NewDelegationManagerSystemSC(args)
+		err := dm.correctOwnerOnAccount(delegationAddress, nil)
+		assert.Equal(t, vm.ErrInvalidNumOfArguments, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForDelegationManager()
+		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+		updateCalled := false
+		args.Eei = &mock.SystemEIStub{
+			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
+				assert.Equal(t, scAddress, string(delegationAddress))
+				assert.Equal(t, arguments[0], newOwner)
+				updateCalled = true
+
+				return nil
+			},
+		}
+
+		dm, _ := NewDelegationManagerSystemSC(args)
+		err := dm.correctOwnerOnAccount(delegationAddress, arguments)
+		assert.Nil(t, err)
+		assert.True(t, updateCalled)
+	})
+}

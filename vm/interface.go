@@ -59,6 +59,7 @@ type SystemEI interface {
 	GetTotalSentToUser(dest []byte) *big.Int
 	GetLogs() []*vmcommon.LogEntry
 	SetOwnerOperatingOnAccount(newOwner []byte) error
+	UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error
 
 	IsInterfaceNil() bool
 }

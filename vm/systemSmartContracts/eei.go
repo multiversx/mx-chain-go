@@ -631,6 +631,19 @@ func (host *vmContext) softCleanCache() {
 	host.returnMessage = ""
 }
 
+// UpdateCodeDeployerAddress will try to update the owner of an existing account stored in this vmContext instance.
+// Errors if the account is not found because that is a programming error
+func (host *vmContext) UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error {
+	outAcc, found := host.outputAccounts[scAddress]
+	if !found {
+		return vm.ErrInternalErrorWhileSettingNewOwner
+	}
+
+	outAcc.CodeDeployerAddress = newOwner
+
+	return nil
+}
+
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
 func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput := &vmcommon.VMOutput{}

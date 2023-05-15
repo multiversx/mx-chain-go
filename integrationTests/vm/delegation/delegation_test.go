@@ -121,6 +121,80 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.
 	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
 }
 
+func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5_CreateStakingProviderFromExistingValidator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 1
+	shardConsensusGroupSize := 1
+	metaConsensusGroupSize := 1
+
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
+		nodesPerShard,
+		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+	)
+
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
+
+	for _, nds := range nodesMap {
+		nodes = append(nodes, nds...)
+	}
+
+	for _, nds := range nodesMap {
+		_, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+	}
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	roundsPerEpoch := uint64(5)
+	for _, node := range nodes {
+		node.InitDelegationManager()
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = processBlocks(t, round, nonce, roundsPerEpoch, nodesMap)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	for _, node := range nodesMap {
+		fmt.Println(integrationTests.MakeDisplayTable(node))
+	}
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	nodeIndexForDelegationOwner := 0
+	nodeToBeConverted := nodes[nodeIndexForDelegationOwner]
+
+	delegationAddress := convertValidatorToDelegationSystemSC(nodeToBeConverted, nodes)
+	time.Sleep(time.Second)
+
+	epochs := uint32(2)
+	nbBlocksToProduce := (roundsPerEpoch+1)*uint64(epochs) + 1
+
+	round, nonce = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
+
+	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
+	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
+
+	delegationAccount := getUserAccount(nodes, delegationAddress)
+	assert.Equal(t, nodeToBeConverted.OwnAccount.Address, delegationAccount.GetOwnerAddress())
+}
+
 func doMergeValidatorToDelegationSameOwner(
 	t *testing.T,
 	delegationAddress []byte,
@@ -238,8 +312,8 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 		}
 
 		vmOutput, err := systemVM.RunSmartContractCall(vmInput)
-		assert.Nil(t, err)
-		assert.NotNil(t, vmOutput)
+		require.Nil(t, err)
+		require.NotNil(t, vmOutput)
 
 		require.Equal(t, 3, len(vmOutput.ReturnData))
 		rwdInBigInt := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
@@ -253,6 +327,20 @@ func createNewDelegationSystemSC(
 ) []byte {
 	txData := "createNewDelegationContract" + "@00@00"
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
+	copy(rewardAddress, vm.FirstDelegationSCAddress)
+	rewardAddress[28] = 2
+	time.Sleep(time.Second)
+	return rewardAddress
+}
+
+func convertValidatorToDelegationSystemSC(
+	node *integrationTests.TestProcessorNode,
+	nodes []*integrationTests.TestProcessorNode,
+) []byte {
+	txData := "makeNewContractFromValidatorData" + "@00@00"
+	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
 	copy(rewardAddress, vm.FirstDelegationSCAddress)
