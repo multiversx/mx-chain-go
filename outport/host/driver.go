@@ -96,7 +96,7 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 
 	err = o.senderHost.Send(marshalledPayload, topic)
 	if err != nil {
-		return fmt.Errorf("%w while sendcing data on route for topic %s", err, topic)
+		return fmt.Errorf("%w while sending data on route for topic %s", err, topic)
 	}
 
 	return nil
