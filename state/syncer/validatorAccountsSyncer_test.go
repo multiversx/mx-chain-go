@@ -54,7 +54,7 @@ func TestNewValidatorAccountsSyncer(t *testing.T) {
 	})
 }
 
-func TestValidatorAccountsSyncer(t *testing.T) {
+func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 	t.Parallel()
 
 	args := syncer.ArgsNewValidatorAccountsSyncer{
@@ -81,4 +81,18 @@ func TestValidatorAccountsSyncer(t *testing.T) {
 
 	err = v.SyncAccounts(key)
 	require.Nil(t, err)
+}
+
+func TestValidatorAccountsSyncer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var vas *syncer.ValidatorAccountsSyncer
+	assert.True(t, vas.IsInterfaceNil())
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+	}
+	vas, err := syncer.NewValidatorAccountsSyncer(args)
+	require.Nil(t, err)
+	assert.False(t, vas.IsInterfaceNil())
 }

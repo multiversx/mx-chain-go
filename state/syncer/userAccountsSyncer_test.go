@@ -168,7 +168,7 @@ func emptyTrie() common.Trie {
 	return tr
 }
 
-func TestUserAccountsSyncer_SyncerAccountDataTries(t *testing.T) {
+func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 	t.Parallel()
 
 	t.Run("failed to get trie root hash", func(t *testing.T) {
@@ -208,6 +208,57 @@ func TestUserAccountsSyncer_SyncerAccountDataTries(t *testing.T) {
 
 		err = s.SyncAccountDataTries(tr, context.TODO())
 		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("throttler cannot process and closed context should fail", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultUserAccountsSyncerArgs()
+		args.Timeout = 5 * time.Second
+
+		key := []byte("accRootHash")
+		serializedLeafNode := getSerializedTrieNode(key, args.Marshalizer, args.Hasher)
+		itn, err := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
+		require.Nil(t, err)
+
+		args.TrieStorageManager = &testscommon.StorageManagerStub{
+			GetCalled: func(b []byte) ([]byte, error) {
+				return serializedLeafNode, nil
+			},
+		}
+		args.Throttler = &mock.ThrottlerStub{
+			CanProcessCalled: func() bool {
+				return false
+			},
+		}
+
+		cacher := testscommon.NewCacherMock()
+		cacher.Put(key, itn, 0)
+		args.Cacher = cacher
+
+		s, err := syncer.NewUserAccountsSyncer(args)
+		require.Nil(t, err)
+
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, 5)
+		tr := emptyTrie()
+
+		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice)
+		require.Nil(t, err)
+		account.SetRootHash(key)
+
+		accountBytes, err := args.Marshalizer.Marshal(account)
+		require.Nil(t, err)
+
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Update([]byte("ddog"), accountBytes)
+		_ = tr.Commit()
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		err = s.SyncAccountDataTries(tr, ctx)
+		require.Equal(t, data.ErrTimeIsOut, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -252,4 +303,15 @@ func TestUserAccountsSyncer_SyncerAccountDataTries(t *testing.T) {
 		err = s.SyncAccountDataTries(tr, context.TODO())
 		require.Nil(t, err)
 	})
+}
+
+func TestUserAccountsSyncer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var uas *syncer.UserAccountsSyncer
+	assert.True(t, uas.IsInterfaceNil())
+
+	uas, err := syncer.NewUserAccountsSyncer(getDefaultUserAccountsSyncerArgs())
+	require.Nil(t, err)
+	assert.False(t, uas.IsInterfaceNil())
 }

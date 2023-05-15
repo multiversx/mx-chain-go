@@ -6,6 +6,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// UserAccountsSyncer -
+type UserAccountsSyncer = userAccountsSyncer
+
+// ValidatorAccountsSyncer -
+type ValidatorAccountsSyncer = validatorAccountsSyncer
+
 // CheckBaseAccountsSyncerArgs -
 func CheckBaseAccountsSyncerArgs(args ArgsNewBaseAccountsSyncer) error {
 	return checkArgs(args)
