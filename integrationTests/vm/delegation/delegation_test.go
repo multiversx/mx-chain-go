@@ -186,7 +186,7 @@ func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5_CreateStaki
 	epochs := uint32(2)
 	nbBlocksToProduce := (roundsPerEpoch+1)*uint64(epochs) + 1
 
-	round, nonce = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
+	_, _ = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
 
 	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
 	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
