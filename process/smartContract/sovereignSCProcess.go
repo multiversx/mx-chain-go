@@ -37,6 +37,7 @@ type sovereignSCProcessor struct {
 	esdtTransferParser vmcommon.ESDTTransferParser
 	wasmVMChangeLocker common.Locker
 	vmContainer        process.VirtualMachinesContainer
+	scrForwarder       process.IntermediateTransactionHandler
 }
 
 func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
@@ -58,13 +59,17 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 	if err != nil {
 		return returnCode, err
 	}
+	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
+	if err != nil {
+		return returnCode, err
+	}
 
 	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
 		return returnCode, err
 	}
 
-	//snapshot := sc.accounts.JournalLen()
+	snapshot := sc.accounts.JournalLen()
 	process.DisplayProcessTxDetails(
 		"ProcessSmartContractResult: receiver account details",
 		dstAcc,
@@ -82,8 +87,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, err
-	//return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 }
 
 func (sc *sovereignSCProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
@@ -151,23 +155,21 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 	}
 
 	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
-		return sc.finishSCExecution(txHash, tx, vmOutput)
+		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput)
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot)
 	}
 
-	createdAsyncCallback := false
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
 		scTxs := sc.createSmartContractResults(outAcc, tx, txHash)
 		scrResults = append(scrResults, scTxs...)
-
 	}
 
-	isSCCallSelfShard, newVMOutput, _, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
+	isSCCallSelfShard, newVMOutput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
@@ -179,13 +181,10 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 	if isSCCallSelfShard {
 		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
 		var newSCRTxs []data.TransactionHandler
-		tmpCreatedAsyncCallback := false
-		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
+		newSCRTxs, err = sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 		if err != nil {
-			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
+			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot)
 		}
-		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-
 		if len(newSCRTxs) > 0 {
 			scrResults = append(scrResults, newSCRTxs...)
 		}
@@ -193,7 +192,7 @@ func (sc *sovereignSCProcessor) doExecuteBuiltInFunction(
 		mergeVMOutputLogs(newVMOutput, vmOutput)
 	}
 
-	return sc.finishSCExecution(txHash, tx, newVMOutput)
+	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput)
 }
 
 func (sc *sovereignSCProcessor) prepareExecution(
@@ -220,7 +219,7 @@ func (sc *sovereignSCProcessor) prepareExecution(
 	if err != nil {
 		returnMessage := "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())
-		return vmcommon.UserError, vmInput, txHash, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, 0)
+		return vmcommon.UserError, vmInput, txHash, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
 	return vmcommon.Ok, vmInput, txHash, nil
@@ -265,10 +264,17 @@ func (sc *sovereignSCProcessor) resolveBuiltInFunctions(vmInput *vmcommon.Contra
 }
 
 func (sc *sovereignSCProcessor) finishSCExecution(
+	results []data.TransactionHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 ) (vmcommon.ReturnCode, error) {
+	err := sc.scrForwarder.AddIntermediateTransactions(results)
+	if err != nil {
+		log.Error("AddIntermediateTransactions error", "error", err.Error())
+		return 0, err
+	}
+
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
 		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
@@ -316,29 +322,29 @@ func (sc *sovereignSCProcessor) treatExecutionAfterBuiltInFunc(
 	vmOutput *vmcommon.VMOutput,
 	acntSnd state.UserAccountHandler,
 	snapshot int,
-) (bool, *vmcommon.VMOutput, *vmcommon.ContractCallInput, error) {
+) (bool, *vmcommon.VMOutput, error) {
 	newVMInput, err := sc.isSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	if err != nil {
-		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
 	newDestSC, err := sc.getAccountFromAddress(vmInput.RecipientAddr)
 	if err != nil {
-		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
 	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
 	if err != nil {
-		return true, userErrorVmOutput, newVMInput, err
+		return true, userErrorVmOutput, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
-		return true, newVMOutput, newVMInput, nil
+		return true, newVMOutput, nil
 	}
 
-	return true, newVMOutput, newVMInput, nil
+	return true, newVMOutput, nil
 }
 
 func (sc *sovereignSCProcessor) executeSmartContractCall(
@@ -362,7 +368,7 @@ func (sc *sovereignSCProcessor) executeSmartContractCall(
 		sc.wasmVMChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
 	sc.blockChainHook.ResetCounters()
@@ -373,12 +379,12 @@ func (sc *sovereignSCProcessor) executeSmartContractCall(
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 	if vmOutput == nil {
 		err = process.ErrNilVMOutput
 		log.Debug("run smart contract call error", "error", err.Error())
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -435,17 +441,16 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 	outputAccounts []*vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
-) (bool, []data.TransactionHandler, error) {
+) ([]data.TransactionHandler, error) {
 	scResults := make([]data.TransactionHandler, 0, len(outputAccounts))
 
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
-	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
-			return false, nil, err
+			return nil, err
 		}
 
 		newScrs := sc.createSmartContractResults(outAcc, tx, txHash)
@@ -455,7 +460,7 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
 				if outAcc.BalanceDelta.Cmp(zero) < 0 {
-					return false, nil, process.ErrNegativeBalanceDeltaOnCrossShardAccount
+					return nil, process.ErrNegativeBalanceDeltaOnCrossShardAccount
 				}
 				sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
@@ -465,13 +470,13 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 		for _, storeUpdate := range outAcc.StorageUpdates {
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
-				return false, nil, process.ErrNotAllowedToWriteUnderProtectedKey
+				return nil, process.ErrNotAllowedToWriteUnderProtectedKey
 			}
 
 			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
-				return false, nil, err
+				return nil, err
 			}
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
@@ -479,7 +484,7 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
-				return false, nil, process.ErrWrongNonceInVMOutput
+				return nil, process.ErrWrongNonceInVMOutput
 			}
 
 			nonceDifference := outAcc.Nonce - acc.GetNonce()
@@ -490,7 +495,7 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 			err = sc.accounts.SaveAccount(acc)
 			if err != nil {
-				return false, nil, err
+				return nil, err
 			}
 
 			continue
@@ -500,35 +505,24 @@ func (sc *sovereignSCProcessor) processSCOutputAccounts(
 
 		err = acc.AddToBalance(outAcc.BalanceDelta)
 		if err != nil {
-			return false, nil, err
+			return nil, err
 		}
 
 		err = sc.accounts.SaveAccount(acc)
 		if err != nil {
-			return false, nil, err
+			return nil, err
 		}
 	}
 
 	if sumOfAllDiff.Cmp(zero) != 0 {
-		return false, nil, process.ErrOverallBalanceChangeFromSC
+		return nil, process.ErrOverallBalanceChangeFromSC
 	}
 
-	return createdAsyncCallback, scResults, nil
+	return scResults, nil
 }
 
 func (sc *sovereignSCProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
-	txHash []byte,
-	tx data.TransactionHandler,
-	returnCode string,
-	returnMessage []byte,
-	snapshot int,
-	gasLocked uint64,
-) error {
-	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot)
-}
-
-func (sc *sovereignSCProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
