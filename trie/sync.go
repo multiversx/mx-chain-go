@@ -120,6 +120,15 @@ func checkArguments(arg ArgTrieSyncer) error {
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
 	}
+	if arg.AccLeavesChannels == nil {
+		return ErrNilTrieIteratorChannels
+	}
+	if arg.AccLeavesChannels.LeavesChan == nil {
+		return ErrNilTrieIteratorLeavesChannel
+	}
+	if arg.AccLeavesChannels.ErrChan == nil {
+		return ErrNilTrieIteratorErrChannel
+	}
 
 	return nil
 }

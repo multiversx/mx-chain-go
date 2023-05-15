@@ -6,8 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -26,6 +29,11 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		},
 	}
 
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+
 	return ArgTrieSyncer{
 		RequestHandler:            &testscommon.RequestHandlerStub{},
 		InterceptedNodes:          testscommon.NewCacherMock(),
@@ -37,116 +45,160 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 500,
+		AccLeavesChannels:         leavesChannels,
 	}
 }
 
-func TestNewTrieSyncer_NilRequestHandlerShouldErr(t *testing.T) {
+func TestNewTrieSyncer(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument(time.Minute)
-	arg.RequestHandler = nil
+	t.Run("nil request handler", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.Equal(t, err, ErrNilRequestHandler)
-}
+		arg := createMockArgument(time.Minute)
+		arg.RequestHandler = nil
 
-func TestNewTrieSyncer_NilInterceptedNodesShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.Equal(t, err, ErrNilRequestHandler)
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.InterceptedNodes = nil
+	t.Run("nil intercepted nodes", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.Equal(t, err, data.ErrNilCacher)
-}
+		arg := createMockArgument(time.Minute)
+		arg.InterceptedNodes = nil
 
-func TestNewTrieSyncer_EmptyTopicShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.Equal(t, err, data.ErrNilCacher)
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.Topic = ""
+	t.Run("empty topic should fail", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.Equal(t, err, ErrInvalidTrieTopic)
-}
+		arg := createMockArgument(time.Minute)
+		arg.Topic = ""
 
-func TestNewTrieSyncer_NilTrieStatisticsShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.Equal(t, err, ErrInvalidTrieTopic)
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.TrieSyncStatistics = nil
+	t.Run("nil trie statistics", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.Equal(t, err, ErrNilTrieSyncStatistics)
-}
+		arg := createMockArgument(time.Minute)
+		arg.TrieSyncStatistics = nil
 
-func TestNewTrieSyncer_NilDatabaseShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.Equal(t, err, ErrNilTrieSyncStatistics)
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.DB = nil
+	t.Run("nil database", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.True(t, errors.Is(err, ErrNilDatabase))
-}
+		arg := createMockArgument(time.Minute)
+		arg.DB = nil
 
-func TestNewTrieSyncer_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilDatabase))
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.Marshalizer = nil
+	t.Run("nil marshalizer", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.True(t, errors.Is(err, ErrNilMarshalizer))
-}
+		arg := createMockArgument(time.Minute)
+		arg.Marshalizer = nil
 
-func TestNewTrieSyncer_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilMarshalizer))
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.Hasher = nil
+	t.Run("nil hasher", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.True(t, errors.Is(err, ErrNilHasher))
-}
+		arg := createMockArgument(time.Minute)
+		arg.Hasher = nil
 
-func TestNewTrieSyncer_NilTimeoutHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilHasher))
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.TimeoutHandler = nil
+	t.Run("nil timeout handler", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.True(t, errors.Is(err, ErrNilTimeoutHandler))
-}
+		arg := createMockArgument(time.Minute)
+		arg.TimeoutHandler = nil
 
-func TestNewTrieSyncer_InvalidMaxHardCapForMissingNodesShouldErr(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilTimeoutHandler))
+	})
 
-	arg := createMockArgument(time.Minute)
-	arg.MaxHardCapForMissingNodes = 0
+	t.Run("invalid max hard capacity for missing nodes", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.True(t, check.IfNil(ts))
-	assert.True(t, errors.Is(err, ErrInvalidMaxHardCapForMissingNodes))
-}
+		arg := createMockArgument(time.Minute)
+		arg.MaxHardCapForMissingNodes = 0
 
-func TestNewTrieSyncer_ShouldWork(t *testing.T) {
-	t.Parallel()
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrInvalidMaxHardCapForMissingNodes))
+	})
 
-	arg := createMockArgument(time.Minute)
+	t.Run("nil accounts leaves channels", func(t *testing.T) {
+		t.Parallel()
 
-	ts, err := NewTrieSyncer(arg)
-	assert.False(t, check.IfNil(ts))
-	assert.Nil(t, err)
+		arg := createMockArgument(time.Minute)
+		arg.AccLeavesChannels = nil
+
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilTrieIteratorChannels))
+	})
+
+	t.Run("nil leaves channel", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(time.Minute)
+		arg.AccLeavesChannels = &common.TrieIteratorChannels{
+			LeavesChan: nil,
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilTrieIteratorLeavesChannel))
+	})
+
+	t.Run("nil err channel", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(time.Minute)
+		arg.AccLeavesChannels = &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    nil,
+		}
+
+		ts, err := NewTrieSyncer(arg)
+		assert.True(t, check.IfNil(ts))
+		assert.True(t, errors.Is(err, ErrNilTrieIteratorErrChannel))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(time.Minute)
+
+		ts, err := NewTrieSyncer(arg)
+		assert.False(t, check.IfNil(ts))
+		assert.Nil(t, err)
+	})
 }
 
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
