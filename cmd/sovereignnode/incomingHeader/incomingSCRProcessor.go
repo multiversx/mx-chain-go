@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -21,11 +23,18 @@ type scrInfo struct {
 	hash []byte
 }
 
-func (ihp *incomingHeaderProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
+type scrProcessor struct {
+	txPool     TransactionPool
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
+}
+
+func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
 	scrs := make([]*scrInfo, 0, len(events))
 
 	for idx, event := range events {
 		topics := event.GetTopics()
+		// TODO: Check each param validity (e.g. check that topic[0] == valid address)
 		if len(topics) < minTopicsInEvent || len(topics[1:])%numTransferTopics != 0 {
 			log.Error("incomingHeaderHandler.createIncomingSCRs",
 				"error", errInvalidNumTopicsIncomingEvent,
@@ -41,7 +50,7 @@ func (ihp *incomingHeaderProcessor) createIncomingSCRs(events []data.EventHandle
 			Data:    createSCRData(topics),
 		}
 
-		hash, err := core.CalculateHash(ihp.marshaller, ihp.hasher, scr)
+		hash, err := core.CalculateHash(sp.marshaller, sp.hasher, scr)
 		if err != nil {
 			return nil, err
 		}
@@ -75,10 +84,10 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (ihp *incomingHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
+func (sp *scrProcessor) addSCRsToPool(scrs []*scrInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
 	for _, scrData := range scrs {
-		ihp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+		sp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
 	}
 }

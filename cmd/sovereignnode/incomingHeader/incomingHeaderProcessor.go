@@ -25,9 +25,9 @@ type ArgsIncomingHeaderProcessor struct {
 
 type incomingHeaderProcessor struct {
 	headersPool HeadersPool
-	txPool      TransactionPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
+	scrProc     *scrProcessor
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
@@ -47,11 +47,17 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, core.ErrNilHasher
 	}
 
+	scrProc := &scrProcessor{
+		txPool:     args.TxPool,
+		marshaller: args.Marshaller,
+		hasher:     args.Hasher,
+	}
+
 	return &incomingHeaderProcessor{
 		headersPool: args.HeadersPool,
-		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
+		scrProc:     scrProc,
 	}, nil
 }
 
@@ -64,7 +70,7 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return errInvalidHeaderType
 	}
 
-	incomingSCRs, err := ihp.createIncomingSCRs(header.GetIncomingEventHandlers())
+	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
@@ -80,7 +86,7 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	ihp.addSCRsToPool(incomingSCRs)
+	ihp.scrProc.addSCRsToPool(incomingSCRs)
 	return nil
 }
 
