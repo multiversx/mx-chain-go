@@ -3,7 +3,9 @@ package incomingHeader
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -28,6 +30,12 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		Marshaller:  &testscommon.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
+}
+
+func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics int) {
+	require.True(t, strings.Contains(err.Error(), errInvalidNumTopicsIncomingEvent.Error()))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", idx)))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", numTopics)))
 }
 
 func TestNewIncomingHeaderHandler(t *testing.T) {
@@ -108,7 +116,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		require.Equal(t, errMarshaller, err)
 	})
 
-	t.Run("invalid num topics in event, should skip events", func(t *testing.T) {
+	t.Run("invalid num topics in event, should return error", func(t *testing.T) {
 		args := createArgs()
 
 		numSCRsAdded := 0
@@ -124,21 +132,37 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 				{
 					Topics: [][]byte{[]byte("addr")},
 				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1")},
-				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")},
-				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")},
-				},
 			},
 		}
 
 		handler, _ := NewIncomingHeaderProcessor(args)
+
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
-		require.Nil(t, err)
+		requireErrorIsInvalidNumTopics(t, err, 0, 1)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 2)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 3)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 5)
+
+		incomingHeader.IncomingEvents = []*transaction.Event{
+			{
+				Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+			},
+			{
+				Topics: [][]byte{[]byte("addr")},
+			},
+		}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 1, 1)
+
 		require.Equal(t, 0, numSCRsAdded)
 	})
 

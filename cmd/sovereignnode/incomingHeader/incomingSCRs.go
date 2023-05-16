@@ -2,6 +2,7 @@ package incomingHeader
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -23,14 +24,15 @@ type scrInfo struct {
 func (ihp *incomingHeaderProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
 	scrs := make([]*scrInfo, 0, len(events))
 
-	for _, event := range events {
+	for idx, event := range events {
 		topics := event.GetTopics()
 		if len(topics) < minTopicsInEvent || len(topics[1:])%numTransferTopics != 0 {
 			log.Error("incomingHeaderHandler.createIncomingSCRs",
 				"error", errInvalidNumTopicsIncomingEvent,
 				"num topics", len(topics),
 				"topics", topics)
-			continue
+			return nil, fmt.Errorf("%w at event idx = %d; num topics = %d",
+				errInvalidNumTopicsIncomingEvent, idx, len(topics))
 		}
 
 		scr := &smartContractResult.SmartContractResult{
