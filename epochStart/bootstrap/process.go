@@ -1123,6 +1123,7 @@ func (e *epochStartBootstrap) createStorageService(
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
 			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
