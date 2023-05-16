@@ -126,24 +126,18 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	wgSyncMainTrie.Add(1)
 
 	go func() {
-		_, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
+		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
 		if err != nil {
-			log.Error("syncMainTrie:", "error", err.Error())
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		log.Debug("syncMainTrie goroutine: closing leaver channel")
-
-		if leavesChannels.LeavesChan != nil {
-			close(leavesChannels.LeavesChan)
-		}
+		safelyCloseChan(leavesChannels.LeavesChan)
 
 		wgSyncMainTrie.Done()
 	}()
 
 	err := u.syncAccountDataTries(leavesChannels, ctx)
 	if err != nil {
-		log.Error("syncAccountDataTries:", "error", err.Error())
 		return err
 	}
 
@@ -152,6 +146,12 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
 	return nil
+}
+
+func safelyCloseChan(ch chan core.KeyValueHolder) {
+	if ch != nil {
+		close(ch)
+	}
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
@@ -166,7 +166,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.syncerMutex.Unlock()
 
 	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
-		LeavesChan: nil,
+		LeavesChan: nil, // not used for data tries
 		ErrChan:    nil,
 	}
 

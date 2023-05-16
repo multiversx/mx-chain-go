@@ -79,12 +79,12 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		LeavesChan: nil,
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx, leavesChannels)
+	err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx, leavesChannels)
 	if err != nil {
 		return err
 	}
 
-	v.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	v.storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
 
 	return nil
 }

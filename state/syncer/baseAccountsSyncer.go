@@ -93,13 +93,12 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	trieTopic string,
 	ctx context.Context,
 	accLeavesChan *common.TrieIteratorChannels,
-) (common.Trie, error) {
+) error {
 	atomic.AddInt32(&b.numMaxTries, 1)
 
-	log.Trace("syncing main trie", "roothash", rootHash)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	_, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	b.dataTries[string(rootHash)] = struct{}{}
@@ -119,19 +118,17 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	atomic.AddInt32(&b.numTriesSynced, 1)
 
-	log.Trace("finished syncing main trie", "roothash", rootHash)
-
-	return dataTrie.Recreate(rootHash)
+	return nil
 }
 
 func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context) {
