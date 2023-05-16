@@ -347,7 +347,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	return sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
