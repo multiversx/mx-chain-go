@@ -957,11 +957,6 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	wasmVMChangeLocker common.Locker,
 	mapDNSAddresses map[string]struct{},
 ) (process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
-	if err != nil {
-		return nil, err
-	}
-
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
