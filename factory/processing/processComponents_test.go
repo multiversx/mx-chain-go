@@ -883,10 +883,11 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
-			PeersAcc:        realStateComp.PeerAccounts(),
-			Tries:           realStateComp.TriesContainer(),
-			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
-			StorageManagers: realStateComp.TrieStorageManagers(),
+			PeersAcc:         realStateComp.PeerAccounts(),
+			Tries:            realStateComp.TriesContainer(),
+			AccountsAPI:      realStateComp.AccountsAdapterAPI(),
+			StorageManagers:  realStateComp.TrieStorageManagers(),
+			AccountsSimulate: realStateComp.AccountsAdapterSimulate(),
 		}
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
@@ -923,10 +924,11 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
-			PeersAcc:        realStateComp.PeerAccounts(),
-			Tries:           realStateComp.TriesContainer(),
-			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
-			StorageManagers: realStateComp.TrieStorageManagers(),
+			PeersAcc:         realStateComp.PeerAccounts(),
+			Tries:            realStateComp.TriesContainer(),
+			AccountsAPI:      realStateComp.AccountsAdapterAPI(),
+			StorageManagers:  realStateComp.TrieStorageManagers(),
+			AccountsSimulate: realStateComp.AccountsAdapterSimulate(),
 		}
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {

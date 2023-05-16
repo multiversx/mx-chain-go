@@ -11,7 +11,7 @@ type StateComponentsMock struct {
 	PeersAcc                 state.AccountsAdapter
 	Accounts                 state.AccountsAdapter
 	AccountsAPI              state.AccountsAdapter
-	AccountsSimulate state.AccountsAdapterWithClean
+	AccountsSimulate         state.AccountsAdapterWithClean
 	AccountsAdapterAPICalled func() state.AccountsAdapter
 	AccountsRepo             state.AccountsRepository
 	Tries                    common.TriesHolder
@@ -21,12 +21,13 @@ type StateComponentsMock struct {
 // NewStateComponentsMockFromRealComponent -
 func NewStateComponentsMockFromRealComponent(stateComponents factory.StateComponentsHolder) *StateComponentsMock {
 	return &StateComponentsMock{
-		PeersAcc:        stateComponents.PeerAccounts(),
-		Accounts:        stateComponents.AccountsAdapter(),
-		AccountsAPI:     stateComponents.AccountsAdapterAPI(),
-		AccountsRepo:    stateComponents.AccountsRepository(),
-		Tries:           stateComponents.TriesContainer(),
-		StorageManagers: stateComponents.TrieStorageManagers(),
+		PeersAcc:         stateComponents.PeerAccounts(),
+		Accounts:         stateComponents.AccountsAdapter(),
+		AccountsAPI:      stateComponents.AccountsAdapterAPI(),
+		AccountsRepo:     stateComponents.AccountsRepository(),
+		Tries:            stateComponents.TriesContainer(),
+		StorageManagers:  stateComponents.TrieStorageManagers(),
+		AccountsSimulate: stateComponents.AccountsAdapterSimulate(),
 	}
 }
 
