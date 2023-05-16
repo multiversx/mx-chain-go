@@ -267,15 +267,10 @@ func (d *delegationManager) deployNewContract(
 	return newAddress, vmcommon.Ok
 }
 
-func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, arguments [][]byte) error {
+func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
 	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
 		return nil // backwards compatibility
 	}
-	if len(arguments) == 0 {
-		return vm.ErrInvalidNumOfArguments
-	}
-
-	caller := arguments[0]
 
 	return d.eei.UpdateCodeDeployerAddress(string(newAddress), caller)
 }
@@ -300,7 +295,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 		return returnCode
 	}
 
-	err := d.correctOwnerOnAccount(newAddress, arguments)
+	err := d.correctOwnerOnAccount(newAddress, args.CallerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError

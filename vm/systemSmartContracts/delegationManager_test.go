@@ -1254,7 +1254,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 	t.Parallel()
 
 	delegationAddress := []byte("delegation address")
-	arguments := [][]byte{[]byte("caller")}
+	caller := []byte("caller")
 	t.Run("the fix is disabled, returns nil", func(t *testing.T) {
 		t.Parallel()
 
@@ -1269,25 +1269,8 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		}
 
 		dm, _ := NewDelegationManagerSystemSC(args)
-		err := dm.correctOwnerOnAccount(delegationAddress, arguments)
+		err := dm.correctOwnerOnAccount(delegationAddress, caller)
 		assert.Nil(t, err)
-	})
-	t.Run("the fix is enabled but arguments are nil, should return", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgumentsForDelegationManager()
-		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
-		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
-		args.Eei = &mock.SystemEIStub{
-			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
-				assert.Fail(t, "should have not called UpdateCodeDeployerAddress")
-				return nil
-			},
-		}
-
-		dm, _ := NewDelegationManagerSystemSC(args)
-		err := dm.correctOwnerOnAccount(delegationAddress, nil)
-		assert.Equal(t, vm.ErrInvalidNumOfArguments, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -1299,7 +1282,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		args.Eei = &mock.SystemEIStub{
 			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
 				assert.Equal(t, scAddress, string(delegationAddress))
-				assert.Equal(t, arguments[0], newOwner)
+				assert.Equal(t, caller, newOwner)
 				updateCalled = true
 
 				return nil
@@ -1307,7 +1290,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		}
 
 		dm, _ := NewDelegationManagerSystemSC(args)
-		err := dm.correctOwnerOnAccount(delegationAddress, arguments)
+		err := dm.correctOwnerOnAccount(delegationAddress, caller)
 		assert.Nil(t, err)
 		assert.True(t, updateCalled)
 	})
