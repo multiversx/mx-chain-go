@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,7 +33,7 @@ func TestNewFullHistoryPruningStorer_OkValsShouldWork(t *testing.T) {
 	}
 	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	assert.False(t, check.IfNil(fhps))
+	assert.NotNil(t, fhps)
 	assert.Nil(t, err)
 }
 
@@ -382,4 +381,19 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
 	require.True(t, elapsedTime < 100*time.Second)
+}
+
+func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var fhps *pruning.FullHistoryPruningStorer
+	require.True(t, fhps.IsInterfaceNil())
+
+	args := getDefaultArgs()
+	fhArgs := pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 10,
+	}
+	fhps, _ = pruning.NewFullHistoryPruningStorer(fhArgs)
+	require.False(t, fhps.IsInterfaceNil())
 }

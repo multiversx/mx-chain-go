@@ -1,19 +1,33 @@
-package testscommon
+package factory
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StateComponentsMock -
 type StateComponentsMock struct {
-	PeersAcc         state.AccountsAdapter
-	Accounts         state.AccountsAdapter
-	AccountsAPI      state.AccountsAdapter
+	PeersAcc                 state.AccountsAdapter
+	Accounts                 state.AccountsAdapter
+	AccountsAPI              state.AccountsAdapter
 	AccountsSimulate state.AccountsAdapterWithClean
-	AccountsRepo     state.AccountsRepository
-	Tries            common.TriesHolder
-	StorageManagers  map[string]common.StorageManager
+	AccountsAdapterAPICalled func() state.AccountsAdapter
+	AccountsRepo             state.AccountsRepository
+	Tries                    common.TriesHolder
+	StorageManagers          map[string]common.StorageManager
+}
+
+// NewStateComponentsMockFromRealComponent -
+func NewStateComponentsMockFromRealComponent(stateComponents factory.StateComponentsHolder) *StateComponentsMock {
+	return &StateComponentsMock{
+		PeersAcc:        stateComponents.PeerAccounts(),
+		Accounts:        stateComponents.AccountsAdapter(),
+		AccountsAPI:     stateComponents.AccountsAdapterAPI(),
+		AccountsRepo:    stateComponents.AccountsRepository(),
+		Tries:           stateComponents.TriesContainer(),
+		StorageManagers: stateComponents.TrieStorageManagers(),
+	}
 }
 
 // AccountsAdapterSimulate -
@@ -48,6 +62,9 @@ func (scm *StateComponentsMock) AccountsAdapter() state.AccountsAdapter {
 
 // AccountsAdapterAPI -
 func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
+	if scm.AccountsAdapterAPICalled != nil {
+		return scm.AccountsAdapterAPICalled()
+	}
 	return scm.AccountsAPI
 }
 

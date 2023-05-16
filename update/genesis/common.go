@@ -34,7 +34,7 @@ func getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

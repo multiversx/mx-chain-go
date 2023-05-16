@@ -79,3 +79,11 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTxHash,
 		errorMsg)
 }
+
+func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
+	return inTx.checkMaxGasPrice()
+}
+
+func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+	return txProc.verifyGuardian(tx, account)
+}
