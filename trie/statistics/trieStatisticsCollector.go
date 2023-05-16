@@ -94,7 +94,7 @@ func (tsc *trieStatisticsCollector) Print() {
 
 	for trieType, trieStats := range tsc.trieStatsByType {
 		message := fmt.Sprintf("migration stats for %v", trieType)
-		log.Debug(message, getMigrationStatsString(trieStats.GetLeavesMigrationStats()))
+		log.Debug(message, "stats", getMigrationStatsString(trieStats.GetLeavesMigrationStats()))
 	}
 
 	if log.GetLevel() == logger.LogTrace {

@@ -1,8 +1,11 @@
 package statistics
 
 import (
+	"encoding/hex"
+	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,4 +111,74 @@ func TestTrieStatistics_GetTrieStats(t *testing.T) {
 	assert.Equal(t, uint64(numExtensions), ts.GetNumExtensionNodes())
 	assert.Equal(t, uint64(numLeaves), ts.GetNumLeafNodes())
 	assert.Equal(t, uint64(numLeaves), ts.GetLeavesMigrationStats()[0])
+}
+
+func TestTrieStatistics_MergeTriesStatistics(t *testing.T) {
+	t.Parallel()
+
+	leafSize := uint64(10)
+	branchSize := uint64(8)
+	extensionSize := uint64(5)
+
+	ts := NewTrieStatistics()
+	newTs := NewTrieStatistics()
+	newTs.AddLeafNode(2, leafSize, 0)
+	newTs.AddLeafNode(3, leafSize, 1)
+	newTs.AddBranchNode(1, branchSize)
+	newTs.AddExtensionNode(3, extensionSize)
+
+	ts.MergeTriesStatistics(newTs)
+
+	assert.Equal(t, uint32(3), ts.GetMaxTrieDepth())
+	assert.Equal(t, branchSize, ts.GetBranchNodesSize())
+	assert.Equal(t, extensionSize, ts.GetExtensionNodesSize())
+	assert.Equal(t, 2*leafSize, ts.GetLeafNodesSize())
+	assert.Equal(t, branchSize+extensionSize+2*leafSize, ts.GetTotalNodesSize())
+	assert.Equal(t, uint64(4), ts.GetTotalNumNodes())
+	assert.Equal(t, uint64(1), ts.GetNumBranchNodes())
+	assert.Equal(t, uint64(1), ts.GetNumExtensionNodes())
+	assert.Equal(t, uint64(2), ts.GetNumLeafNodes())
+	assert.Equal(t, uint64(1), ts.GetLeavesMigrationStats()[0])
+	assert.Equal(t, uint64(1), ts.GetLeavesMigrationStats()[1])
+
+	newTs = NewTrieStatistics()
+	newTs.AddLeafNode(4, leafSize, 0)
+	newTs.AddLeafNode(1, leafSize, 1)
+	newTs.AddBranchNode(1, branchSize)
+	newTs.AddExtensionNode(3, extensionSize)
+
+	ts.MergeTriesStatistics(newTs)
+	totalNodesSize := branchSize*2 + extensionSize*2 + leafSize*4
+
+	assert.Equal(t, uint32(4), ts.GetMaxTrieDepth())
+	assert.Equal(t, branchSize*2, ts.GetBranchNodesSize())
+	assert.Equal(t, extensionSize*2, ts.GetExtensionNodesSize())
+	assert.Equal(t, leafSize*4, ts.GetLeafNodesSize())
+	assert.Equal(t, totalNodesSize, ts.GetTotalNodesSize())
+	assert.Equal(t, uint64(8), ts.GetTotalNumNodes())
+	assert.Equal(t, uint64(2), ts.GetNumBranchNodes())
+	assert.Equal(t, uint64(2), ts.GetNumExtensionNodes())
+	assert.Equal(t, uint64(4), ts.GetNumLeafNodes())
+	assert.Equal(t, uint64(2), ts.GetLeavesMigrationStats()[0])
+	assert.Equal(t, uint64(2), ts.GetLeavesMigrationStats()[1])
+
+	address := "address"
+	rootHash := []byte("rootHash")
+	ts.AddAccountInfo(address, rootHash)
+
+	trieStatsStrings := ts.ToString()
+	assert.Equal(t, 13, len(trieStatsStrings))
+	assert.Equal(t, fmt.Sprintf("address %v,", address), trieStatsStrings[0])
+	assert.Equal(t, fmt.Sprintf("rootHash %v,", hex.EncodeToString(rootHash)), trieStatsStrings[1])
+	assert.Equal(t, fmt.Sprintf("total trie size = %v,", core.ConvertBytes(totalNodesSize)), trieStatsStrings[2])
+	assert.Equal(t, fmt.Sprintf("num trie nodes =  %v,", 8), trieStatsStrings[3])
+	assert.Equal(t, fmt.Sprintf("max trie depth = %v,", 4), trieStatsStrings[4])
+	assert.Equal(t, fmt.Sprintf("branch nodes size %v,", core.ConvertBytes(16)), trieStatsStrings[5])
+	assert.Equal(t, fmt.Sprintf("extension nodes size %v,", core.ConvertBytes(10)), trieStatsStrings[6])
+	assert.Equal(t, fmt.Sprintf("leaf nodes size %v,", core.ConvertBytes(40)), trieStatsStrings[7])
+	assert.Equal(t, fmt.Sprintf("num branches %v,", 2), trieStatsStrings[8])
+	assert.Equal(t, fmt.Sprintf("num extensions %v,", 2), trieStatsStrings[9])
+	assert.Equal(t, fmt.Sprintf("num leaves %v", 4), trieStatsStrings[10])
+	assert.Contains(t, trieStatsStrings, "num leaves with not specified version = 2")
+	assert.Contains(t, trieStatsStrings, "num leaves with auto balanced version = 2")
 }
