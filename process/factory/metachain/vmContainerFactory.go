@@ -68,7 +68,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilEconomicsData)
 	}
 	if check.IfNil(args.MessageSignVerifier) {
-		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilKeyGen)
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesConfigProvider)

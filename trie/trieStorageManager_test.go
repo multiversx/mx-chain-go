@@ -12,8 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
+	storageMx "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -23,6 +25,12 @@ import (
 
 const (
 	hashSize = 32
+)
+
+var (
+	providedKey = []byte("key")
+	providedVal = []byte("value")
+	expectedErr = errorsGo.New("expected error")
 )
 
 func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
@@ -46,6 +54,24 @@ type errChanWithLen interface {
 func TestNewTrieStorageManager(t *testing.T) {
 	t.Parallel()
 
+	t.Run("nil main storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
+	})
+	t.Run("nil checkpoints storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.CheckpointsStorer = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
+	})
 	t.Run("nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
@@ -72,6 +98,24 @@ func TestNewTrieStorageManager(t *testing.T) {
 		ts, err := trie.NewTrieStorageManager(args)
 		assert.Nil(t, ts)
 		assert.Equal(t, trie.ErrNilCheckpointHashesHolder, err)
+	})
+	t.Run("nil idle provider", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.IdleProvider = nil
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrNilIdleNodeProvider, err)
+	})
+	t.Run("invalid config should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.GeneralConfig.SnapshotsGoroutineNum = 0
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Error(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -211,6 +255,7 @@ func TestTrieStorageManager_IsPruningBlocked(t *testing.T) {
 
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManager(args)
+	ts.ExitPruningBufferingMode() // early exit
 
 	assert.False(t, ts.IsPruningBlocked())
 
@@ -224,34 +269,99 @@ func TestTrieStorageManager_IsPruningBlocked(t *testing.T) {
 func TestTrieStorageManager_Remove(t *testing.T) {
 	t.Parallel()
 
+	t.Run("main storer not snapshotPruningStorer should call remove", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				wasCalled = true
+				return nil
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.Remove(providedKey)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = testscommon.NewSnapshotPruningStorerMock()
+		args.CheckpointsStorer = testscommon.NewSnapshotPruningStorerMock()
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		_ = args.MainStorer.Put(providedKey, providedVal)
+		hashes := make(common.ModifiedHashes)
+		hashes[string(providedVal)] = struct{}{}
+		hashes[string(providedKey)] = struct{}{}
+		_ = args.CheckpointHashesHolder.Put(providedKey, hashes)
+
+		val, err := args.MainStorer.Get(providedKey)
+		assert.Nil(t, err)
+		assert.NotNil(t, val)
+		ok := args.CheckpointHashesHolder.ShouldCommit(providedKey)
+		assert.True(t, ok)
+
+		err = ts.Remove(providedKey)
+		assert.Nil(t, err)
+
+		val, err = args.MainStorer.Get(providedKey)
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+		ok = args.CheckpointHashesHolder.ShouldCommit(providedKey)
+		assert.False(t, ok)
+	})
+}
+
+func TestTrieStorageManager_RemoveFromCheckpointHashesHolder(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
 	args := getNewTrieStorageManagerArgs()
-	args.MainStorer = testscommon.NewSnapshotPruningStorerMock()
-	args.CheckpointsStorer = testscommon.NewSnapshotPruningStorerMock()
+	args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+		RemoveCalled: func(bytes []byte) {
+			wasCalled = true
+		},
+	}
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	key := []byte("key")
-	value := []byte("value")
+	ts.RemoveFromCheckpointHashesHolder(providedKey)
+	assert.True(t, wasCalled)
+}
 
-	_ = args.MainStorer.Put(key, value)
-	hashes := make(common.ModifiedHashes)
-	hashes[string(value)] = struct{}{}
-	hashes[string(key)] = struct{}{}
-	_ = args.CheckpointHashesHolder.Put(key, hashes)
+func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
+	t.Parallel()
 
-	val, err := args.MainStorer.Get(key)
-	assert.Nil(t, err)
-	assert.NotNil(t, val)
-	ok := args.CheckpointHashesHolder.ShouldCommit(key)
-	assert.True(t, ok)
+	t.Run("main storer not epochStorer should early exit", func(t *testing.T) {
+		t.Parallel()
 
-	err = ts.Remove(key)
-	assert.Nil(t, err)
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{}
+		ts, _ := trie.NewTrieStorageManager(args)
 
-	val, err = args.MainStorer.Get(key)
-	assert.Nil(t, val)
-	assert.NotNil(t, err)
-	ok = args.CheckpointHashesHolder.ShouldCommit(key)
-	assert.False(t, ok)
+		ts.SetEpochForPutOperation(0)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedEpoch := uint32(100)
+		wasCalled := false
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &testscommon.StorageManagerStub{
+			SetEpochForPutOperationCalled: func(u uint32) {
+				assert.Equal(t, providedEpoch, u)
+				wasCalled = true
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		ts.SetEpochForPutOperation(providedEpoch)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
@@ -261,9 +371,7 @@ func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 	_ = ts.Close()
 
-	key := []byte("key")
-	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(providedKey, providedVal, 0)
 	assert.Equal(t, errors.ErrContextClosing, err)
 }
 
@@ -273,9 +381,7 @@ func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
 	args := getNewTrieStorageManagerArgs()
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	key := []byte("key")
-	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(providedKey, providedVal, 0)
 	assert.True(t, strings.Contains(err.Error(), "invalid storer type"))
 }
 
@@ -293,9 +399,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 	}
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	key := []byte("key")
-	value := []byte("value")
-	err := ts.PutInEpoch(key, value, 0)
+	err := ts.PutInEpoch(providedKey, providedVal, 0)
 	assert.Nil(t, err)
 	assert.True(t, putInEpochCalled)
 }
@@ -415,32 +519,292 @@ func TestTrieStorageManager_TakeSnapshotWithGetNodeFromDBError(t *testing.T) {
 	assert.True(t, strings.Contains(errRecovered.Error(), common.GetNodeFromDBErrorString))
 }
 
-func TestTrieStorageManager_ShouldTakeSnapshotInvalidStorer(t *testing.T) {
+func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 	t.Parallel()
 
-	args := getNewTrieStorageManagerArgs()
-	ts, _ := trie.NewTrieStorageManager(args)
+	t.Run("invalid storer should return false", func(t *testing.T) {
+		t.Parallel()
 
-	assert.False(t, ts.ShouldTakeSnapshot())
+		args := getNewTrieStorageManagerArgs()
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.False(t, ts.ShouldTakeSnapshot())
+	})
+	t.Run("trie synced should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
+				return []byte(common.TrieSyncedVal), nil
+			},
+			MemDbMock: testscommon.NewMemDbMock(),
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.False(t, ts.ShouldTakeSnapshot())
+	})
+	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled error should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
+				return nil, expectedErr // isTrieSynced returns false
+			},
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				return nil, core.OptionalUint32{}, storageMx.ErrDBIsClosed
+			},
+			MemDbMock: testscommon.NewMemDbMock(),
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.False(t, ts.ShouldTakeSnapshot())
+	})
+	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns non ActiveDBVal should return false", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
+				return []byte("response"), nil
+			},
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				return []byte("response"), core.OptionalUint32{}, nil
+			},
+			MemDbMock: testscommon.NewMemDbMock(),
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.False(t, ts.ShouldTakeSnapshot())
+	})
+	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
+				return nil, expectedErr // isTrieSynced returns false
+			},
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				return []byte(common.ActiveDBVal), core.OptionalUint32{}, nil
+			},
+			MemDbMock: testscommon.NewMemDbMock(),
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.True(t, ts.ShouldTakeSnapshot())
+	})
+}
+
+func TestTrieStorageManager_Get(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		_ = ts.Close()
+
+		val, err := ts.Get(providedKey)
+		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Nil(t, val)
+	})
+	t.Run("main storer closing should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, storageMx.ErrDBIsClosed
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		val, err := ts.Get(providedKey)
+		assert.Equal(t, storageMx.ErrDBIsClosed, err)
+		assert.Nil(t, val)
+	})
+	t.Run("checkpoints storer closing should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.CheckpointsStorer = &storage.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, storageMx.ErrDBIsClosed
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		val, err := ts.Get(providedKey)
+		assert.Equal(t, storageMx.ErrDBIsClosed, err)
+		assert.Nil(t, val)
+	})
+	t.Run("should return from main storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		_ = args.MainStorer.Put(providedKey, providedVal)
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		val, err := ts.Get(providedKey)
+		assert.Nil(t, err)
+		assert.Equal(t, providedVal, val)
+	})
+	t.Run("should return from checkpoints storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		_ = args.CheckpointsStorer.Put(providedKey, providedVal)
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		val, err := ts.Get(providedKey)
+		assert.Nil(t, err)
+		assert.Equal(t, providedVal, val)
+	})
 }
 
 func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
-	getFromCurrentEpochCalled := false
-	args := getNewTrieStorageManagerArgs()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		MemDbMock: testscommon.NewMemDbMock(),
-		GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
-			getFromCurrentEpochCalled = true
-			return nil, nil
-		},
-	}
-	ts, _ := trie.NewTrieStorageManager(args)
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
 
-	_, err := ts.GetFromCurrentEpoch([]byte("key"))
-	assert.Nil(t, err)
-	assert.True(t, getFromCurrentEpochCalled)
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		_ = ts.Close()
+
+		val, err := ts.GetFromCurrentEpoch(providedKey)
+		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Nil(t, val)
+	})
+	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		val, err := ts.GetFromCurrentEpoch(providedKey)
+		assert.True(t, strings.Contains(err.Error(), "invalid storer"))
+		assert.Nil(t, val)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		getFromCurrentEpochCalled := false
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			MemDbMock: testscommon.NewMemDbMock(),
+			GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
+				getFromCurrentEpochCalled = true
+				return nil, nil
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		_, err := ts.GetFromCurrentEpoch(providedKey)
+		assert.Nil(t, err)
+		assert.True(t, getFromCurrentEpochCalled)
+	})
+}
+
+func TestTrieStorageManager_Put(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		_ = ts.Close()
+
+		err := ts.Put(providedKey, providedVal)
+		assert.Equal(t, errors.ErrContextClosing, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+
+		_ = ts.Put(providedKey, providedVal)
+		val, err := ts.Get(providedKey)
+		assert.Nil(t, err)
+		assert.Equal(t, providedVal, val)
+	})
+}
+
+func TestTrieStorageManager_PutInEpochWithoutCache(t *testing.T) {
+	t.Parallel()
+
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		_ = ts.Close()
+
+		err := ts.PutInEpochWithoutCache(providedKey, providedVal, 0)
+		assert.Equal(t, errors.ErrContextClosing, err)
+	})
+	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.PutInEpochWithoutCache(providedKey, providedVal, 0)
+		assert.True(t, strings.Contains(err.Error(), "invalid storer"))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = testscommon.NewSnapshotPruningStorerMock()
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.PutInEpochWithoutCache(providedKey, providedVal, 0)
+		assert.Nil(t, err)
+	})
+}
+
+func TestTrieStorageManager_Close(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error on main storer close", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.MainStorer = &storage.StorerStub{
+			CloseCalled: func() error {
+				return expectedErr
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.Close()
+		assert.True(t, errorsGo.Is(err, expectedErr))
+	})
+	t.Run("error on checkpoints storer close", func(t *testing.T) {
+		t.Parallel()
+
+		args := getNewTrieStorageManagerArgs()
+		args.CheckpointsStorer = &storage.StorerStub{
+			CloseCalled: func() error {
+				return expectedErr
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.Close()
+		assert.True(t, errorsGo.Is(err, expectedErr))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ts, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+
+		err := ts.Close()
+		assert.NoError(t, err)
+	})
 }
 
 func TestWriteInChanNonBlocking(t *testing.T) {

@@ -307,6 +307,24 @@ func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
 	assert.True(t, check.IfNil(mbt))
 }
 
+func TestNewBlockTrack_ShouldErrNilWhitelistHandler(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.WhitelistHandler = nil
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.WhitelistHandler = nil
+	mbt, err := track.NewMetaBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+	assert.True(t, check.IfNil(mbt))
+}
+
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
 	t.Parallel()
 
