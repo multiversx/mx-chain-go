@@ -13,6 +13,7 @@ import (
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -86,8 +87,8 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsMock {
 }
 
 // GetDefaultStateComponents -
-func GetDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func GetDefaultStateComponents() *factory.StateComponentsMock {
+	return &factory.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},

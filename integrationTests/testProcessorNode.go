@@ -3208,8 +3208,8 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 }
 
 // GetDefaultStateComponents -
-func GetDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func GetDefaultStateComponents() *testFactory.StateComponentsMock {
+	return &testFactory.StateComponentsMock{
 		PeersAcc:     &stateMock.AccountsStub{},
 		Accounts:     &stateMock.AccountsStub{},
 		AccountsRepo: &stateMock.AccountsRepositoryStub{},
