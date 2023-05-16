@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,18 +17,10 @@ var log = logger.GetOrCreate("trieStatistics")
 const numTriesToPrint = 10
 
 type trieStatisticsCollector struct {
-	numNodes            uint64
-	numDataTries        uint64
-	triesSize           uint64
-	numTotalLeaves      uint64
-	numTotalExtensions  uint64
-	numTotalBranches    uint64
-	totalSizeLeaves     uint64
-	totalSizeExtensions uint64
-	totalSizeBranches   uint64
-	triesBySize         []common.TrieStatisticsHandler
-	triesByDepth        []common.TrieStatisticsHandler
-	migrationStats      map[core.TrieNodeVersion]uint64
+	trieStatsByType map[common.TrieType]common.TrieStatisticsHandler
+	triesBySize     []common.TrieStatisticsHandler
+	triesByDepth    []common.TrieStatisticsHandler
+	numDataTries    uint64
 
 	mutex sync.RWMutex
 }
@@ -35,23 +28,15 @@ type trieStatisticsCollector struct {
 // NewTrieStatisticsCollector creates a new instance of trieStatisticsCollector
 func NewTrieStatisticsCollector() *trieStatisticsCollector {
 	return &trieStatisticsCollector{
-		numNodes:            0,
-		numDataTries:        0,
-		triesSize:           0,
-		numTotalLeaves:      0,
-		numTotalExtensions:  0,
-		numTotalBranches:    0,
-		totalSizeLeaves:     0,
-		totalSizeExtensions: 0,
-		totalSizeBranches:   0,
-		triesBySize:         make([]common.TrieStatisticsHandler, numTriesToPrint),
-		triesByDepth:        make([]common.TrieStatisticsHandler, numTriesToPrint),
-		migrationStats:      make(map[core.TrieNodeVersion]uint64),
+		trieStatsByType: make(map[common.TrieType]common.TrieStatisticsHandler),
+		triesBySize:     make([]common.TrieStatisticsHandler, numTriesToPrint),
+		triesByDepth:    make([]common.TrieStatisticsHandler, numTriesToPrint),
+		numDataTries:    0,
 	}
 }
 
 // Add adds the given trie statistics to the statistics collector
-func (tsc *trieStatisticsCollector) Add(trieStats common.TrieStatisticsHandler) {
+func (tsc *trieStatisticsCollector) Add(trieStats common.TrieStatisticsHandler, trieType common.TrieType) {
 	if check.IfNil(trieStats) {
 		log.Warn("programming error, nil trie stats received")
 		return
@@ -60,18 +45,13 @@ func (tsc *trieStatisticsCollector) Add(trieStats common.TrieStatisticsHandler) 
 	tsc.mutex.Lock()
 	defer tsc.mutex.Unlock()
 
-	tsc.numNodes += trieStats.GetTotalNumNodes()
-	tsc.triesSize += trieStats.GetTotalNodesSize()
-	tsc.numDataTries++
+	if _, ok := tsc.trieStatsByType[trieType]; !ok {
+		tsc.trieStatsByType[trieType] = NewTrieStatistics()
+	}
 
-	tsc.numTotalBranches += trieStats.GetNumBranchNodes()
-	tsc.numTotalExtensions += trieStats.GetNumExtensionNodes()
-	tsc.numTotalLeaves += trieStats.GetNumLeafNodes()
-	tsc.totalSizeBranches += trieStats.GetBranchNodesSize()
-	tsc.totalSizeExtensions += trieStats.GetExtensionNodesSize()
-	tsc.totalSizeLeaves += trieStats.GetLeafNodesSize()
-	for version, numNodes := range trieStats.GetLeavesMigrationStats() {
-		tsc.migrationStats[version] += numNodes
+	tsc.trieStatsByType[trieType].MergeTriesStatistics(trieStats)
+	if trieType == common.DataTrie {
+		tsc.numDataTries++
 	}
 
 	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
@@ -86,19 +66,66 @@ func (tsc *trieStatisticsCollector) Print() {
 	triesBySize := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by size \n"
 	triesByDepth := " \n top " + strconv.Itoa(numTriesToPrint) + " tries by depth \n"
 
+	totalNumNodes := uint64(0)
+	totalStateSize := uint64(0)
+	numMainTrieLeaves := uint64(0)
+	maxDepthMainTrie := uint32(0)
+
+	for trieType, stats := range tsc.trieStatsByType {
+		totalNumNodes += stats.GetTotalNumNodes()
+		totalStateSize += stats.GetTotalNodesSize()
+
+		if trieType == common.MainTrie {
+			numMainTrieLeaves = stats.GetNumLeafNodes()
+			maxDepthMainTrie = stats.GetMaxTrieDepth()
+		}
+	}
+
 	log.Debug("tries statistics",
-		"num of nodes", tsc.numNodes,
-		"total size", core.ConvertBytes(tsc.triesSize),
-		"num tries", tsc.numDataTries,
-		"total num branches", tsc.numTotalBranches,
-		"total num extensions", tsc.numTotalExtensions,
-		"total num leaves", tsc.numTotalLeaves,
-		"total size branches", core.ConvertBytes(tsc.totalSizeBranches),
-		"total size extensions", core.ConvertBytes(tsc.totalSizeExtensions),
-		"total size leaves", core.ConvertBytes(tsc.totalSizeLeaves),
-		"migration stats", getMigrationStatsString(tsc.migrationStats),
+		"num of nodes", totalNumNodes,
+		"total size", core.ConvertBytes(totalStateSize),
+		"num data tries", tsc.numDataTries,
+		"num main trie leaves", numMainTrieLeaves,
+		"max depth main trie", maxDepthMainTrie,
+
 		triesBySize, getOrderedTries(tsc.triesBySize),
 		triesByDepth, getOrderedTries(tsc.triesByDepth),
+	)
+
+	for trieType, trieStats := range tsc.trieStatsByType {
+		message := fmt.Sprintf("migration stats for %v", trieType)
+		log.Debug(message, getMigrationStatsString(trieStats.GetLeavesMigrationStats()))
+	}
+
+	if log.GetLevel() == logger.LogTrace {
+		tsc.printDetailedTriesStatistics()
+	}
+}
+
+func (tsc *trieStatisticsCollector) printDetailedTriesStatistics() {
+	totalNumBranches := uint64(0)
+	totalNumExtensions := uint64(0)
+	totalNumLeaves := uint64(0)
+	totalSizeBranches := uint64(0)
+	totalSizeExtensions := uint64(0)
+	totalSizeLeaves := uint64(0)
+
+	for _, stats := range tsc.trieStatsByType {
+		totalNumBranches += stats.GetNumBranchNodes()
+		totalNumExtensions += stats.GetNumExtensionNodes()
+		totalNumLeaves += stats.GetNumLeafNodes()
+		totalSizeBranches += stats.GetBranchNodesSize()
+		totalSizeExtensions += stats.GetExtensionNodesSize()
+		totalSizeLeaves += stats.GetLeafNodesSize()
+	}
+
+	log.Trace("detailed tries statistics",
+		"total num branches", totalNumBranches,
+		"total num extensions", totalNumExtensions,
+		"total num leaves", totalNumLeaves,
+		"total size branches", core.ConvertBytes(totalSizeBranches),
+		"total size extensions", core.ConvertBytes(totalSizeExtensions),
+		"total size leaves", core.ConvertBytes(totalSizeLeaves),
 	)
 }
 
@@ -107,7 +134,12 @@ func (tsc *trieStatisticsCollector) GetNumNodes() uint64 {
 	tsc.mutex.RLock()
 	defer tsc.mutex.RUnlock()
 
-	return tsc.numNodes
+	totalNumNodes := uint64(0)
+	for _, stats := range tsc.trieStatsByType {
+		totalNumNodes += stats.GetTotalNumNodes()
+	}
+
+	return totalNumNodes
 }
 
 func getOrderedTries(tries []common.TrieStatisticsHandler) string {

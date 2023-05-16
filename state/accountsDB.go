@@ -1449,7 +1449,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
 	}
 
-	collectStats(tr, stats, rootHash, "")
+	collectStats(tr, stats, rootHash, "", common.MainTrie)
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
@@ -1483,7 +1483,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			return nil, err
 		}
 
-		collectStats(tr, stats, account.RootHash, accountAddress)
+		collectStats(tr, stats, account.RootHash, accountAddress, common.DataTrie)
 	}
 
 	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
@@ -1494,13 +1494,19 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	return stats, nil
 }
 
-func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address string) {
+func collectStats(
+	tr common.TrieStats,
+	stats common.TriesStatisticsCollector,
+	rootHash []byte,
+	address string,
+	trieType common.TrieType,
+) {
 	trieStats, err := tr.GetTrieStats(address, rootHash)
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
-	stats.Add(trieStats)
+	stats.Add(trieStats, trieType)
 
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }

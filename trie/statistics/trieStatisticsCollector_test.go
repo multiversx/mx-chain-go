@@ -16,7 +16,7 @@ func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {
-		tsc.Add(getTrieStats(rand.Intn(numInserts), uint64(rand.Intn(numInserts))))
+		tsc.Add(getTrieStats(rand.Intn(numInserts), uint64(rand.Intn(numInserts))), common.DataTrie)
 		isSortedBySize := sort.SliceIsSorted(tsc.triesBySize, func(a, b int) bool {
 			if tsc.triesBySize[b] == nil && tsc.triesBySize[a] == nil {
 				return false

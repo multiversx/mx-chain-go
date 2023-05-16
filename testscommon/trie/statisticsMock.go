@@ -25,5 +25,10 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats -
-func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler) {
+func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler, _ common.TrieType) {
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (m *MockStatistics) IsInterfaceNil() bool {
+	return m == nil
 }

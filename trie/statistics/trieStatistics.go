@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type trieStatistics struct {
@@ -182,6 +183,28 @@ func (ts *trieStatistics) GetLeavesMigrationStats() map[core.TrieNodeVersion]uin
 	}
 
 	return migrationStatsMap
+}
+
+func (ts *trieStatistics) MergeTriesStatistics(statsToBeMerged common.TrieStatisticsHandler) {
+	ts.mutex.Lock()
+	defer ts.mutex.Unlock()
+
+	if ts.maxTrieDepth < statsToBeMerged.GetMaxTrieDepth() {
+		ts.maxTrieDepth = statsToBeMerged.GetMaxTrieDepth()
+	}
+
+	ts.branchNodes.numNodes += statsToBeMerged.GetNumBranchNodes()
+	ts.branchNodes.nodesSize += statsToBeMerged.GetBranchNodesSize()
+
+	ts.extensionNodes.numNodes += statsToBeMerged.GetNumExtensionNodes()
+	ts.extensionNodes.nodesSize += statsToBeMerged.GetExtensionNodesSize()
+
+	ts.leafNodes.numNodes += statsToBeMerged.GetNumLeafNodes()
+	ts.leafNodes.nodesSize += statsToBeMerged.GetLeafNodesSize()
+
+	for version, numLeaves := range statsToBeMerged.GetLeavesMigrationStats() {
+		ts.migrationStats[version] += numLeaves
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
