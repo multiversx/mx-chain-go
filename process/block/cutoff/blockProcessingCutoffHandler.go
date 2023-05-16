@@ -35,7 +35,7 @@ func NewBlockProcessingCutoffHandler(cfg config.BlockProcessingCutoffConfig) (*b
 		return nil, err
 	}
 
-	log.Warn("node is started by using block processing cutoff and will pause/error at the provided coordinate", cfg.CutoffTrigger, cfg.Value)
+	log.Warn("node is started by using block processing cutoff and will pause/error at the provided coordinate", "mode", cfg.Mode, cfg.CutoffTrigger, cfg.Value)
 	return b, nil
 }
 
