@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -44,6 +45,7 @@ type doubleListTrieSyncer struct {
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
 	requestedHashes           map[string]*request
+	accLeavesChannels         *common.TrieIteratorChannels
 }
 
 // NewDoubleListTrieSyncer creates a new instance of trieSyncer that uses 2 list for keeping the "margin" nodes.
@@ -74,6 +76,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
+		accLeavesChannels:         arg.AccLeavesChannels,
 	}
 
 	return d, nil
@@ -206,6 +209,12 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
 		if err != nil {
 			return err
+		}
+
+		leafNodeElement, isLeaf := element.(*leafNode)
+		if isLeaf && d.accLeavesChannels.LeavesChan != nil {
+			trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+			d.accLeavesChannels.LeavesChan <- trieLeaf
 		}
 
 		d.timeoutHandler.ResetWatchdog()

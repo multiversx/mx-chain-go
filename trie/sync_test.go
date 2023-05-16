@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -241,6 +242,10 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	require.Nil(t, err)
 
+	leaves, err := bn.getChildren(db)
+	require.Nil(t, err)
+	numLeaves := len(leaves)
+
 	arg := createMockArgument(timeout)
 	arg.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
@@ -250,10 +255,29 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	arg.DB = trieStorage
 	arg.Marshalizer = testMarshalizer
 	arg.Hasher = testHasher
+	arg.AccLeavesChannels = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, 110),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
 	err = ts.StartSyncing(rootHash, context.Background())
 	assert.Nil(t, err)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(numLeaves)
+
+	numLeavesOnChan := 0
+	go func() {
+		for range arg.AccLeavesChannels.LeavesChan {
+			numLeavesOnChan++
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	assert.Equal(t, numLeaves, numLeavesOnChan)
 }
