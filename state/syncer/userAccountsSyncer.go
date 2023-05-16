@@ -236,7 +236,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	wg := sync.WaitGroup{}
 
 	for leaf := range leavesChannels.LeavesChan {
-		log.Trace("syncAccountDataTries:", "leaf key", leaf.Key())
 		u.resetTimeoutHandlerWatchdog()
 
 		account := state.NewEmptyUserAccount()
