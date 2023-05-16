@@ -145,6 +145,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
+	log.Debug("main trie and data tries synced", "num data tries", len(u.dataTries))
+
 	return nil
 }
 
