@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -350,7 +351,7 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 		providedEpoch := uint32(100)
 		wasCalled := false
 		args := getNewTrieStorageManagerArgs()
-		args.MainStorer = &testscommon.StorageManagerStub{
+		args.MainStorer = &storageManager.StorageManagerStub{
 			SetEpochForPutOperationCalled: func(u uint32) {
 				assert.Equal(t, providedEpoch, u)
 				wasCalled = true
@@ -606,7 +607,7 @@ func TestTrieStorageManager_Get(t *testing.T) {
 		_ = ts.Close()
 
 		val, err := ts.Get(providedKey)
-		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 		assert.Nil(t, val)
 	})
 	t.Run("main storer closing should error", func(t *testing.T) {
@@ -673,7 +674,7 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 		_ = ts.Close()
 
 		val, err := ts.GetFromCurrentEpoch(providedKey)
-		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 		assert.Nil(t, val)
 	})
 	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
@@ -717,7 +718,7 @@ func TestTrieStorageManager_Put(t *testing.T) {
 		_ = ts.Close()
 
 		err := ts.Put(providedKey, providedVal)
-		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -741,7 +742,7 @@ func TestTrieStorageManager_PutInEpochWithoutCache(t *testing.T) {
 		_ = ts.Close()
 
 		err := ts.PutInEpochWithoutCache(providedKey, providedVal, 0)
-		assert.Equal(t, errors.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 	})
 	t.Run("main storer not snapshotPruningStorer should error", func(t *testing.T) {
 		t.Parallel()

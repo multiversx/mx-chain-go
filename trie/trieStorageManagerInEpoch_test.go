@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -83,7 +83,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 		_ = tsmie.Close()
 
 		_, err := tsmie.Get([]byte("key"))
-		require.Equal(t, errorsMx.ErrContextClosing, err)
+		require.Equal(t, core.ErrContextClosing, err)
 	})
 
 	t.Run("epoch 0 does not panic", func(t *testing.T) {

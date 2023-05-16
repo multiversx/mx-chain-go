@@ -23,7 +23,7 @@ func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 		getLatestStorageEpochCalled := false
 		putCalled := false
 		putInEpochWithoutCacheCalled := false
-		storer := &testscommon.StorageManagerStub{
+		storer := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				getLatestStorageEpochCalled = true
 				return 0, expectedErr

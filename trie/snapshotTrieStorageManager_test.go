@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,7 @@ func TestSnapshotTrieStorageManager_Get(t *testing.T) {
 		_ = stsm.Close()
 
 		val, err := stsm.Get([]byte("key"))
-		assert.Equal(t, errorsMx.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 		assert.Nil(t, val)
 	})
 	t.Run("GetFromOldEpochsWithoutAddingToCache returns db closed should error", func(t *testing.T) {
@@ -94,7 +93,7 @@ func TestSnapshotTrieStorageManager_Put(t *testing.T) {
 		_ = stsm.Close()
 
 		err := stsm.Put([]byte("key"), []byte("data"))
-		assert.Equal(t, errorsMx.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -126,7 +125,7 @@ func TestSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
 		_ = stsm.Close()
 
 		val, err := stsm.GetFromLastEpoch([]byte("key"))
-		assert.Equal(t, errorsMx.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 		assert.Nil(t, val)
 	})
 	t.Run("should work", func(t *testing.T) {
