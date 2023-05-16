@@ -94,16 +94,6 @@ func TestNewNodeFacade(t *testing.T) {
 		require.Nil(t, nf)
 		require.Equal(t, ErrNilApiResolver, err)
 	})
-	t.Run("nil TxSimulatorProcessor should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.TxSimulatorProcessor = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilTransactionSimulatorProcessor, err)
-	})
 	t.Run("invalid ApiRoutesConfig should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1995,15 +1985,17 @@ func TestNodeFacade_SimulateTransactionExecution(t *testing.T) {
 	t.Parallel()
 
 	providedResponse := &txSimData.SimulationResults{
-		Status:     "ok",
-		FailReason: "no reason",
-		ScResults:  nil,
-		Receipts:   nil,
-		Hash:       "hash",
+		SimulationResults: transaction.SimulationResults{
+			Status:     "ok",
+			FailReason: "no reason",
+			ScResults:  nil,
+			Receipts:   nil,
+			Hash:       "hash",
+		},
 	}
 	args := createMockArguments()
-	args.TxSimulatorProcessor = &mock.TxExecutionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	args.ApiResolver = &mock.ApiResolverStub{
+		SimulateTransactionExecutionHandler: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
 			return providedResponse, nil
 		},
 	}
