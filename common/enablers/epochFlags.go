@@ -185,6 +185,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
+		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 	}
 }
