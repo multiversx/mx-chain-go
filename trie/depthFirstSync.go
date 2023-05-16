@@ -2,7 +2,6 @@ package trie
 
 import (
 	"context"
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -268,7 +267,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 	childrenNotLeaves := make([]node, 0, len(children))
 	for _, element := range children {
-		leafNodeElement, isLeaf := element.(*leafNode)
+		_, isLeaf := element.(*leafNode)
 		if !isLeaf {
 			childrenNotLeaves = append(childrenNotLeaves, element)
 			continue
@@ -278,14 +277,6 @@ func (d *depthFirstTrieSyncer) storeLeaves(children []node) ([]node, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
-		// TODO: analize error chan
-		if d.accLeavesChannels.LeavesChan == nil {
-			log.Trace("storeLeaves: nil leaves chan", "leafNodeElement.Key", hex.EncodeToString(leafNodeElement.Key))
-			continue
-		}
-		d.accLeavesChannels.LeavesChan <- trieLeaf
 	}
 
 	return childrenNotLeaves, nil
