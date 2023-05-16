@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -40,6 +41,7 @@ type sovereignSCProcessor struct {
 	scrForwarder       process.IntermediateTransactionHandler
 }
 
+// ProcessSmartContractResult updates the account state from the smart contract result
 func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	if check.IfNil(scr) {
 		return 0, process.ErrNilSmartContractResult
@@ -69,6 +71,10 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, err
 	}
 
+	if !bytes.Equal(sndAcc.AddressBytes(), core.ESDTSCAddress) {
+		return returnCode, fmt.Errorf("%w, expected ESDTSCAddress", errInvalidSenderAddress)
+	}
+
 	snapshot := sc.accounts.JournalLen()
 	process.DisplayProcessTxDetails(
 		"ProcessSmartContractResult: receiver account details",
@@ -80,7 +86,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
-	case process.BuiltInFunctionCall: //todo: also check multiesdttransfer
+	case process.BuiltInFunctionCall:
 		returnCode, err = sc.executeBuiltInFunction(scr, nil, dstAcc) //nil sender account
 		return returnCode, err
 	default:
@@ -92,7 +98,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 
 func (sc *sovereignSCProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
 	addrShard := sc.shardCoordinator.ComputeId(address)
-	// TODO: This will not work for now, since coordinator does not know to return correct sovereign shard ID
+	// TODO: This will not work for now, since coordinator does not know how to return correct sovereign shard ID
 	if addrShard != core.SovereignChainShardId {
 		return nil, nil
 	}
