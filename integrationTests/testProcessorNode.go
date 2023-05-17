@@ -796,6 +796,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
@@ -1474,6 +1475,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           mapDNSAddresses,
+		MapDNSV2Addresses:         mapDNSAddresses,
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
@@ -1699,6 +1701,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,

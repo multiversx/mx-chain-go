@@ -1274,9 +1274,23 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
+	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.config.BuiltInFunctions.DNSV2Addresses,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	mapDNSV2Addresses := make(map[string]struct{})
+	for _, address := range convertedDNSV2Addresses {
+		mapDNSV2Addresses[string(address)] = struct{}{}
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               pcf.gasSchedule,
 		MapDNSAddresses:           mapDNSAddresses,
+		MapDNSV2Addresses:         mapDNSV2Addresses,
 		Marshalizer:               pcf.coreData.InternalMarshalizer(),
 		Accounts:                  accounts,
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),

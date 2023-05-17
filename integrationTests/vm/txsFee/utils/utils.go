@@ -355,10 +355,15 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-// GenerateUserNameForMyDNSContract -
-func GenerateUserNameForMyDNSContract() []byte {
+// GenerateUserNameForDefaultDNSContract -
+func GenerateUserNameForDefaultDNSContract() []byte {
+	return GenerateUserNameForDNSContract([]byte{49})
+}
+
+// GenerateUserNameForDNSContract -
+func GenerateUserNameForDNSContract(contractAddress []byte) []byte {
 	testHasher := keccak.NewKeccak()
-	contractLastByte := byte(49)
+	contractLastByte := contractAddress[len(contractAddress)-1]
 
 	for {
 		userName := randStringBytes(10)
