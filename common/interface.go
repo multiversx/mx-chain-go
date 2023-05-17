@@ -16,6 +16,17 @@ type TrieIteratorChannels struct {
 	ErrChan    BufferedErrChan
 }
 
+// TrieType defines the type of the trie
+type TrieType string
+
+const (
+	// MainTrie represents the main trie in which all the accounts and SC code are stored
+	MainTrie TrieType = "mainTrie"
+
+	// DataTrie represents a data trie in which all the data related to an account is stored
+	DataTrie TrieType = "dataTrie"
+)
+
 // BufferedErrChan is an interface that defines the methods for a buffered error channel
 type BufferedErrChan interface {
 	WriteInChanNonBlocking(err error)
@@ -160,7 +171,8 @@ type SnapshotStatisticsHandler interface {
 	SnapshotFinished()
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
-	AddTrieStats(handler TrieStatisticsHandler)
+	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	IsInterfaceNil() bool
 }
 
 // TrieStatisticsHandler is used to collect different statistics about a single trie
@@ -181,13 +193,14 @@ type TrieStatisticsHandler interface {
 	GetNumLeafNodes() uint64
 	GetLeavesMigrationStats() map[core.TrieNodeVersion]uint64
 
+	MergeTriesStatistics(statsToBeMerged TrieStatisticsHandler)
 	ToString() []string
 	IsInterfaceNil() bool
 }
 
 // TriesStatisticsCollector is used to merge the statistics for multiple tries
 type TriesStatisticsCollector interface {
-	Add(trieStats TrieStatisticsHandler)
+	Add(trieStats TrieStatisticsHandler, trieType TrieType)
 	Print()
 	GetNumNodes() uint64
 }

@@ -3,9 +3,11 @@ package statistics
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type trieStatistics struct {
@@ -184,6 +186,29 @@ func (ts *trieStatistics) GetLeavesMigrationStats() map[core.TrieNodeVersion]uin
 	return migrationStatsMap
 }
 
+// MergeTriesStatistics will merge the given statistics with the current statistics
+func (ts *trieStatistics) MergeTriesStatistics(statsToBeMerged common.TrieStatisticsHandler) {
+	ts.mutex.Lock()
+	defer ts.mutex.Unlock()
+
+	if ts.maxTrieDepth < statsToBeMerged.GetMaxTrieDepth() {
+		ts.maxTrieDepth = statsToBeMerged.GetMaxTrieDepth()
+	}
+
+	ts.branchNodes.numNodes += statsToBeMerged.GetNumBranchNodes()
+	ts.branchNodes.nodesSize += statsToBeMerged.GetBranchNodesSize()
+
+	ts.extensionNodes.numNodes += statsToBeMerged.GetNumExtensionNodes()
+	ts.extensionNodes.nodesSize += statsToBeMerged.GetExtensionNodesSize()
+
+	ts.leafNodes.numNodes += statsToBeMerged.GetNumLeafNodes()
+	ts.leafNodes.nodesSize += statsToBeMerged.GetLeafNodesSize()
+
+	for version, numLeaves := range statsToBeMerged.GetLeavesMigrationStats() {
+		ts.migrationStats[version] += numLeaves
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *trieStatistics) IsInterfaceNil() bool {
 	return ts == nil
@@ -215,6 +240,10 @@ func getMigrationStatsString(migrationStats map[core.TrieNodeVersion]uint64) []s
 	for version, numNodes := range migrationStats {
 		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(version), numNodes))
 	}
+
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i] < stats[j]
+	})
 
 	return stats
 }
