@@ -45,6 +45,7 @@ type GovernanceSystemSCConfigV1 struct {
 //  system smart contract once it activates
 type GovernanceSystemSCConfigActive struct {
 	ProposalCost     string
+	LostProposalFee  string
 	MinQuorum        float64
 	MinPassThreshold float64
 	MinVetoThreshold float64
@@ -52,9 +53,9 @@ type GovernanceSystemSCConfigActive struct {
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	V1                  GovernanceSystemSCConfigV1
-	Active              GovernanceSystemSCConfigActive
-	ChangeConfigAddress string
+	V1           GovernanceSystemSCConfigV1
+	Active       GovernanceSystemSCConfigActive
+	OwnerAddress string
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract

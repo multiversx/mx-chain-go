@@ -721,8 +721,9 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 				MinQuorum:        0.5,
 				MinPassThreshold: 0.5,
 				MinVetoThreshold: 0.5,
+				LostProposalFee:  "1",
 			},
-			ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+			OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
