@@ -44,7 +44,7 @@ type doubleListTrieSyncer struct {
 	existingNodes             map[string]node
 	missingHashes             map[string]struct{}
 	requestedHashes           map[string]*request
-	accLeavesChannels         *common.TrieIteratorChannels
+	leavesChan                chan core.KeyValueHolder
 }
 
 // NewDoubleListTrieSyncer creates a new instance of trieSyncer that uses 2 list for keeping the "margin" nodes.
@@ -75,7 +75,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
-		accLeavesChannels:         arg.AccLeavesChannels,
+		leavesChan:                arg.AccLeavesChan,
 	}
 
 	return d, nil
@@ -210,7 +210,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		writeLeafNodeToChan(element, d.accLeavesChannels.LeavesChan)
+		writeLeafNodeToChan(element, d.leavesChan)
 
 		d.timeoutHandler.ResetWatchdog()
 

@@ -42,7 +42,7 @@ type trieSyncer struct {
 	trieSyncStatistics        data.SyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
-	accLeavesChannels         *common.TrieIteratorChannels
+	leavesChan                chan core.KeyValueHolder
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -60,7 +60,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
-	AccLeavesChannels         *common.TrieIteratorChannels
+	AccLeavesChan             chan core.KeyValueHolder
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -89,7 +89,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
-		accLeavesChannels:         arg.AccLeavesChannels,
+		leavesChan:                arg.AccLeavesChan,
 	}
 
 	return ts, nil
@@ -122,9 +122,6 @@ func checkArguments(arg ArgTrieSyncer) error {
 	}
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
-	}
-	if arg.AccLeavesChannels == nil {
-		return ErrNilTrieIteratorChannels
 	}
 
 	return nil
@@ -253,7 +250,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				return false, err
 			}
 
-			writeLeafNodeToChan(currentNode, ts.accLeavesChannels.LeavesChan)
+			writeLeafNodeToChan(currentNode, ts.leavesChan)
 
 			ts.timeoutHandler.ResetWatchdog()
 

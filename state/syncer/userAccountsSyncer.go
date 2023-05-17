@@ -126,7 +126,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	wgSyncMainTrie.Add(1)
 
 	go func() {
-		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels)
+		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels.LeavesChan)
 		if err != nil {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
@@ -166,11 +166,6 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
-	iteratorChannelsForDataTries := &common.TrieIteratorChannels{
-		LeavesChan: nil, // not used for data tries
-		ErrChan:    nil,
-	}
-
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
@@ -183,7 +178,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          u.checkNodesOnDisk,
-		AccLeavesChannels:         iteratorChannelsForDataTries,
+		AccLeavesChan:             nil, // not used for data tries
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

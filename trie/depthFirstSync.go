@@ -32,7 +32,7 @@ type depthFirstTrieSyncer struct {
 	checkNodesOnDisk          bool
 	nodes                     *trieNodesHandler
 	requestedHashes           map[string]*request
-	accLeavesChannels         *common.TrieIteratorChannels
+	accLeavesChan             chan core.KeyValueHolder
 }
 
 // NewDepthFirstTrieSyncer creates a new instance of trieSyncer that uses the depth-first algorithm
@@ -60,7 +60,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
-		accLeavesChannels:         arg.AccLeavesChannels,
+		accLeavesChan:             arg.AccLeavesChan,
 	}
 
 	return d, nil
@@ -254,7 +254,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 	d.updateStats(uint64(numBytes), element)
 
-	writeLeafNodeToChan(element, d.accLeavesChannels.LeavesChan)
+	writeLeafNodeToChan(element, d.accLeavesChan)
 
 	return nil
 }

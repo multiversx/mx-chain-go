@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -75,11 +74,12 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	go v.printStatisticsAndUpdateMetrics(ctx)
 
-	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx, leavesChannels)
+	err := v.syncMainTrie(
+		rootHash,
+		factory.ValidatorTrieNodesTopic,
+		ctx,
+		nil, // not used for validator accounts syncer
+	)
 	if err != nil {
 		return err
 	}
