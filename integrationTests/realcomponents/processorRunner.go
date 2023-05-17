@@ -233,7 +233,9 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		SnapshotsEnabled:              false,
+		FlagsConfigs: config.ContextFlagsConfig{
+			SnapshotsEnabled: false,
+		},
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -402,10 +404,15 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	require.Nil(tb, err)
 
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
-		Config:                 *pr.Config.GeneralConfig,
-		EpochConfig:            *pr.Config.EpochConfig,
-		PrefConfigs:            pr.Config.PreferencesConfig.Preferences,
-		ImportDBConfig:         *pr.Config.ImportDbConfig,
+		Config:         *pr.Config.GeneralConfig,
+		EpochConfig:    *pr.Config.EpochConfig,
+		PrefConfigs:    pr.Config.PreferencesConfig.Preferences,
+		ImportDBConfig: *pr.Config.ImportDbConfig,
+		FlagsConfig: config.ContextFlagsConfig{
+			Version:          "test",
+			WorkingDir:       pr.Config.FlagsConfig.WorkingDir,
+			SnapshotsEnabled: false,
+		},
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,
 		GasSchedule:            gasScheduleNotifier,
@@ -415,11 +422,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		MaxRating:              pr.Config.RatingsConfig.General.MaxRating,
 		SystemSCConfig:         pr.Config.SystemSCConfig,
-		Version:                "test",
 		ImportStartHandler:     importStartHandler,
-		WorkingDir:             pr.Config.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		SnapshotsEnabled:       false,
 		Data:                   pr.DataComponents,
 		CoreData:               pr.CoreComponents,
 		Crypto:                 pr.CryptoComponents,
