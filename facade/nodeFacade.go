@@ -68,8 +68,6 @@ type nodeFacade struct {
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
 	blockchain             chainData.ChainHandler
-	ctx                    context.Context
-	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -115,7 +113,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		peerState:              arg.PeerState,
 		blockchain:             arg.Blockchain,
 	}
-	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
 }
@@ -556,8 +553,6 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 // Close will clean up started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
-
-	nf.cancelFunc()
 
 	return nil
 }

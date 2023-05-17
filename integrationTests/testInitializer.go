@@ -1464,11 +1464,21 @@ func CreateNodesWithFullGenesis(
 	numMetaChainNodes int,
 	genesisFile string,
 ) ([]*TestProcessorNode, *TestProcessorNode) {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
+}
+
+// CreateNodesWithFullGenesisCustomEnableEpochs creates multiple nodes in different shards
+func CreateNodesWithFullGenesisCustomEnableEpochs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	genesisFile string,
+	enableEpochsConfig *config.EnableEpochs,
+) ([]*TestProcessorNode, *TestProcessorNode) {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	economicsConfig := createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
