@@ -129,11 +129,15 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	numMetachainNodes := 1
 
 	genesisFile := "smartcontracts.json"
-	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
+	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.ChangeUsernameEnableEpoch = integrationTests.UnreachableEpoch
+	nodes, _ := integrationTests.CreateNodesWithFullGenesisCustomEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		genesisFile,
+		enableEpochsConfig,
 	)
 
 	for _, node := range nodes {
