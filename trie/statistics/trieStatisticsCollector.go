@@ -2,6 +2,7 @@ package statistics
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -106,6 +107,10 @@ func getNumTriesByTypeString(numTriesByTypeMap map[common.TrieType]uint64) strin
 	for trieType, numTries := range numTriesByTypeMap {
 		numTriesByTypeMapString = append(numTriesByTypeMapString, fmt.Sprintf("%v: %v", trieType, numTries))
 	}
+
+	sort.Slice(numTriesByTypeMapString, func(i, j int) bool {
+		return numTriesByTypeMapString[i] < numTriesByTypeMapString[j]
+	})
 
 	return strings.Join(numTriesByTypeMapString, ", ")
 }

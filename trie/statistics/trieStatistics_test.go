@@ -179,6 +179,6 @@ func TestTrieStatistics_MergeTriesStatistics(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("num branches %v,", 2), trieStatsStrings[8])
 	assert.Equal(t, fmt.Sprintf("num extensions %v,", 2), trieStatsStrings[9])
 	assert.Equal(t, fmt.Sprintf("num leaves %v", 4), trieStatsStrings[10])
-	assert.Contains(t, trieStatsStrings, "num leaves with not specified version = 2")
-	assert.Contains(t, trieStatsStrings, "num leaves with auto balanced version = 2")
+	assert.Equal(t, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(1), 2), trieStatsStrings[11])
+	assert.Equal(t, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(0), 2), trieStatsStrings[12])
 }

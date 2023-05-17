@@ -3,6 +3,7 @@ package statistics
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -239,6 +240,10 @@ func getMigrationStatsString(migrationStats map[core.TrieNodeVersion]uint64) []s
 	for version, numNodes := range migrationStats {
 		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(version), numNodes))
 	}
+
+	sort.Slice(stats, func(i, j int) bool {
+		return stats[i] < stats[j]
+	})
 
 	return stats
 }

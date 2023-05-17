@@ -65,6 +65,6 @@ func TestGetNumTriesByTypeString(t *testing.T) {
 	numTriesByType[common.DataTrie] = uint64(numDataTries)
 
 	numTriesByTypeString := getNumTriesByTypeString(numTriesByType)
-	expectedRes := fmt.Sprintf("%v: %v, %v: %v", common.MainTrie, numMainTries, common.DataTrie, numDataTries)
+	expectedRes := fmt.Sprintf("%v: %v, %v: %v", common.DataTrie, numDataTries, common.MainTrie, numMainTries)
 	assert.Equal(t, expectedRes, numTriesByTypeString)
 }
