@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -255,11 +254,7 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 	d.updateStats(uint64(numBytes), element)
 
-	leafNodeElement, isLeaf := element.(*leafNode)
-	if isLeaf && d.accLeavesChannels.LeavesChan != nil {
-		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
-		d.accLeavesChannels.LeavesChan <- trieLeaf
-	}
+	writeLeafNodeToChan(element, d.accLeavesChannels.LeavesChan)
 
 	return nil
 }

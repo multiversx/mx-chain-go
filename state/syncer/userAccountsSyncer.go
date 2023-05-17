@@ -118,7 +118,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	go u.printStatisticsAndUpdateMetrics(ctx)
 
 	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelSyncCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
@@ -131,7 +131,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		safelyCloseChan(leavesChannels.LeavesChan)
+		common.SafelyCloseKeyValueHolderChan(leavesChannels.LeavesChan)
 
 		wgSyncMainTrie.Done()
 	}()
@@ -143,17 +143,16 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	wgSyncMainTrie.Wait()
 
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		return err
+	}
+
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
-	log.Debug("main trie and data tries synced", "num data tries", len(u.dataTries))
+	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
 
 	return nil
-}
-
-func safelyCloseChan(ch chan core.KeyValueHolder) {
-	if ch != nil {
-		close(ch)
-	}
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
@@ -233,8 +232,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	defer u.printDataTrieStatistics()
 
-	var errFound error
-	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 
 	for leaf := range leavesChannels.LeavesChan {
@@ -264,12 +261,10 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
-			newErr := u.syncDataTrie(trieRootHash, address, ctx)
-			if newErr != nil {
-				errMutex.Lock()
-				errFound = newErr
-				log.Error("syncDataTrie: error found", "error", errFound.Error())
-				errMutex.Unlock()
+			err := u.syncDataTrie(trieRootHash, address, ctx)
+			if err != nil {
+				log.Error("sync data trie: error found", "roothash", trieRootHash, "error", err.Error())
+				leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
@@ -279,12 +274,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 
 	wg.Wait()
 
-	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
-	if err != nil {
-		return err
-	}
-
-	return errFound
+	return nil
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {

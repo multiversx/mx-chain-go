@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -211,11 +210,7 @@ func (d *doubleListTrieSyncer) processExistingNodes() error {
 			return err
 		}
 
-		leafNodeElement, isLeaf := element.(*leafNode)
-		if isLeaf && d.accLeavesChannels.LeavesChan != nil {
-			trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
-			d.accLeavesChannels.LeavesChan <- trieLeaf
-		}
+		writeLeafNodeToChan(element, d.accLeavesChannels.LeavesChan)
 
 		d.timeoutHandler.ResetWatchdog()
 

@@ -97,10 +97,6 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	atomic.AddInt32(&b.numMaxTries, 1)
 
 	log.Trace("syncing main trie", "roothash", rootHash)
-	_, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
-	if err != nil {
-		return err
-	}
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{

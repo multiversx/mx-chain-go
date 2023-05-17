@@ -253,11 +253,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				return false, err
 			}
 
-			leafNodeElement, isLeaf := currentNode.(*leafNode)
-			if isLeaf && ts.accLeavesChannels.LeavesChan != nil {
-				trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
-				ts.accLeavesChannels.LeavesChan <- trieLeaf
-			}
+			writeLeafNodeToChan(currentNode, ts.accLeavesChannels.LeavesChan)
 
 			ts.timeoutHandler.ResetWatchdog()
 
@@ -376,6 +372,14 @@ func trieNode(
 	decodedNode.setDirty(true)
 
 	return decodedNode, nil
+}
+
+func writeLeafNodeToChan(element node, ch chan core.KeyValueHolder) {
+	leafNodeElement, isLeaf := element.(*leafNode)
+	if isLeaf && ch != nil {
+		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+		ch <- trieLeaf
+	}
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

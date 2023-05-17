@@ -30,7 +30,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	stats common.SnapshotStatisticsHandler,
 ) {
 	if iteratorChannels != nil {
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 	}
 	stats.SnapshotFinished()
 

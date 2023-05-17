@@ -814,6 +814,10 @@ const (
 	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
 	// a channel
 	TrieLeavesChannelDefaultCapacity = 100
+
+	// TrieLeavesChannelSyncCapacity represents the value to be used as capacity for getting main trie
+	// leaf nodes for trie sync
+	TrieLeavesChannelSyncCapacity = 1000
 )
 
 // ApiOutputFormat represents the format type returned by api
