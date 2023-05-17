@@ -235,7 +235,11 @@ func (txProc *baseTxProcessor) checkOperationAllowedToBypassGuardian(tx data.Tra
 // CheckSetGuardianExecutable checks if the setGuardian builtin function is executable
 func (txProc *baseTxProcessor) CheckSetGuardianExecutable(tx data.TransactionHandler) error {
 	err := txProc.scProcessor.CheckBuiltinFunctionIsExecutable(core.BuiltInFunctionSetGuardian, tx)
-	return fmt.Errorf("%w, CheckBuiltinFunctionIsExecutable %s", process.ErrTransactionNotExecutable, err.Error())
+	if err != nil {
+		return fmt.Errorf("%w, CheckBuiltinFunctionIsExecutable %s", process.ErrTransactionNotExecutable, err.Error())
+	}
+
+	return nil
 }
 
 func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *transaction.Transaction, account state.UserAccountHandler) error {
