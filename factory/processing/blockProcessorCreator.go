@@ -402,7 +402,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		StatusComponents:             pcf.statusComponents,
 		StatusCoreComponents:         pcf.statusCoreComponents,
 		Config:                       pcf.config,
-		Version:                      pcf.version,
+		Version:                      pcf.flagsConfig.Version,
 		AccountsDB:                   accountsDb,
 		ForkDetector:                 forkDetector,
 		NodesCoordinator:             pcf.nodesCoordinator,
@@ -820,7 +820,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		StatusComponents:             pcf.statusComponents,
 		StatusCoreComponents:         pcf.statusCoreComponents,
 		Config:                       pcf.config,
-		Version:                      pcf.version,
+		Version:                      pcf.flagsConfig.Version,
 		AccountsDB:                   accountsDb,
 		ForkDetector:                 forkDetector,
 		NodesCoordinator:             pcf.nodesCoordinator,
@@ -1183,7 +1183,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		BuiltInFunctions:      builtInFuncs,
 		DataPool:              pcf.data.Datapool(),
 		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
-		WorkingDir:            pcf.workingDir,
+		WorkingDir:            pcf.flagsConfig.WorkingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
 		EpochNotifier:         pcf.coreData.EpochNotifier(),
@@ -1234,7 +1234,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		DataPool:              pcf.data.Datapool(),
 		CompiledSCPool:        pcf.data.Datapool().SmartContracts(),
 		ConfigSCStorage:       configSCStorage,
-		WorkingDir:            pcf.workingDir,
+		WorkingDir:            pcf.flagsConfig.WorkingDir,
 		NFTStorageHandler:     nftStorageHandler,
 		GlobalSettingsHandler: globalSettingsHandler,
 		EpochNotifier:         pcf.coreData.EpochNotifier(),
@@ -1279,9 +1279,23 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
+	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.config.BuiltInFunctions.DNSV2Addresses,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	mapDNSV2Addresses := make(map[string]struct{})
+	for _, address := range convertedDNSV2Addresses {
+		mapDNSV2Addresses[string(address)] = struct{}{}
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               pcf.gasSchedule,
 		MapDNSAddresses:           mapDNSAddresses,
+		MapDNSV2Addresses:         mapDNSV2Addresses,
 		Marshalizer:               pcf.coreData.InternalMarshalizer(),
 		Accounts:                  accounts,
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
