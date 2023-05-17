@@ -9,15 +9,27 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestNewTrieStorageManagerWithoutCheckpointsOkVals(t *testing.T) {
+func TestNewTrieStorageManagerWithoutCheckpoints(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
-	ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
-	assert.Nil(t, err)
-	assert.NotNil(t, ts)
+	t.Run("nil storage manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(nil)
+		require.Equal(t, trie.ErrNilTrieStorage, err)
+		require.Nil(t, ts)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
+		assert.Nil(t, err)
+		assert.NotNil(t, ts)
+	})
 }
 
 func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {

@@ -139,11 +139,9 @@ type ProcessComponentsFactoryArgs struct {
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	MaxRating              uint32
 	SystemSCConfig         *config.SystemSmartContractsConfig
-	Version                string
 	ImportStartHandler     update.ImportStartHandler
-	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
-	SnapshotsEnabled       bool
+	FlagsConfig            config.ContextFlagsConfig
 
 	Data                 factory.DataComponentsHolder
 	CoreData             factory.CoreComponentsHolder
@@ -170,13 +168,11 @@ type processComponentsFactory struct {
 	maxRating              uint32
 	systemSCConfig         *config.SystemSmartContractsConfig
 	txLogsProcessor        process.TransactionLogProcessor
-	version                string
 	importStartHandler     update.ImportStartHandler
-	workingDir             string
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
-	snapshotsEnabled       bool
+	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                 factory.DataComponentsHolder
@@ -217,13 +213,11 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		maxRating:              args.MaxRating,
 		systemSCConfig:         args.SystemSCConfig,
-		version:                args.Version,
 		importStartHandler:     args.ImportStartHandler,
-		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
-		snapshotsEnabled:       args.SnapshotsEnabled,
+		flagsConfig:            args.FlagsConfig,
 	}, nil
 }
 
@@ -845,7 +839,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
 		ImportStartHandler:   pcf.importStartHandler,
-		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
@@ -1472,7 +1465,8 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
-			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
@@ -1526,7 +1520,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1555,7 +1549,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1713,7 +1707,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
-	exportFolder := filepath.Join(pcf.workingDir, hardforkConfig.ImportFolder)
+	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,

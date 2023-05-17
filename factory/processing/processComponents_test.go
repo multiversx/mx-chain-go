@@ -79,6 +79,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		EpochConfig:    config.EpochConfig{},
 		PrefConfigs:    config.PreferencesConfig{},
 		ImportDBConfig: config.ImportDbConfig{},
+		FlagsConfig: config.ContextFlagsConfig{
+			Version: "v1.0.0",
+		},
 		AccountsParser: &mock.AccountsParserStub{
 			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.Pool, error) {
 				return []*dataBlock.MiniBlock{
@@ -142,7 +145,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MaxServiceFee: 100,
 			},
 		},
-		Version:            "v1.0.0",
 		ImportStartHandler: &testscommon.ImportStartHandlerStub{},
 		HistoryRepo:        &dblookupext.HistoryRepositoryStub{},
 		Data: &testsMocks.DataComponentsStub{
