@@ -661,9 +661,6 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
-			WebSocketConnector: config.WebSocketDriverConfig{
-				MarshallerType: "json",
-			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),

@@ -869,7 +869,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
 	leavesChannels := &common.TrieIteratorChannels{
@@ -878,7 +878,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
 	genesisAccounts := make(map[string]*alteredAccount.AlteredAccount, 0)
@@ -891,7 +891,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 		encodedAddress, errEncode := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
 		if errEncode != nil {
-			return map[string]*outport.AlteredAccount{}, errEncode
+			return map[string]*alteredAccount.AlteredAccount{}, errEncode
 		}
 
 		genesisAccounts[encodedAddress] = &alteredAccount.AlteredAccount{
@@ -907,7 +907,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()

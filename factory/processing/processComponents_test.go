@@ -87,7 +87,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				return []*dataBlock.MiniBlock{
 						{},
 					},
-					map[uint32]*outportCore.Pool{
+					map[uint32]*outportCore.TransactionPool{
 						0: {},
 					}, nil
 			},
