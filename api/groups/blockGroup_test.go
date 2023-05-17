@@ -251,7 +251,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				return nil, expectedErr
 			},
 		}
@@ -320,7 +320,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 
 		providedHash := hex.EncodeToString([]byte("hash"))
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				return nil, expectedErr
 			},
 		}
@@ -352,7 +352,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 		}
 
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				require.Equal(t, providedHash, hex.EncodeToString(options.Hash))
 				require.Equal(t, expectedOptions, options)
 				return expectedResponse, nil
