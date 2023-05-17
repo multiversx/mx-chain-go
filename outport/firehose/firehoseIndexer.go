@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/firehose"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -26,72 +22,50 @@ const (
 )
 
 type firehoseIndexer struct {
-	writer     io.Writer
-	marshaller marshal.Marshalizer
+	writer       io.Writer
+	marshaller   marshal.Marshalizer
+	blockCreator block.EmptyBlockCreator
 }
 
 // NewFirehoseIndexer creates a new firehose instance which outputs block information
-func NewFirehoseIndexer(writer io.Writer) (outport.Driver, error) {
+func NewFirehoseIndexer(writer io.Writer, blockCreator block.EmptyBlockCreator) (outport.Driver, error) {
 	if writer == nil {
 		return nil, errNilWriter
 	}
+	if check.IfNil(blockCreator) {
+		return nil, errNilBlockCreator
+	}
 
 	return &firehoseIndexer{
-		writer:     writer,
-		marshaller: &marshal.GogoProtoMarshalizer{},
+		writer:       writer,
+		marshaller:   &marshal.GogoProtoMarshalizer{},
+		blockCreator: blockCreator,
 	}, nil
 }
 
 // SaveBlock will write on stdout relevant block information for firehose
-func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error {
-	if check.IfNil(args.Header) {
-		return errNilHeader
+func (fi *firehoseIndexer) SaveBlock(outportBlock *outportcore.OutportBlock) error {
+	if outportBlock == nil || outportBlock.BlockData == nil {
+		return errOutportBlock
 	}
 
-	log.Debug("firehose: saving block", "nonce", args.Header.GetNonce(), "hash", args.HeaderHash)
+	header, err := block.GetHeaderFromBytes(fi.marshaller, fi.blockCreator, outportBlock.BlockData.HeaderBytes)
+	if err != nil {
+		return err
+	}
 
-	_, err := fmt.Fprintf(fi.writer, "%s %s %d\n",
+	log.Debug("firehose: saving block", "nonce", header.GetNonce(), "hash", outportBlock.BlockData.HeaderHash)
+
+	_, err = fmt.Fprintf(fi.writer, "%s %s %d\n",
 		firehosePrefix,
 		beginBlockPrefix,
-		args.Header.GetNonce(),
+		header.GetNonce(),
 	)
 	if err != nil {
 		return fmt.Errorf("could not write %s prefix , err: %w", beginBlockPrefix, err)
 	}
 
-	headerBytes, headerType, err := fi.getHeaderBytes(args.Header)
-	if err != nil {
-		return err
-	}
-
-	pool, err := getTxPool(args.TransactionsPool)
-	if err != nil {
-		return fmt.Errorf("getTxPool error: %w, header hash %s", err, hex.EncodeToString(args.HeaderHash))
-	}
-
-	body, err := getBody(args.Body)
-	if err != nil && err != errNilBlockBody {
-		return fmt.Errorf("%w, header hash: %s", err, hex.EncodeToString(args.HeaderHash))
-	}
-
-	firehoseBlock := &firehose.FirehoseBlock{
-		HeaderBytes:            headerBytes,
-		HeaderType:             string(headerType),
-		HeaderHash:             args.HeaderHash,
-		Body:                   body,
-		AlteredAccounts:        getAlteredAccounts(args.AlteredAccounts),
-		Transactions:           pool.transactions,
-		SmartContractResults:   pool.smartContractResult,
-		Rewards:                pool.rewards,
-		Receipts:               pool.receipts,
-		InvalidTxs:             pool.invalidTxs,
-		Logs:                   pool.logs,
-		SignersIndexes:         args.SignersIndexes,
-		HighestFinalBlockNonce: args.HighestFinalBlockNonce,
-		HighestFinalBlockHash:  args.HighestFinalBlockHash,
-	}
-
-	marshalledBlock, err := fi.marshaller.Marshal(firehoseBlock)
+	marshalledBlock, err := fi.marshaller.Marshal(outportBlock)
 	if err != nil {
 		return err
 	}
@@ -99,9 +73,9 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	_, err = fmt.Fprintf(fi.writer, "%s %s %d %s %d %x\n",
 		firehosePrefix,
 		endBlockPrefix,
-		args.Header.GetNonce(),
-		hex.EncodeToString(args.Header.GetPrevHash()),
-		args.Header.GetTimeStamp(),
+		header.GetNonce(),
+		hex.EncodeToString(header.GetPrevHash()),
+		header.GetTimeStamp(),
 		marshalledBlock,
 	)
 	if err != nil {
@@ -111,101 +85,39 @@ func (fi *firehoseIndexer) SaveBlock(args *outportcore.ArgsSaveBlockData) error 
 	return nil
 }
 
-func (fi *firehoseIndexer) getHeaderBytes(headerHandler data.HeaderHandler) ([]byte, core.HeaderType, error) {
-	var err error
-	var headerBytes []byte
-	var headerType core.HeaderType
-
-	switch header := headerHandler.(type) {
-	case *block.MetaBlock:
-		headerType = core.MetaHeader
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.Header:
-		headerType = core.ShardHeaderV1
-		headerBytes, err = fi.marshaller.Marshal(header)
-	case *block.HeaderV2:
-		headerType = core.ShardHeaderV2
-		headerBytes, err = fi.marshaller.Marshal(header)
-	default:
-		return nil, "", errInvalidHeaderType
-	}
-
-	return headerBytes, headerType, err
-}
-
-func getBody(bodyHandler data.BodyHandler) (*block.Body, error) {
-	if check.IfNil(bodyHandler) {
-		return nil, errNilBlockBody
-	}
-
-	body, castOk := bodyHandler.(*block.Body)
-	if !castOk {
-		return nil, errCannotCastBlockBody
-	}
-
-	return body, nil
-}
-
-func getAlteredAccounts(accounts map[string]*outportcore.AlteredAccount) []*alteredAccount.AlteredAccount {
-	ret := make([]*alteredAccount.AlteredAccount, len(accounts))
-
-	idx := 0
-	for _, acc := range accounts {
-		ret[idx] = &alteredAccount.AlteredAccount{
-			Address: acc.Address,
-			Nonce:   acc.Nonce,
-			Balance: acc.Balance,
-			Tokens:  getTokens(acc.Tokens),
-		}
-		idx++
-	}
-
-	return ret
-}
-
-func getTokens(tokens []*outportcore.AccountTokenData) []*alteredAccount.AccountTokenData {
-	ret := make([]*alteredAccount.AccountTokenData, len(tokens))
-
-	for idx, token := range tokens {
-		ret[idx] = &alteredAccount.AccountTokenData{
-			Nonce:      token.Nonce,
-			Identifier: token.Identifier,
-			Balance:    token.Balance,
-			Properties: token.Properties,
-		}
-	}
-
-	return ret
-}
-
 // RevertIndexedBlock does nothing
-func (fi *firehoseIndexer) RevertIndexedBlock(data.HeaderHandler, data.BodyHandler) error {
+func (fi *firehoseIndexer) RevertIndexedBlock(*outportcore.BlockData) error {
 	return nil
 }
 
 // SaveRoundsInfo does nothing
-func (fi *firehoseIndexer) SaveRoundsInfo([]*outportcore.RoundInfo) error {
+func (fi *firehoseIndexer) SaveRoundsInfo(*outportcore.RoundsInfo) error {
 	return nil
 }
 
 // SaveValidatorsPubKeys does nothing
-func (fi *firehoseIndexer) SaveValidatorsPubKeys(map[uint32][][]byte, uint32) error {
+func (fi *firehoseIndexer) SaveValidatorsPubKeys(*outportcore.ValidatorsPubKeys) error {
 	return nil
 }
 
 // SaveValidatorsRating does nothing
-func (fi *firehoseIndexer) SaveValidatorsRating(string, []*outportcore.ValidatorRatingInfo) error {
+func (fi *firehoseIndexer) SaveValidatorsRating(*outportcore.ValidatorsRating) error {
 	return nil
 }
 
 // SaveAccounts does nothing
-func (fi *firehoseIndexer) SaveAccounts(uint64, map[string]*outportcore.AlteredAccount, uint32) error {
+func (fi *firehoseIndexer) SaveAccounts(*outportcore.Accounts) error {
 	return nil
 }
 
 // FinalizedBlock does nothing
-func (fi *firehoseIndexer) FinalizedBlock([]byte) error {
+func (fi *firehoseIndexer) FinalizedBlock(*outportcore.FinalizedBlock) error {
 	return nil
+}
+
+// GetMarshaller returns internal marshaller
+func (fi *firehoseIndexer) GetMarshaller() marshal.Marshalizer {
+	return fi.marshaller
 }
 
 // Close does nothing
