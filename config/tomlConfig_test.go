@@ -689,8 +689,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
-	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
-	SetGuardianEnableEpoch = 64
+    # SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
+    SetGuardianEnableEpoch = 64
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 64

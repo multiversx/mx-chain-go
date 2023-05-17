@@ -93,7 +93,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RuntimeCodeSizeFixEnableEpoch:                     77,
 		MultiClaimOnDelegationEnableEpoch:                 78,
 		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
-		ChangeUsernameEnableEpoch:                         78,
+		ChangeUsernameEnableEpoch:                         80,
 	}
 }
 
@@ -223,7 +223,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(79)
+		epoch := uint32(80)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
