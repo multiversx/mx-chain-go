@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -216,10 +215,6 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
-	arg.AccLeavesChannels = &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, 110),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
 
 	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
@@ -252,7 +247,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	numLeavesOnChan := 0
 	go func() {
-		for range arg.AccLeavesChannels.LeavesChan {
+		for range arg.AccLeavesChan {
 			numLeavesOnChan++
 			wg.Done()
 		}

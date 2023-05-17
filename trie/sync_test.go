@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -30,11 +28,6 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		},
 	}
 
-	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-
 	return ArgTrieSyncer{
 		RequestHandler:            &testscommon.RequestHandlerStub{},
 		InterceptedNodes:          testscommon.NewCacherMock(),
@@ -46,7 +39,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 500,
-		AccLeavesChannels:         leavesChannels,
+		AccLeavesChan:             make(chan core.KeyValueHolder, 100),
 	}
 }
 
@@ -152,17 +145,6 @@ func TestNewTrieSyncer(t *testing.T) {
 		assert.True(t, errors.Is(err, ErrInvalidMaxHardCapForMissingNodes))
 	})
 
-	t.Run("nil accounts leaves channels", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(time.Minute)
-		arg.AccLeavesChannels = nil
-
-		ts, err := NewTrieSyncer(arg)
-		assert.True(t, check.IfNil(ts))
-		assert.True(t, errors.Is(err, ErrNilTrieIteratorChannels))
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -255,10 +237,6 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	arg.DB = trieStorage
 	arg.Marshalizer = testMarshalizer
 	arg.Hasher = testHasher
-	arg.AccLeavesChannels = &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, 110),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
@@ -271,7 +249,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	numLeavesOnChan := 0
 	go func() {
-		for range arg.AccLeavesChannels.LeavesChan {
+		for range arg.AccLeavesChan {
 			numLeavesOnChan++
 			wg.Done()
 		}
