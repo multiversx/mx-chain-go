@@ -1,6 +1,7 @@
 package machine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -26,7 +27,7 @@ func TestNewNetStatistics_ShouldWorkAndNotPanic(t *testing.T) {
 	ns := NewNetStatistics()
 	assert.False(t, check.IfNil(ns))
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 }
 
 func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.T) {
@@ -52,7 +53,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.
 
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 
 	checkResetFieldsAreZero(t, ns)
 }
@@ -78,7 +79,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptyFirstTime(t *te
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -104,7 +105,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsSecondTime(t *testing
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -129,7 +130,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptySecondTime(t *t
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -171,7 +172,7 @@ func TestNetStatistics_ResetShouldWork(t *testing.T) {
 	}
 
 	ns := newNetStatistics(testGetStats)
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 
 	ns.setZeroStatsAndWait()
 

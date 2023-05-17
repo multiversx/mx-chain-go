@@ -215,9 +215,10 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
 		StatusCore:                    GetStatusCoreComponents(),
-		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
+		Crypto:                        GetCryptoComponents(coreComponents),
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
+		SnapshotsEnabled:              false,
 	}
 }
 
@@ -452,6 +453,7 @@ func GetProcessArgs(
 					Length:          32,
 					Type:            "bech32",
 					SignatureLength: 0,
+					Hrp:             "erd",
 				})
 				balance := big.NewInt(0)
 				acc1 := data.InitialAccount{
@@ -495,10 +497,10 @@ func GetProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error) {
-				txsPool := make(map[uint32]*outport.Pool)
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+				txsPool := make(map[uint32]*outport.TransactionPool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &outport.Pool{}
+					txsPool[i] = &outport.TransactionPool{}
 				}
 
 				return make([]*block.MiniBlock, 4), txsPool, nil
@@ -564,8 +566,9 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:     "v1.0.0",
-		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		Version:          "v1.0.0",
+		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
+		SnapshotsEnabled: false,
 	}
 }
 
@@ -590,6 +593,11 @@ func GetStatusComponents(
 				Username:       elasticUsername,
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:        false,
+				ProxyUrl:       "https://localhost:5000",
+				MarshallerType: "json",
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
@@ -647,6 +655,12 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				Username:       elasticUsername,
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:           false,
+				ProxyUrl:          "http://localhost:5000",
+				RequestTimeoutSec: 30,
+				MarshallerType:    "json",
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},

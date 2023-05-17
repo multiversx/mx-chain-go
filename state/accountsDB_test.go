@@ -85,12 +85,19 @@ func generateAddressAccountAccountsDB(trie common.Trie) ([]byte, *stateMock.Acco
 
 func getDefaultTrieAndAccountsDb() (common.Trie, *state.AccountsDB) {
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	return tr, adb
+}
+
+func getDefaultTrieAndAccountsDbWithCustomDB(db common.DBWriteCacher) (common.Trie, *state.AccountsDB) {
+	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, db)
 	return tr, adb
 }
 
 func getDefaultStateComponents(
 	hashesHolder trie.CheckpointHashesHolder,
+	db common.DBWriteCacher,
 ) (*state.AccountsDB, common.Trie, common.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
@@ -101,7 +108,7 @@ func getDefaultStateComponents(
 	hasher := &hashingMocks.HasherMock{}
 
 	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
+		MainStorer:             db,
 		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
 		Marshalizer:            marshaller,
 		Hasher:                 hasher,
@@ -968,7 +975,6 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					close(iteratorChannels.LeavesChan)
-					close(iteratorChannels.ErrChan)
 					stats.SnapshotFinished()
 				},
 				IsClosedCalled: func() bool {
@@ -1185,7 +1191,6 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					close(iteratorChannels.LeavesChan)
-					close(iteratorChannels.ErrChan)
 					stats.SnapshotFinished()
 					snapshotMutex.Unlock()
 				},
@@ -1987,7 +1992,7 @@ func TestAccountsDB_CommitAddsDirtyHashesToCheckpointHashesHolder(t *testing.T) 
 		},
 	}
 
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
@@ -2027,7 +2032,7 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 		},
 	}
 
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes = modifyDataTries(t, accountsAddresses, adb)
@@ -2057,7 +2062,7 @@ func TestAccountsDB_SnapshotStateCleansCheckpointHashesHolder(t *testing.T) {
 			return false
 		},
 	}
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 	_ = trieStorage.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 
 	accountsAddresses := generateAccounts(t, 3, adb)
@@ -2078,7 +2083,7 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	t.Parallel()
 
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(100000, testscommon.HashSize)
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	rootHash, _ := tr.RootHash()
@@ -2155,7 +2160,7 @@ func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) 
 			return false
 		},
 	}
-	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder)
+	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	_ = modifyDataTries(t, accountsAddresses, adb)
@@ -2176,7 +2181,7 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 			removeCalled++
 		},
 	}
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
@@ -2788,6 +2793,123 @@ func TestAccountsDB_PrintStatsForRootHash(t *testing.T) {
 	assert.NotNil(t, stats)
 
 	stats.Print()
+}
+
+func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("can not sync missing snapshot node should not put activeDbKey", func(t *testing.T) {
+		t.Parallel()
+
+		trieHashes := make([][]byte, 0)
+		valuesMap := make(map[string][]byte)
+		missingNodeError := errors.New("missing trie node")
+		isMissingNodeCalled := false
+		isSyncError := false
+
+		memDbMock := testscommon.NewMemDbMock()
+		memDbMock.PutCalled = func(key, val []byte) error {
+			require.False(t, bytes.Equal(key, []byte(common.ActiveDBKey)), "should not have put active db key")
+
+			valuesMap[string(key)] = val
+			return nil
+		}
+		memDbMock.GetCalled = func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(common.ActiveDBKey)) {
+				return []byte(common.ActiveDBVal), nil
+			}
+
+			if len(trieHashes) != 0 && bytes.Equal(key, trieHashes[0]) {
+				isMissingNodeCalled = true
+				return nil, missingNodeError
+			}
+
+			val, ok := valuesMap[string(key)]
+			if !ok {
+				return nil, errors.New("key not found")
+			}
+			return val, nil
+		}
+
+		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
+		prepareTrie(tr, 3)
+
+		rootHash, _ := tr.RootHash()
+		trieHashes, _ = tr.GetAllHashes()
+
+		syncer := &mock.AccountsDBSyncerStub{
+			SyncAccountsCalled: func(rootHash []byte) error {
+				isSyncError = true
+				return errors.New("sync error")
+			},
+		}
+		_ = adb.SetSyncer(syncer)
+		adb.SnapshotState(rootHash)
+
+		for tr.GetStorageManager().IsPruningBlocked() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		assert.True(t, isMissingNodeCalled)
+		assert.True(t, isSyncError)
+	})
+
+	t.Run("nil syncer should not put activeDbKey", func(t *testing.T) {
+		t.Parallel()
+
+		trieHashes := make([][]byte, 0)
+		valuesMap := make(map[string][]byte)
+		missingNodeError := errors.New("missing trie node")
+		isMissingNodeCalled := false
+
+		memDbMock := testscommon.NewMemDbMock()
+		memDbMock.PutCalled = func(key, val []byte) error {
+			require.False(t, bytes.Equal(key, []byte(common.ActiveDBKey)), "should not have put active db key")
+
+			valuesMap[string(key)] = val
+			return nil
+		}
+		memDbMock.GetCalled = func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(common.ActiveDBKey)) {
+				return []byte(common.ActiveDBVal), nil
+			}
+
+			if len(trieHashes) != 0 && bytes.Equal(key, trieHashes[0]) {
+				isMissingNodeCalled = true
+				return nil, missingNodeError
+			}
+
+			val, ok := valuesMap[string(key)]
+			if !ok {
+				return nil, errors.New("key not found")
+			}
+			return val, nil
+		}
+
+		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
+		prepareTrie(tr, 3)
+
+		rootHash, _ := tr.RootHash()
+		trieHashes, _ = tr.GetAllHashes()
+
+		adb.SnapshotState(rootHash)
+
+		for tr.GetStorageManager().IsPruningBlocked() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		assert.True(t, isMissingNodeCalled)
+	})
+}
+
+func prepareTrie(tr common.Trie, numKeys int) {
+	for i := 0; i < numKeys; i++ {
+		key := fmt.Sprintf("key%d", i)
+		val := fmt.Sprintf("val%d", i)
+		_ = tr.Update([]byte(key), []byte(val))
+	}
+
+	_ = tr.Commit()
 }
 
 func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {

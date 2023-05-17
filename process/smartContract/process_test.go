@@ -44,8 +44,8 @@ func generateEmptyByteSlice(size int) []byte {
 	return buff
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state.UserAccountHandler) {
@@ -62,9 +62,9 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[common.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasSchedule[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasSchedule[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
@@ -917,7 +917,7 @@ func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.PubkeyConv = mock.NewPubkeyConverterMock(3)
+	arguments.PubkeyConv = testscommon.NewPubkeyConverterMock(3)
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	tx := &transaction.Transaction{}

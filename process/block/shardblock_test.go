@@ -15,6 +15,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -47,8 +48,8 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewShardProcessor
@@ -286,19 +287,18 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
-	assert.True(t, statusIdleSet && statusBusySet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -1922,13 +1922,12 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 	expectedFirstNonce := core.OptionalUint64{
 		HasValue: false,
@@ -1939,7 +1938,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 
 	expectedFirstNonce.HasValue = true
 	expectedFirstNonce.Value = hdr.Nonce
@@ -2229,16 +2228,24 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *outportcore.OutportBlockWithHeaderAndBody) error {
 			called = true
+			return nil
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
 	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
-		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
-			return &outportcore.ArgsSaveBlockData{}, nil
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+					Body:       &block.Body{},
+					Header:     &block.HeaderV2{},
+					HeaderHash: []byte("hash"),
+				},
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
 		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -2427,10 +2434,6 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	hasher := hashingMocks.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-		},
-	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
@@ -2439,7 +2442,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerMock{})
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, &mock.BlockTrackerMock{})
 }
 
 func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
@@ -5242,4 +5245,148 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, indexOfFirstTxProcessed-1, processedMbInfo.IndexOfLastTxProcessed)
+}
+
+func TestShardProcessor_CreateBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	busyIdleCalled := make([]string, 0)
+	mockProcessHandler.SetIdleCalled = func() {
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+	}
+
+	expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+	sp, errConstructor := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, errConstructor)
+
+	doesHaveTime := func() bool {
+		return true
+	}
+	t.Run("nil block should error", func(t *testing.T) {
+		hdr, body, err := sp.CreateBlock(nil, doesHaveTime)
+		assert.True(t, check.IfNil(body))
+		assert.True(t, check.IfNil(hdr))
+		assert.Equal(t, process.ErrNilBlockHeader, err)
+		assert.Zero(t, len(busyIdleCalled))
+	})
+	t.Run("wrong block type should error", func(t *testing.T) {
+		meta := &block.MetaBlock{}
+
+		hdr, body, err := sp.CreateBlock(meta, doesHaveTime)
+		assert.True(t, check.IfNil(body))
+		assert.True(t, check.IfNil(hdr))
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
+		assert.Zero(t, len(busyIdleCalled))
+	})
+	t.Run("should work with empty header v1", func(t *testing.T) {
+		header := &block.Header{
+			Nonce: 37,
+			Round: 38,
+			Epoch: 1,
+		}
+
+		expectedHeader := &block.Header{
+			Nonce:           37,
+			Round:           38,
+			Epoch:           1,
+			ReceiptsHash:    []byte("receiptHash"),
+			DeveloperFees:   big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		}
+
+		// reset the slice, do not call these tests in parallel
+		busyIdleCalled = make([]string, 0)
+		hdr, bodyHandler, err := sp.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("should work with empty header v2", func(t *testing.T) {
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 37,
+				Round: 38,
+				Epoch: 1,
+			},
+		}
+
+		expectedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:           37,
+				Round:           38,
+				Epoch:           1,
+				ReceiptsHash:    []byte("receiptHash"),
+				DeveloperFees:   big.NewInt(0),
+				AccumulatedFees: big.NewInt(0),
+			},
+		}
+
+		// reset the slice, do not call these tests in parallel
+		busyIdleCalled = make([]string, 0)
+		hdr, bodyHandler, err := sp.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("should work with empty header v2 and epoch start rewriting the epoch value", func(t *testing.T) {
+		argumentsLocal := CreateMockArguments(createComponentHolderMocks())
+		argumentsLocal.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+			MetaEpochCalled: func() uint32 {
+				return 2
+			},
+		}
+
+		spLocal, err := blproc.NewShardProcessor(argumentsLocal)
+		assert.Nil(t, err)
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 37,
+				Round: 38,
+				Epoch: 1,
+			},
+		}
+
+		expectedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:           37,
+				Round:           38,
+				Epoch:           2, // epoch should be re-written
+				ReceiptsHash:    []byte("receiptHash"),
+				DeveloperFees:   big.NewInt(0),
+				AccumulatedFees: big.NewInt(0),
+			},
+		}
+
+		hdr, bodyHandler, err := spLocal.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+	})
 }

@@ -12,7 +12,32 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
+func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler) bool {
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+
+	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
+		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
+
+	isReceiverSC := core.IsSmartContractAddress(tx.GetRcvAddr())
+	hasFunction := res.Function != ""
+	if !hasFunction {
+		return false
+	}
+
+	if !bytes.Equal(tx.GetSndAddr(), tx.GetRcvAddr()) {
+		return isESDTTransferOperation && isReceiverSC && hasFunction
+	}
+
+	if len(res.Receivers) == 0 {
+		return false
+	}
+
+	isReceiverSC = core.IsSmartContractAddress(res.Receivers[0])
+
+	return isESDTTransferOperation && isReceiverSC && hasFunction
+}
+
+func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandler) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())
 	isRightNonce := scr.Nonce == tx.GetNonce()+1
 	isFromCurrentTx := bytes.Equal(scr.PrevTxHash, txHash)
@@ -21,7 +46,7 @@ func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHa
 	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
 }
 
-func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandlerWithGasUsedAndFee) bool {
+func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandler) bool {
 	isForRelayed := string(dbScResult.ReturnMessage) == core.GasRefundForRelayerMessage
 	isForSender := bytes.Equal(dbScResult.RcvAddr, tx.GetSndAddr())
 	differentHash := !bytes.Equal(dbScResult.OriginalTxHash, dbScResult.PrevTxHash)
@@ -48,7 +73,7 @@ func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 }
 
 func isRelayedTx(tx *transactionWithResults) bool {
-	txData := string(tx.GetData())
+	txData := string(tx.GetTxHandler().GetData())
 	isRelayed := strings.HasPrefix(txData, core.RelayedTransaction) || strings.HasPrefix(txData, core.RelayedTransactionV2)
 	return isRelayed && len(tx.scrs) > 0
 }
