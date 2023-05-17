@@ -161,6 +161,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
+		FlagsConfig:          config.ContextFlagsConfig{},
 		BootstrapRoundIndex:  0,
 		CoreComponents:       coreComponents,
 		NetworkComponents:    networkComponents,
@@ -218,7 +219,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		SnapshotsEnabled:              false,
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 }
 
@@ -564,9 +565,10 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:          "v1.0.0",
-		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
-		SnapshotsEnabled: false,
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		FlagsConfig: config.ContextFlagsConfig{
+			Version: "v1.0.0",
+		},
 	}
 }
 
