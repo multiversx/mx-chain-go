@@ -1673,7 +1673,7 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderHandler{
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
 		HeadersPool: dataPool.Headers(),
 		TxPool:      dataPool.Transactions(),
 		Marshaller:  marshaller,

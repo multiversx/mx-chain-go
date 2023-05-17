@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -16,8 +15,8 @@ import (
 
 var log = logger.GetOrCreate("headerSubscriber")
 
-// ArgsIncomingHeaderHandler is a struct placeholder for args needed to create a new incoming header handler
-type ArgsIncomingHeaderHandler struct {
+// ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
+type ArgsIncomingHeaderProcessor struct {
 	HeadersPool HeadersPool
 	TxPool      TransactionPool
 	Marshaller  marshal.Marshalizer
@@ -26,15 +25,15 @@ type ArgsIncomingHeaderHandler struct {
 
 type incomingHeaderProcessor struct {
 	headersPool HeadersPool
-	txPool      TransactionPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
+	scrProc     *scrProcessor
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
-func NewIncomingHeaderProcessor(args ArgsIncomingHeaderHandler) (*incomingHeaderProcessor, error) {
+func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHeaderProcessor, error) {
 	if check.IfNil(args.HeadersPool) {
 		return nil, errNilHeadersPool
 	}
@@ -48,11 +47,17 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderHandler) (*incomingHeader
 		return nil, core.ErrNilHasher
 	}
 
+	scrProc := &scrProcessor{
+		txPool:     args.TxPool,
+		marshaller: args.Marshaller,
+		hasher:     args.Hasher,
+	}
+
 	return &incomingHeaderProcessor{
 		headersPool: args.HeadersPool,
-		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
+		scrProc:     scrProc,
 	}, nil
 }
 
@@ -65,29 +70,28 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return errInvalidHeaderType
 	}
 
-	incomingSCRs := createIncomingSCRs(header.GetIncomingEventHandlers())
-	incomingMB := createIncomingMb(incomingSCRs)
+	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	if err != nil {
+		return err
+	}
 
+	incomingMB := createIncomingMb(incomingSCRs)
 	extendedHeader := &block.ShardHeaderExtended{
 		Header:             headerV2,
 		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
 	}
 
-	err := ihp.addExtendedHeaderToPool(extendedHeader)
+	err = ihp.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	return ihp.addSCRsToPool(incomingSCRs)
-}
-
-// TODO: Implement this in task MX-14128
-func createIncomingSCRs(_ []data.EventHandler) []*smartContractResult.SmartContractResult {
-	return make([]*smartContractResult.SmartContractResult, 0)
+	ihp.scrProc.addSCRsToPool(incomingSCRs)
+	return nil
 }
 
 // TODO: Implement this in task MX-14129
-func createIncomingMb(_ []*smartContractResult.SmartContractResult) *block.MiniBlock {
+func createIncomingMb(_ []*scrInfo) *block.MiniBlock {
 	return &block.MiniBlock{}
 }
 
@@ -98,11 +102,6 @@ func (ihp *incomingHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.
 	}
 
 	ihp.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
-	return nil
-}
-
-// TODO: Implement this in task MX-14128
-func (ihp *incomingHeaderProcessor) addSCRsToPool(_ []*smartContractResult.SmartContractResult) error {
 	return nil
 }
 
