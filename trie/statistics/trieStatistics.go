@@ -185,6 +185,7 @@ func (ts *trieStatistics) GetLeavesMigrationStats() map[core.TrieNodeVersion]uin
 	return migrationStatsMap
 }
 
+// MergeTriesStatistics will merge the given statistics with the current statistics
 func (ts *trieStatistics) MergeTriesStatistics(statsToBeMerged common.TrieStatisticsHandler) {
 	ts.mutex.Lock()
 	defer ts.mutex.Unlock()

@@ -20,7 +20,7 @@ type trieStatisticsCollector struct {
 	trieStatsByType map[common.TrieType]common.TrieStatisticsHandler
 	triesBySize     []common.TrieStatisticsHandler
 	triesByDepth    []common.TrieStatisticsHandler
-	numDataTries    uint64
+	numTriesByType  map[common.TrieType]uint64
 
 	mutex sync.RWMutex
 }
@@ -31,7 +31,7 @@ func NewTrieStatisticsCollector() *trieStatisticsCollector {
 		trieStatsByType: make(map[common.TrieType]common.TrieStatisticsHandler),
 		triesBySize:     make([]common.TrieStatisticsHandler, numTriesToPrint),
 		triesByDepth:    make([]common.TrieStatisticsHandler, numTriesToPrint),
-		numDataTries:    0,
+		numTriesByType:  make(map[common.TrieType]uint64),
 	}
 }
 
@@ -45,14 +45,13 @@ func (tsc *trieStatisticsCollector) Add(trieStats common.TrieStatisticsHandler, 
 	tsc.mutex.Lock()
 	defer tsc.mutex.Unlock()
 
-	if _, ok := tsc.trieStatsByType[trieType]; !ok {
+	_, ok := tsc.trieStatsByType[trieType]
+	if !ok {
 		tsc.trieStatsByType[trieType] = NewTrieStatistics()
 	}
 
 	tsc.trieStatsByType[trieType].MergeTriesStatistics(trieStats)
-	if trieType == common.DataTrie {
-		tsc.numDataTries++
-	}
+	tsc.numTriesByType[trieType]++
 
 	insertInSortedArray(tsc.triesBySize, trieStats, isLessSize)
 	insertInSortedArray(tsc.triesByDepth, trieStats, isLessDeep)
@@ -84,7 +83,7 @@ func (tsc *trieStatisticsCollector) Print() {
 	log.Debug("tries statistics",
 		"num of nodes", totalNumNodes,
 		"total size", core.ConvertBytes(totalStateSize),
-		"num data tries", tsc.numDataTries,
+		"num tries by type", getNumTriesByTypeString(tsc.numTriesByType),
 		"num main trie leaves", numMainTrieLeaves,
 		"max depth main trie", maxDepthMainTrie,
 
@@ -100,6 +99,15 @@ func (tsc *trieStatisticsCollector) Print() {
 	if log.GetLevel() == logger.LogTrace {
 		tsc.printDetailedTriesStatistics()
 	}
+}
+
+func getNumTriesByTypeString(numTriesByTypeMap map[common.TrieType]uint64) string {
+	var numTriesByTypeMapString []string
+	for trieType, numTries := range numTriesByTypeMap {
+		numTriesByTypeMapString = append(numTriesByTypeMapString, fmt.Sprintf("%v: %v", trieType, numTries))
+	}
+
+	return strings.Join(numTriesByTypeMapString, ", ")
 }
 
 func (tsc *trieStatisticsCollector) printDetailedTriesStatistics() {

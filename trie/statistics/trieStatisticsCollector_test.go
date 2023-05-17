@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 	"testing"
@@ -52,4 +53,18 @@ func getTrieStats(maxLevel int, size uint64) common.TrieStatisticsHandler {
 	ts.AddBranchNode(maxLevel, size)
 
 	return ts
+}
+
+func TestGetNumTriesByTypeString(t *testing.T) {
+	t.Parallel()
+
+	numMainTries := 1
+	numDataTries := 500
+	numTriesByType := make(map[common.TrieType]uint64)
+	numTriesByType[common.MainTrie] = uint64(numMainTries)
+	numTriesByType[common.DataTrie] = uint64(numDataTries)
+
+	numTriesByTypeString := getNumTriesByTypeString(numTriesByType)
+	expectedRes := fmt.Sprintf("%v: %v, %v: %v", common.MainTrie, numMainTries, common.DataTrie, numDataTries)
+	assert.Equal(t, expectedRes, numTriesByTypeString)
 }
