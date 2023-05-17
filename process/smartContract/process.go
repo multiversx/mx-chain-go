@@ -51,6 +51,11 @@ const (
 
 var zero = big.NewInt(0)
 
+// ExecutableChecker is an interface for checking if a builtin function is executable
+type ExecutableChecker interface {
+	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
+}
+
 type scProcessor struct {
 	accounts           state.AccountsAdapter
 	blockChainHook     process.BlockChainHookHandler
@@ -2793,6 +2798,47 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	return nil
+}
+
+// CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
+func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	functionName, arguments, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return err
+	}
+
+	if expectedBuiltinFunction != functionName {
+		return process.ErrBuiltinFunctionMismatch
+	}
+
+	gasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return err
+	}
+
+	builtinFunc, err := sc.builtInFunctions.Get(functionName)
+	if err != nil {
+		return err
+	}
+
+	// cast the function to the expected checker type
+	executableChecker, ok := builtinFunc.(ExecutableChecker)
+	if !ok {
+		return process.ErrBuiltinFunctionNotExecutable
+	}
+
+	// check if the function is executable
+	return executableChecker.CheckIsExecutable(
+		tx.GetSndAddr(),
+		tx.GetValue(),
+		tx.GetRcvAddr(),
+		gasProvided,
+		arguments,
+	)
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
