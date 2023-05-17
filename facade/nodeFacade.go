@@ -68,8 +68,6 @@ type nodeFacade struct {
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
 	blockchain             chainData.ChainHandler
-	ctx                    context.Context
-	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -115,7 +113,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		peerState:              arg.PeerState,
 		blockchain:             arg.Blockchain,
 	}
-	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
 }
@@ -237,6 +234,11 @@ func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQu
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
+// GetGuardianData returns the guardian data for the provided address
+func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQueryOptions) (apiData.GuardianData, apiData.BlockInfo, error) {
+	return nf.node.GetGuardianData(address, options)
+}
+
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
@@ -268,23 +270,8 @@ func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, co
 }
 
 // CreateTransaction creates a transaction from all needed fields
-func (nf *nodeFacade) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	txData []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-) (*transaction.Transaction, []byte, error) {
-
-	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
+func (nf *nodeFacade) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	return nf.node.CreateTransaction(txArgs)
 }
 
 // ValidateTransaction will validate a transaction
@@ -566,8 +553,6 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 // Close will clean up started go routines
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
-
-	nf.cancelFunc()
 
 	return nil
 }

@@ -11,13 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -31,8 +29,7 @@ import (
 )
 
 var (
-	protoMarshalizer = &marshal.GogoProtoMarshalizer{}
-	log              = logger.GetOrCreate("integrationTests/vm/txFee/utils")
+	log = logger.GetOrCreate("integrationTests/vm/txFee/utils")
 )
 
 // DoDeploy -
@@ -257,12 +254,6 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	return scAddr, owner
 }
 
-// PrepareRelayerTxData -
-func PrepareRelayerTxData(innerTx *transaction.Transaction) []byte {
-	userTxBytes, _ := protoMarshalizer.Marshal(innerTx)
-	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
-}
-
 // CheckOwnerAddr -
 func CheckOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, owner []byte) {
 	acc, err := testContext.Accounts.GetExistingAccount(scAddr)
@@ -364,10 +355,15 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-// GenerateUserNameForMyDNSContract -
-func GenerateUserNameForMyDNSContract() []byte {
+// GenerateUserNameForDefaultDNSContract -
+func GenerateUserNameForDefaultDNSContract() []byte {
+	return GenerateUserNameForDNSContract([]byte{49})
+}
+
+// GenerateUserNameForDNSContract -
+func GenerateUserNameForDNSContract(contractAddress []byte) []byte {
 	testHasher := keccak.NewKeccak()
-	contractLastByte := byte(49)
+	contractLastByte := contractAddress[len(contractAddress)-1]
 
 	for {
 		userName := randStringBytes(10)

@@ -5,13 +5,15 @@ import (
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
-	consensusMocks "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -48,6 +50,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
 		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:   &epochNotifierMock.EpochNotifierStub{},
 	}
 }
 
@@ -60,7 +63,6 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		P2pPrivKey:        mock.NewP2pPrivateKeyMock(),
 		P2pSig:            &mock.SinglesignMock{},
 		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
 		PubKeyBytes:       []byte("pubKey"),
 		BlockSig:          &mock.SinglesignMock{},
 		TxSig:             &mock.SinglesignMock{},
@@ -70,7 +72,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 		TxKeyGen:          &mock.KeyGenMock{},
 		P2PKeyGen:         &mock.KeyGenMock{},
 		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SigHandler:        &consensusMocks.SigningHandlerStub{},
+		SigHandler:        &consensus.SigningHandlerStub{},
 	}
 }
 
@@ -85,8 +87,8 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsMock {
 }
 
 // GetDefaultStateComponents -
-func GetDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func GetDefaultStateComponents() *factory.StateComponentsMock {
+	return &factory.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},

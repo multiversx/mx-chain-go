@@ -124,11 +124,15 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	peerType := wr.presenter.GetPeerType()
+	peerSubType := wr.presenter.GetPeerSubType()
 	chainID := wr.presenter.GetChainID()
 
 	nodeTypeAndListDisplay := instanceType
 	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
 		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
+	}
+	if peerSubType == core.FullHistoryObserver.String() {
+		nodeTypeAndListDisplay += " - full archive"
 	}
 	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(core.MetachainShardId) {
