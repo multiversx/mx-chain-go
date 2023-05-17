@@ -4,6 +4,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/config"
@@ -134,7 +136,12 @@ func createAndSubscribeFirehoseIndexerDriver(
 		return nil
 	}
 
-	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout)
+	container := block.NewEmptyBlockCreatorsContainer()
+	err := container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+	err = container.Add(core.ShardHeaderV2, block.NewEmptyHeaderV2Creator())
+	err = container.Add(core.MetaHeader, block.NewEmptyMetaBlockCreator())
+
+	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout, container)
 	if err != nil {
 		return err
 	}

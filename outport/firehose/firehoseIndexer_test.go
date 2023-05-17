@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -35,7 +36,7 @@ func TestNewFirehoseIndexer(t *testing.T) {
 	t.Run("nil io writer, should return error", func(t *testing.T) {
 		t.Parallel()
 
-		fi, err := NewFirehoseIndexer(nil, block.NewEmptyHeaderCreator())
+		fi, err := NewFirehoseIndexer(nil, block.NewEmptyBlockCreatorsContainer())
 		require.Nil(t, fi)
 		require.Equal(t, errNilWriter, err)
 	})
@@ -51,7 +52,7 @@ func TestNewFirehoseIndexer(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		fi, err := NewFirehoseIndexer(&testscommon.IoWriterStub{}, block.NewEmptyHeaderCreator())
+		fi, err := NewFirehoseIndexer(&testscommon.IoWriterStub{}, block.NewEmptyBlockCreatorsContainer())
 		require.Nil(t, err)
 		require.NotNil(t, fi)
 	})
@@ -65,7 +66,7 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 	t.Run("nil outport block, should return error", func(t *testing.T) {
 		t.Parallel()
 
-		fi, _ := NewFirehoseIndexer(&testscommon.IoWriterStub{}, block.NewEmptyHeaderCreator())
+		fi, _ := NewFirehoseIndexer(&testscommon.IoWriterStub{}, block.NewEmptyBlockCreatorsContainer())
 
 		err := fi.SaveBlock(nil)
 		require.Equal(t, errOutportBlock, err)
@@ -89,6 +90,7 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 			BlockData: &outportcore.BlockData{
 				HeaderHash:  []byte("hash"),
 				HeaderBytes: headerBytes,
+				HeaderType:  string(core.ShardHeaderV1),
 			},
 		}
 		outportBlockBytes, err := protoMarshaller.Marshal(outportBlock)
@@ -115,7 +117,10 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 			},
 		}
 
-		fi, _ := NewFirehoseIndexer(ioWriter, block.NewEmptyHeaderCreator())
+		container := block.NewEmptyBlockCreatorsContainer()
+		_ = container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+
+		fi, _ := NewFirehoseIndexer(ioWriter, container)
 		err = fi.SaveBlock(outportBlock)
 		require.Nil(t, err)
 		require.Equal(t, 2, ioWriterCalledCt)

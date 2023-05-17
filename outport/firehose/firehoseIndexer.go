@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -24,11 +25,11 @@ const (
 type firehoseIndexer struct {
 	writer       io.Writer
 	marshaller   marshal.Marshalizer
-	blockCreator block.EmptyBlockCreator
+	blockCreator BlockContainerHandler
 }
 
 // NewFirehoseIndexer creates a new firehose instance which outputs block information
-func NewFirehoseIndexer(writer io.Writer, blockCreator block.EmptyBlockCreator) (outport.Driver, error) {
+func NewFirehoseIndexer(writer io.Writer, blockCreator BlockContainerHandler) (outport.Driver, error) {
 	if writer == nil {
 		return nil, errNilWriter
 	}
@@ -49,7 +50,12 @@ func (fi *firehoseIndexer) SaveBlock(outportBlock *outportcore.OutportBlock) err
 		return errOutportBlock
 	}
 
-	header, err := block.GetHeaderFromBytes(fi.marshaller, fi.blockCreator, outportBlock.BlockData.HeaderBytes)
+	blockCreator, err := fi.blockCreator.Get(core.HeaderType(outportBlock.BlockData.HeaderType))
+	if err != nil {
+		return err
+	}
+
+	header, err := block.GetHeaderFromBytes(fi.marshaller, blockCreator, outportBlock.BlockData.HeaderBytes)
 	if err != nil {
 		return err
 	}
