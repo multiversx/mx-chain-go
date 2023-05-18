@@ -263,12 +263,6 @@ type TransactionCostSimulator interface {
 	IsInterfaceNil() bool
 }
 
-// TransactionSimulatorProcessor defines the actions which a transaction simulator has to implement
-type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
-	IsInterfaceNil() bool
-}
-
 // ProcessComponentsHolder holds the process components
 type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
