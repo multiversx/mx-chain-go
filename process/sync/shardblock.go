@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -64,6 +65,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 	}
 
 	if base.isInImportMode {
@@ -121,7 +123,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 }
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
-func (boot *ShardBootstrap) StartSyncingBlocks() {
+func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
@@ -131,7 +133,15 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+
+	err := boot.handleAccountsTrieIteration()
+	if err != nil {
+		return fmt.Errorf("%w while handling accounts trie iteration", err)
+	}
+
 	go boot.syncBlocks(ctx)
+
+	return nil
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool

@@ -18,6 +18,7 @@ import (
 )
 
 const governanceConfigKey = "governanceConfig"
+const accumulatedFeeKey = "accumulatedFee"
 const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
@@ -37,7 +38,7 @@ type ArgsNewGovernanceContract struct {
 	GovernanceSCAddress    []byte
 	DelegationMgrSCAddress []byte
 	ValidatorSCAddress     []byte
-	ConfigChangeAddress    []byte
+	OwnerAddress           []byte
 	UnBondPeriodInEpochs   uint32
 	EnableEpochsHandler    common.EnableEpochsHandler
 }
@@ -50,7 +51,6 @@ type governanceContract struct {
 	governanceSCAddress    []byte
 	delegationMgrSCAddress []byte
 	validatorSCAddress     []byte
-	changeConfigAddress    []byte
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	governanceConfig       config.GovernanceSystemSCConfig
@@ -88,7 +88,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if len(args.GovernanceSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.ConfigChangeAddress) < 1 {
+	if len(args.OwnerAddress) < 1 {
 		return nil, fmt.Errorf("%w for change config address", vm.ErrInvalidAddress)
 	}
 
@@ -96,7 +96,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		eei:                    args.Eei,
 		gasCost:                args.GasCost,
 		baseProposalCost:       baseProposalCost,
-		ownerAddress:           nil,
+		ownerAddress:           args.OwnerAddress,
 		governanceSCAddress:    args.GovernanceSCAddress,
 		delegationMgrSCAddress: args.DelegationMgrSCAddress,
 		validatorSCAddress:     args.ValidatorSCAddress,
@@ -105,7 +105,6 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		governanceConfig:       args.GovernanceConfig,
 		enableEpochsHandler:    args.EnableEpochsHandler,
 		unBondPeriodInEpochs:   args.UnBondPeriodInEpochs,
-		changeConfigAddress:    args.ConfigChangeAddress,
 	}
 
 	return g, nil
@@ -156,6 +155,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.viewDelegatedVoteInfo(args)
 	case "viewProposal":
 		return g.viewProposal(args)
+	case "claimAccumulatedFees":
+		return g.claimAccumulatedFees(args)
 	}
 
 	g.eei.AddReturnMessage("invalid method to call")
@@ -175,8 +176,6 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
-	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
 	return vmcommon.Ok
 }
 
@@ -198,19 +197,18 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
-	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
 
 	return vmcommon.Ok
 }
 
 // changeConfig allows the owner to change the configuration for requesting proposals
 //  args.Arguments[0] - proposalFee - as string
-//  args.Arguments[1] - minQuorum - 0-10000 - represents percentage
-//  args.Arguments[2] - minVeto   - 0-10000 - represents percentage
-//  args.Arguments[3] - minPass   - 0-10000 - represents percentage
+//  args.Arguments[1] - lostProposalFee - as string
+//  args.Arguments[2] - minQuorum - 0-10000 - represents percentage
+//  args.Arguments[3] - minVeto   - 0-10000 - represents percentage
+//  args.Arguments[4] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(g.changeConfigAddress, args.CallerAddr) {
+	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
 		return vmcommon.UserError
 	}
@@ -218,8 +216,8 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig can be called only without callValue")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("changeConfig needs 4 arguments")
+	if len(args.Arguments) != 5 {
+		g.eei.AddReturnMessage("changeConfig needs 5 arguments")
 		return vmcommon.UserError
 	}
 
@@ -228,17 +226,28 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minQuorum, err := convertDecimalToPercentage(args.Arguments[1])
+	lostProposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
+	if !okConvert || proposalFee.Cmp(zero) <= 0 {
+		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
+		return vmcommon.UserError
+	}
+	if proposalFee.Cmp(lostProposalFee) < 0 {
+		errLocal := fmt.Errorf("%w proposal fee is smaller than lost proposal fee ", vm.ErrIncorrectConfig)
+		g.eei.AddReturnMessage(errLocal.Error())
+		return vmcommon.UserError
+	}
+
+	minQuorum, err := convertDecimalToPercentage(args.Arguments[2])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minQuorum")
 		return vmcommon.UserError
 	}
-	minVeto, err := convertDecimalToPercentage(args.Arguments[2])
+	minVeto, err := convertDecimalToPercentage(args.Arguments[3])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minVeto")
 		return vmcommon.UserError
 	}
-	minPass, err := convertDecimalToPercentage(args.Arguments[3])
+	minPass, err := convertDecimalToPercentage(args.Arguments[4])
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error() + " minPass")
 		return vmcommon.UserError
@@ -254,6 +263,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	scConfig.MinVetoThreshold = minVeto
 	scConfig.MinPassThreshold = minPass
 	scConfig.ProposalFee = proposalFee
+	scConfig.LostProposalFee = lostProposalFee
 
 	g.baseProposalCost.Set(proposalFee)
 	err = g.saveConfig(scConfig)
@@ -605,7 +615,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	generalProposal.Closed = true
-	err = g.computeEndResults(generalProposal)
+	baseConfig, err := g.getConfig()
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	generalProposal.Passed = g.computeEndResults(generalProposal, baseConfig)
 	if err != nil {
 		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
 		return vmcommon.UserError
@@ -617,7 +633,13 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, generalProposal.ProposalCost, nil, 0)
+	tokensToReturn := big.NewInt(0).Set(generalProposal.ProposalCost)
+	if !generalProposal.Passed {
+		tokensToReturn.Sub(tokensToReturn, baseConfig.LostProposalFee)
+		g.addToAccumulatedFees(baseConfig.LostProposalFee)
+	}
+
+	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -629,6 +651,52 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		Topics:     [][]byte{generalProposal.CommitHash, boolToSlice(generalProposal.Passed)},
 	}
 	g.eei.AddLogEntry(logEntry)
+
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) getAccumulatedFees() *big.Int {
+	currentData := g.eei.GetStorage([]byte(accumulatedFeeKey))
+	return big.NewInt(0).SetBytes(currentData)
+}
+
+func (g *governanceContract) setAccumulatedFees(value *big.Int) {
+	g.eei.SetStorage([]byte(accumulatedFeeKey), value.Bytes())
+}
+
+func (g *governanceContract) addToAccumulatedFees(value *big.Int) {
+	currentValue := g.getAccumulatedFees()
+	currentValue.Add(currentValue, value)
+	g.setAccumulatedFees(currentValue)
+}
+
+func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("callValue expected to be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 0")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, g.ownerAddress) {
+		g.eei.AddReturnMessage("can be called only by owner")
+		return vmcommon.UserError
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+
+	accumulatedFees := g.getAccumulatedFees()
+	g.setAccumulatedFees(big.NewInt(0))
+
+	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -838,12 +906,7 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
-	baseConfig, err := g.getConfig()
-	if err != nil {
-		return err
-	}
-
+func (g *governanceContract) computeEndResults(proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
@@ -853,27 +916,23 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
-		proposal.Passed = false
-		return nil
+		return false
 	}
 
 	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
-		proposal.Passed = false
 		g.eei.Finish([]byte("Proposal vetoed"))
-		return nil
+		return false
 	}
 
 	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		g.eei.Finish([]byte("Proposal passed"))
-		proposal.Passed = true
-		return nil
+		return true
 	}
 
 	g.eei.Finish([]byte("Proposal rejected"))
-	proposal.Passed = false
-	return nil
+	return false
 }
 
 func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {
@@ -1117,11 +1176,21 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		return nil, vm.ErrIncorrectConfig
 	}
 
+	lostProposalFee, success := big.NewInt(0).SetString(config.Active.LostProposalFee, conversionBase)
+	if !success {
+		return nil, vm.ErrIncorrectConfig
+	}
+
+	if proposalFee.Cmp(lostProposalFee) < 0 {
+		return nil, fmt.Errorf("%w proposal fee is smaller than lost proposal fee ", vm.ErrIncorrectConfig)
+	}
+
 	return &GovernanceConfigV2{
 		MinQuorum:        float32(config.Active.MinQuorum),
 		MinPassThreshold: float32(config.Active.MinPassThreshold),
 		MinVetoThreshold: float32(config.Active.MinVetoThreshold),
 		ProposalFee:      proposalFee,
+		LostProposalFee:  lostProposalFee,
 	}, nil
 }
 

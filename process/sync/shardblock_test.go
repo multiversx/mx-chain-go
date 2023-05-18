@@ -218,6 +218,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		RepopulateTokensSupplies:     false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -656,7 +657,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	_ = bs.Close()
 }
@@ -751,7 +752,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 
 	time.Sleep(200 * time.Millisecond)
 

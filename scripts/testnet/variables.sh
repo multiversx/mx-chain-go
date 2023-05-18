@@ -68,6 +68,9 @@ export MULTI_KEY_NODES=0
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 
+# ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
+export ROUNDS_PER_EPOCH=0
+
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
 

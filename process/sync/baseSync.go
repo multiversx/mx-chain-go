@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
+	"github.com/multiversx/mx-chain-go/process/sync/trieIterators"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -125,6 +126,8 @@ type baseBootstrap struct {
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processWaitTime              time.Duration
+
+	repopulateTokensSupplies bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -1199,6 +1202,42 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	}
 
 	return common.NsNotSynchronized
+}
+
+func (boot *baseBootstrap) handleAccountsTrieIteration() error {
+	if boot.repopulateTokensSupplies {
+		return boot.handleTokensSuppliesRepopulation()
+	}
+
+	// add more flags and trie iterators here
+	return nil
+}
+
+func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
+	argsTrieAccountsIteratorProc := trieIterators.ArgsTrieAccountsIterator{
+		Marshaller: boot.marshalizer,
+		Accounts:   boot.accounts,
+	}
+	trieAccountsIteratorProc, err := trieIterators.NewTrieAccountsIterator(argsTrieAccountsIteratorProc)
+	if err != nil {
+		return err
+	}
+
+	argsTokensSuppliesProc := trieIterators.ArgsTokensSuppliesProcessor{
+		StorageService: boot.store,
+		Marshaller:     boot.marshalizer,
+	}
+	tokensSuppliesProc, err := trieIterators.NewTokensSuppliesProcessor(argsTokensSuppliesProc)
+	if err != nil {
+		return err
+	}
+
+	err = trieAccountsIteratorProc.Process(tokensSuppliesProc.HandleTrieAccountIteration)
+	if err != nil {
+		return err
+	}
+
+	return tokensSuppliesProc.SaveSupplies()
 }
 
 // Close will close the endless running go routine
