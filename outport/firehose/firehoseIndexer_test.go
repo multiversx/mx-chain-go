@@ -13,23 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createOutportBlock() *outportcore.OutportBlock {
-	header := &block.Header{
-		Nonce:     4,
-		PrevHash:  []byte("prev hash"),
-		TimeStamp: 4000,
-	}
-	marshaller := &marshal.GogoProtoMarshalizer{}
-	headerBytes, _ := marshaller.Marshal(header)
-
-	return &outportcore.OutportBlock{
-		BlockData: &outportcore.BlockData{
-			HeaderHash:  []byte("hash"),
-			HeaderBytes: headerBytes,
-		},
-	}
-}
-
 func TestNewFirehoseIndexer(t *testing.T) {
 	t.Parallel()
 
