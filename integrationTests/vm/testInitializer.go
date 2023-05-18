@@ -959,7 +959,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	txCostEstimator, err := transaction.NewTransactionCostEstimator(
+	txCostEstimator, err := txsimulator.NewTransactionCostEstimator(
 		txTypeHandler,
 		economicsData,
 		txSimulator,

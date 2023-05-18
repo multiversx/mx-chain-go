@@ -7,28 +7,18 @@ import (
 
 // StateComponentsHolderStub -
 type StateComponentsHolderStub struct {
-	PeerAccountsCalled            func() state.AccountsAdapter
-	AccountsAdapterCalled         func() state.AccountsAdapter
-	AccountsAdapterAPICalled      func() state.AccountsAdapter
-	AccountsAdapterSimulateCalled func() state.AccountsAdapterWithClean
-	AccountsRepositoryCalled      func() state.AccountsRepository
-	TriesContainerCalled          func() common.TriesHolder
-	TrieStorageManagersCalled     func() map[string]common.StorageManager
+	PeerAccountsCalled        func() state.AccountsAdapter
+	AccountsAdapterCalled     func() state.AccountsAdapter
+	AccountsAdapterAPICalled  func() state.AccountsAdapter
+	AccountsRepositoryCalled  func() state.AccountsRepository
+	TriesContainerCalled      func() common.TriesHolder
+	TrieStorageManagersCalled func() map[string]common.StorageManager
 }
 
 // PeerAccounts -
 func (s *StateComponentsHolderStub) PeerAccounts() state.AccountsAdapter {
 	if s.PeerAccountsCalled != nil {
 		return s.PeerAccountsCalled()
-	}
-
-	return nil
-}
-
-// AccountsAdapterSimulate -
-func (s *StateComponentsHolderStub) AccountsAdapterSimulate() state.AccountsAdapterWithClean {
-	if s.AccountsAdapterSimulateCalled != nil {
-		return s.AccountsAdapterSimulateCalled()
 	}
 
 	return nil

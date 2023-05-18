@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
-	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -146,7 +145,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler: tpn.GuardedAccountHandler,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -178,14 +177,14 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 
 	wrappedAccounts, err := txsimulator.NewReadOnlyAccountsDB(tpn.AccntState)
 	log.LogIfError(err)
-	txCostHandler, err := transaction.NewTransactionCostEstimator(
-		txTypeHandler,
-		tpn.EconomicsData,
-		txSimulator,
-		wrappedAccounts,
-		tpn.ShardCoordinator,
-		tpn.EnableEpochsHandler,
-	)
+	txCostHandler, err := txsimulator.NewTransactionCostEstimator(txsimulator.ArgsTransactionCostSimulator{
+		TxTypeHandler:       txTypeHandler,
+		FeeHandler:          tpn.EconomicsData,
+		TxSimulator:         txSimulator,
+		Accounts:            wrappedAccounts,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	})
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{

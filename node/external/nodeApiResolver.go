@@ -28,7 +28,7 @@ var log = logger.GetOrCreate("node/external")
 type ArgNodeApiResolver struct {
 	SCQueryService           SCQueryService
 	StatusMetricsHandler     StatusMetricsHandler
-	TxCostHandler            TransactionCostHandler
+	TxCostHandler            TransactionCostSimulator
 	TotalStakedValueHandler  TotalStakedValueHandler
 	DirectStakedListHandler  DirectStakedListHandler
 	DelegatedListHandler     DelegatedListHandler
@@ -45,7 +45,7 @@ type ArgNodeApiResolver struct {
 type nodeApiResolver struct {
 	scQueryService           SCQueryService
 	statusMetricsHandler     StatusMetricsHandler
-	txCostHandler            TransactionCostHandler
+	txCostHandler            TransactionCostSimulator
 	totalStakedValueHandler  TotalStakedValueHandler
 	directStakedListHandler  DirectStakedListHandler
 	delegatedListHandler     DelegatedListHandler

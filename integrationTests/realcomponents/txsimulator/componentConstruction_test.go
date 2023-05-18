@@ -62,7 +62,7 @@ func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
 		Version:  1,
 	}
 
-	_, err = pr.ProcessComponents.TransactionSimulatorProcessor().ProcessTx(txForSimulation)
+	_, err = pr.ProcessComponents.TransactionCostSimulator().SimulateTransactionExecution(txForSimulation)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, pr.StateComponents.AccountsAdapter().JournalLen()) // state for processing should not be dirtied
 }
@@ -131,7 +131,7 @@ func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
 		Version:  1,
 	}
 
-	_, err = pr.ProcessComponents.TransactionSimulatorProcessor().ProcessTx(txForSimulation)
+	_, err = pr.ProcessComponents.TransactionCostSimulator().SimulateTransactionExecution(txForSimulation)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, pr.StateComponents.AccountsAdapter().JournalLen()) // state for processing should not be dirtied
 }

@@ -101,7 +101,7 @@ type processComponents struct {
 	txLogsProcessor              process.TransactionLogProcessorDatabase
 	headerConstructionValidator  process.HeaderConstructionValidator
 	peerShardMapper              process.NetworkShardingCollector
-	txSimulatorProcessor         factory.TransactionSimulatorProcessor
+	txCostSimulator              factory.TransactionCostSimulator
 	miniBlocksPoolCleaner        process.PoolsCleaner
 	txsPoolCleaner               process.PoolsCleaner
 	fallbackHeaderValidator      process.FallbackHeaderValidator
@@ -651,7 +651,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	txSimulatorProcessor, vmFactoryForTxSimulate, err := pcf.createTxSimulatorProcessor()
+	txCostSimulator, vmFactoryForTxSimulate, err := pcf.createTxCostSimulator()
 	if err != nil {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
@@ -679,7 +679,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerConstructionValidator:  headerValidator,
 		headerIntegrityVerifier:      pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		peerShardMapper:              peerShardMapper,
-		txSimulatorProcessor:         txSimulatorProcessor,
+		txCostSimulator:              txCostSimulator,
 		miniBlocksPoolCleaner:        mbsPoolsCleaner,
 		txsPoolCleaner:               txsPoolsCleaner,
 		fallbackHeaderValidator:      fallbackHeaderValidator,

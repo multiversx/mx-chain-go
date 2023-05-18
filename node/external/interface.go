@@ -33,8 +33,8 @@ type StatusMetricsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TransactionCostHandler defines the actions which should be handler by a transaction cost estimator
-type TransactionCostHandler interface {
+// TransactionCostSimulator defines the actions which should be handler by a transaction cost simulator
+type TransactionCostSimulator interface {
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool

@@ -1,4 +1,4 @@
-package transaction
+package txsimulator
 
 import (
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -23,6 +22,15 @@ import (
 const dummySignature = "01010101"
 const gasRemainedSplitString = "gas remained = "
 const gasUsedSlitString = "gas used = "
+
+type ArgsTransactionCostSimulator struct {
+	TxTypeHandler       process.TxTypeHandler
+	FeeHandler          process.FeeHandler
+	TxSimulator         facade.TransactionSimulatorProcessor
+	Accounts            state.AccountsAdapterWithClean
+	ShardCoordinator    sharding.Coordinator
+	EnableEpochsHandler common.EnableEpochsHandler
+}
 
 type transactionCostEstimator struct {
 	accounts            state.AccountsAdapterWithClean
@@ -35,40 +43,33 @@ type transactionCostEstimator struct {
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
-func NewTransactionCostEstimator(
-	txTypeHandler process.TxTypeHandler,
-	feeHandler process.FeeHandler,
-	txSimulator facade.TransactionSimulatorProcessor,
-	accounts state.AccountsAdapterWithClean,
-	shardCoordinator sharding.Coordinator,
-	enableEpochsHandler common.EnableEpochsHandler,
-) (*transactionCostEstimator, error) {
-	if check.IfNil(txTypeHandler) {
+func NewTransactionCostEstimator(args ArgsTransactionCostSimulator) (*transactionCostEstimator, error) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(feeHandler) {
+	if check.IfNil(args.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(txSimulator) {
-		return nil, txsimulator.ErrNilTxSimulatorProcessor
+	if check.IfNil(args.TxSimulator) {
+		return nil, ErrNilTxSimulatorProcessor
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(accounts) {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(enableEpochsHandler) {
+	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	tce := &transactionCostEstimator{
-		txTypeHandler:       txTypeHandler,
-		feeHandler:          feeHandler,
-		txSimulator:         txSimulator,
-		accounts:            accounts,
-		shardCoordinator:    shardCoordinator,
-		enableEpochsHandler: enableEpochsHandler,
+		txTypeHandler:       args.TxTypeHandler,
+		feeHandler:          args.FeeHandler,
+		txSimulator:         args.TxSimulator,
+		accounts:            args.Accounts,
+		shardCoordinator:    args.ShardCoordinator,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	return tce, nil

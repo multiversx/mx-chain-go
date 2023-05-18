@@ -256,7 +256,14 @@ type NetworkComponentsHandler interface {
 	NetworkComponentsHolder
 }
 
-// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
+// TransactionCostSimulator defines the transaction cost simulator actions
+type TransactionCostSimulator interface {
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	IsInterfaceNil() bool
+}
+
+// TransactionSimulatorProcessor defines the actions which a transaction simulator has to implement
 type TransactionSimulatorProcessor interface {
 	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
 	IsInterfaceNil() bool
@@ -287,7 +294,7 @@ type ProcessComponentsHolder interface {
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
-	TransactionSimulatorProcessor() TransactionSimulatorProcessor
+	TransactionCostSimulator() TransactionCostSimulator
 	WhiteListHandler() process.WhiteListHandler
 	WhiteListerVerifiedTxs() process.WhiteListHandler
 	HistoryRepository() dblookupext.HistoryRepository
@@ -322,7 +329,6 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
-	AccountsAdapterSimulate() state.AccountsAdapterWithClean
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
