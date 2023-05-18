@@ -189,10 +189,6 @@ func setGuardian(testContext *vm.VMTestContext, userAddress []byte, guardianAddr
 	return testContext.TxProcessor.ProcessTransaction(tx)
 }
 
-func processTransaction(testContext *vm.VMTestContext, tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
-	return testContext.TxProcessor.ProcessTransaction(tx)
-}
-
 func setGuardianCoSigned(
 	testContext *vm.VMTestContext,
 	userAddress []byte,
@@ -846,7 +842,7 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		GasLimit: setGuardianGas + transferGas,
 		Data:     setGuardianData,
 	}
-	returnCode, err = processTransaction(testContext, tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
@@ -855,10 +851,9 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	require.Equal(t, nonceAlice, newNonceAlice)
 
 	// 12.2. too many parameters in data, last one not hex (tx with notarization not builtin func call)
-	nonceAlice = getNonce(testContext, alice)
 	tx.Value = big.NewInt(0)
 	tx.Data = []byte(string(setGuardianData) + "@extra")
-	returnCode, err = processTransaction(testContext, tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
@@ -867,9 +862,8 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	require.Equal(t, nonceAlice, newNonceAlice)
 
 	// 12.3. too many parameters in data, failed builtin func call
-	nonceAlice = getNonce(testContext, alice)
 	tx.Data = []byte(string(setGuardianData) + "@00")
-	returnCode, err = processTransaction(testContext, tx)
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.NotNil(t, err)
 	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
