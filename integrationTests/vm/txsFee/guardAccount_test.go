@@ -854,10 +854,21 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	// tx not executed
 	require.Equal(t, nonceAlice, newNonceAlice)
 
-	// 12.2. too many parameters
+	// 12.2. too many parameters in data, last one not hex (tx with notarization not builtin func call)
 	nonceAlice = getNonce(testContext, alice)
 	tx.Value = big.NewInt(0)
 	tx.Data = []byte(string(setGuardianData) + "@extra")
+	returnCode, err = processTransaction(testContext, tx)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	newNonceAlice = getNonce(testContext, alice)
+	// tx not executed
+	require.Equal(t, nonceAlice, newNonceAlice)
+
+	// 12.3. too many parameters in data, failed builtin func call
+	nonceAlice = getNonce(testContext, alice)
+	tx.Data = []byte(string(setGuardianData) + "@00")
 	returnCode, err = processTransaction(testContext, tx)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.NotNil(t, err)
