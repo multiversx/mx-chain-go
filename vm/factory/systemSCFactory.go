@@ -219,9 +219,9 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
-	configChangeAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.ChangeConfigAddress)
+	ownerAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.ChangeConfigAddress in systemSCFactory", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.OwnerAddress in systemSCFactory", vm.ErrInvalidAddress)
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
@@ -235,7 +235,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		EnableEpochsHandler:    scf.enableEpochsHandler,
 		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
-		ConfigChangeAddress:    configChangeAddress,
+		OwnerAddress:           ownerAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

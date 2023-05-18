@@ -22,7 +22,8 @@ func (d *disabledBootstrapper) GetNodeState() common.NodeState {
 }
 
 // StartSyncingBlocks won't do anything as this is a disabled component
-func (d *disabledBootstrapper) StartSyncingBlocks() {
+func (d *disabledBootstrapper) StartSyncingBlocks() error {
+	return nil
 }
 
 // Close will return a nil error as this is a disabled component

@@ -796,6 +796,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
@@ -862,8 +863,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 						MinQuorum:        0.5,
 						MinPassThreshold: 0.5,
 						MinVetoThreshold: 0.5,
+						LostProposalFee:  "1",
 					},
-					ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+					OwnerAddress: DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -1475,6 +1477,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           mapDNSAddresses,
+		MapDNSV2Addresses:         mapDNSAddresses,
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
@@ -1701,6 +1704,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		Marshalizer:               TestMarshalizer,
 		Accounts:                  tpn.AccntState,
 		ShardCoordinator:          tpn.ShardCoordinator,
@@ -1765,8 +1769,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -2494,9 +2499,7 @@ func (tpn *TestProcessorNode) StartSync() error {
 		return errors.New("no bootstrapper available")
 	}
 
-	tpn.Bootstrapper.StartSyncingBlocks()
-
-	return nil
+	return tpn.Bootstrapper.StartSyncingBlocks()
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
