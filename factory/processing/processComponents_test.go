@@ -83,7 +83,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Version: "v1.0.0",
 		},
 		AccountsParser: &mock.AccountsParserStub{
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.Pool, error) {
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
 				return []*dataBlock.MiniBlock{
 						{},
 					},
@@ -674,7 +674,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.AccountsParser = &mock.AccountsParserStub{
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.Pool, error) {
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
 				return nil, nil, expectedErr
 			},
 		}
