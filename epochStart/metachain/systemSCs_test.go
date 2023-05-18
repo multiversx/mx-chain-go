@@ -996,8 +996,9 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1113,7 +1114,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData

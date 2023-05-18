@@ -13,13 +13,13 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-core-go v1.2.1
+	github.com/multiversx/mx-chain-core-go v1.2.3
 	github.com/multiversx/mx-chain-crypto-go v1.2.6
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.1
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.16
 	github.com/multiversx/mx-chain-storage-go v1.0.8
-	github.com/multiversx/mx-chain-vm-common-go v1.4.1
+	github.com/multiversx/mx-chain-vm-common-go v1.4.2
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.53
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.54
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.80

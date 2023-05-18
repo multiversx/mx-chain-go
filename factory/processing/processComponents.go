@@ -58,7 +58,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/process/txsSender"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/redundancy"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/networksharding"
@@ -141,11 +140,9 @@ type ProcessComponentsFactoryArgs struct {
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	MaxRating              uint32
 	SystemSCConfig         *config.SystemSmartContractsConfig
-	Version                string
 	ImportStartHandler     update.ImportStartHandler
-	WorkingDir             string
 	HistoryRepo            dblookupext.HistoryRepository
-	SnapshotsEnabled       bool
+	FlagsConfig            config.ContextFlagsConfig
 
 	Data                 factory.DataComponentsHolder
 	CoreData             factory.CoreComponentsHolder
@@ -172,13 +169,11 @@ type processComponentsFactory struct {
 	maxRating              uint32
 	systemSCConfig         *config.SystemSmartContractsConfig
 	txLogsProcessor        process.TransactionLogProcessor
-	version                string
 	importStartHandler     update.ImportStartHandler
-	workingDir             string
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
-	snapshotsEnabled       bool
+	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
 	data                 factory.DataComponentsHolder
@@ -219,13 +214,11 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		maxRating:              args.MaxRating,
 		systemSCConfig:         args.SystemSCConfig,
-		version:                args.Version,
 		importStartHandler:     args.ImportStartHandler,
-		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
 		statusCoreComponents:   args.StatusCoreComponents,
-		snapshotsEnabled:       args.SnapshotsEnabled,
+		flagsConfig:            args.FlagsConfig,
 	}, nil
 }
 
@@ -545,20 +538,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
-	vmOutputCacher, err := storageunit.NewCache(vmOutputCacherConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
-		AddressPubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		VMOutputCacher:         vmOutputCacher,
-		Hasher:                 pcf.coreData.Hasher(),
-		Marshalizer:            pcf.coreData.InternalMarshalizer(),
-	}
-
 	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
 	if err != nil {
 		return nil, err
@@ -613,7 +592,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txSimulatorProcessorArgs,
 		pcf.coreData.WasmVMChangeLocker(),
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
@@ -641,11 +619,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	err = nodesSetupChecker.Check(pcf.coreData.GenesisNodesSetup().AllInitialNodes())
-	if err != nil {
-		return nil, err
-	}
-
-	txSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -685,6 +658,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	txSimulatorProcessor, vmFactoryForTxSimulate, err := pcf.createTxSimulatorProcessor()
+	if err != nil {
+		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
+	}
+
 	return &processComponents{
 		nodesCoordinator:             pcf.nodesCoordinator,
 		shardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
@@ -708,7 +686,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerConstructionValidator:  headerValidator,
 		headerIntegrityVerifier:      pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		peerShardMapper:              peerShardMapper,
-		txSimulatorProcessor:         txSimulator,
+		txSimulatorProcessor:         txSimulatorProcessor,
 		miniBlocksPoolCleaner:        mbsPoolsCleaner,
 		txsPoolCleaner:               txsPoolsCleaner,
 		fallbackHeaderValidator:      fallbackHeaderValidator,
@@ -720,7 +698,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:                pcf.importHandler,
 		nodeRedundancyHandler:        nodeRedundancyHandler,
 		currentEpochProvider:         currentEpochProvider,
-		vmFactoryForTxSimulator:      blockProcessorComponents.vmFactoryForTxSimulate,
+		vmFactoryForTxSimulator:      vmFactoryForTxSimulate,
 		vmFactoryForProcessing:       blockProcessorComponents.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		txsSender:                    txsSenderWithAccumulator,
@@ -868,7 +846,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
 		ImportStartHandler:   pcf.importStartHandler,
-		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
@@ -917,9 +894,9 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 			continue
 		}
 
-		encodedAddress, err := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
-		if err != nil {
-			return map[string]*outport.AlteredAccount{}, err
+		encodedAddress, errEncode := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
+		if errEncode != nil {
+			return map[string]*outport.AlteredAccount{}, errEncode
 		}
 
 		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
@@ -1495,7 +1472,8 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
-			SnapshotsEnabled:              pcf.snapshotsEnabled,
+			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
 	)
@@ -1549,7 +1527,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1578,7 +1556,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.snapshotsEnabled,
+		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1736,7 +1714,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
-	exportFolder := filepath.Join(pcf.workingDir, hardforkConfig.ImportFolder)
+	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,

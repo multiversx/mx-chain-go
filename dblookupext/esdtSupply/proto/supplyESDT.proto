@@ -12,4 +12,5 @@ message SupplyESDT {
   bytes  Supply = 1  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
   bytes  Burned = 2  [(gogoproto.jsontag) = "burned", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
   bytes  Minted = 3  [(gogoproto.jsontag) = "minted", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+  bool   RecomputedSupply = 4 [(gogoproto.jsontag) = "recomputedSupply"];
 }
