@@ -93,6 +93,7 @@ type epochFlagsHolder struct {
 	setGuardianFlag                             *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
+	changeUsernameFlag                          *atomic.Flag
 	consistentTokensValuesCheckFlag             *atomic.Flag
 }
 
@@ -187,6 +188,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
+		changeUsernameFlag:                          &atomic.Flag{},
 	}
 }
 
@@ -686,4 +688,9 @@ func (holder *epochFlagsHolder) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
 // IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
 func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 	return holder.multiClaimOnDelegationFlag.IsSet()
+}
+
+// IsChangeUsernameEnabled returns true if changeUsernameFlag is enabled
+func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
+	return holder.changeUsernameFlag.IsSet()
 }

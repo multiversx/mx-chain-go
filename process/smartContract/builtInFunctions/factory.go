@@ -20,6 +20,7 @@ var log = logger.GetOrCreate("process/smartcontract/builtInFunctions")
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasSchedule               core.GasScheduleNotifier
 	MapDNSAddresses           map[string]struct{}
+	MapDNSV2Addresses         map[string]struct{}
 	EnableUserNameChange      bool
 	Marshalizer               marshal.Marshalizer
 	Accounts                  state.AccountsAdapter
@@ -42,7 +43,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if args.MapDNSAddresses == nil {
+	if args.MapDNSAddresses == nil || args.MapDNSV2Addresses == nil {
 		return nil, process.ErrNilDnsAddresses
 	}
 	if check.IfNil(args.ShardCoordinator) {
@@ -78,6 +79,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:                           args.GasSchedule.LatestGasSchedule(),
 		MapDNSAddresses:                  args.MapDNSAddresses,
+		MapDNSV2Addresses:                args.MapDNSV2Addresses,
 		EnableUserNameChange:             args.EnableUserNameChange,
 		Marshalizer:                      args.Marshalizer,
 		Accounts:                         vmcommonAccounts,
