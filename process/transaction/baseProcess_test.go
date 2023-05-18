@@ -94,7 +94,6 @@ func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
 		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
 		require.True(t, strings.Contains(err.Error(), expectedError.Error()))
 	})
-
 	t.Run("set guardian builtin call ok", func(t *testing.T) {
 		txCopy := *tx
 		baseProc := createMockBaseTxProcessor()
@@ -302,5 +301,38 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 
 		err := localBaseProc.verifyGuardian(tx, guardedAccount)
 		assert.Nil(t, err)
+	})
+}
+
+func Test_CheckSetGuardianExecutable(t *testing.T) {
+	t.Run("sc processor CheckBuiltinFunctionIsExecutable with error should error with ErrTransactionNotExecutable", func(t *testing.T) {
+		t.Parallel()
+
+		baseProc := createMockBaseTxProcessor()
+		expectedErr := errors.New("expected error")
+
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return expectedErr
+			},
+		}
+		tx := &transaction.Transaction{}
+		err := baseProc.CheckSetGuardianExecutable(tx)
+		require.NotNil(t, err)
+		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		require.True(t, strings.Contains(err.Error(), expectedErr.Error()))
+	})
+	t.Run("sc processor CheckBuiltinFunctionIsExecutable with no error OK", func(t *testing.T) {
+		t.Parallel()
+
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		tx := &transaction.Transaction{}
+		err := baseProc.CheckSetGuardianExecutable(tx)
+		require.Nil(t, err)
 	})
 }
