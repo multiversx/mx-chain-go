@@ -133,7 +133,7 @@ type VMTestContext struct {
 	ContractOwner VMTestAccount
 	Contract      VMTestAccount
 
-	TxCostHandler    external.TransactionCostHandler
+	TxCostHandler    external.TransactionCostSimulator
 	TxsLogsProcessor process.TransactionLogProcessor
 }
 
@@ -769,7 +769,7 @@ type ResultsCreateTxProcessor struct {
 	SCProc             *smartContract.TestScProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
 	EconomicsHandler   process.EconomicsDataHandler
-	CostHandler        external.TransactionCostHandler
+	CostHandler        external.TransactionCostSimulator
 	TxLogProc          process.TransactionLogProcessor
 }
 
@@ -959,14 +959,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	txCostEstimator, err := txsimulator.NewTransactionCostEstimator(
-		txTypeHandler,
-		economicsData,
-		txSimulator,
-		readOnlyAccountsDB,
-		shardCoordinator,
-		argsNewSCProcessor.EnableEpochsHandler,
-	)
+	txCostEstimator, err := txsimulator.NewTransactionCostEstimator(txsimulator.ArgsTransactionCostSimulator{
+		TxTypeHandler:       txTypeHandler,
+		FeeHandler:          economicsData,
+		TxSimulator:         txSimulator,
+		Accounts:            readOnlyAccountsDB,
+		ShardCoordinator:    shardCoordinator,
+		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
+	})
 	if err != nil {
 		return nil, err
 	}
