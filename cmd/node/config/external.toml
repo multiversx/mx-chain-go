@@ -44,7 +44,7 @@
 [HostDriverConfig]
     # This flag shall only be used for observer nodes
     Enabled = false
-    # This flag will start the WebSocket connector as server or client( can be "client" or "server")
+    # This flag will start the WebSocket connector as server or client (can be "client" or "server")
     Mode = "client"
     # URL for the WebSocket client/server connection
     # This value represents the IP address and port number that the WebSocket client or server will use to establish a connection.
