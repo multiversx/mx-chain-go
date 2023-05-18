@@ -2802,6 +2802,7 @@ func (sc *scProcessor) processSimpleSCR(
 
 // CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
 func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	// TODO: refactor this functionality to avoid the typecast
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
