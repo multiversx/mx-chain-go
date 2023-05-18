@@ -1,12 +1,15 @@
 package factory
 
 import (
+	"os"
 	"time"
 
-	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/firehose"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
@@ -49,7 +52,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = return createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
+	err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
 	if err != nil {
 		return err
 	}
