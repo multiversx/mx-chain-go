@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -138,7 +139,11 @@ func createAndSubscribeFirehoseIndexerDriver(
 		return err
 	}
 
-	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout, container)
+	fireHoseIndexer, err := firehose.NewFirehoseIndexer(
+		os.Stdout, // DO NOT CHANGE
+		container,
+		&marshal.GogoProtoMarshalizer{}, // DO NOT CHANGE
+	)
 	if err != nil {
 		return err
 	}

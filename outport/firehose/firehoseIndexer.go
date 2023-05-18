@@ -29,17 +29,24 @@ type firehoseIndexer struct {
 }
 
 // NewFirehoseIndexer creates a new firehose instance which outputs block information
-func NewFirehoseIndexer(writer io.Writer, blockCreator BlockContainerHandler) (outport.Driver, error) {
+func NewFirehoseIndexer(
+	writer io.Writer,
+	blockCreator BlockContainerHandler,
+	marshaller marshal.Marshalizer,
+) (outport.Driver, error) {
 	if writer == nil {
 		return nil, errNilWriter
 	}
 	if check.IfNil(blockCreator) {
 		return nil, errNilBlockCreator
 	}
+	if check.IfNil(marshaller) {
+		return nil, core.ErrNilMarshalizer
+	}
 
 	return &firehoseIndexer{
 		writer:       writer,
-		marshaller:   &marshal.GogoProtoMarshalizer{},
+		marshaller:   marshaller,
 		blockCreator: blockCreator,
 	}, nil
 }
@@ -47,7 +54,7 @@ func NewFirehoseIndexer(writer io.Writer, blockCreator BlockContainerHandler) (o
 // SaveBlock will write on stdout relevant block information for firehose
 func (fi *firehoseIndexer) SaveBlock(outportBlock *outportcore.OutportBlock) error {
 	if outportBlock == nil || outportBlock.BlockData == nil {
-		return errOutportBlock
+		return errNilOutportBlock
 	}
 
 	blockCreator, err := fi.blockCreator.Get(core.HeaderType(outportBlock.BlockData.HeaderType))
