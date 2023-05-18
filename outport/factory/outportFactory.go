@@ -126,8 +126,17 @@ func createAndSubscribeFirehoseIndexerDriver(
 
 	container := block.NewEmptyBlockCreatorsContainer()
 	err := container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+	if err != nil {
+		return err
+	}
 	err = container.Add(core.ShardHeaderV2, block.NewEmptyHeaderV2Creator())
+	if err != nil {
+		return err
+	}
 	err = container.Add(core.MetaHeader, block.NewEmptyMetaBlockCreator())
+	if err != nil {
+		return err
+	}
 
 	fireHoseIndexer, err := firehose.NewFirehoseIndexer(os.Stdout, container)
 	if err != nil {
