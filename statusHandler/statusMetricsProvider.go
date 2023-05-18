@@ -245,6 +245,7 @@ func (sm *statusMetrics) ConfigMetrics() (map[string]interface{}, error) {
 	configMetrics[common.MetricMetaConsensusGroupSize] = sm.uint64Metrics[common.MetricMetaConsensusGroupSize]
 	configMetrics[common.MetricMinGasPrice] = sm.uint64Metrics[common.MetricMinGasPrice]
 	configMetrics[common.MetricMinGasLimit] = sm.uint64Metrics[common.MetricMinGasLimit]
+	configMetrics[common.MetricExtraGasLimitGuardedTx] = sm.uint64Metrics[common.MetricExtraGasLimitGuardedTx]
 	configMetrics[common.MetricMaxGasPerTransaction] = sm.uint64Metrics[common.MetricMaxGasPerTransaction]
 	configMetrics[common.MetricRoundDuration] = sm.uint64Metrics[common.MetricRoundDuration]
 	configMetrics[common.MetricStartTime] = sm.uint64Metrics[common.MetricStartTime]
@@ -295,6 +296,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.uint64Metrics[common.MetricBalanceWaitingListsEnableEpoch]
 	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.uint64Metrics[common.MetricWaitingListFixEnableEpoch]
+	enableEpochsMetrics[common.MetricSetGuardianEnableEpoch] = sm.uint64Metrics[common.MetricSetGuardianEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

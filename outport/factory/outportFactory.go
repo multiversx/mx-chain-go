@@ -1,31 +1,21 @@
 package factory
 
 import (
-	"os"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/outport/firehose"
 )
-
-// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
-type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
-	Enabled bool
-	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
-}
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval                  time.Duration
-	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
-	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
-	FireHoseIndexerConfig            config.FireHoseConfig
+	RetrialInterval           time.Duration
+	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
+	HostDriverArgs            ArgsHostDriverFactory
+	FireHoseIndexerConfig     config.FireHoseConfig
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -59,7 +49,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	err = return createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
 	if err != nil {
 		return err
 	}
@@ -107,25 +97,20 @@ func checkArguments(args *OutportFactoryArgs) error {
 	return nil
 }
 
-func createAndSubscribeWebSocketDriver(
+func createAndSubscribeHostDriverIfNeeded(
 	outport outport.OutportHandler,
-	args WrappedOutportDriverWebSocketSenderFactoryArgs,
+	args ArgsHostDriverFactory,
 ) error {
-	if !args.Enabled {
+	if !args.HostConfig.Enabled {
 		return nil
 	}
 
-	wsFactory, err := wsDriverFactory.NewOutportDriverWebSocketSenderFactory(args.OutportDriverWebSocketSenderFactoryArgs)
+	hostDriver, err := CreateHostDriver(args)
 	if err != nil {
 		return err
 	}
 
-	wsDriver, err := wsFactory.Create()
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(wsDriver)
+	return outport.SubscribeDriver(hostDriver)
 }
 
 func createAndSubscribeFirehoseIndexerDriver(

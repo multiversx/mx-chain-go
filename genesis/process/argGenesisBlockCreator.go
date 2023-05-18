@@ -25,6 +25,7 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
@@ -34,7 +35,7 @@ type dataComponentsHandler interface {
 	StorageService() dataRetriever.StorageService
 	Blockchain() data.ChainHandler
 	Datapool() dataRetriever.PoolsHolder
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	Clone() interface{}
 	IsInterfaceNil() bool
 }

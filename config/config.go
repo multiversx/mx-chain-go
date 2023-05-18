@@ -281,6 +281,7 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	SetGuardianEpochsDelay               uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
@@ -422,6 +423,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

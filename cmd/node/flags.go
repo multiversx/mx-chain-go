@@ -385,6 +385,12 @@ var (
 		Value: "",
 	}
 
+	// repopulateTokensSupplies defines a flag that, if set, will repopulate the tokens supplies database by iterating over the trie
+	repopulateTokensSupplies = cli.BoolFlag{
+		Name:  "repopulate-tokens-supplies",
+		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
+	}
+
 	// firehoseEnabled defines a flag that, if set, will enable firehose indexing
 	firehoseEnabled = cli.BoolFlag{
 		Name:  "firehose-enabled",
@@ -449,6 +455,7 @@ func getFlags() []cli.Flag {
 		dbDirectory,
 		logsDirectory,
 		operationMode,
+		repopulateTokensSupplies,
 		firehoseEnabled,
 	}
 }
@@ -479,6 +486,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
+	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 
 	return flagsConfig
 }

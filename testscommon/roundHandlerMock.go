@@ -1,12 +1,14 @@
 package testscommon
 
 import (
+	"sync"
 	"time"
 )
 
 // RoundHandlerMock -
 type RoundHandlerMock struct {
-	index int64
+	indexMut sync.RWMutex
+	index    int64
 
 	IndexCalled         func() int64
 	TimeDurationCalled  func() time.Duration
@@ -29,6 +31,9 @@ func (rndm *RoundHandlerMock) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
 	}
+
+	rndm.indexMut.RLock()
+	defer rndm.indexMut.RUnlock()
 
 	return rndm.index
 }
@@ -58,7 +63,9 @@ func (rndm *RoundHandlerMock) UpdateRound(genesisRoundTimeStamp time.Time, timeS
 		return
 	}
 
+	rndm.indexMut.Lock()
 	rndm.index++
+	rndm.indexMut.Unlock()
 }
 
 // RemainingTime -

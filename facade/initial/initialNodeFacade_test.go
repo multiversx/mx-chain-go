@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,14 +19,14 @@ func TestInitialNodeFacade(t *testing.T) {
 
 		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, nil)
 		assert.Equal(t, facade.ErrNilStatusMetrics, err)
-		assert.True(t, check.IfNil(inf))
+		assert.Nil(t, inf)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, &testscommon.StatusMetricsStub{})
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(inf))
+		assert.NotNil(t, inf)
 	})
 }
 
@@ -67,8 +67,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
-	n1, n2, err := inf.CreateTransaction(uint64(0), "", "", []byte{0}, "",
-		[]byte{0}, uint64(0), uint64(0), []byte{0}, "", "", uint32(0), uint32(0))
+	n1, n2, err := inf.CreateTransaction(&external.ArgsCreateTransaction{})
 	assert.Nil(t, n1)
 	assert.Nil(t, n2)
 	assert.Equal(t, errNodeStarting, err)
@@ -229,5 +228,98 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, uint64(0), nonce)
 	assert.Equal(t, errNodeStarting, err)
 
-	assert.False(t, check.IfNil(inf))
+	guardianData, _, err := inf.GetGuardianData("", api.AccountQueryOptions{})
+	assert.Equal(t, api.GuardianData{}, guardianData)
+	assert.Equal(t, errNodeStarting, err)
+
+	mainTrieResponse, dataTrieResponse, err := inf.GetProofDataTrie("", "", "")
+	assert.Nil(t, mainTrieResponse)
+	assert.Nil(t, dataTrieResponse)
+	assert.Equal(t, errNodeStarting, err)
+
+	codeHash, blockInfo, err := inf.GetCodeHash("", api.AccountQueryOptions{})
+	assert.Nil(t, codeHash)
+	assert.Equal(t, api.BlockInfo{}, blockInfo)
+	assert.Equal(t, errNodeStarting, err)
+
+	accountsResponse, blockInfo, err := inf.GetAccounts([]string{}, api.AccountQueryOptions{})
+	assert.Nil(t, accountsResponse)
+	assert.Equal(t, api.BlockInfo{}, blockInfo)
+	assert.Equal(t, errNodeStarting, err)
+
+	stakeValue, err := inf.GetTotalStakedValue()
+	assert.Nil(t, stakeValue)
+	assert.Equal(t, errNodeStarting, err)
+
+	ratings := inf.GetConnectedPeersRatings()
+	assert.Equal(t, "", ratings)
+
+	epochStartData, err := inf.GetEpochStartDataAPI(0)
+	assert.Nil(t, epochStartData)
+	assert.Equal(t, errNodeStarting, err)
+
+	alteredAcc, err := inf.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{})
+	assert.Nil(t, alteredAcc)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err := inf.GetInternalMetaBlockByHash(0, "")
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalMetaBlockByNonce(0, 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalMetaBlockByRound(0, 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalStartOfEpochMetaBlock(0, 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	validatorsInfo, err := inf.GetInternalStartOfEpochValidatorsInfo(0)
+	assert.Nil(t, validatorsInfo)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalShardBlockByHash(0, "")
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalShardBlockByNonce(0, 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalShardBlockByRound(0, 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	block, err = inf.GetInternalMiniBlockByHash(0, "", 0)
+	assert.Nil(t, block)
+	assert.Equal(t, errNodeStarting, err)
+
+	esdtData, blockInfo, err := inf.GetESDTData("", "", 0, api.AccountQueryOptions{})
+	assert.Nil(t, esdtData)
+	assert.Equal(t, api.BlockInfo{}, blockInfo)
+	assert.Equal(t, errNodeStarting, err)
+
+	genesisBalances, err := inf.GetGenesisBalances()
+	assert.Nil(t, genesisBalances)
+	assert.Equal(t, errNodeStarting, err)
+
+	txPoolGaps, err := inf.GetTransactionsPoolNonceGapsForSender("")
+	assert.Nil(t, txPoolGaps)
+	assert.Equal(t, errNodeStarting, err)
+
+	assert.NotNil(t, inf)
+}
+
+func TestInitialNodeFacade_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var inf *initialNodeFacade
+	assert.True(t, inf.IsInterfaceNil())
+
+	inf, _ = NewInitialNodeFacade("127.0.0.1:7799", true, &testscommon.StatusMetricsStub{})
+	assert.False(t, inf.IsInterfaceNil())
 }

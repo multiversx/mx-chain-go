@@ -35,12 +35,8 @@ func skValidator(
 }
 
 func checkArgs(args ArgsNewWebServer) error {
-	errHandler := func(details string) error {
-		return fmt.Errorf("%w: %s", apiErrors.ErrCannotCreateGinWebServer, details)
-	}
-
 	if check.IfNil(args.Facade) {
-		return errHandler("nil facade")
+		return fmt.Errorf("%w: %s", apiErrors.ErrCannotCreateGinWebServer, apiErrors.ErrNilFacadeHandler.Error())
 	}
 
 	return nil
