@@ -34,7 +34,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
-	signingHandler := &mock.SigningHandlerStub{}
+	signingHandler := &consensusMocks.SigningHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,

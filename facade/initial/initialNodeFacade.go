@@ -126,20 +126,7 @@ func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.Account
 }
 
 // CreateTransaction return nil and error
-func (inf *initialNodeFacade) CreateTransaction(
-	_ uint64,
-	_ string,
-	_ string,
-	_ []byte,
-	_ string,
-	_ []byte,
-	_ uint64,
-	_ uint64,
-	_ []byte,
-	_ string,
-	_ string,
-	_ uint32,
-	_ uint32) (*transaction.Transaction, []byte, error) {
+func (inf *initialNodeFacade) CreateTransaction(_ *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 
@@ -341,6 +328,11 @@ func (inf *initialNodeFacade) Close() error {
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
+}
+
+// GetGuardianData returns error
+func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice

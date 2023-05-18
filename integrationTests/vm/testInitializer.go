@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
@@ -36,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/guardian"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -51,8 +53,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -67,7 +69,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// EpochGuardianDelay is the test constant for the delay in epochs for the guardian feature
+const EpochGuardianDelay = uint32(2)
+const minTransactionVersion = 1
+
 var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62, 172, 4, 126, 190, 242, 221, 230, 209, 243, 105, 104, 242, 66, 49, 49}
+
+// DNSV2Address defines the address for the new DNS contract
+const DNSV2Address = "erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4hukxw"
+
+// DNSV2DeployerAddress defines the address of the deployer for the DNS v2 contracts
+const DNSV2DeployerAddress = "erd1uzk2g5rhvg8prk9y50d0q7qsxg7tm7f320q0q4qlpmfu395wjmdqqy0n9q"
+
+// TestAddressPubkeyConverter represents an address public key converter
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 // TODO: Merge test utilities from this file with the ones from "wasmvm/utils.go"
 
@@ -95,22 +110,23 @@ type VMTestAccount struct {
 
 // VMTestContext -
 type VMTestContext struct {
-	ChainHandler        *testscommon.ChainHandlerStub
-	TxProcessor         process.TransactionProcessor
-	ScProcessor         *smartContract.TestScProcessor
-	Accounts            state.AccountsAdapter
-	BlockchainHook      vmcommon.BlockchainHook
-	VMContainer         process.VirtualMachinesContainer
-	TxFeeHandler        process.TransactionFeeHandler
-	ShardCoordinator    sharding.Coordinator
-	ScForwarder         process.IntermediateTransactionHandler
-	EconomicsData       process.EconomicsDataHandler
-	Marshalizer         marshal.Marshalizer
-	GasSchedule         core.GasScheduleNotifier
-	VMConfiguration     *config.VirtualMachineConfig
-	EpochNotifier       process.EpochNotifier
-	EnableEpochsHandler common.EnableEpochsHandler
-	SCQueryService      *smartContract.SCQueryService
+	ChainHandler           *testscommon.ChainHandlerStub
+	TxProcessor            process.TransactionProcessor
+	ScProcessor            *smartContract.TestScProcessor
+	Accounts               state.AccountsAdapter
+	BlockchainHook         vmcommon.BlockchainHook
+	VMContainer            process.VirtualMachinesContainer
+	TxFeeHandler           process.TransactionFeeHandler
+	ShardCoordinator       sharding.Coordinator
+	ScForwarder            process.IntermediateTransactionHandler
+	EconomicsData          process.EconomicsDataHandler
+	Marshalizer            marshal.Marshalizer
+	GasSchedule            core.GasScheduleNotifier
+	VMConfiguration        *config.VirtualMachineConfig
+	EpochNotifier          process.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
+	SCQueryService         *smartContract.SCQueryService
+	GuardedAccountsHandler process.GuardedAccountHandler
 
 	Alice         VMTestAccount
 	Bob           VMTestAccount
@@ -226,8 +242,8 @@ func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName st
 // GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	scAddressBytes := vmTestContext.Contract.Address
-	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -333,16 +349,19 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				MinGasPrice:      minGasPrice,
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
+				MinGasPrice:            minGasPrice,
+				GasPerDataByte:         "1",
+				GasPriceModifier:       1.0,
+				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
 		EpochNotifier:               realEpochNotifier,
 		EnableEpochsHandler:         enableEpochsHandler,
 		BuiltInFunctionsCostHandler: builtInCost,
+		TxVersionChecker:            versioning.NewTxVersionChecker(minTransactionVersion),
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -437,6 +456,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, genericEpochNotifier, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:            accnts,
 		Hasher:              integrationtests.TestHasher,
@@ -453,6 +477,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:     guardedAccountHandler,
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -497,6 +523,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	epochNotifierInstance process.EpochNotifier,
 	enableEpochsHandler common.EnableEpochsHandler,
 	chainHandler data.ChainHandler,
+	guardedAccountHandler vmcommon.GuardedAccountHandler,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl, dataRetriever.PoolsHolder) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
 		testGasSchedule := wasmConfig.MakeGasMapForTests()
@@ -504,10 +531,16 @@ func CreateVMAndBlockchainHookAndDataPool(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
+	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
+		},
+		MapDNSV2Addresses: map[string]struct{}{
+			string(dnsV2Decoded): {},
+			string(dnsAddr):      {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
@@ -515,6 +548,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EpochNotifier:             epochNotifierInstance,
 		EnableEpochsHandler:       enableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     guardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -544,7 +578,6 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Counter:               counter,
 	}
 
-	hasher := &hashingMocks.HasherMock{}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -557,7 +590,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EnableEpochsHandler: enableEpochsHandler,
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
-		Hasher:              hasher,
+		Hasher:              integrationtests.TestHasher,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -588,11 +621,17 @@ func CreateVMAndBlockchainHookMeta(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
+	guardedAccountHandler, _ := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, globalEpochNotifier, EpochGuardianDelay)
+
+	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
+		},
+		MapDNSV2Addresses: map[string]struct{}{
+			string(dnsV2Decoded): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
 		Accounts:                  accnts,
@@ -600,6 +639,7 @@ func CreateVMAndBlockchainHookMeta(
 		EpochNotifier:             globalEpochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     guardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -678,11 +718,12 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			},
 			Active: config.GovernanceSystemSCConfigActive{
 				ProposalCost:     "500",
-				MinQuorum:        "50",
-				MinPassThreshold: "50",
-				MinVetoThreshold: "50",
+				MinQuorum:        0.5,
+				MinPassThreshold: 0.5,
+				MinVetoThreshold: 0.5,
+				LostProposalFee:  "1",
 			},
-			FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+			OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
@@ -743,6 +784,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	wasmVMChangeLocker common.Locker,
 	poolsHolder dataRetriever.PoolsHolder,
 	epochNotifierInstance process.EpochNotifier,
+	guardianChecker process.GuardianChecker,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
@@ -824,6 +866,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        intermediateTxHandler,
 		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:     guardianChecker,
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -836,15 +880,17 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, err
 	}
 
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		shardCoordinator,
-		integrationtests.TestMarshalizer,
-		integrationtests.TestHasher,
-		pubkeyConv,
-		disabled.NewChainStorer(),
-		poolsHolder,
-		&processDisabled.FeeHandler{},
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    shardCoordinator,
+		Marshalizer:         integrationtests.TestMarshalizer,
+		Hasher:              integrationtests.TestHasher,
+		PubkeyConverter:     pubkeyConv,
+		Store:               disabled.NewChainStorer(),
+		PoolsHolder:         poolsHolder,
+		EconomicsFee:        &processDisabled.FeeHandler{},
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -994,6 +1040,12 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
 
+	var err error
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		nil,
@@ -1003,6 +1055,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
+		guardedAccountHandler,
 	)
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
@@ -1014,22 +1067,24 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
+		guardedAccountHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:         res.TxProc,
-		ScProcessor:         res.SCProc,
-		Accounts:            accounts,
-		BlockchainHook:      blockchainHook,
-		VMContainer:         vmContainer,
-		TxFeeHandler:        feeAccumulator,
-		ScForwarder:         res.IntermediateTxProc,
-		EpochNotifier:       epochNotifierInstance,
-		EnableEpochsHandler: enableEpochsHandler,
-		ChainHandler:        chainHandler,
+		TxProcessor:            res.TxProc,
+		ScProcessor:            res.SCProc,
+		Accounts:               accounts,
+		BlockchainHook:         blockchainHook,
+		VMContainer:            vmContainer,
+		TxFeeHandler:           feeAccumulator,
+		ScForwarder:            res.IntermediateTxProc,
+		EpochNotifier:          epochNotifierInstance,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ChainHandler:           chainHandler,
+		GuardedAccountsHandler: guardedAccountHandler,
 	}, nil
 }
 
@@ -1088,6 +1143,12 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
 
+	var err error
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1097,6 +1158,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
+		guardedAccountHandler,
 	)
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
@@ -1108,27 +1170,30 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
+		guardedAccountHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:         res.TxProc,
-		ScProcessor:         res.SCProc,
-		Accounts:            accounts,
-		BlockchainHook:      blockchainHook,
-		VMContainer:         vmContainer,
-		TxFeeHandler:        feeAccumulator,
-		ScForwarder:         res.IntermediateTxProc,
-		ShardCoordinator:    shardCoordinator,
-		EconomicsData:       res.EconomicsHandler,
-		TxCostHandler:       res.CostHandler,
-		TxsLogsProcessor:    res.TxLogProc,
-		GasSchedule:         gasScheduleNotifier,
-		EpochNotifier:       epochNotifierInstance,
-		EnableEpochsHandler: enableEpochsHandler,
-		ChainHandler:        chainHandler,
+		TxProcessor:            res.TxProc,
+		ScProcessor:            res.SCProc,
+		Accounts:               accounts,
+		BlockchainHook:         blockchainHook,
+		VMContainer:            vmContainer,
+		TxFeeHandler:           feeAccumulator,
+		ScForwarder:            res.IntermediateTxProc,
+		ShardCoordinator:       shardCoordinator,
+		EconomicsData:          res.EconomicsHandler,
+		TxCostHandler:          res.CostHandler,
+		TxsLogsProcessor:       res.TxLogProc,
+		GasSchedule:            gasScheduleNotifier,
+		EpochNotifier:          epochNotifierInstance,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ChainHandler:           chainHandler,
+		Marshalizer:            integrationtests.TestMarshalizer,
+		GuardedAccountsHandler: guardedAccountHandler,
 	}, nil
 }
 
@@ -1150,6 +1215,13 @@ func CreateTxProcessorWasmVMWithGasSchedule(
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
+
+	var err error
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1159,6 +1231,7 @@ func CreateTxProcessorWasmVMWithGasSchedule(
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
+		guardedAccountHandler,
 	)
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
@@ -1170,23 +1243,25 @@ func CreateTxProcessorWasmVMWithGasSchedule(
 		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
+		guardedAccountHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:         res.TxProc,
-		ScProcessor:         res.SCProc,
-		Accounts:            accounts,
-		BlockchainHook:      blockchainHook,
-		VMContainer:         vmContainer,
-		TxFeeHandler:        feeAccumulator,
-		ScForwarder:         res.IntermediateTxProc,
-		GasSchedule:         gasScheduleNotifier,
-		EpochNotifier:       epochNotifierInstance,
-		EnableEpochsHandler: enableEpochsHandler,
-		ChainHandler:        chainHandler,
+		TxProcessor:            res.TxProc,
+		ScProcessor:            res.SCProc,
+		Accounts:               accounts,
+		BlockchainHook:         blockchainHook,
+		VMContainer:            vmContainer,
+		TxFeeHandler:           feeAccumulator,
+		ScForwarder:            res.IntermediateTxProc,
+		GasSchedule:            gasScheduleNotifier,
+		EpochNotifier:          epochNotifierInstance,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ChainHandler:           chainHandler,
+		GuardedAccountsHandler: guardedAccountHandler,
 	}, nil
 }
 
@@ -1203,6 +1278,13 @@ func CreateTxProcessorWasmVMWithVMConfig(
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
+
+	var err error
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(
 		accounts,
 		gasScheduleNotifier,
@@ -1212,6 +1294,7 @@ func CreateTxProcessorWasmVMWithVMConfig(
 		epochNotifierInstance,
 		enableEpochsHandler,
 		chainHandler,
+		guardedAccountHandler,
 	)
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
@@ -1223,24 +1306,26 @@ func CreateTxProcessorWasmVMWithVMConfig(
 		wasmVMChangeLocker,
 		pool,
 		epochNotifierInstance,
+		guardedAccountHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:         res.TxProc,
-		ScProcessor:         res.SCProc,
-		Accounts:            accounts,
-		BlockchainHook:      blockchainHook,
-		VMContainer:         vmContainer,
-		TxFeeHandler:        feeAccumulator,
-		ScForwarder:         res.IntermediateTxProc,
-		GasSchedule:         gasScheduleNotifier,
-		VMConfiguration:     vmConfig,
-		EpochNotifier:       epochNotifierInstance,
-		EnableEpochsHandler: enableEpochsHandler,
-		ChainHandler:        chainHandler,
+		TxProcessor:            res.TxProc,
+		ScProcessor:            res.SCProc,
+		Accounts:               accounts,
+		BlockchainHook:         blockchainHook,
+		VMContainer:            vmContainer,
+		TxFeeHandler:           feeAccumulator,
+		ScForwarder:            res.IntermediateTxProc,
+		GasSchedule:            gasScheduleNotifier,
+		VMConfiguration:        vmConfig,
+		EpochNotifier:          epochNotifierInstance,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ChainHandler:           chainHandler,
+		GuardedAccountsHandler: guardedAccountHandler,
 	}, nil
 }
 
@@ -1332,6 +1417,21 @@ func TestAccount(
 	return senderRecovShardAccount.GetBalance()
 }
 
+// TestAccountUsername -
+func TestAccountUsername(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	senderAddressBytes []byte,
+	username []byte,
+) {
+
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
+	require.False(t, check.IfNil(senderRecovAccount))
+
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
+	require.Equal(t, senderRecovShardAccount.GetUserName(), username)
+}
+
 // ComputeExpectedBalance -
 func ComputeExpectedBalance(
 	existing *big.Int,
@@ -1367,6 +1467,12 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(config.EnableEpochs{}, epochNotifierInstance)
+
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		panic(err)
+	}
+
 	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(
 		accnts,
 		gasScheduleNotifier,
@@ -1376,13 +1482,14 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		epochNotifierInstance,
 		enableEpochsHandler,
 		&testscommon.ChainHandlerStub{},
+		guardedAccountHandler,
 	)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
 
-	feeHandler := &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
 	}
@@ -1425,6 +1532,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		testContext.EpochNotifier,
 		testContext.EnableEpochsHandler,
 		&testscommon.ChainHandlerStub{},
+		testContext.GuardedAccountsHandler,
 	)
 	defer func() {
 		_ = vmContainer.Close()
@@ -1522,6 +1630,12 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
+
+	guardedAccountHandler, err := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, epochNotifierInstance, EpochGuardianDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {
@@ -1535,6 +1649,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 			epochNotifierInstance,
 			enableEpochsHandler,
 			chainHandler,
+			guardedAccountHandler,
 		)
 	}
 
@@ -1548,26 +1663,28 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 		wasmVMChangeLocker,
 		nil,
 		epochNotifierInstance,
+		guardedAccountHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:         res.TxProc,
-		ScProcessor:         res.SCProc,
-		Accounts:            accounts,
-		BlockchainHook:      blockchainHook,
-		VMContainer:         vmContainer,
-		TxFeeHandler:        feeAccumulator,
-		ShardCoordinator:    shardCoordinator,
-		ScForwarder:         res.IntermediateTxProc,
-		EconomicsData:       res.EconomicsHandler,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		TxsLogsProcessor:    res.TxLogProc,
-		EpochNotifier:       epochNotifierInstance,
-		EnableEpochsHandler: enableEpochsHandler,
-		ChainHandler:        chainHandler,
+		TxProcessor:            res.TxProc,
+		ScProcessor:            res.SCProc,
+		Accounts:               accounts,
+		BlockchainHook:         blockchainHook,
+		VMContainer:            vmContainer,
+		TxFeeHandler:           feeAccumulator,
+		ShardCoordinator:       shardCoordinator,
+		ScForwarder:            res.IntermediateTxProc,
+		EconomicsData:          res.EconomicsHandler,
+		Marshalizer:            integrationtests.TestMarshalizer,
+		TxsLogsProcessor:       res.TxLogProc,
+		EpochNotifier:          epochNotifierInstance,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ChainHandler:           chainHandler,
+		GuardedAccountsHandler: guardedAccountHandler,
 	}, nil
 }
 

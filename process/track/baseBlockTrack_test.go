@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -110,7 +111,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -148,7 +149,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -184,7 +185,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -303,6 +304,24 @@ func TestNewBlockTrack_ShouldErrNotarizedHeadersSliceIsNil(t *testing.T) {
 	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNotarizedHeadersSliceIsNil, err)
+	assert.True(t, check.IfNil(mbt))
+}
+
+func TestNewBlockTrack_ShouldErrNilWhitelistHandler(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.WhitelistHandler = nil
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.WhitelistHandler = nil
+	mbt, err := track.NewMetaBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 	assert.True(t, check.IfNil(mbt))
 }
 
