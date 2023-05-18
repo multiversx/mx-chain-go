@@ -226,6 +226,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		UseKibana:                elasticSearchConfig.UseKibana,
+		ImportDB:                 scf.isInImportMode,
 	}
 }
 

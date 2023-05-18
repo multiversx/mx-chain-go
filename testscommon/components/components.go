@@ -661,6 +661,12 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
+			HostDriverConfig: config.HostDriverConfig{
+				MarshallerType:     "json",
+				Mode:               "client",
+				URL:                "localhost:12345",
+				RetryDurationInSec: 1,
+			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
