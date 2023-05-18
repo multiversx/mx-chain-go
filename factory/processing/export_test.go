@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 )
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
