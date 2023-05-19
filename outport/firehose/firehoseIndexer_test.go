@@ -120,23 +120,23 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 			},
 		}
 
-		unmarshallCalled := false
-		errUnmarshall := errors.New("err unmarshal")
-		errMarshall := errors.New("err marshal")
+		unmarshalCalled := false
+		errUnmarshal := errors.New("err unmarshal")
+		errMarshal := errors.New("err marshal")
 		marshaller := &testscommon.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				defer func() {
-					unmarshallCalled = true
+					unmarshalCalled = true
 				}()
 
-				if !unmarshallCalled {
-					return errUnmarshall
+				if !unmarshalCalled {
+					return errUnmarshal
 				}
 
 				return nil
 			},
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, errMarshall
+				return nil, errMarshal
 			},
 		}
 
@@ -147,10 +147,10 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 
 		outportBlock := createOutportBlock()
 		err := fi.SaveBlock(outportBlock)
-		require.Equal(t, errUnmarshall, err)
+		require.Equal(t, errUnmarshal, err)
 
 		err = fi.SaveBlock(outportBlock)
-		require.Equal(t, errMarshall, err)
+		require.Equal(t, errMarshal, err)
 	})
 
 	t.Run("cannot write in console, should return error", func(t *testing.T) {
