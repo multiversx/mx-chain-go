@@ -10,8 +10,8 @@ func GetClosedUnbufferedChannel() chan struct{} {
 	return ch
 }
 
-// SafelyCloseKeyValueHolderChan will close the channel if not nil
-func SafelyCloseKeyValueHolderChan(ch chan core.KeyValueHolder) {
+// CloseKeyValueHolderChan will close the channel if not nil
+func CloseKeyValueHolderChan(ch chan core.KeyValueHolder) {
 	if ch != nil {
 		close(ch)
 	}

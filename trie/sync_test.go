@@ -39,7 +39,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),
 		TimeoutHandler:            testscommon.NewTimeoutHandlerMock(timeout),
 		MaxHardCapForMissingNodes: 500,
-		AccLeavesChan:             make(chan core.KeyValueHolder, 100),
+		LeavesChan:                make(chan core.KeyValueHolder, 100),
 	}
 }
 
@@ -249,7 +249,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 
 	numLeavesOnChan := 0
 	go func() {
-		for range arg.AccLeavesChan {
+		for range arg.LeavesChan {
 			numLeavesOnChan++
 			wg.Done()
 		}

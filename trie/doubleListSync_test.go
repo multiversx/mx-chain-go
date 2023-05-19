@@ -247,7 +247,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	numLeavesOnChan := 0
 	go func() {
-		for range arg.AccLeavesChan {
+		for range arg.LeavesChan {
 			numLeavesOnChan++
 			wg.Done()
 		}

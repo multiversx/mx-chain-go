@@ -75,7 +75,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
-		leavesChan:                arg.AccLeavesChan,
+		leavesChan:                arg.LeavesChan,
 	}
 
 	return d, nil

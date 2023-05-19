@@ -92,7 +92,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
 	ctx context.Context,
-	accLeavesChan chan core.KeyValueHolder,
+	leavesChan chan core.KeyValueHolder,
 ) error {
 	atomic.AddInt32(&b.numMaxTries, 1)
 
@@ -111,7 +111,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
-		AccLeavesChan:             accLeavesChan,
+		LeavesChan:                leavesChan,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {

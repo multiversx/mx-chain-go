@@ -131,7 +131,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
 
-		common.SafelyCloseKeyValueHolderChan(leavesChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(leavesChannels.LeavesChan)
 
 		wgSyncMainTrie.Done()
 	}()
@@ -178,7 +178,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          u.checkNodesOnDisk,
-		AccLeavesChan:             nil, // not used for data tries
+		LeavesChan:                nil, // not used for data tries
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

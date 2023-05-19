@@ -110,7 +110,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
-	arg.AccLeavesChan = make(chan core.KeyValueHolder, 110)
+	arg.LeavesChan = make(chan core.KeyValueHolder, 110)
 
 	d, _ := NewDepthFirstTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
@@ -143,7 +143,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	numLeavesOnChan := 0
 	go func() {
-		for range arg.AccLeavesChan {
+		for range arg.LeavesChan {
 			numLeavesOnChan++
 			wg.Done()
 		}

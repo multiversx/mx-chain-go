@@ -330,19 +330,19 @@ func (tsm *trieStorageManager) TakeSnapshot(
 ) {
 	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.TakeSnapshot, cannot take snapshot because errChan is nil")
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -363,7 +363,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -380,19 +380,19 @@ func (tsm *trieStorageManager) SetCheckpoint(
 ) {
 	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -410,7 +410,7 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		common.SafelyCloseKeyValueHolderChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -418,7 +418,7 @@ func (tsm *trieStorageManager) SetCheckpoint(
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
-	common.SafelyCloseKeyValueHolderChan(snapshotEntry.iteratorChannels.LeavesChan)
+	common.CloseKeyValueHolderChan(snapshotEntry.iteratorChannels.LeavesChan)
 	snapshotEntry.stats.SnapshotFinished()
 }
 

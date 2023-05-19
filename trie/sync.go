@@ -60,7 +60,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
-	AccLeavesChan             chan core.KeyValueHolder
+	LeavesChan                chan core.KeyValueHolder
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -89,7 +89,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
-		leavesChan:                arg.AccLeavesChan,
+		leavesChan:                arg.LeavesChan,
 	}
 
 	return ts, nil
@@ -372,11 +372,17 @@ func trieNode(
 }
 
 func writeLeafNodeToChan(element node, ch chan core.KeyValueHolder) {
-	leafNodeElement, isLeaf := element.(*leafNode)
-	if isLeaf && ch != nil {
-		trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
-		ch <- trieLeaf
+	if ch == nil {
+		return
 	}
+
+	leafNodeElement, isLeaf := element.(*leafNode)
+	if !isLeaf {
+		return
+	}
+
+	trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+	ch <- trieLeaf
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {
