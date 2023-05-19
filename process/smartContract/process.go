@@ -51,6 +51,11 @@ const (
 
 var zero = big.NewInt(0)
 
+// ExecutableChecker is an interface for checking if a builtin function is executable
+type ExecutableChecker interface {
+	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
+}
+
 type scProcessor struct {
 	accounts           state.AccountsAdapter
 	blockChainHook     process.BlockChainHookHandler
@@ -79,6 +84,9 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	executableCheckers    map[string]ExecutableChecker
+	mutExecutableCheckers sync.RWMutex
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -195,6 +203,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
+		executableCheckers:  createExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
 	var err error
@@ -2793,6 +2802,61 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	return nil
+}
+
+// CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
+func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	functionName, arguments, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return err
+	}
+
+	if expectedBuiltinFunction != functionName {
+		return process.ErrBuiltinFunctionMismatch
+	}
+
+	gasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return err
+	}
+
+	sc.mutExecutableCheckers.RLock()
+	executableChecker, ok := sc.executableCheckers[functionName]
+	sc.mutExecutableCheckers.RUnlock()
+	if !ok {
+		return process.ErrBuiltinFunctionNotExecutable
+	}
+
+	// check if the function is executable
+	return executableChecker.CheckIsExecutable(
+		tx.GetSndAddr(),
+		tx.GetValue(),
+		tx.GetRcvAddr(),
+		gasProvided,
+		arguments,
+	)
+}
+
+func createExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContainer) map[string]ExecutableChecker {
+	executableCheckers := make(map[string]ExecutableChecker)
+
+	for key := range builtinFunctions.Keys() {
+		builtinFunc, err := builtinFunctions.Get(key)
+		if err != nil {
+			continue
+		}
+		executableCheckerFunc, ok := builtinFunc.(ExecutableChecker)
+		if !ok {
+			continue
+		}
+		executableCheckers[key] = executableCheckerFunc
+	}
+
+	return executableCheckers
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
