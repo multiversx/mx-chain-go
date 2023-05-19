@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/node/filters"
@@ -114,7 +114,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.Blo
 }
 
 // GetAlteredAccountsForBlock will return the altered accounts for the desired shard block
-func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	headerHash, blockBytes, err := sbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
 	if err != nil {
 		return nil, err
