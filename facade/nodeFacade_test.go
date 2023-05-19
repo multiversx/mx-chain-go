@@ -13,10 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -2117,7 +2117,7 @@ func TestNodeFacade_GetBlockByNonce(t *testing.T) {
 func TestNodeFacade_GetAlteredAccountsForBlock(t *testing.T) {
 	t.Parallel()
 
-	providedResponse := []*outport.AlteredAccount{
+	providedResponse := []*alteredAccount.AlteredAccount{
 		{
 			Nonce:   123,
 			Address: "address",
@@ -2125,7 +2125,7 @@ func TestNodeFacade_GetAlteredAccountsForBlock(t *testing.T) {
 	}
 	args := createMockArguments()
 	args.ApiResolver = &mock.ApiResolverStub{
-		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+		GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 			return providedResponse, nil
 		},
 	}
