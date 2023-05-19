@@ -58,6 +58,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
+	disabledOutport "github.com/multiversx/mx-chain-go/outport/disabled"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -3237,7 +3238,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 // GetDefaultStatusComponents -
 func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 	return &mock.StatusComponentsStub{
-		Outport:              mock.NewNilOutport(),
+		Outport:              disabledOutport.NewDisabledOutport(),
 		SoftwareVersionCheck: &mock.SoftwareVersionCheckerMock{},
 	}
 }

@@ -3,23 +3,16 @@ package factory
 import (
 	"time"
 
-	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
-// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
-type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
-	Enabled bool
-	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
-}
-
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval                  time.Duration
-	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
-	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
+	RetrialInterval           time.Duration
+	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
+	HostDriverArgs            ArgsHostDriverFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -53,7 +46,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	return createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
@@ -96,23 +89,18 @@ func checkArguments(args *OutportFactoryArgs) error {
 	return nil
 }
 
-func createAndSubscribeWebSocketDriver(
+func createAndSubscribeHostDriverIfNeeded(
 	outport outport.OutportHandler,
-	args WrappedOutportDriverWebSocketSenderFactoryArgs,
+	args ArgsHostDriverFactory,
 ) error {
-	if !args.Enabled {
+	if !args.HostConfig.Enabled {
 		return nil
 	}
 
-	wsFactory, err := wsDriverFactory.NewOutportDriverWebSocketSenderFactory(args.OutportDriverWebSocketSenderFactoryArgs)
+	hostDriver, err := CreateHostDriver(args)
 	if err != nil {
 		return err
 	}
 
-	wsDriver, err := wsFactory.Create()
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(wsDriver)
+	return outport.SubscribeDriver(hostDriver)
 }

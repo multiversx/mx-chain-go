@@ -87,7 +87,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
-		Hash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
+		Hash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
 		Type: "SmartContractResultBlock",
 		Transactions: []*transaction.ApiTransactionResult{
 			{
@@ -97,7 +97,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 				Receiver:      "726376",
 				Data:          []byte("doSomething"),
 				MiniBlockType: "SmartContractResultBlock",
-				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
+				MiniBlockHash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
 			},
 		},
 		ProcessingType:        block.Normal.String(),
@@ -152,7 +152,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
-		Hash: "262b3023ca9ba61e90a60932b4db7f8b0d1dec7c2a00261cf0c5d43785f17f6f",
+		Hash: "596545f64319f2fcf8e0ebae06f40f3353d603f6070255588a48018c7b30c951",
 		Type: "ReceiptBlock",
 		Receipts: []*transaction.ApiReceipt{
 			{

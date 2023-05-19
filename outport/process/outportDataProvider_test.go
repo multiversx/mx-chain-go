@@ -29,6 +29,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		EconomicsData:            &mock.EconomicsHandlerMock{},
 		ShardCoordinator:         &testscommon.ShardsCoordinatorMock{},
 		ExecutionOrderHandler:    &mock.ExecutionOrderHandlerStub{},
+		Marshaller:               &testscommon.MarshalizerMock{},
 	}
 }
 
@@ -84,10 +85,10 @@ func TestPrepareOutportSaveBlockData(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, res)
-	require.NotNil(t, res.HeaderHash)
-	require.NotNil(t, res.Body)
-	require.NotNil(t, res.Header)
+	require.NotNil(t, res.HeaderDataWithBody.HeaderHash)
+	require.NotNil(t, res.HeaderDataWithBody.Body)
+	require.NotNil(t, res.HeaderDataWithBody.Header)
 	require.NotNil(t, res.SignersIndexes)
 	require.NotNil(t, res.HeaderGasConsumption)
-	require.NotNil(t, res.TransactionsPool)
+	require.NotNil(t, res.TransactionPool)
 }

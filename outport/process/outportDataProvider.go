@@ -1,6 +1,7 @@
 package process
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -9,6 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -26,16 +32,21 @@ type ArgOutportDataProvider struct {
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
 	ExecutionOrderHandler    ExecutionOrderHandler
+	Marshaller               marshal.Marshalizer
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
 type ArgPrepareOutportSaveBlockData struct {
 	HeaderHash             []byte
 	Header                 data.HeaderHandler
+	HeaderBytes            []byte
+	HeaderType             string
 	Body                   data.BodyHandler
 	PreviousHeader         data.HeaderHandler
 	RewardsTxs             map[string]data.TransactionHandler
 	NotarizedHeadersHashes []string
+	HighestFinalBlockNonce uint64
+	HighestFinalBlockHash  []byte
 }
 
 type outportDataProvider struct {
@@ -49,6 +60,7 @@ type outportDataProvider struct {
 	gasConsumedProvider      GasConsumedProvider
 	economicsData            EconomicsDataHandler
 	executionOrderHandler    ExecutionOrderHandler
+	marshaller               marshal.Marshalizer
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -63,11 +75,12 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		gasConsumedProvider:      arg.GasConsumedProvider,
 		economicsData:            arg.EconomicsData,
 		executionOrderHandler:    arg.ExecutionOrderHandler,
+		marshaller:               arg.Marshaller,
 	}, nil
 }
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
-func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.ArgsSaveBlockData, error) {
+func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
 	if check.IfNil(arg.Header) {
 		return nil, errNilHeaderHandler
 	}
@@ -75,8 +88,12 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, errNilBodyHandler
 	}
 
-	pool := odp.createPool(arg.RewardsTxs)
-	err := odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
+	pool, err := odp.createPool(arg.RewardsTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
 	if err != nil {
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
@@ -101,22 +118,29 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	return &outportcore.ArgsSaveBlockData{
-		HeaderHash:     arg.HeaderHash,
-		Body:           arg.Body,
-		Header:         arg.Header,
-		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: outportcore.HeaderGasConsumption{
-			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
-			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
-			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
-			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+	return &outportcore.OutportBlockWithHeaderAndBody{
+		OutportBlock: &outportcore.OutportBlock{
+			BlockData:       nil, // this will be filled with specific data for each driver
+			TransactionPool: pool,
+			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
+				GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+				GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
+				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
+				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+			},
+			AlteredAccounts:        alteredAccounts,
+			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
+			NumberOfShards:         odp.numOfShards,
+			SignersIndexes:         signersIndexes,
+
+			HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
+			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 		},
-		NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
-		TransactionsPool:       pool,
-		AlteredAccounts:        alteredAccounts,
-		NumberOfShards:         odp.numOfShards,
-		IsImportDB:             odp.isImportDBMode,
+		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+			Body:       arg.Body,
+			Header:     arg.Header,
+			HeaderHash: arg.HeaderHash,
+		},
 	}, nil
 }
 
@@ -150,7 +174,7 @@ func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]
 	return signersIndexes, nil
 }
 
-func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
+func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
 	if odp.shardID == core.MetachainShardId {
 		return odp.createPoolForMeta(rewardsTxs)
 	}
@@ -158,33 +182,177 @@ func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.Transactio
 	return odp.createPoolForShard()
 }
 
-func (odp *outportDataProvider) createPoolForShard() *outportcore.Pool {
-	return &outportcore.Pool{
-		Txs:      WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
-		Scrs:     WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
-		Rewards:  WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)),
-		Invalid:  WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)),
-		Receipts: WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)),
-		Logs:     odp.txCoordinator.GetAllCurrentLogs(),
+func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPool, error) {
+	txs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := getScrs(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	rewards, err := getRewards(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	invalidTxs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	receipts, err := getReceipts(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := getLogs(odp.txCoordinator.GetAllCurrentLogs())
+	if err != nil {
+		return nil, err
+	}
+
+	return &outportcore.TransactionPool{
+		Transactions:         txs,
+		SmartContractResults: scrs,
+		Rewards:              rewards,
+		InvalidTxs:           invalidTxs,
+		Receipts:             receipts,
+		Logs:                 logs,
+	}, nil
+}
+
+func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
+	txs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	scrs, err := getScrs(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock))
+	if err != nil {
+		return nil, err
+	}
+
+	rewards, err := getRewards(rewardsTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	logs, err := getLogs(odp.txCoordinator.GetAllCurrentLogs())
+	if err != nil {
+		return nil, err
+	}
+
+	return &outportcore.TransactionPool{
+		Transactions:         txs,
+		SmartContractResults: scrs,
+		Rewards:              rewards,
+		Logs:                 logs,
+	}, nil
+}
+
+func getTxs(txs map[string]data.TransactionHandler) (map[string]*outportcore.TxInfo, error) {
+	ret := make(map[string]*outportcore.TxInfo, len(txs))
+
+	for txHash, txHandler := range txs {
+		tx, castOk := txHandler.(*transaction.Transaction)
+		txHashHex := getHexEncodedHash(txHash)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastTransaction, txHashHex)
+		}
+
+		ret[txHashHex] = &outportcore.TxInfo{
+			Transaction: tx,
+			FeeInfo:     newFeeInfo(),
+		}
+	}
+
+	return ret, nil
+}
+
+func getHexEncodedHash(txHash string) string {
+	txHashBytes := []byte(txHash)
+	return hex.EncodeToString(txHashBytes)
+}
+
+func newFeeInfo() *outportcore.FeeInfo {
+	return &outportcore.FeeInfo{
+		GasUsed:        0,
+		Fee:            big.NewInt(0),
+		InitialPaidFee: big.NewInt(0),
 	}
 }
 
-func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) *outportcore.Pool {
-	return &outportcore.Pool{
-		Txs:     WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)),
-		Scrs:    WrapTxsMap(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)),
-		Rewards: WrapTxsMap(rewardsTxs),
-		Logs:    odp.txCoordinator.GetAllCurrentLogs(),
+func getScrs(scrs map[string]data.TransactionHandler) (map[string]*outportcore.SCRInfo, error) {
+	ret := make(map[string]*outportcore.SCRInfo, len(scrs))
+
+	for scrHash, txHandler := range scrs {
+		scr, castOk := txHandler.(*smartContractResult.SmartContractResult)
+		scrHashHex := getHexEncodedHash(scrHash)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastSCR, scrHashHex)
+		}
+
+		ret[scrHashHex] = &outportcore.SCRInfo{
+			SmartContractResult: scr,
+			FeeInfo:             newFeeInfo(),
+		}
 	}
+
+	return ret, nil
 }
 
-func WrapTxsMap(txs map[string]data.TransactionHandler) map[string]data.TransactionHandlerWithGasUsedAndFee {
-	newMap := make(map[string]data.TransactionHandlerWithGasUsedAndFee, len(txs))
-	for txHash, tx := range txs {
-		newMap[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+func getRewards(rewards map[string]data.TransactionHandler) (map[string]*outportcore.RewardInfo, error) {
+	ret := make(map[string]*outportcore.RewardInfo, len(rewards))
+
+	for hash, txHandler := range rewards {
+		reward, castOk := txHandler.(*rewardTx.RewardTx)
+		hexHex := getHexEncodedHash(hash)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReward, hexHex)
+		}
+
+		ret[hexHex] = &outportcore.RewardInfo{
+			Reward: reward,
+		}
 	}
 
-	return newMap
+	return ret, nil
+}
+
+func getReceipts(receipts map[string]data.TransactionHandler) (map[string]*receipt.Receipt, error) {
+	ret := make(map[string]*receipt.Receipt, len(receipts))
+
+	for hash, receiptHandler := range receipts {
+		tx, castOk := receiptHandler.(*receipt.Receipt)
+		hashHex := getHexEncodedHash(hash)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastReceipt, hashHex)
+		}
+
+		ret[hashHex] = tx
+	}
+
+	return ret, nil
+}
+
+func getLogs(logs []*data.LogData) ([]*outportcore.LogData, error) {
+	ret := make([]*outportcore.LogData, len(logs))
+
+	for idx, logData := range logs {
+		txHashHex := getHexEncodedHash(logData.TxHash)
+		log, castOk := logData.LogHandler.(*transaction.Log)
+		if !castOk {
+			return nil, fmt.Errorf("%w, hash: %s", errCannotCastLog, txHashHex)
+		}
+
+		ret[idx] = &outportcore.LogData{
+			TxHash: txHashHex,
+			Log:    log,
+		}
+	}
+	return ret, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
