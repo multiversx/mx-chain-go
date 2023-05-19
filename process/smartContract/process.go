@@ -84,6 +84,9 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	executableCheckers    map[string]ExecutableChecker
+	mutExecutableCheckers sync.RWMutex
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -200,6 +203,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
+		executableCheckers:  createExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
 	var err error
@@ -2802,7 +2806,6 @@ func (sc *scProcessor) processSimpleSCR(
 
 // CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
 func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
-	// TODO: refactor this functionality to avoid the typecast
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
@@ -2821,13 +2824,9 @@ func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction 
 		return err
 	}
 
-	builtinFunc, err := sc.builtInFunctions.Get(functionName)
-	if err != nil {
-		return err
-	}
-
-	// cast the function to the expected checker type
-	executableChecker, ok := builtinFunc.(ExecutableChecker)
+	sc.mutExecutableCheckers.RLock()
+	executableChecker, ok := sc.executableCheckers[functionName]
+	sc.mutExecutableCheckers.RUnlock()
 	if !ok {
 		return process.ErrBuiltinFunctionNotExecutable
 	}
@@ -2840,6 +2839,24 @@ func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction 
 		gasProvided,
 		arguments,
 	)
+}
+
+func createExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContainer) map[string]ExecutableChecker {
+	executableCheckers := make(map[string]ExecutableChecker)
+
+	for key := range builtinFunctions.Keys() {
+		builtinFunc, err := builtinFunctions.Get(key)
+		if err != nil {
+			continue
+		}
+		executableCheckerFunc, ok := builtinFunc.(ExecutableChecker)
+		if !ok {
+			continue
+		}
+		executableCheckers[key] = executableCheckerFunc
+	}
+
+	return executableCheckers
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {

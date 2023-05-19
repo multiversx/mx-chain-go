@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"testing"
 
@@ -4437,7 +4436,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 				GasLimit: setGuardianCost + 1000,
 			})
 
-		require.True(t, strings.Contains(err.Error(), "element does not exist in container"))
+		require.Equal(t, process.ErrBuiltinFunctionNotExecutable, err)
 	})
 	t.Run("builtin function not supporting executable check should error", func(t *testing.T) {
 		argsCopy := arguments
