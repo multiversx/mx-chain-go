@@ -102,8 +102,8 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-			return &txSimData.SimulationResults{}, nil
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{}, nil
 		},
 	}
 	args.Accounts = &stateMock.AccountsStub{
@@ -141,7 +141,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 			return nil, simulationErr
 		},
 	}
@@ -172,8 +172,8 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-			return &txSimData.SimulationResults{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{
 				VMOutput: &vmcommon.VMOutput{
 					ReturnCode:   vmcommon.Ok,
 					GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
@@ -208,7 +208,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 			return nil, localErr
 		},
 	}
@@ -238,8 +238,8 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-			return &txSimData.SimulationResults{}, nil
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{}, nil
 		},
 	}
 	args.Accounts = &stateMock.AccountsStub{
@@ -268,8 +268,8 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-			return &txSimData.SimulationResults{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{
 				VMOutput: &vmcommon.VMOutput{
 					ReturnCode: vmcommon.UserError,
 				},

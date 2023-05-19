@@ -104,7 +104,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -112,7 +112,7 @@ type TransactionSimulatorProcessor interface {
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)

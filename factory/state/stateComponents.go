@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -45,13 +44,12 @@ type stateComponentsFactory struct {
 
 // stateComponents struct holds the state components of the MultiversX protocol
 type stateComponents struct {
-	peerAccounts            state.AccountsAdapter
-	accountsAdapter         state.AccountsAdapter
-	accountsAdapterAPI      state.AccountsAdapter
-	accountsAdapterSimulate state.AccountsAdapterWithClean
-	accountsRepository      state.AccountsRepository
-	triesContainer          common.TriesHolder
-	trieStorageManagers     map[string]common.StorageManager
+	peerAccounts        state.AccountsAdapter
+	accountsAdapter     state.AccountsAdapter
+	accountsAdapterAPI  state.AccountsAdapter
+	accountsRepository  state.AccountsRepository
+	triesContainer      common.TriesHolder
+	trieStorageManagers map[string]common.StorageManager
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -100,19 +98,13 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	accountsAdapterSimulate, err := txsimulator.NewReadOnlyAccountsDB(accountsAdapterAPI)
-	if err != nil {
-		return nil, err
-	}
-
 	return &stateComponents{
-		peerAccounts:            peerAdapter,
-		accountsAdapter:         accountsAdapter,
-		accountsAdapterAPI:      accountsAdapterAPI,
-		accountsRepository:      accountsRepository,
-		accountsAdapterSimulate: accountsAdapterSimulate,
-		triesContainer:          triesContainer,
-		trieStorageManagers:     trieStorageManagers,
+		peerAccounts:        peerAdapter,
+		accountsAdapter:     accountsAdapter,
+		accountsAdapterAPI:  accountsAdapterAPI,
+		accountsRepository:  accountsRepository,
+		triesContainer:      triesContainer,
+		trieStorageManagers: trieStorageManagers,
 	}, nil
 }
 

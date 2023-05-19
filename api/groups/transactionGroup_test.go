@@ -601,7 +601,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 				return expectedErr
 			},
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				require.Fail(t, "should have not been called")
 				return nil, nil
 			},
@@ -626,7 +626,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 				return nil
 			},
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				return nil, expectedErr
 			},
 		}
@@ -646,9 +646,9 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 		processTxWasCalled := false
 
 		facade := &mock.FacadeStub{
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				processTxWasCalled = true
-				return &txSimData.SimulationResults{
+				return &txSimData.SimulationResultsWithVMOutput{
 					SimulationResults: dataTx.SimulationResults{
 						Status:     "ok",
 						FailReason: "no reason",
@@ -656,7 +656,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 						Receipts:   nil,
 						Hash:       "hash",
 					},
-				},nil
+				}, nil
 			},
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
 				return &dataTx.Transaction{}, []byte("hash"), nil

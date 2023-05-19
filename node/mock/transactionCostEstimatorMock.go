@@ -5,13 +5,13 @@ import (
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 )
 
-// TransactionCostEstimatorMock  --
+// TransactionCostEstimatorMock  -
 type TransactionCostEstimatorMock struct {
 	ComputeTransactionGasLimitCalled   func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	SimulateTransactionExecutionCalled func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecutionCalled func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 }
 
-// ComputeTransactionGasLimit --
+// ComputeTransactionGasLimit -
 func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	if tcem.ComputeTransactionGasLimitCalled != nil {
 		return tcem.ComputeTransactionGasLimitCalled(tx)
@@ -19,16 +19,16 @@ func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transac
 	return &transaction.CostResponse{}, nil
 }
 
-// SimulateTransactionExecution ---
-func (tcem *TransactionCostEstimatorMock) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+// SimulateTransactionExecution -
+func (tcem *TransactionCostEstimatorMock) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	if tcem.SimulateTransactionExecutionCalled != nil {
 		return tcem.SimulateTransactionExecutionCalled(tx)
 	}
 
-	return &txSimData.SimulationResults{}, nil
+	return &txSimData.SimulationResultsWithVMOutput{}, nil
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (tcem *TransactionCostEstimatorMock) IsInterfaceNil() bool {
 	return tcem == nil
 }

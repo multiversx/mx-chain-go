@@ -1984,7 +1984,7 @@ func TestNodeFacade_ValidateTransaction(t *testing.T) {
 func TestNodeFacade_SimulateTransactionExecution(t *testing.T) {
 	t.Parallel()
 
-	providedResponse := &txSimData.SimulationResults{
+	providedResponse := &txSimData.SimulationResultsWithVMOutput{
 		SimulationResults: transaction.SimulationResults{
 			Status:     "ok",
 			FailReason: "no reason",
@@ -1995,7 +1995,7 @@ func TestNodeFacade_SimulateTransactionExecution(t *testing.T) {
 	}
 	args := createMockArguments()
 	args.ApiResolver = &mock.ApiResolverStub{
-		SimulateTransactionExecutionHandler: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+		SimulateTransactionExecutionHandler: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 			return providedResponse, nil
 		},
 	}

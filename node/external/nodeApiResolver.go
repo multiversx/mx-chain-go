@@ -132,7 +132,8 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
 }
 
-func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+// SimulateTransactionExecution will simulate the provided transaction and return the simulation results
+func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nar.txCostHandler.SimulateTransactionExecution(tx)
 }
 

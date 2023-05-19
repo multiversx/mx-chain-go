@@ -7,11 +7,11 @@ import (
 
 // TransactionSimulatorStub -
 type TransactionSimulatorStub struct {
-	ProcessTxCalled func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	ProcessTxCalled func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 }
 
 // ProcessTx -
-func (tss *TransactionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (tss *TransactionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	if tss.ProcessTxCalled != nil {
 		return tss.ProcessTxCalled(tx)
 	}

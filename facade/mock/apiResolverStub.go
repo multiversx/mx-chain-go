@@ -19,7 +19,7 @@ type ApiResolverStub struct {
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetTotalStakedValueHandler                  func(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedListHandler                  func(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                    func(ctx context.Context) ([]*api.Delegator, error)
@@ -119,7 +119,7 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 }
 
 // SimulateTransactionExecution -
-func (ars *ApiResolverStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (ars *ApiResolverStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	if ars.SimulateTransactionExecutionHandler != nil {
 		return ars.SimulateTransactionExecutionHandler(tx)
 	}

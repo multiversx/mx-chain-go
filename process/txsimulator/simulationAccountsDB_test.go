@@ -17,7 +17,7 @@ import (
 func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(nil)
+	roAccDb, err := NewSimulationAccountsDB(nil)
 	require.True(t, check.IfNil(roAccDb))
 	require.Equal(t, ErrNilAccountsAdapter, err)
 }
@@ -25,7 +25,7 @@ func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 func TestNewReadOnlyAccountsDB(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(&stateMock.AccountsStub{})
+	roAccDb, err := NewSimulationAccountsDB(&stateMock.AccountsStub{})
 	require.False(t, check.IfNil(roAccDb))
 	require.NoError(t, err)
 }
@@ -73,7 +73,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 		},
 	}
 
-	roAccDb, _ := NewReadOnlyAccountsDB(accDb)
+	roAccDb, _ := NewSimulationAccountsDB(accDb)
 	require.NotNil(t, roAccDb)
 
 	err := roAccDb.SaveAccount(nil)
@@ -128,7 +128,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		},
 	}
 
-	roAccDb, _ := NewReadOnlyAccountsDB(accDb)
+	roAccDb, _ := NewSimulationAccountsDB(accDb)
 	require.NotNil(t, roAccDb)
 
 	actualAcc, err := roAccDb.GetExistingAccount(nil)

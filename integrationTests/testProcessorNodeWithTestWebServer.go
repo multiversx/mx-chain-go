@@ -175,7 +175,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)
 	log.LogIfError(err)
 
-	wrappedAccounts, err := txsimulator.NewReadOnlyAccountsDB(tpn.AccntState)
+	wrappedAccounts, err := txsimulator.NewSimulationAccountsDB(tpn.AccntState)
 	log.LogIfError(err)
 	txCostHandler, err := txsimulator.NewTransactionCostEstimator(txsimulator.ArgsTransactionCostSimulator{
 		TxTypeHandler:       txTypeHandler,

@@ -98,7 +98,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
-func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
 
@@ -115,7 +115,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimDa
 		}
 	}
 
-	results := &txSimData.SimulationResults{
+	results := &txSimData.SimulationResultsWithVMOutput{
 		SimulationResults: transaction.SimulationResults{
 			Status:     txStatus,
 			FailReason: failReason,
@@ -137,7 +137,7 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimDa
 	return results, nil
 }
 
-func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.SimulationResults, vmOutput *vmcommon.VMOutput) {
+func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.SimulationResultsWithVMOutput, vmOutput *vmcommon.VMOutput) {
 	if vmOutput == nil || len(vmOutput.Logs) == 0 {
 		return
 	}
@@ -164,12 +164,12 @@ func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*v
 
 	defer ts.vmOutputCacher.Remove(txHash)
 
-	vmOutputI, ok := ts.vmOutputCacher.Get(txHash)
-	if !ok || check.IfNilReflect(vmOutputI) {
+	vmOutputInterface, ok := ts.vmOutputCacher.Get(txHash)
+	if !ok || check.IfNilReflect(vmOutputInterface) {
 		return nil, false
 	}
 
-	vmOutput, ok := vmOutputI.(*vmcommon.VMOutput)
+	vmOutput, ok := vmOutputInterface.(*vmcommon.VMOutput)
 	if !ok {
 		return nil, false
 	}
@@ -177,7 +177,7 @@ func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*v
 	return vmOutput, true
 }
 
-func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.SimulationResults) error {
+func (ts *transactionSimulator) addIntermediateTxsToResult(result *txSimData.SimulationResultsWithVMOutput) error {
 	defer func() {
 		processorsKeys := ts.intermProcContainer.Keys()
 		for _, procKey := range processorsKeys {

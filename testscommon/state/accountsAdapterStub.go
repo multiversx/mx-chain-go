@@ -42,7 +42,7 @@ type AccountsStub struct {
 	StartSnapshotIfNeededCalled   func() error
 }
 
-// CleanCache --
+// CleanCache -
 func (as *AccountsStub) CleanCache() {
 }
 

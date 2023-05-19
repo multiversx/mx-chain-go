@@ -10,45 +10,45 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-// readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
-type readOnlyAccountsDB struct {
+// simulationAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
+type simulationAccountsDB struct {
 	mutex            sync.RWMutex
-	cashedAccounts   map[string]vmcommon.AccountHandler
+	cachedAccounts   map[string]vmcommon.AccountHandler
 	originalAccounts state.AccountsAdapter
 }
 
-// NewReadOnlyAccountsDB returns a new instance of readOnlyAccountsDB
-func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsDB, error) {
+// NewSimulationAccountsDB returns a new instance of simulationAccountsDB
+func NewSimulationAccountsDB(accountsDB state.AccountsAdapter) (*simulationAccountsDB, error) {
 	if check.IfNil(accountsDB) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	return &readOnlyAccountsDB{
+	return &simulationAccountsDB{
 		mutex:            sync.RWMutex{},
-		cashedAccounts:   make(map[string]vmcommon.AccountHandler),
+		cachedAccounts:   make(map[string]vmcommon.AccountHandler),
 		originalAccounts: accountsDB,
 	}, nil
 }
 
 // SetSyncer returns nil for this implementation
-func (r *readOnlyAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
+func (r *simulationAccountsDB) SetSyncer(_ state.AccountsDBSyncer) error {
 	return nil
 }
 
 // StartSnapshotIfNeeded returns nil for this implementation
-func (r *readOnlyAccountsDB) StartSnapshotIfNeeded() error {
+func (r *simulationAccountsDB) StartSnapshotIfNeeded() error {
 	return nil
 }
 
 // GetCode returns the code for the given account
-func (r *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
+func (r *simulationAccountsDB) GetCode(codeHash []byte) []byte {
 	return r.originalAccounts.GetCode(codeHash)
 }
 
 // GetExistingAccount will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+func (r *simulationAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
 	r.mutex.RLock()
-	cachedAccount, ok := r.cashedAccounts[string(address)]
+	cachedAccount, ok := r.cachedAccounts[string(address)]
 	r.mutex.RUnlock()
 	if ok {
 		return cachedAccount, nil
@@ -58,14 +58,14 @@ func (r *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.Accoun
 }
 
 // GetAccountFromBytes will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
+func (r *simulationAccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
 	return r.originalAccounts.GetAccountFromBytes(address, accountBytes)
 }
 
 // LoadAccount will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+func (r *simulationAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	r.mutex.RLock()
-	cachedAccount, ok := r.cashedAccounts[string(address)]
+	cachedAccount, ok := r.cachedAccounts[string(address)]
 	r.mutex.RUnlock()
 	if ok {
 		return cachedAccount, nil
@@ -75,7 +75,7 @@ func (r *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandle
 }
 
 // SaveAccount won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
+func (r *simulationAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -83,105 +83,105 @@ func (r *readOnlyAccountsDB) SaveAccount(account vmcommon.AccountHandler) error 
 		return nil
 	}
 
-	r.cashedAccounts[string(account.AddressBytes())] = account
+	r.cachedAccounts[string(account.AddressBytes())] = account
 
 	return nil
 }
 
 // RemoveAccount won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) RemoveAccount(_ []byte) error {
+func (r *simulationAccountsDB) RemoveAccount(_ []byte) error {
 	return nil
 }
 
 // Commit won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) Commit() ([]byte, error) {
+func (r *simulationAccountsDB) Commit() ([]byte, error) {
 	return nil, nil
 }
 
 // JournalLen will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) JournalLen() int {
+func (r *simulationAccountsDB) JournalLen() int {
 	return r.originalAccounts.JournalLen()
 }
 
 // RevertToSnapshot won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
+func (r *simulationAccountsDB) RevertToSnapshot(_ int) error {
 	return nil
 }
 
 // RootHash will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) RootHash() ([]byte, error) {
+func (r *simulationAccountsDB) RootHash() ([]byte, error) {
 	return r.originalAccounts.RootHash()
 }
 
 // RecreateTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) RecreateTrie(_ []byte) error {
+func (r *simulationAccountsDB) RecreateTrie(_ []byte) error {
 	return nil
 }
 
 // RecreateTrieFromEpoch won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+func (r *simulationAccountsDB) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
 	return nil
 }
 
 // PruneTrie won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
+func (r *simulationAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
+func (r *simulationAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) SnapshotState(_ []byte) {
+func (r *simulationAccountsDB) SnapshotState(_ []byte) {
 }
 
 // SetStateCheckpoint won't do anything as write operations are disabled on this component
-func (r *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
+func (r *simulationAccountsDB) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) IsPruningEnabled() bool {
+func (r *simulationAccountsDB) IsPruningEnabled() bool {
 	return r.originalAccounts.IsPruningEnabled()
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (r *readOnlyAccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+func (r *simulationAccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 	return r.originalAccounts.GetAllLeaves(leavesChannels, ctx, rootHash)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
-func (r *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
+func (r *simulationAccountsDB) RecreateAllTries(_ []byte) (map[string]common.Trie, error) {
 	return nil, nil
 }
 
 // GetTrie will return an error which indicates that this operation is not supported
-func (r *readOnlyAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
+func (r *simulationAccountsDB) GetTrie(_ []byte) (common.Trie, error) {
 	return nil, nil
 }
 
 // CommitInEpoch will do nothing for this implementation
-func (r *readOnlyAccountsDB) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
+func (r *simulationAccountsDB) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
 	return nil, nil
 }
 
 // GetStackDebugFirstEntry -
-func (r *readOnlyAccountsDB) GetStackDebugFirstEntry() []byte {
+func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
 // Close will handle the closing of the underlying components
-func (r *readOnlyAccountsDB) Close() error {
+func (r *simulationAccountsDB) Close() error {
 	return r.originalAccounts.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (r *readOnlyAccountsDB) IsInterfaceNil() bool {
+func (r *simulationAccountsDB) IsInterfaceNil() bool {
 	return r == nil
 }
 
-// CleanCache -
-func (r *readOnlyAccountsDB) CleanCache() {
+// CleanCache will clean the internal map with the cached accounts
+func (r *simulationAccountsDB) CleanCache() {
 	r.mutex.Lock()
-	r.cashedAccounts = make(map[string]vmcommon.AccountHandler)
+	r.cachedAccounts = make(map[string]vmcommon.AccountHandler)
 	r.mutex.Unlock()
 }

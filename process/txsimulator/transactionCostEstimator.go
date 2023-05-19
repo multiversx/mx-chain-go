@@ -76,7 +76,7 @@ func NewTransactionCostEstimator(args ArgsTransactionCostSimulator) (*transactio
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (tce *transactionCostEstimator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (tce *transactionCostEstimator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	tce.mutExecution.Lock()
 	defer func() {
 		tce.accounts.CleanCache()

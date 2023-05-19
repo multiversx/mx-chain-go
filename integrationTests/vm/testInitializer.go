@@ -875,7 +875,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	// create transaction simulator
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(accnts)
+	readOnlyAccountsDB, err := txsimulator.NewSimulationAccountsDB(accnts)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ import (
 )
 
 func (pcf *processComponentsFactory) createTxCostSimulator() (factory.TransactionCostSimulator, process.VirtualMachinesContainerFactory, error) {
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(pcf.state.AccountsAdapterAPI())
+	simulationAccountsDB, err := txsimulator.NewSimulationAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -43,7 +43,7 @@ func (pcf *processComponentsFactory) createTxCostSimulator() (factory.Transactio
 		return nil, nil, err
 	}
 
-	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, err := pcf.createArgsTxSimulatorProcessor(readOnlyAccountsDB, vmOutputCacher, txLogsProcessor)
+	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,7 +63,7 @@ func (pcf *processComponentsFactory) createTxCostSimulator() (factory.Transactio
 		TxTypeHandler:       txTypeHandler,
 		FeeHandler:          pcf.coreData.EconomicsData(),
 		TxSimulator:         txSimulator,
-		Accounts:            readOnlyAccountsDB,
+		Accounts:            simulationAccountsDB,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	})

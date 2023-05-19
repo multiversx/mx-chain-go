@@ -151,7 +151,7 @@ func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nil, errNodeStarting
 }
 

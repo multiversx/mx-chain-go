@@ -258,7 +258,7 @@ type NetworkComponentsHandler interface {
 
 // TransactionCostSimulator defines the transaction cost simulator actions
 type TransactionCostSimulator interface {
-	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
 }
