@@ -4480,3 +4480,34 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 		require.Nil(t, err)
 	})
 }
+
+func Test_createExecutableCheckersMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty builtInFunctions should return empty map", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		builtinFuncs := arguments.BuiltInFunctions
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 0, len(executableCheckersMap))
+	})
+	t.Run("no builtinFunctions implementing ExecutableChecker interface should return empty map", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		builtinFuncs := arguments.BuiltInFunctions
+		_ = builtinFuncs.Add("SetGuardian", &mock.BuiltInFunctionStub{})
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 0, len(executableCheckersMap))
+	})
+	t.Run("one builtinFunctions implementing ExecutableChecker interface should return map with one entry that builtin func", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		expectedExecutableChecker := &vmcommonMocks.BuiltInFunctionExecutableStub{}
+		builtinFuncs := arguments.BuiltInFunctions
+		_ = builtinFuncs.Add("SetGuardian", expectedExecutableChecker)
+		_ = builtinFuncs.Add("SetGuardian2", &mock.BuiltInFunctionStub{})
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 1, len(executableCheckersMap))
+		require.Equal(t, expectedExecutableChecker, executableCheckersMap["SetGuardian"])
+	})
+}
