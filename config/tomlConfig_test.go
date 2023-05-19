@@ -693,16 +693,16 @@ func TestEnableEpochConfig(t *testing.T) {
     SetGuardianEnableEpoch = 64
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 64
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 65
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
-    MultiClaimOnDelegationEnableEpoch = 65
+    MultiClaimOnDelegationEnableEpoch = 66
 
     # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
-    ChangeUsernameEnableEpoch = 64
+    ChangeUsernameEnableEpoch = 67
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 66
+    ConsistentTokensValuesLengthCheckEnableEpoch = 68
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -800,10 +800,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeCodeSizeFixEnableEpoch:                62,
 			RuntimeMemStoreLimitEnableEpoch:              63,
 			SetGuardianEnableEpoch:                       64,
-			MultiClaimOnDelegationEnableEpoch:            65,
-			KeepExecOrderOnCreatedSCRsEnableEpoch:        64,
-			ChangeUsernameEnableEpoch:                    64,
-			ConsistentTokensValuesLengthCheckEnableEpoch: 66,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:        65,
+			MultiClaimOnDelegationEnableEpoch:            66,
+			ChangeUsernameEnableEpoch:                    67,
+			ConsistentTokensValuesLengthCheckEnableEpoch: 68,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
