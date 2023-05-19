@@ -15,25 +15,25 @@ import (
 
 var log = logger.GetOrCreate("headerSubscriber")
 
-// ArgsIncomingHeaderHandler is a struct placeholder for args needed to create a new incoming header handler
-type ArgsIncomingHeaderHandler struct {
+// ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
+type ArgsIncomingHeaderProcessor struct {
 	HeadersPool HeadersPool
 	TxPool      TransactionPool
 	Marshaller  marshal.Marshalizer
 	Hasher      hashing.Hasher
 }
 
-type incomingHeaderHandler struct {
+type incomingHeaderProcessor struct {
 	headersPool HeadersPool
-	txPool      TransactionPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
+	scrProc     *scrProcessor
 }
 
-// NewIncomingHeaderHandler creates an incoming header handler which should be able to receive incoming headers and events
+// NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
 // from a chain to local sovereign chain. This handler will validate the events(using proofs in the future) and create
 // incoming miniblocks and transaction(which will be added in pool) to be executed in sovereign shard.
-func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHandler, error) {
+func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHeaderProcessor, error) {
 	if check.IfNil(args.HeadersPool) {
 		return nil, errNilHeadersPool
 	}
@@ -47,16 +47,22 @@ func NewIncomingHeaderHandler(args ArgsIncomingHeaderHandler) (*incomingHeaderHa
 		return nil, core.ErrNilHasher
 	}
 
-	return &incomingHeaderHandler{
+	scrProc := &scrProcessor{
+		txPool:     args.TxPool,
+		marshaller: args.Marshaller,
+		hasher:     args.Hasher,
+	}
+
+	return &incomingHeaderProcessor{
 		headersPool: args.HeadersPool,
-		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
+		scrProc:     scrProc,
 	}, nil
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
-func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
+func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
 
 	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
@@ -64,7 +70,7 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 		return errInvalidHeaderType
 	}
 
-	incomingSCRs, err := ihs.createIncomingSCRs(header.GetIncomingEventHandlers())
+	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
@@ -74,26 +80,26 @@ func (ihs *incomingHeaderHandler) AddHeader(headerHash []byte, header sovereign.
 		IncomingMiniBlocks: createIncomingMb(incomingSCRs),
 	}
 
-	err = ihs.addExtendedHeaderToPool(extendedHeader)
+	err = ihp.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	ihs.addSCRsToPool(incomingSCRs)
+	ihp.scrProc.addSCRsToPool(incomingSCRs)
 	return nil
 }
 
-func (ihs *incomingHeaderHandler) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
-	extendedHeaderHash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, extendedHeader)
+func (ihp *incomingHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
+	extendedHeaderHash, err := core.CalculateHash(ihp.marshaller, ihp.hasher, extendedHeader)
 	if err != nil {
 		return err
 	}
 
-	ihs.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
+	ihp.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
 	return nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (ihs *incomingHeaderHandler) IsInterfaceNil() bool {
-	return ihs == nil
+func (ihp *incomingHeaderProcessor) IsInterfaceNil() bool {
+	return ihp == nil
 }

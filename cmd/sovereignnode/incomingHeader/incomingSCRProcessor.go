@@ -2,11 +2,14 @@ package incomingHeader
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -20,17 +23,25 @@ type scrInfo struct {
 	hash []byte
 }
 
-func (ihs *incomingHeaderHandler) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
+type scrProcessor struct {
+	txPool     TransactionPool
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
+}
+
+func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
 	scrs := make([]*scrInfo, 0, len(events))
 
-	for _, event := range events {
+	for idx, event := range events {
 		topics := event.GetTopics()
+		// TODO: Check each param validity (e.g. check that topic[0] == valid address)
 		if len(topics) < minTopicsInEvent || len(topics[1:])%numTransferTopics != 0 {
 			log.Error("incomingHeaderHandler.createIncomingSCRs",
 				"error", errInvalidNumTopicsIncomingEvent,
 				"num topics", len(topics),
 				"topics", topics)
-			continue
+			return nil, fmt.Errorf("%w at event idx = %d; num topics = %d",
+				errInvalidNumTopicsIncomingEvent, idx, len(topics))
 		}
 
 		scr := &smartContractResult.SmartContractResult{
@@ -39,7 +50,7 @@ func (ihs *incomingHeaderHandler) createIncomingSCRs(events []data.EventHandler)
 			Data:    createSCRData(topics),
 		}
 
-		hash, err := core.CalculateHash(ihs.marshaller, ihs.hasher, scr)
+		hash, err := core.CalculateHash(sp.marshaller, sp.hasher, scr)
 		if err != nil {
 			return nil, err
 		}
@@ -73,10 +84,10 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (ihs *incomingHeaderHandler) addSCRsToPool(scrs []*scrInfo) {
+func (sp *scrProcessor) addSCRsToPool(scrs []*scrInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
 	for _, scrData := range scrs {
-		ihs.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+		sp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
 	}
 }

@@ -3,7 +3,9 @@ package incomingHeader
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -21,13 +23,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createArgs() ArgsIncomingHeaderHandler {
-	return ArgsIncomingHeaderHandler{
+func createArgs() ArgsIncomingHeaderProcessor {
+	return ArgsIncomingHeaderProcessor{
 		HeadersPool: &mock.HeadersCacherStub{},
 		TxPool:      &testscommon.ShardedDataStub{},
 		Marshaller:  &testscommon.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
+}
+
+func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics int) {
+	require.True(t, strings.Contains(err.Error(), errInvalidNumTopicsIncomingEvent.Error()))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", idx)))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", numTopics)))
 }
 
 func TestNewIncomingHeaderHandler(t *testing.T) {
@@ -37,7 +45,7 @@ func TestNewIncomingHeaderHandler(t *testing.T) {
 		args := createArgs()
 		args.HeadersPool = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, errNilHeadersPool, err)
 		require.Nil(t, handler)
 	})
@@ -46,32 +54,32 @@ func TestNewIncomingHeaderHandler(t *testing.T) {
 		args := createArgs()
 		args.TxPool = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, errNilTxPool, err)
 		require.Nil(t, handler)
 	})
 
-	t.Run("nil headers pool, should return error", func(t *testing.T) {
+	t.Run("nil marshaller, should return error", func(t *testing.T) {
 		args := createArgs()
 		args.Marshaller = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, core.ErrNilMarshalizer, err)
 		require.Nil(t, handler)
 	})
 
-	t.Run("nil headers pool, should return error", func(t *testing.T) {
+	t.Run("nil hasher, should return error", func(t *testing.T) {
 		args := createArgs()
 		args.Hasher = nil
 
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Equal(t, core.ErrNilHasher, err)
 		require.Nil(t, handler)
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		args := createArgs()
-		handler, err := NewIncomingHeaderHandler(args)
+		handler, err := NewIncomingHeaderProcessor(args)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(handler))
 	})
@@ -82,7 +90,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
 		args := createArgs()
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
 
 		incomingHeader := &sovereignTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
@@ -102,13 +110,13 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 				return nil, errMarshaller
 			},
 		}
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
 
 		err := handler.AddHeader([]byte("hash"), &sovereign.IncomingHeader{Header: &block.HeaderV2{}})
 		require.Equal(t, errMarshaller, err)
 	})
 
-	t.Run("invalid num topics in event, should skip events", func(t *testing.T) {
+	t.Run("invalid num topics in event, should return error", func(t *testing.T) {
 		args := createArgs()
 
 		numSCRsAdded := 0
@@ -124,21 +132,37 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 				{
 					Topics: [][]byte{[]byte("addr")},
 				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1")},
-				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")},
-				},
-				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")},
-				},
 			},
 		}
 
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
+
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
-		require.Nil(t, err)
+		requireErrorIsInvalidNumTopics(t, err, 0, 1)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 2)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 3)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")}}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 5)
+
+		incomingHeader.IncomingEvents = []*transaction.Event{
+			{
+				Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+			},
+			{
+				Topics: [][]byte{[]byte("addr")},
+			},
+		}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 1, 1)
+
 		require.Equal(t, 0, numSCRsAdded)
 	})
 
@@ -173,7 +197,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			},
 		}
 
-		handler, _ := NewIncomingHeaderHandler(args)
+		handler, _ := NewIncomingHeaderProcessor(args)
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
 		require.Equal(t, errMarshaller, err)
 		require.Equal(t, 0, numSCRsAdded)
@@ -283,7 +307,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	}
 	topic2 := append([][]byte{addr2}, transfer3...)
 
-	handler, _ := NewIncomingHeaderHandler(args)
+	handler, _ := NewIncomingHeaderProcessor(args)
 	incomingHeader := &sovereign.IncomingHeader{
 		Header: headerV2,
 		IncomingEvents: []*transaction.Event{
