@@ -54,6 +54,14 @@ func TestNewFirehoseIndexer(t *testing.T) {
 		require.Equal(t, errNilBlockCreator, err)
 	})
 
+	t.Run("nil marshaller, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		fi, err := NewFirehoseIndexer(&testscommon.IoWriterStub{}, block.NewEmptyBlockCreatorsContainer(), nil)
+		require.Nil(t, fi)
+		require.Equal(t, core.ErrNilMarshalizer, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -76,6 +84,73 @@ func TestFirehoseIndexer_SaveBlock(t *testing.T) {
 
 		err = fi.SaveBlock(&outportcore.OutportBlock{BlockData: nil})
 		require.Equal(t, errNilOutportBlock, err)
+	})
+
+	t.Run("unknown block creator, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		outportBlock := createOutportBlock()
+		outportBlock.BlockData.HeaderType = "unknown"
+
+		ioWriterCalledCt := 0
+		ioWriter := &testscommon.IoWriterStub{
+			WriteCalled: func(p []byte) (n int, err error) {
+				ioWriterCalledCt++
+				return 0, nil
+			},
+		}
+
+		container := block.NewEmptyBlockCreatorsContainer()
+		_ = container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+
+		fi, _ := NewFirehoseIndexer(ioWriter, container, protoMarshaller)
+		err := fi.SaveBlock(outportBlock)
+		require.NotNil(t, err)
+		require.Equal(t, 0, ioWriterCalledCt)
+	})
+
+	t.Run("cannot marshal/unmarshall, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		ioWriterCalledCt := 0
+		ioWriter := &testscommon.IoWriterStub{
+			WriteCalled: func(p []byte) (n int, err error) {
+				ioWriterCalledCt++
+				return 0, nil
+			},
+		}
+
+		unmarshallCalled := false
+		errUnmarshall := errors.New("err unmarshal")
+		errMarshall := errors.New("err marshal")
+		marshaller := &testscommon.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				defer func() {
+					unmarshallCalled = true
+				}()
+
+				if !unmarshallCalled {
+					return errUnmarshall
+				}
+
+				return nil
+			},
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, errMarshall
+			},
+		}
+
+		container := block.NewEmptyBlockCreatorsContainer()
+		_ = container.Add(core.ShardHeaderV1, block.NewEmptyHeaderCreator())
+
+		fi, _ := NewFirehoseIndexer(ioWriter, container, marshaller)
+
+		outportBlock := createOutportBlock()
+		err := fi.SaveBlock(outportBlock)
+		require.Equal(t, errUnmarshall, err)
+
+		err = fi.SaveBlock(outportBlock)
+		require.Equal(t, errMarshall, err)
 	})
 
 	t.Run("cannot write in console, should return error", func(t *testing.T) {
