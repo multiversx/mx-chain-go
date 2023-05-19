@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -23,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
+	"github.com/multiversx/mx-chain-go/process/sync/trieIterators"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -123,6 +125,8 @@ type baseBootstrap struct {
 	isInImportMode               bool
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processWaitTime              time.Duration
+
+	repopulateTokensSupplies bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -816,7 +820,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
 
-		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
+		err = boot.outportHandler.RevertIndexedBlock(&outportcore.HeaderDataWithBody{
+			Body:       currBody,
+			HeaderHash: currHeaderHash,
+			Header:     currHeader,
+		})
+		if err != nil {
+			log.Warn("baseBootstrap.outportHandler.RevertIndexedBlock cannot revert indexed block", "error", err)
+		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
@@ -1189,6 +1200,42 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	}
 
 	return common.NsNotSynchronized
+}
+
+func (boot *baseBootstrap) handleAccountsTrieIteration() error {
+	if boot.repopulateTokensSupplies {
+		return boot.handleTokensSuppliesRepopulation()
+	}
+
+	// add more flags and trie iterators here
+	return nil
+}
+
+func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
+	argsTrieAccountsIteratorProc := trieIterators.ArgsTrieAccountsIterator{
+		Marshaller: boot.marshalizer,
+		Accounts:   boot.accounts,
+	}
+	trieAccountsIteratorProc, err := trieIterators.NewTrieAccountsIterator(argsTrieAccountsIteratorProc)
+	if err != nil {
+		return err
+	}
+
+	argsTokensSuppliesProc := trieIterators.ArgsTokensSuppliesProcessor{
+		StorageService: boot.store,
+		Marshaller:     boot.marshalizer,
+	}
+	tokensSuppliesProc, err := trieIterators.NewTokensSuppliesProcessor(argsTokensSuppliesProc)
+	if err != nil {
+		return err
+	}
+
+	err = trieAccountsIteratorProc.Process(tokensSuppliesProc.HandleTrieAccountIteration)
+	if err != nil {
+		return err
+	}
+
+	return tokensSuppliesProc.SaveSupplies()
 }
 
 // Close will close the endless running go routine

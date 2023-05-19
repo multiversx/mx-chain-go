@@ -34,6 +34,9 @@ const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
 const changeOwner = "changeOwner"
 const withdraw = "withdraw"
+const claimRewards = "claimRewards"
+const reDelegateRewards = "reDelegateRewards"
+const delegate = "delegate"
 
 const (
 	active    = uint32(0)
@@ -199,7 +202,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unBondNodes(args)
 	case "unJailNodes":
 		return d.unJailNodes(args)
-	case "delegate":
+	case delegate:
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
@@ -215,7 +218,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
-	case "claimRewards":
+	case claimRewards:
 		return d.claimRewards(args)
 	case "getRewardData":
 		return d.getRewardData(args)
@@ -245,7 +248,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	case "unStakeAtEndOfEpoch":
 		return d.unStakeAtEndOfEpoch(args)
-	case "reDelegateRewards":
+	case reDelegateRewards:
 		return d.reDelegateRewards(args)
 	case "reStakeUnStakedNodes":
 		return d.reStakeUnStakedNodes(args)
@@ -1685,11 +1688,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
-		d.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
@@ -1769,7 +1767,8 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	zeroValueByteSlice := make([]byte, 0)
-	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes())
+	unDelegateFundKey := delegator.UnStakedFunds[len(delegator.UnStakedFunds)-1]
+	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes(), unDelegateFundKey)
 
 	return vmcommon.Ok
 }
@@ -2084,6 +2083,9 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if totalUnBondable.Cmp(zero) == 0 {
 		d.eei.AddReturnMessage("nothing to unBond")
+		if d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -2107,6 +2109,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	totalUnBonded := big.NewInt(0)
 	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
+	withdrawFundKeys := make([][]byte, 0)
 	for fundIndex, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
 		if err != nil {
@@ -2129,6 +2132,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
+
+		withdrawFundKeys = append(withdrawFundKeys, fundKey)
 		d.eei.SetStorage(fundKey, nil)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
@@ -2158,7 +2163,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
+	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted, withdrawFundKeys)
 
 	return vmcommon.Ok
 }

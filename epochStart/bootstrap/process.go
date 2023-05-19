@@ -115,6 +115,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	nodeProcessingMode         common.NodeProcessingMode
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -178,6 +179,7 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	NodeProcessingMode         common.NodeProcessingMode
 }
 
 type dataToSync struct {
@@ -185,6 +187,7 @@ type dataToSync struct {
 	rootHashToSync    []byte
 	withScheduled     bool
 	additionalHeaders map[string]data.HeaderHandler
+	miniBlocks        map[string]*block.MiniBlock
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -223,6 +226,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
+		nodeProcessingMode:         args.NodeProcessingMode,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -416,7 +420,7 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	errMessenger := e.messenger.UnregisterAllMessageProcessors()
 	log.LogIfError(errMessenger)
 
-	errMessenger = e.messenger.UnjoinAllTopics()
+	errMessenger = e.messenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
 	e.closeTrieNodes()
@@ -482,6 +486,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.closeTrieComponents()
 	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
@@ -761,6 +766,9 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -770,6 +778,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -927,6 +936,9 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -936,6 +948,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -965,7 +978,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled)
+	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled, dts.miniBlocks)
 	if errSavingToStorage != nil {
 		return errSavingToStorage
 	}
@@ -1033,9 +1046,10 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		rootHashToSync:    nil,
 		withScheduled:     false,
 		additionalHeaders: nil,
+		miniBlocks:        nil,
 	}
 
-	res.ownShardHdr, res.additionalHeaders, err = e.dataSyncerWithScheduled.UpdateSyncDataIfNeeded(shardNotarizedHeader)
+	res.ownShardHdr, res.additionalHeaders, res.miniBlocks, err = e.dataSyncerWithScheduled.UpdateSyncDataIfNeeded(shardNotarizedHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -1107,6 +1121,10 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+			NodeProcessingMode:            e.nodeProcessingMode,
+			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
 		return nil, err
@@ -1290,7 +1308,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		Messenger:                          e.messenger,
 		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
 		HeartbeatTopic:                     heartbeatTopic,
-		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsInSec),
+		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),
 		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
 		HeartbeatTimeThresholdBetweenSends: heartbeatCfg.HeartbeatTimeThresholdBetweenSends,
 		VersionNumber:                      e.flagsConfig.Version,

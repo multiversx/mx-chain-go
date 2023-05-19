@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -340,6 +341,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
+	log.Debug("UpdatePeerState - registering shard leader fees", "metaNonce", header.GetNonce())
 	err = vs.updateShardDataPeerState(header, cache)
 	if err != nil {
 		return nil, err
@@ -364,8 +366,13 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	if err != nil {
 		return nil, err
 	}
-	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
+
+	encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+
+	leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+
+	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
@@ -444,7 +451,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +566,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
@@ -771,7 +778,9 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("loadPeerAccount")
 		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
-		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
+
+		encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+		leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
@@ -886,6 +895,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
+		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			shardConsensus,
 			h.PubKeysBitmap,
@@ -1015,6 +1025,10 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			}
 
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
+			log.Debug("updateValidatorInfoOnSuccessfulBlock",
+				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
+				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
+				"leader", core.GetTrimmedPk(string(peerAcc.GetBLSPublicKey())))
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())

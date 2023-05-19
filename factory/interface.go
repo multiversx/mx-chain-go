@@ -165,7 +165,6 @@ type CryptoParamsHolder interface {
 	PrivateKey() crypto.PrivateKey
 	PublicKeyString() string
 	PublicKeyBytes() []byte
-	PrivateKeyBytes() []byte
 }
 
 // CryptoComponentsHolder holds the crypto components
@@ -184,7 +183,9 @@ type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
 	P2pKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
-	ConsensusSigHandler() consensus.SignatureHandler
+	ConsensusSigningHandler() consensus.SigningHandler
+	ManagedPeersHolder() common.ManagedPeersHolder
+	KeysHandler() consensus.KeysHandler
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -192,6 +193,8 @@ type CryptoComponentsHolder interface {
 // KeyLoaderHandler defines the loading of a key from a pem file and index
 type KeyLoaderHandler interface {
 	LoadKey(string, int) ([]byte, string, error)
+	LoadAllKeys(path string) ([][]byte, []string, error)
+	IsInterfaceNil() bool
 }
 
 // CryptoComponentsHandler defines the crypto components handler actions
@@ -211,7 +214,7 @@ type MiniBlockProvider interface {
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
 	MiniBlocksProvider() MiniBlockProvider
@@ -243,6 +246,7 @@ type NetworkComponentsHolder interface {
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
+	PeersRatingMonitor() p2p.PeersRatingMonitor
 	IsInterfaceNil() bool
 }
 
@@ -321,6 +325,7 @@ type StateComponentsHolder interface {
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -336,7 +341,7 @@ type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
 	// SetForkDetector should be set before starting Polling for updates
-	SetForkDetector(forkDetector process.ForkDetector)
+	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
 }
 
@@ -440,6 +445,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	GuardedAccountHandler() process.GuardedAccountHandler
 	IsInterfaceNil() bool
 }
 

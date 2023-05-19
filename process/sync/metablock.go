@@ -135,7 +135,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 }
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
-func (boot *MetaBootstrap) StartSyncingBlocks() {
+func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
@@ -147,6 +147,8 @@ func (boot *MetaBootstrap) StartSyncingBlocks() {
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
 	go boot.syncBlocks(ctx)
+
+	return nil
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {

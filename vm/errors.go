@@ -1,6 +1,8 @@
 package vm
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrUnknownSystemSmartContract signals that there is no system smart contract on the provided address
 var ErrUnknownSystemSmartContract = errors.New("missing system smart contract on selected address")
@@ -128,14 +130,17 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
 
-// ErrInvalidStartEndVoteNonce signals that invalid arguments where passed for start or end vote nonce
-var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
+// ErrInvalidStartEndVoteEpoch signals that invalid arguments where passed for start or end vote epoch
+var ErrInvalidStartEndVoteEpoch = errors.New("invalid start/end vote epoch")
 
 // ErrEmptyStorage signals that the storage is empty for given key
 var ErrEmptyStorage = errors.New("storage is nil for given key")
 
 // ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
 var ErrVotedForAnExpiredProposal = errors.New("voting period is over for this proposal")
+
+// ErrDoubleVote signals that user is voting for the second time for the same proposal
+var ErrDoubleVote = errors.New("double vote is not allowed")
 
 // ErrVotingNotStartedForProposal signals that voting was done for a proposal that not begins yet
 var ErrVotingNotStartedForProposal = errors.New("voting has not yet started for this proposal")
@@ -239,8 +244,11 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrProposalNotFound signals that the storage is empty for given key
 var ErrProposalNotFound = errors.New("proposal was not found in storage")
 
-// ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
-var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNotEnoughStakeToVote signals that the stake/delegation is not enough to vote
+var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
+
+// ErrNotEnoughVotingPower signals that there is not enough voting power to cast the vote
+var ErrNotEnoughVotingPower = errors.New("not enough voting power to cast this vote")

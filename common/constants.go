@@ -198,6 +198,9 @@ const MetricConsensusRoundState = "erd_consensus_round_state"
 // MetricCrossCheckBlockHeight is the metric that store cross block height
 const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 
+// MetricCrossCheckBlockHeightMeta is the metric that store metachain cross block height
+const MetricCrossCheckBlockHeightMeta = "erd_cross_check_block_height_meta"
+
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
@@ -298,7 +301,7 @@ const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
-//MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
+// MetricProcessedProposedBlock is the metric that specify the percent of the block subround used for header and body
 // processing (0 meaning that the block was processed in no-time and 100 meaning that the block processing used all the
 // subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
@@ -308,6 +311,9 @@ const MetricMinGasPrice = "erd_min_gas_price"
 
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
+
+// MetricExtraGasLimitGuardedTx specifies the extra gas limit required for guarded transactions
+const MetricExtraGasLimitGuardedTx = "erd_extra_gas_limit_guarded_tx"
 
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
@@ -369,8 +375,8 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
-const ElrondAPICost = "ElrondAPICost"
+// BaseOpsAPICost represents the field name of the SC API (EEI) gas costs
+const BaseOpsAPICost = "BaseOpsAPICost"
 
 // MaxPerTransaction represents the field name of max counts per transaction in block chain hook
 const MaxPerTransaction = "MaxPerTransaction"
@@ -594,6 +600,9 @@ const (
 
 	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
+
+	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
+	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
 )
 
 const (

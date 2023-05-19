@@ -95,6 +95,7 @@ func saveMetricsForCommittedShardBlock(
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
 }
 
 func incrementCountAcceptedBlocks(
@@ -207,16 +208,16 @@ func indexRoundInfo(
 	signersIndexes []uint64,
 ) {
 	roundInfo := &outportcore.RoundInfo{
-		Index:            header.GetRound(),
+		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        time.Duration(header.GetTimeStamp()),
+		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
 	}
 
 	if check.IfNil(lastHeader) {
-		outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{RoundsInfo: []*outportcore.RoundInfo{roundInfo}})
 		return
 	}
 
@@ -238,18 +239,18 @@ func indexRoundInfo(
 		}
 
 		roundInfo = &outportcore.RoundInfo{
-			Index:            i,
+			Round:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
 			Epoch:            header.GetEpoch(),
-			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
+			Timestamp:        uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration))),
 		}
 
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	outportHandler.SaveRoundsInfo(roundsInfo)
+	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{RoundsInfo: roundsInfo})
 }
 
 func indexValidatorsRating(
@@ -268,7 +269,6 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]*outportcore.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
 		validatorsInfos := make([]*outportcore.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
@@ -278,19 +278,11 @@ func indexValidatorsRating(
 			})
 		}
 
-		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
-		shardValidatorsRating[indexID] = validatorsInfos
-	}
-
-	indexShardValidatorsRating(outportHandler, shardValidatorsRating)
-}
-
-func indexShardValidatorsRating(
-	outportHandler outport.OutportHandler,
-	shardValidatorsRating map[string][]*outportcore.ValidatorRatingInfo,
-) {
-	for indexID, validatorsInfos := range shardValidatorsRating {
-		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		outportHandler.SaveValidatorsRating(&outportcore.ValidatorsRating{
+			ShardID:              shardID,
+			Epoch:                metaBlock.GetEpoch(),
+			ValidatorsRatingInfo: validatorsInfos,
+		})
 	}
 }
 

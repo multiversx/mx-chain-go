@@ -21,14 +21,13 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second * 4)
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
-	configs := factory.CreateDefaultConfig()
+	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
@@ -42,9 +41,9 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents, managedDataComponents, managedStatusCoreComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -75,7 +74,6 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
-		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
 		false,
@@ -106,7 +104,8 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	time.Sleep(2 * time.Second)
 
-	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	require.Nil(t, err)
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 

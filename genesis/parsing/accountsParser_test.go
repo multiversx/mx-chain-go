@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,8 +39,8 @@ func createMockInitialAccount() *data.InitialAccount {
 	}
 }
 
-func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
-	return &mock.PubkeyConverterStub{
+func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
+	return &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
 		},
@@ -592,17 +593,17 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 		indexingDataMap[i] = indexingData
 	}
 
-	txsPoolPerShard := make(map[uint32]*outport.Pool)
+	txsPoolPerShard := make(map[uint32]*outport.TransactionPool)
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
-		txsPoolPerShard[i] = &outport.Pool{
-			Scrs: map[string]coreData.TransactionHandlerWithGasUsedAndFee{},
+		txsPoolPerShard[i] = &outport.TransactionPool{
+			SmartContractResults: map[string]*outport.SCRInfo{},
 		}
 	}
 
 	ap.SetScrsTxsPool(sharder, indexingDataMap, txsPoolPerShard)
 	assert.Equal(t, 1, len(txsPoolPerShard))
-	assert.Equal(t, uint64(0), txsPoolPerShard[0].Scrs["hash"].GetGasLimit())
-	assert.Equal(t, uint64(1), txsPoolPerShard[0].Scrs["hash"].GetNonce())
+	assert.Equal(t, uint64(0), txsPoolPerShard[0].SmartContractResults["hash"].SmartContractResult.GetGasLimit())
+	assert.Equal(t, uint64(1), txsPoolPerShard[0].SmartContractResults["hash"].SmartContractResult.GetNonce())
 }
 
 func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
@@ -644,21 +645,21 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	assert.Equal(t, 2, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
-	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
-	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Txs))
-	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
-	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
-	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Transactions))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Transactions))
+	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Transactions))
+	assert.Equal(t, 0, len(txsPoolPerShard[0].SmartContractResults))
+	assert.Equal(t, 0, len(txsPoolPerShard[1].SmartContractResults))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].SmartContractResults))
 
-	for _, tx := range txsPoolPerShard[1].Txs {
-		assert.Equal(t, ibs[0].GetSupply(), tx.GetValue())
-		assert.Equal(t, ibs[0].AddressBytes(), tx.GetRcvAddr())
+	for _, tx := range txsPoolPerShard[1].Transactions {
+		assert.Equal(t, ibs[0].GetSupply(), tx.Transaction.GetValue())
+		assert.Equal(t, ibs[0].AddressBytes(), tx.Transaction.GetRcvAddr())
 	}
 
-	for _, tx := range txsPoolPerShard[0].Txs {
-		assert.Equal(t, ibs[1].GetSupply(), tx.GetValue())
-		assert.Equal(t, ibs[1].AddressBytes(), tx.GetRcvAddr())
+	for _, tx := range txsPoolPerShard[0].Transactions {
+		assert.Equal(t, ibs[1].GetSupply(), tx.Transaction.GetValue())
+		assert.Equal(t, ibs[1].AddressBytes(), tx.Transaction.GetRcvAddr())
 	}
 
 }
@@ -691,8 +692,8 @@ func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *tes
 	require.Nil(t, err)
 
 	for i := uint32(0); i < sharder.NumberOfShards(); i++ {
-		for _, tx := range txsPoolPerShard[i].Txs {
-			assert.Equal(t, uint64(0), tx.GetGasLimit())
+		for _, tx := range txsPoolPerShard[i].Transactions {
+			assert.Equal(t, uint64(0), tx.Transaction.GetGasLimit())
 		}
 	}
 }
@@ -736,10 +737,10 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	assert.Equal(t, 1, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
-	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Transactions))
 
-	for hashString, v := range txsPoolPerShard[0].Txs {
+	for hashString, v := range txsPoolPerShard[0].Transactions {
 		assert.Equal(t, txHash, []byte(hashString))
-		assert.Equal(t, tx, v.GetTxHandler())
+		assert.Equal(t, tx, v.Transaction)
 	}
 }

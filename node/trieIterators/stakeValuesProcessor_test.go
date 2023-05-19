@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -33,7 +34,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 	return ArgTrieIteratorProcessor{
 		Accounts:           createAccountsWrapper(),
 		QueryService:       &mock.SCQueryServiceStub{},
-		PublicKeyConverter: &mock.PubkeyConverterMock{},
+		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -195,7 +196,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder) error {
 			time.Sleep(time.Second)
 			close(leavesChannels.LeavesChan)
-			close(leavesChannels.ErrChan)
+			leavesChannels.ErrChan.Close()
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -297,7 +298,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 				channels.LeavesChan <- leaf6
 
 				close(channels.LeavesChan)
-				close(channels.ErrChan)
+				channels.ErrChan.Close()
 			}()
 
 			return nil
@@ -344,7 +345,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 			}
 		},
 	}
-	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	stakeValues, err := totalStakedProc.GetTotalStakedValue(context.Background())

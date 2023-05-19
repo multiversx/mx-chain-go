@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -208,7 +209,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	}
 	expectedErr := errors.New("expected error")
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+	coreComponents.AddrPubKeyConv = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			if len(humanReadable) == 0 {
 				return nil, expectedErr
@@ -305,7 +306,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	}()
 
 	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
@@ -327,7 +328,6 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 					wg.Done()
 				}
 			}
-			return nil
 		},
 	}
 
@@ -389,26 +389,27 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 	return &factoryMock.CryptoComponentsMock{
-		PubKey:            &mock.PublicKeyMock{},
-		P2pPubKey:         &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyStub{},
-		P2pPrivKey:        &mock.PrivateKeyStub{},
-		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SingleSignerMock{},
-		TxSig:             &mock.SingleSignerMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		P2PKeyGen:         &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
+		PubKey:                  &mock.PublicKeyMock{},
+		P2pPubKey:               &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyStub{},
+		P2pPrivKey:              &mock.PrivateKeyStub{},
+		PubKeyString:            "pubKey",
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SingleSignerMock{},
+		TxSig:                   &mock.SingleSignerMock{},
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		P2PKeyGen:               &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		KeysHandlerField:        &testscommon.KeysHandlerStub{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
-func getDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func getDefaultStateComponents() *factoryMocks.StateComponentsMock {
+	return &factoryMocks.StateComponentsMock{
 		PeersAcc:        &stateMock.AccountsStub{},
 		Accounts:        &stateMock.AccountsStub{},
 		AccountsAPI:     &stateMock.AccountsStub{},

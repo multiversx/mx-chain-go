@@ -129,11 +129,15 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	numMetachainNodes := 1
 
 	genesisFile := "smartcontracts.json"
-	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
+	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.ChangeUsernameEnableEpoch = integrationTests.UnreachableEpoch
+	nodes, _ := integrationTests.CreateNodesWithFullGenesisCustomEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		genesisFile,
+		enableEpochsConfig,
 	)
 
 	for _, node := range nodes {
@@ -252,7 +256,9 @@ func checkUserNamesAreSetCorrectly(
 			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
 			bech32c := integrationTests.TestAddressPubkeyConverter
-			usernameReportedByNode, _, err := node.Node.GetUsername(bech32c.Encode(player.Address), api.AccountQueryOptions{})
+			playerAddress, err := bech32c.Encode(player.Address)
+			require.NoError(t, err)
+			usernameReportedByNode, _, err := node.Node.GetUsername(playerAddress, api.AccountQueryOptions{})
 			require.NoError(t, err)
 			require.Equal(t, userNames[i], usernameReportedByNode)
 		}

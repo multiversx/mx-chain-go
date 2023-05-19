@@ -4,69 +4,145 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewOldDataCleanerProvider_NilNodeTypeProviderShouldErr(t *testing.T) {
-	t.Parallel()
-
-	odcp, err := NewOldDataCleanerProvider(nil, config.StoragePruningConfig{})
-	require.True(t, check.IfNil(odcp))
-	require.Equal(t, storage.ErrNilNodeTypeProvider, err)
-}
-
-func TestNewOldDataCleanerProvider_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	odcp, err := NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
-	require.NoError(t, err)
-	require.False(t, check.IfNil(odcp))
-}
-
-func TestOldDataCleanerProvider_ShouldCleanShouldReturnObserverIfInvalidNodeType(t *testing.T) {
-	t.Parallel()
-
-	ntp := &nodeTypeProviderMock.NodeTypeProviderStub{
-		GetTypeCalled: func() core.NodeType {
-			return "invalid"
-		},
+func createMockArgOldDataCleanerProvider() ArgOldDataCleanerProvider {
+	return ArgOldDataCleanerProvider{
+		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		PruningStorerConfig: config.StoragePruningConfig{},
+		ManagedPeersHolder:  &testscommon.ManagedPeersHolderStub{},
 	}
+}
 
-	odcp, _ := NewOldDataCleanerProvider(ntp, config.StoragePruningConfig{
-		ObserverCleanOldEpochsData:  true,
-		ValidatorCleanOldEpochsData: true,
+func TestNewOldDataCleanerProvider(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil NodeTypeProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgOldDataCleanerProvider()
+		args.NodeTypeProvider = nil
+		odcp, err := NewOldDataCleanerProvider(args)
+		require.Nil(t, odcp)
+		require.Equal(t, storage.ErrNilNodeTypeProvider, err)
 	})
+	t.Run("nil ManagedPeersHolder should error", func(t *testing.T) {
+		t.Parallel()
 
-	require.False(t, odcp.ShouldClean())
+		args := createMockArgOldDataCleanerProvider()
+		args.ManagedPeersHolder = nil
+		odcp, err := NewOldDataCleanerProvider(args)
+		require.Nil(t, odcp)
+		require.Equal(t, storage.ErrNilManagedPeersHolder, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		odcp, err := NewOldDataCleanerProvider(createMockArgOldDataCleanerProvider())
+		require.NoError(t, err)
+		require.NotNil(t, odcp)
+	})
 }
 
 func TestOldDataCleanerProvider_ShouldClean(t *testing.T) {
 	t.Parallel()
 
-	storagePruningConfig := config.StoragePruningConfig{
-		ObserverCleanOldEpochsData:  false,
-		ValidatorCleanOldEpochsData: true,
-	}
+	t.Run("invalid type should not clean", func(t *testing.T) {
+		t.Parallel()
 
-	ntp := &nodeTypeProviderMock.NodeTypeProviderStub{
-		GetTypeCalled: func() core.NodeType {
-			return core.NodeTypeValidator
-		},
-	}
+		args := createMockArgOldDataCleanerProvider()
+		args.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+			GetTypeCalled: func() core.NodeType {
+				return "invalid"
+			},
+		}
+		args.PruningStorerConfig = config.StoragePruningConfig{
+			ObserverCleanOldEpochsData:  true,
+			ValidatorCleanOldEpochsData: true,
+		}
+		odcp, _ := NewOldDataCleanerProvider(args)
 
-	odcp, _ := NewOldDataCleanerProvider(ntp, storagePruningConfig)
-	require.NotNil(t, odcp)
+		require.False(t, odcp.ShouldClean())
+	})
+	t.Run("observer should clean", func(t *testing.T) {
+		t.Parallel()
 
-	require.True(t, odcp.ShouldClean())
+		args := createMockArgOldDataCleanerProvider()
+		args.PruningStorerConfig = config.StoragePruningConfig{
+			ObserverCleanOldEpochsData:  true,
+			ValidatorCleanOldEpochsData: false,
+		}
 
-	odcp.nodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
-		GetTypeCalled: func() core.NodeType {
-			return core.NodeTypeObserver
-		},
-	}
-	require.False(t, odcp.ShouldClean())
+		args.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+			GetTypeCalled: func() core.NodeType {
+				return core.NodeTypeObserver
+			},
+		}
+
+		odcp, _ := NewOldDataCleanerProvider(args)
+		require.NotNil(t, odcp)
+
+		require.True(t, odcp.ShouldClean())
+	})
+	t.Run("validator should clean", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgOldDataCleanerProvider()
+		args.PruningStorerConfig = config.StoragePruningConfig{
+			ObserverCleanOldEpochsData:  false,
+			ValidatorCleanOldEpochsData: true,
+		}
+
+		args.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+			GetTypeCalled: func() core.NodeType {
+				return core.NodeTypeValidator
+			},
+		}
+
+		odcp, _ := NewOldDataCleanerProvider(args)
+		require.NotNil(t, odcp)
+
+		require.True(t, odcp.ShouldClean())
+	})
+	t.Run("multi key observer should clean", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgOldDataCleanerProvider()
+		args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
+			IsMultiKeyModeCalled: func() bool {
+				return true
+			},
+		}
+		args.PruningStorerConfig = config.StoragePruningConfig{
+			ObserverCleanOldEpochsData:  false,
+			ValidatorCleanOldEpochsData: true,
+		}
+
+		args.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+			GetTypeCalled: func() core.NodeType {
+				return core.NodeTypeObserver
+			},
+		}
+
+		odcp, _ := NewOldDataCleanerProvider(args)
+		require.NotNil(t, odcp)
+
+		require.True(t, odcp.ShouldClean())
+	})
+}
+
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var odcp *oldDataCleanerProvider
+	require.True(t, odcp.IsInterfaceNil())
+
+	args := createMockArgOldDataCleanerProvider()
+	odcp, _ = NewOldDataCleanerProvider(args)
+	require.False(t, odcp.IsInterfaceNil())
 }

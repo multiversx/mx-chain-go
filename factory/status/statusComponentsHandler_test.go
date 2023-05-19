@@ -3,68 +3,90 @@ package status_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test ManagedStatusComponents --------------------
-func TestManagedStatusComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
+func TestNewManagedStatusComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
-		AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
-	}
-	statusArgs.StatusCoreComponents = statusCoreComponents
+	t.Run("nil factory should error", func(t *testing.T) {
+		t.Parallel()
 
-	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
-	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
-	require.NoError(t, err)
+		managedStatusComponents, err := statusComp.NewManagedStatusComponents(nil)
+		require.Equal(t, errorsMx.ErrNilStatusComponentsFactory, err)
+		require.Nil(t, managedStatusComponents)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	statusCoreComponents.AppStatusHandlerField = nil
-	err = managedStatusComponents.Create()
-	require.Error(t, err)
+		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+		require.Nil(t, err)
+		managedStatusComponents, err := statusComp.NewManagedStatusComponents(scf)
+		require.Nil(t, err)
+		require.NotNil(t, managedStatusComponents)
+	})
 }
 
-func TestManagedStatusComponents_CreateShouldWork(t *testing.T) {
+func TestManagedStatusComponents_Create(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
-	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
-	require.NoError(t, err)
-	require.Nil(t, managedStatusComponents.OutportHandler())
-	require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
+	t.Run("invalid params should error", func(t *testing.T) {
+		t.Parallel()
 
-	err = managedStatusComponents.Create()
-	require.NoError(t, err)
-	require.NotNil(t, managedStatusComponents.OutportHandler())
-	require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
+		args := createMockStatusComponentsFactoryArgs()
+		args.StatusCoreComponents = &factoryMocks.StatusCoreComponentsStub{
+			AppStatusHandlerField: nil,
+		}
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, err)
+		managedStatusComponents, err := statusComp.NewManagedStatusComponents(scf)
+		require.Nil(t, err)
+		require.NotNil(t, managedStatusComponents)
+
+		err = managedStatusComponents.Create()
+		require.Error(t, err)
+	})
+	t.Run("should work with getters", func(t *testing.T) {
+		t.Parallel()
+
+		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+		require.Nil(t, err)
+		managedStatusComponents, err := statusComp.NewManagedStatusComponents(scf)
+		require.Nil(t, err)
+		require.NotNil(t, managedStatusComponents)
+		require.Nil(t, managedStatusComponents.OutportHandler())
+		require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
+
+		err = managedStatusComponents.Create()
+		require.NoError(t, err)
+		require.NotNil(t, managedStatusComponents.OutportHandler())
+		require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
+
+		require.Equal(t, factory.StatusComponentsName, managedStatusComponents.String())
+	})
 }
 
 func TestManagedStatusComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
-	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(statusComponentsFactory)
-	err := managedStatusComponents.Create()
+	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+	err := managedStatusComponents.Close()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.Create()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.StartPolling() // coverage
 	require.NoError(t, err)
 
 	err = managedStatusComponents.Close()
@@ -73,17 +95,199 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 
 func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
-	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(statusComponentsFactory)
-	err := managedStatusComponents.Create()
+	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+
+	err := managedStatusComponents.CheckSubcomponents()
+	require.Equal(t, errorsMx.ErrNilStatusComponents, err)
+
+	err = managedStatusComponents.Create()
 	require.NoError(t, err)
 
 	err = managedStatusComponents.CheckSubcomponents()
 	require.NoError(t, err)
+}
+
+func TestManagedStatusComponents_SetForkDetector(t *testing.T) {
+	t.Parallel()
+
+	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+	err := managedStatusComponents.Create()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.SetForkDetector(nil)
+	require.Equal(t, errorsMx.ErrNilForkDetector, err)
+	err = managedStatusComponents.SetForkDetector(&mock.ForkDetectorMock{})
+	require.NoError(t, err)
+}
+
+func TestManagedStatusComponents_StartPolling(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NewAppStatusPolling fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.Config.GeneralSettings.StatusPollingIntervalSec = 0
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+		err := managedStatusComponents.Create()
+		require.NoError(t, err)
+
+		err = managedStatusComponents.StartPolling()
+		require.Equal(t, errorsMx.ErrStatusPollingInit, err)
+	})
+	t.Run("RegisterPollingFunc fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.Config.GeneralSettings.StatusPollingIntervalSec = 0
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+		err := managedStatusComponents.Create()
+		require.NoError(t, err)
+
+		err = managedStatusComponents.StartPolling()
+		require.Equal(t, errorsMx.ErrStatusPollingInit, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
+		err := managedStatusComponents.Create()
+		require.NoError(t, err)
+
+		err = managedStatusComponents.StartPolling()
+		require.NoError(t, err)
+	})
+}
+
+func TestComputeNumConnectedPeers(t *testing.T) {
+	t.Parallel()
+
+	netMes := &p2pmocks.MessengerStub{
+		ConnectedAddressesCalled: func() []string {
+			return []string{"addr1", "addr2", "addr3"}
+		},
+	}
+	appStatusHandler := &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			require.Equal(t, common.MetricNumConnectedPeers, key)
+			require.Equal(t, uint64(3), value)
+		},
+	}
+
+	statusComp.ComputeNumConnectedPeers(appStatusHandler, netMes)
+}
+
+func TestComputeConnectedPeers(t *testing.T) {
+	t.Parallel()
+
+	netMes := &p2pmocks.MessengerStub{
+		GetConnectedPeersInfoCalled: func() *p2p.ConnectedPeersInfo {
+			return &p2p.ConnectedPeersInfo{
+				SelfShardID:  0,
+				UnknownPeers: []string{"unknown"},
+				Seeders:      []string{"seeder"},
+				IntraShardValidators: map[uint32][]string{
+					0: {"intra-v-0"},
+					1: {"intra-v-1"},
+				},
+				IntraShardObservers: map[uint32][]string{
+					0: {"intra-o-0"},
+					1: {"intra-o-1"},
+				},
+				CrossShardValidators: map[uint32][]string{
+					0: {"cross-v-0"},
+					1: {"cross-v-1"},
+				},
+				CrossShardObservers: map[uint32][]string{
+					0: {"cross-o-0"},
+					1: {"cross-o-1"},
+				},
+				FullHistoryObservers: map[uint32][]string{
+					0: {"fh-0"},
+					1: {"fh-1"},
+				},
+				NumValidatorsOnShard: map[uint32]int{
+					0: 1,
+					1: 1,
+				},
+				NumObserversOnShard: map[uint32]int{
+					0: 1,
+					1: 1,
+				},
+				NumPreferredPeersOnShard: map[uint32]int{
+					0: 0,
+					1: 0,
+				},
+				NumIntraShardValidators: 2,
+				NumIntraShardObservers:  2,
+				NumCrossShardValidators: 2,
+				NumCrossShardObservers:  2,
+				NumFullHistoryObservers: 2,
+			}
+		},
+		AddressesCalled: func() []string {
+			return []string{"intra-v-0", "intra-v-1", "intra-o-0", "intra-o-1", "cross-v-0", "cross-v-1"}
+		},
+	}
+	expectedPeerClassification := "intraVal:2,crossVal:2,intraObs:2,crossObs:2,fullObs:2,unknown:1,"
+	cnt := 0
+	appStatusHandler := &statusHandler.AppStatusHandlerStub{
+		SetStringValueHandler: func(key string, value string) {
+			cnt++
+			switch cnt {
+			case 1:
+				require.Equal(t, common.MetricNumConnectedPeersClassification, key)
+				require.Equal(t, expectedPeerClassification, value)
+			case 2:
+				require.Equal(t, common.MetricP2PNumConnectedPeersClassification, key)
+				require.Equal(t, expectedPeerClassification, value)
+			case 3:
+				require.Equal(t, common.MetricP2PUnknownPeers, key)
+				require.Equal(t, "unknown", value)
+			case 4:
+				require.Equal(t, common.MetricP2PIntraShardValidators, key)
+				require.Equal(t, "intra-v-0,intra-v-1", value)
+			case 5:
+				require.Equal(t, common.MetricP2PIntraShardObservers, key)
+				require.Equal(t, "intra-o-0,intra-o-1", value)
+			case 6:
+				require.Equal(t, common.MetricP2PCrossShardValidators, key)
+				require.Equal(t, "cross-v-0,cross-v-1", value)
+			case 7:
+				require.Equal(t, common.MetricP2PCrossShardObservers, key)
+				require.Equal(t, "cross-o-0,cross-o-1", value)
+			case 8:
+				require.Equal(t, common.MetricP2PFullHistoryObservers, key)
+				require.Equal(t, "fh-0,fh-1", value)
+			case 9:
+				require.Equal(t, common.MetricP2PPeerInfo, key)
+				require.Equal(t, "intra-v-0,intra-v-1,intra-o-0,intra-o-1,cross-v-0,cross-v-1", value)
+			default:
+				require.Fail(t, "should not have been called")
+			}
+		},
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			require.Equal(t, common.MetricNumConnectedPeers, key)
+			require.Equal(t, 3, key)
+		},
+	}
+
+	statusComp.ComputeConnectedPeers(appStatusHandler, netMes)
+}
+
+func TestManagedStatusComponents_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(nil)
+	require.True(t, managedStatusComponents.IsInterfaceNil())
+
+	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+	managedStatusComponents, _ = statusComp.NewManagedStatusComponents(scf)
+	require.False(t, managedStatusComponents.IsInterfaceNil())
 }
