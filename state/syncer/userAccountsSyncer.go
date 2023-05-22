@@ -258,7 +258,6 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			log.Trace("sync data trie", "roothash", trieRootHash)
 			err := u.syncDataTrie(trieRootHash, address, ctx)
 			if err != nil {
-				log.Error("sync data trie: error found", "roothash", trieRootHash, "error", err.Error())
 				leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
