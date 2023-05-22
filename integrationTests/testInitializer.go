@@ -56,10 +56,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -664,12 +667,16 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost: "500",
+				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
@@ -769,13 +776,17 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost: "500",
+				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -823,7 +834,7 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
 
-		argsMetaGenesis.Data.SetBlockchain(newBlkc)
+		_ = argsMetaGenesis.Data.SetBlockchain(newBlkc)
 		dataComponents.DataPool = newDataPool
 	}
 
@@ -984,7 +995,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ScProcessor:      &testscommon.SCProcessorMock{},
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -1003,6 +1014,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
@@ -1451,11 +1464,21 @@ func CreateNodesWithFullGenesis(
 	numMetaChainNodes int,
 	genesisFile string,
 ) ([]*TestProcessorNode, *TestProcessorNode) {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
+}
+
+// CreateNodesWithFullGenesisCustomEnableEpochs creates multiple nodes in different shards
+func CreateNodesWithFullGenesisCustomEnableEpochs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	genesisFile string,
+	enableEpochsConfig *config.EnableEpochs,
+) ([]*TestProcessorNode, *TestProcessorNode) {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	economicsConfig := createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(
@@ -1672,7 +1695,7 @@ func CreateAndSendTransaction(
 		Version:  MinTransactionVersion,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -1719,7 +1742,7 @@ func CreateAndSendTransactionWithGasLimit(
 		Version:  version,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1760,7 +1783,7 @@ func GenerateTransferTx(
 		ChainID:  chainID,
 		Version:  version,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	signer := TestSingleSigner
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1783,7 +1806,7 @@ func generateTx(
 		ChainID:  ChainID,
 		Version:  MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx
@@ -2595,4 +2618,23 @@ func SaveDelegationContractsList(nodes []*TestProcessorNode) {
 		_ = n.AccntState.SaveAccount(userAcc)
 		_, _ = n.AccntState.Commit()
 	}
+}
+
+// PrepareRelayedTxDataV1 repares the data for a relayed transaction V1
+func PrepareRelayedTxDataV1(innerTx *transaction.Transaction) []byte {
+	userTxBytes, _ := TestMarshalizer.Marshal(innerTx)
+	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
+}
+
+// PrepareRelayedTxDataV2 prepares the data for a relayed transaction V2
+func PrepareRelayedTxDataV2(innerTx *transaction.Transaction) []byte {
+	dataBuilder := txDataBuilder.NewBuilder()
+	txData := dataBuilder.
+		Func(core.RelayedTransactionV2).
+		Bytes(innerTx.RcvAddr).
+		Int64(int64(innerTx.Nonce)).
+		Bytes(innerTx.Data).
+		Bytes(innerTx.Signature)
+
+	return txData.ToBytes()
 }

@@ -240,6 +240,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
+	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
 	if err != nil {
 		return nil, err
@@ -276,12 +277,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                   &ccf.economicsConfig,
 		EpochNotifier:               epochNotifier,
 		EnableEpochsHandler:         enableEpochsHandler,
 		BuiltInFunctionsCostHandler: builtInCostHandler,
+		TxVersionChecker:            txVersionChecker,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -320,8 +324,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)

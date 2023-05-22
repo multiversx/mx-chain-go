@@ -275,15 +275,15 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	round := sr.RoundHandler().Index()
 
 	roundInfo := &outportcore.RoundInfo{
-		Index:            uint64(round),
+		Round:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
+		Timestamp:        uint64(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
+	sr.outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{RoundsInfo: []*outportcore.RoundInfo{roundInfo}})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

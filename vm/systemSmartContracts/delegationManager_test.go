@@ -40,6 +40,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
 			IsDelegationManagerFlagEnabledField:     true,
 			IsValidatorToDelegationFlagEnabledField: true,
+			IsMultiClaimOnDelegationEnabledField:    true,
 		},
 	}
 }
@@ -1084,4 +1085,167 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "caller already deployed a delegation sc")
+}
+
+func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	eei := createDefaultEei()
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	enableHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		IsMultiClaimOnDelegationEnabledField: false,
+		IsDelegationManagerFlagEnabledField:  true,
+	}
+	args.EnableEpochsHandler = enableHandlerStub
+	args.Eei = eei
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(20))
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMulti", [][]byte{})
+	returnCode := dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "invalid function to call")
+
+	eei.returnMessage = ""
+	enableHandlerStub.IsMultiClaimOnDelegationEnabledField = true
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidNumOfArguments.Error())
+
+	dm.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.returnMessage = ""
+	eei.gasRemaining = 5
+	vmInput.Arguments = [][]byte{{1}}
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrNotEnoughGas.Error())
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidArgument.Error())
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	vmInput.Arguments[0] = vmInput.CallerAddr
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "missing system smart contract on selected address")
+
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.Arguments[0] = vm.FirstDelegationSCAddress
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "first delegation sc address cannot be called")
+
+	vmInput.Function = "reDelegateMulti"
+	eei.returnMessage = ""
+	eei.gasRemaining = 20
+	returnCode = dm.Execute(vmInput)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.GetReturnMessage(), "first delegation sc address cannot be called")
+}
+
+func TestDelegationManagerSystemSC_ClaimMultipleDelegationDuplicatedInput(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	_ = prepareVmInputContextAndDelegationManager(d, eei)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						_ = d.eei.Transfer(args.RecipientAddr, args.CallerAddr, big.NewInt(10), nil, 0)
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMulti", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte{2}, 32), bytes.Repeat([]byte{2}, 32)}
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.GetReturnMessage(), "duplicated input")
+}
+
+func TestDelegationManagerSystemSC_ClaimMultipleDelegation(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	_ = prepareVmInputContextAndDelegationManager(d, eei)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						_ = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, big.NewInt(10), nil, 0)
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMulti", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte{2}, 32), bytes.Repeat([]byte{3}, 32)}
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.Equal(t, len(eei.output), 1)
+	require.Equal(t, eei.output[0], big.NewInt(20).Bytes())
+	require.Equal(t, len(eei.outputAccounts[string(vmInput.CallerAddr)].OutputTransfers), 2)
+}
+
+func TestDelegationManagerSystemSC_ReDelegateMulti(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	_ = prepareVmInputContextAndDelegationManager(d, eei)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						entry := &vmcommon.LogEntry{
+							Identifier: []byte("delegate"),
+							Address:    args.CallerAddr,
+							Topics:     [][]byte{big.NewInt(10).Bytes()},
+							Data:       nil,
+						}
+						d.eei.AddLogEntry(entry)
+
+						wrongEntry := &vmcommon.LogEntry{}
+						d.eei.AddLogEntry(wrongEntry)
+
+						wrongEntry2 := &vmcommon.LogEntry{
+							Topics: [][]byte{big.NewInt(10).Bytes()},
+						}
+						d.eei.AddLogEntry(wrongEntry2)
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("reDelegateMulti", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte{2}, 32), bytes.Repeat([]byte{3}, 32)}
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.Equal(t, len(eei.output), 1)
+	require.Equal(t, eei.output[0], big.NewInt(20).Bytes())
 }

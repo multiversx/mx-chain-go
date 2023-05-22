@@ -115,6 +115,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	nodeProcessingMode         common.NodeProcessingMode
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -178,6 +179,7 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	NodeProcessingMode         common.NodeProcessingMode
 }
 
 type dataToSync struct {
@@ -224,6 +226,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
+		nodeProcessingMode:         args.NodeProcessingMode,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -764,6 +767,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
@@ -933,6 +937,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
@@ -1117,7 +1122,9 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+			NodeProcessingMode:            e.nodeProcessingMode,
 			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {

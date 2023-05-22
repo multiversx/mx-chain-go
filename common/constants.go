@@ -312,6 +312,9 @@ const MetricMinGasPrice = "erd_min_gas_price"
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
 
+// MetricExtraGasLimitGuardedTx specifies the extra gas limit required for guarded transactions
+const MetricExtraGasLimitGuardedTx = "erd_extra_gas_limit_guarded_tx"
+
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 
@@ -597,6 +600,9 @@ const (
 
 	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
+
+	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
+	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
 )
 
 const (
@@ -817,6 +823,28 @@ const (
 
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
+)
+
+// BlockProcessingCutoffMode represents the type to be used to identify the mode of the block processing cutoff
+type BlockProcessingCutoffMode string
+
+const (
+	// BlockProcessingCutoffModePause represents the mode where the node will pause the processing at the given coordinates
+	BlockProcessingCutoffModePause = "pause"
+	// BlockProcessingCutoffModeProcessError represents the mode where the node will reprocess with error the block at the given coordinates
+	BlockProcessingCutoffModeProcessError = "process-error"
+)
+
+// BlockProcessingCutoffTrigger represents the trigger of the cutoff potentially used in block processing
+type BlockProcessingCutoffTrigger string
+
+const (
+	// BlockProcessingCutoffByNonce represents the cutoff by nonce
+	BlockProcessingCutoffByNonce BlockProcessingCutoffTrigger = "nonce"
+	// BlockProcessingCutoffByRound represents the cutoff by round
+	BlockProcessingCutoffByRound BlockProcessingCutoffTrigger = "round"
+	// BlockProcessingCutoffByEpoch represents the cutoff by epoch
+	BlockProcessingCutoffByEpoch BlockProcessingCutoffTrigger = "epoch"
 )
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block

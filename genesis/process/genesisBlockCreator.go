@@ -204,6 +204,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if arg.EpochConfig == nil {
 		return genesis.ErrNilEpochConfig
 	}
+	if arg.GasSchedule == nil {
+		return genesis.ErrNilGasSchedule
+	}
 
 	return nil
 }
@@ -357,7 +360,10 @@ func (gbc *genesisBlockCreator) createHeaders(
 				return fmt.Errorf("'%w' while generating genesis block for metachain", err)
 			}
 
-			metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
+			err = metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
+			if err != nil {
+				return fmt.Errorf("'%w' while setting blockchain for metachain", err)
+			}
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],

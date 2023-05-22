@@ -63,7 +63,7 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 var ErrNilHeaderValidator = errors.New("nil header validator")
 
 // ErrNilUint64Converter signals that uint64converter is nil
-var ErrNilUint64Converter = errors.New("unit64converter is nil")
+var ErrNilUint64Converter = errors.New("uint64converter is nil")
 
 // ErrNilDataPoolHolder signals that the data pool holder is nil
 var ErrNilDataPoolHolder = errors.New("nil data pool holder")

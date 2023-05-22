@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -296,7 +297,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -358,7 +359,7 @@ func (se *stateExport) exportDataTries(
 		}
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}
@@ -380,7 +381,7 @@ func (se *stateExport) exportAccountLeaves(
 		}
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}

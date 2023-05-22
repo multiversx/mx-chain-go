@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -33,14 +34,14 @@ func createTransactionPreprocessor() *transactions {
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:             &stateMock.AccountsStub{},
 		OnRequestTransaction: requestTransaction,
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
 			MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 				return MaxGasLimitPerBlock
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 			MaxGasLimitPerTxCalled: func() uint64 {

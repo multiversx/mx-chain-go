@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -127,7 +126,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(nar))
+	assert.NotNil(t, nar)
 }
 
 func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
@@ -675,4 +674,15 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 
 	_ = nar.GetGasConfigs()
 	require.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	nar, _ := external.NewNodeApiResolver(external.ArgNodeApiResolver{})
+	require.True(t, nar.IsInterfaceNil())
+
+	arg := createMockArgs()
+	nar, _ = external.NewNodeApiResolver(arg)
+	require.False(t, nar.IsInterfaceNil())
 }

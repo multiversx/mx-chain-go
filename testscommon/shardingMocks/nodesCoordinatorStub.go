@@ -18,6 +18,7 @@ type NodesCoordinatorStub struct {
 	ConsensusGroupSizeCalled                 func(shardID uint32, epoch uint32) int
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
+	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 }
 
 // NodesCoordinatorToRegistry -
@@ -157,8 +158,11 @@ func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
-func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(_ uint32) (map[string]struct{}, error) {
-	panic("not implemented")
+func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error) {
+	if ncm.GetConsensusWhitelistedNodesCalled != nil {
+		return ncm.GetConsensusWhitelistedNodesCalled(epoch)
+	}
+	return nil, nil
 }
 
 // GetSelectedPublicKeys -

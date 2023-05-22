@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -21,61 +22,72 @@ import (
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
 
 type intermediateResultsProcessor struct {
-	pubkeyConv core.PubkeyConverter
-	blockType  block.Type
-	currTxs    dataRetriever.TransactionCacher
+	pubkeyConv          core.PubkeyConverter
+	blockType           block.Type
+	currTxs             dataRetriever.TransactionCacher
+	enableEpochsHandler common.EnableEpochsHandler
 
 	*basePostProcessor
 }
 
+// ArgsNewIntermediateResultsProcessor defines the arguments needed for new smart contract processor
+type ArgsNewIntermediateResultsProcessor struct {
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	Coordinator         sharding.Coordinator
+	PubkeyConv          core.PubkeyConverter
+	Store               dataRetriever.StorageService
+	BlockType           block.Type
+	CurrTxs             dataRetriever.TransactionCacher
+	EconomicsFee        process.FeeHandler
+	EnableEpochsHandler common.EnableEpochsHandler
+}
+
 // NewIntermediateResultsProcessor creates a new intermediate results processor
 func NewIntermediateResultsProcessor(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	coordinator sharding.Coordinator,
-	pubkeyConv core.PubkeyConverter,
-	store dataRetriever.StorageService,
-	blockType block.Type,
-	currTxs dataRetriever.TransactionCacher,
-	economicsFee process.FeeHandler,
+	args ArgsNewIntermediateResultsProcessor,
 ) (*intermediateResultsProcessor, error) {
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(coordinator) {
+	if check.IfNil(args.Coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(pubkeyConv) {
+	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(store) {
+	if check.IfNil(args.Store) {
 		return nil, process.ErrNilStorage
 	}
-	if check.IfNil(currTxs) {
+	if check.IfNil(args.CurrTxs) {
 		return nil, process.ErrNilTxForCurrentBlockHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	base := &basePostProcessor{
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		shardCoordinator:   coordinator,
-		store:              store,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
+		shardCoordinator:   args.Coordinator,
+		store:              args.Store,
 		storageType:        dataRetriever.UnsignedTransactionUnit,
 		mapProcessedResult: make(map[string][][]byte),
-		economicsFee:       economicsFee,
+		economicsFee:       args.EconomicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
-		basePostProcessor: base,
-		pubkeyConv:        pubkeyConv,
-		blockType:         blockType,
-		currTxs:           currTxs,
+		basePostProcessor:   base,
+		pubkeyConv:          args.PubkeyConv,
+		blockType:           args.BlockType,
+		currTxs:             args.CurrTxs,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo)
@@ -130,9 +142,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 			miniblock.ReceiverShardID = shId
 			miniblock.Type = irp.blockType
 
-			sort.Slice(miniblock.TxHashes, func(a, b int) bool {
-				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
-			})
+			if irp.enableEpochsHandler.IsKeepExecOrderOnCreatedSCRsEnabled() {
+				sort.Slice(miniblock.TxHashes, func(a, b int) bool {
+					scrInfoA := irp.interResultsForBlock[string(miniblock.TxHashes[a])]
+					scrInfoB := irp.interResultsForBlock[string(miniblock.TxHashes[b])]
+					return scrInfoA.index < scrInfoB.index
+				})
+			} else {
+				sort.Slice(miniblock.TxHashes, func(a, b int) bool {
+					return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
+				})
+			}
 
 			log.Debug("intermediateResultsProcessor.CreateAllInterMiniBlocks",
 				"type", miniblock.Type,

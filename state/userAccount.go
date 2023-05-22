@@ -4,6 +4,8 @@ package state
 import (
 	"bytes"
 	"math/big"
+
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -138,6 +140,13 @@ func (a *userAccount) SetRootHash(roothash []byte) {
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata
+}
+
+// IsGuarded returns true if the account is in guarded state
+func (a *userAccount) IsGuarded() bool {
+	codeMetaDataBytes := a.GetCodeMetadata()
+	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
+	return codeMetaData.Guarded
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
