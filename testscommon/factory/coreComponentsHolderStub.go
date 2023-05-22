@@ -54,6 +54,8 @@ type CoreComponentsHolderStub struct {
 	ProcessStatusHandlerCalled          func() common.ProcessStatusHandler
 	HardforkTriggerPubKeyCalled         func() []byte
 	EnableEpochsHandlerCalled           func() common.EnableEpochsHandler
+	ChainParametersSubscriberCalled     func() process.ChainParametersSubscriber
+	ChainParametersHandlerCalled        func() process.ChainParametersHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -93,6 +95,8 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		ProcessStatusHandlerCalled:          coreComponents.ProcessStatusHandler,
 		HardforkTriggerPubKeyCalled:         coreComponents.HardforkTriggerPubKey,
 		EnableEpochsHandlerCalled:           coreComponents.EnableEpochsHandler,
+		ChainParametersHandlerCalled:        coreComponents.ChainParametersHandler,
+		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
 	}
 }
 
@@ -364,6 +368,22 @@ func (stub *CoreComponentsHolderStub) HardforkTriggerPubKey() []byte {
 func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsHandler {
 	if stub.EnableEpochsHandlerCalled != nil {
 		return stub.EnableEpochsHandlerCalled()
+	}
+	return nil
+}
+
+// ChainParametersSubscriber -
+func (stub *CoreComponentsHolderStub) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	if stub.ChainParametersSubscriberCalled != nil {
+		return stub.ChainParametersSubscriberCalled()
+	}
+	return nil
+}
+
+// ChainParametersHandler -
+func (stub *CoreComponentsHolderStub) ChainParametersHandler() process.ChainParametersHandler {
+	if stub.ChainParametersHandlerCalled != nil {
+		return stub.ChainParametersHandlerCalled()
 	}
 	return nil
 }
