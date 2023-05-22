@@ -45,9 +45,9 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		txSimulator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(txSimulator))
+		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
 	})
 }
