@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"encoding/hex"
@@ -14,12 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 var log = logger.GetOrCreate("process/txSimulator")
@@ -33,6 +32,7 @@ type ArgsTxSimulator struct {
 	VMOutputCacher            storage.Cacher
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
+	DataFieldParser           DataFieldParser
 }
 
 type refundHandler interface {
@@ -75,13 +75,8 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-
-	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: args.AddressPubKeyConverter.Len(),
-		Marshalizer:   args.Marshalizer,
-	})
-	if err != nil {
-		return nil, err
+	if check.IfNilReflect(args.DataFieldParser) {
+		return nil, ErrNilDataFieldParser
 	}
 
 	return &transactionSimulator{
@@ -93,7 +88,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		marshalizer:            args.Marshalizer,
 		hasher:                 args.Hasher,
 		refundDetector:         transactionAPI.NewRefundDetector(),
-		dataFieldParser:        dataFieldParser,
+		dataFieldParser:        args.DataFieldParser,
 	}, nil
 }
 

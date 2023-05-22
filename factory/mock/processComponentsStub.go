@@ -38,7 +38,7 @@ type ProcessComponentsMock struct {
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
 	PeerMapper                           process.NetworkShardingCollector
-	TxCostSimulator                      factory.TransactionCostSimulator
+	TxCostSimulator                      factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
@@ -187,7 +187,7 @@ func (pcm *ProcessComponentsMock) FallbackHeaderValidator() process.FallbackHead
 }
 
 // TransactionCostSimulator -
-func (pcm *ProcessComponentsMock) TransactionCostSimulator() factory.TransactionCostSimulator {
+func (pcm *ProcessComponentsMock) APITransactionEvaluator() factory.TransactionEvaluator {
 	return pcm.TxCostSimulator
 }
 

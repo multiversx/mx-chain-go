@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -23,7 +23,8 @@ const dummySignature = "01010101"
 const gasRemainedSplitString = "gas remained = "
 const gasUsedSlitString = "gas used = "
 
-type ArgsTransactionCostSimulator struct {
+// ArgsApiTransactionEvaluator holds the arguments required for creating a new transaction evaluator
+type ArgsApiTransactionEvaluator struct {
 	TxTypeHandler       process.TxTypeHandler
 	FeeHandler          process.FeeHandler
 	TxSimulator         facade.TransactionSimulatorProcessor
@@ -32,7 +33,7 @@ type ArgsTransactionCostSimulator struct {
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
-type transactionCostEstimator struct {
+type apiTransactionEvaluator struct {
 	accounts            state.AccountsAdapterWithClean
 	shardCoordinator    sharding.Coordinator
 	txTypeHandler       process.TxTypeHandler
@@ -42,8 +43,8 @@ type transactionCostEstimator struct {
 	mutExecution        sync.RWMutex
 }
 
-// NewTransactionCostEstimator will create a new transaction cost estimator
-func NewTransactionCostEstimator(args ArgsTransactionCostSimulator) (*transactionCostEstimator, error) {
+// NewAPITransactionEvaluator will create a new api transaction evaluator
+func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransactionEvaluator, error) {
 	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
@@ -63,7 +64,7 @@ func NewTransactionCostEstimator(args ArgsTransactionCostSimulator) (*transactio
 		return nil, process.ErrNilEnableEpochsHandler
 	}
 
-	tce := &transactionCostEstimator{
+	tce := &apiTransactionEvaluator{
 		txTypeHandler:       args.TxTypeHandler,
 		feeHandler:          args.FeeHandler,
 		txSimulator:         args.TxSimulator,
@@ -76,32 +77,32 @@ func NewTransactionCostEstimator(args ArgsTransactionCostSimulator) (*transactio
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (tce *transactionCostEstimator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
-	tce.mutExecution.Lock()
+func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	ate.mutExecution.Lock()
 	defer func() {
-		tce.accounts.CleanCache()
-		tce.mutExecution.Unlock()
+		ate.accounts.CleanCache()
+		ate.mutExecution.Unlock()
 	}()
 
-	return tce.txSimulator.ProcessTx(tx)
+	return ate.txSimulator.ProcessTx(tx)
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
-func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	tce.mutExecution.Lock()
+func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
+	ate.mutExecution.Lock()
 	defer func() {
-		tce.accounts.CleanCache()
-		tce.mutExecution.Unlock()
+		ate.accounts.CleanCache()
+		ate.mutExecution.Unlock()
 	}()
 
-	txTypeOnSender, txTypeOnDestination := tce.txTypeHandler.ComputeTransactionType(tx)
+	txTypeOnSender, txTypeOnDestination := ate.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {
-		return tce.computeMoveBalanceCost(tx), nil
+		return ate.computeMoveBalanceCost(tx), nil
 	}
 
 	switch txTypeOnSender {
 	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
-		return tce.simulateTransactionCost(tx, txTypeOnSender)
+		return ate.simulateTransactionCost(tx, txTypeOnSender)
 	case process.RelayedTx, process.RelayedTxV2:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
@@ -116,8 +117,8 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	}
 }
 
-func (tce *transactionCostEstimator) computeMoveBalanceCost(tx *transaction.Transaction) *transaction.CostResponse {
-	gasUnits := tce.feeHandler.ComputeGasLimit(tx)
+func (ate *apiTransactionEvaluator) computeMoveBalanceCost(tx *transaction.Transaction) *transaction.CostResponse {
+	gasUnits := ate.feeHandler.ComputeGasLimit(tx)
 
 	return &transaction.CostResponse{
 		GasUnits:      gasUnits,
@@ -125,15 +126,15 @@ func (tce *transactionCostEstimator) computeMoveBalanceCost(tx *transaction.Tran
 	}
 }
 
-func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
-	err := tce.addMissingFieldsIfNeeded(tx)
+func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
+	err := ate.addMissingFieldsIfNeeded(tx)
 	if err != nil {
 		return nil, err
 	}
 
 	costResponse := &transaction.CostResponse{}
 
-	res, err := tce.txSimulator.ProcessTx(tx)
+	res, err := ate.txSimulator.ProcessTx(tx)
 	if err != nil {
 		costResponse.ReturnMessage = err.Error()
 		return costResponse, nil
@@ -141,7 +142,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 
 	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
 	if isMoveBalanceOk {
-		costResponse.GasUnits = tce.feeHandler.ComputeGasLimit(tx)
+		costResponse.GasUnits = ate.feeHandler.ComputeGasLimit(tx)
 		return costResponse, nil
 
 	}
@@ -164,7 +165,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	costResponse.SmartContractResults = res.ScResults
 	costResponse.Logs = res.Logs
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
-		costResponse.GasUnits = tce.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput)
+		costResponse.GasUnits = ate.computeGasUnitsBasedOnVMOutput(tx, res.VMOutput)
 		return costResponse, nil
 	}
 
@@ -172,16 +173,16 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	return costResponse, nil
 }
 
-func (tce *transactionCostEstimator) computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
+func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
 	isTooMuchGasProvided := strings.Contains(vmOutput.ReturnMessage, smartContract.TooMuchGasProvidedMessage)
 	if !isTooMuchGasProvided {
 		return tx.GasLimit - vmOutput.GasRemaining
 	}
 
-	isTooMuchGasV2MsgFlagSet := tce.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled()
+	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled()
 	if isTooMuchGasV2MsgFlagSet {
 		gasNeededForProcessing := extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasUsedSlitString)
-		return tce.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
+		return ate.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
 	}
 
 	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasRemainedSplitString)
@@ -203,16 +204,16 @@ func extractGasRemainedFromMessage(message string, splitString string) uint64 {
 	return gasValue
 }
 
-func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) error {
+func (ate *apiTransactionEvaluator) addMissingFieldsIfNeeded(tx *transaction.Transaction) error {
 	if tx.GasPrice == 0 {
-		tx.GasPrice = tce.feeHandler.MinGasPrice()
+		tx.GasPrice = ate.feeHandler.MinGasPrice()
 	}
 	if len(tx.Signature) == 0 {
 		tx.Signature = []byte(dummySignature)
 	}
 	if tx.GasLimit == 0 {
 		var err error
-		tx.GasLimit, err = tce.getTxGasLimit(tx)
+		tx.GasLimit, err = ate.getTxGasLimit(tx)
 
 		return err
 	}
@@ -220,16 +221,16 @@ func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Tr
 	return nil
 }
 
-func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {
-	selfShardID := tce.shardCoordinator.SelfId()
-	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
+func (ate *apiTransactionEvaluator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {
+	selfShardID := ate.shardCoordinator.SelfId()
+	maxGasLimitPerBlock := ate.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
 
-	senderShardID := tce.shardCoordinator.ComputeId(tx.SndAddr)
-	if tce.shardCoordinator.SelfId() != senderShardID {
+	senderShardID := ate.shardCoordinator.ComputeId(tx.SndAddr)
+	if ate.shardCoordinator.SelfId() != senderShardID {
 		return maxGasLimitPerBlock, nil
 	}
 
-	accountHandler, err := tce.accounts.LoadAccount(tx.SndAddr)
+	accountHandler, err := ate.accounts.LoadAccount(tx.SndAddr)
 	if err != nil {
 		return 0, err
 	}
@@ -245,15 +246,15 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 
 	accountSenderBalance := accountSender.GetBalance()
 	tx.GasLimit = maxGasLimitPerBlock
-	txFee := tce.feeHandler.ComputeTxFee(tx)
+	txFee := ate.feeHandler.ComputeTxFee(tx)
 	if txFee.Cmp(accountSenderBalance) > 0 && big.NewInt(0).Cmp(accountSenderBalance) != 0 {
-		return tce.feeHandler.ComputeGasLimitBasedOnBalance(tx, accountSenderBalance)
+		return ate.feeHandler.ComputeGasLimitBasedOnBalance(tx, accountSenderBalance)
 	}
 
 	return maxGasLimitPerBlock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tce *transactionCostEstimator) IsInterfaceNil() bool {
-	return tce == nil
+func (ate *apiTransactionEvaluator) IsInterfaceNil() bool {
+	return ate == nil
 }

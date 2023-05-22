@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 )
 
 const (

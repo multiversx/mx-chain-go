@@ -2,7 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 )
 
 // TransactionCostEstimatorMock  -

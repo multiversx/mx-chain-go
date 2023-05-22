@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"

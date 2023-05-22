@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createArgs() ArgsTransactionCostSimulator {
-	return ArgsTransactionCostSimulator{
+func createArgs() ArgsApiTransactionEvaluator {
+	return ArgsApiTransactionEvaluator{
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		FeeHandler:          &economicsmocks.EconomicsHandlerStub{},
 		TxSimulator:         &mock.TransactionSimulatorStub{},
@@ -31,52 +31,52 @@ func createArgs() ArgsTransactionCostSimulator {
 	}
 }
 
-func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
+func TestTransactionEvaluator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 	args := createArgs()
 	args.TxTypeHandler = nil
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
 }
 
-func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
 	args.FeeHandler = nil
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
 	args.TxSimulator = nil
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 	require.Nil(t, tce)
 	require.Equal(t, ErrNilTxSimulatorProcessor, err)
 }
 
-func TestTransactionCostEstimator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
 	args.EnableEpochsHandler = nil
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
-func TestTransactionCostEstimator_Ok(t *testing.T) {
+func TestTransactionEvaluator_Ok(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -111,7 +111,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}
-	tce, err := NewTransactionCostEstimator(args)
+	tce, err := NewAPITransactionEvaluator(args)
 	require.Nil(t, err)
 
 	tx := &transaction.Transaction{}
@@ -150,7 +150,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -186,7 +186,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -217,7 +217,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -247,7 +247,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -282,7 +282,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 		},
 	}
 
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -290,7 +290,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 	require.True(t, strings.Contains(cost.ReturnMessage, vmcommon.UserError.String()))
 }
 
-func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
+func TestTransactionEvaluator_RelayedTxShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
@@ -299,7 +299,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 			return process.RelayedTx, process.RelayedTx
 		},
 	}
-	tce, _ := NewTransactionCostEstimator(args)
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)

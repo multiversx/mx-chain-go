@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"context"
@@ -47,14 +47,19 @@ func (r *simulationAccountsDB) GetCode(codeHash []byte) []byte {
 
 // GetExistingAccount will call the original accounts' function with the same name
 func (r *simulationAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	r.mutex.RLock()
-	cachedAccount, ok := r.cachedAccounts[string(address)]
-	r.mutex.RUnlock()
+	cachedAccount, ok := r.getFromCache(address)
 	if ok {
 		return cachedAccount, nil
 	}
 
-	return r.originalAccounts.GetExistingAccount(address)
+	account, err := r.originalAccounts.GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	r.addToCache(account)
+
+	return account, nil
 }
 
 // GetAccountFromBytes will call the original accounts' function with the same name
@@ -64,26 +69,28 @@ func (r *simulationAccountsDB) GetAccountFromBytes(address []byte, accountBytes 
 
 // LoadAccount will call the original accounts' function with the same name
 func (r *simulationAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
-	r.mutex.RLock()
-	cachedAccount, ok := r.cachedAccounts[string(address)]
-	r.mutex.RUnlock()
+	cachedAccount, ok := r.getFromCache(address)
 	if ok {
 		return cachedAccount, nil
 	}
 
-	return r.originalAccounts.LoadAccount(address)
+	account, err := r.originalAccounts.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	r.addToCache(account)
+
+	return account, nil
 }
 
 // SaveAccount won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if check.IfNil(account) {
 		return nil
 	}
 
-	r.cachedAccounts[string(account.AddressBytes())] = account
+	r.addToCache(account)
 
 	return nil
 }
@@ -171,7 +178,7 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
-	return r.originalAccounts.Close()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -184,4 +191,19 @@ func (r *simulationAccountsDB) CleanCache() {
 	r.mutex.Lock()
 	r.cachedAccounts = make(map[string]vmcommon.AccountHandler)
 	r.mutex.Unlock()
+}
+
+func (r *simulationAccountsDB) addToCache(account vmcommon.AccountHandler) {
+	r.mutex.Lock()
+	r.cachedAccounts[string(account.AddressBytes())] = account
+	r.mutex.Unlock()
+}
+
+func (r *simulationAccountsDB) getFromCache(address []byte) (vmcommon.AccountHandler, bool) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	account, found := r.cachedAccounts[string(address)]
+
+	return account, found
 }

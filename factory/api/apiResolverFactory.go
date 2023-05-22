@@ -255,7 +255,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           scQueryService,
 		StatusMetricsHandler:     args.StatusCoreComponents.StatusMetrics(),
-		TxCostHandler:            args.ProcessComponents.TransactionCostSimulator(),
+		APITransactionEvaluator:  args.ProcessComponents.APITransactionEvaluator(),
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
 		DelegatedListHandler:     delegatedListHandler,

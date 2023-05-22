@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -162,7 +162,14 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
 
-	argSimulator := txsimulator.ArgsTxSimulator{
+	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
+		AddressLength: TestAddressPubkeyConverter.Len(),
+		Marshalizer:   TestMarshalizer,
+	}
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
+	log.LogIfError(err)
+
+	argSimulator := transactionEvaluator.ArgsTxSimulator{
 		TransactionProcessor:      tpn.TxProcessor,
 		IntermediateProcContainer: tpn.InterimProcContainer,
 		AddressPubKeyConverter:    TestAddressPubkeyConverter,
@@ -170,21 +177,24 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Marshalizer:               TestMarshalizer,
 		Hasher:                    TestHasher,
 		VMOutputCacher:            &testscommon.CacherMock{},
+		DataFieldParser:           dataFieldParser,
 	}
 
-	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)
+	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
 	log.LogIfError(err)
 
-	wrappedAccounts, err := txsimulator.NewSimulationAccountsDB(tpn.AccntState)
+	wrappedAccounts, err := transactionEvaluator.NewSimulationAccountsDB(tpn.AccntState)
 	log.LogIfError(err)
-	txCostHandler, err := txsimulator.NewTransactionCostEstimator(txsimulator.ArgsTransactionCostSimulator{
+
+	argsTransactionEvaluator := transactionEvaluator.ArgsApiTransactionEvaluator{
 		TxTypeHandler:       txTypeHandler,
 		FeeHandler:          tpn.EconomicsData,
 		TxSimulator:         txSimulator,
 		Accounts:            wrappedAccounts,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-	})
+	}
+	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{
@@ -209,13 +219,6 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 
 	logsFacade := &testscommon.LogsFacadeStub{}
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
-
-	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: TestAddressPubkeyConverter.Len(),
-		Marshalizer:   TestMarshalizer,
-	}
-	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
-	log.LogIfError(err)
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		Marshalizer:              TestMarshalizer,
@@ -262,7 +265,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           tpn.SCQueryService,
 		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
-		TxCostHandler:            txCostHandler,
+		APITransactionEvaluator:  apiTransactionEvaluator,
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
 		DelegatedListHandler:     delegatedListHandler,

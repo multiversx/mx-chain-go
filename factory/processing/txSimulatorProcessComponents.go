@@ -13,18 +13,19 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
-func (pcf *processComponentsFactory) createTxCostSimulator() (factory.TransactionCostSimulator, process.VirtualMachinesContainerFactory, error) {
-	simulationAccountsDB, err := txsimulator.NewSimulationAccountsDB(pcf.state.AccountsAdapterAPI())
+func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+	simulationAccountsDB, err := transactionEvaluator.NewSimulationAccountsDB(pcf.state.AccountsAdapterAPI())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,18 +49,27 @@ func (pcf *processComponentsFactory) createTxCostSimulator() (factory.Transactio
 		return nil, nil, err
 	}
 
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: pcf.coreData.AddressPubKeyConverter().Len(),
+		Marshalizer:   pcf.coreData.InternalMarshalizer(),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	txSimulatorProcessorArgs.VMOutputCacher = vmOutputCacher
 	txSimulatorProcessorArgs.AddressPubKeyConverter = pcf.coreData.AddressPubKeyConverter()
 	txSimulatorProcessorArgs.ShardCoordinator = pcf.bootstrapComponents.ShardCoordinator()
 	txSimulatorProcessorArgs.Hasher = pcf.coreData.Hasher()
 	txSimulatorProcessorArgs.Marshalizer = pcf.coreData.InternalMarshalizer()
+	txSimulatorProcessorArgs.DataFieldParser = dataFieldParser
 
-	txSimulator, err := txsimulator.NewTransactionSimulator(txSimulatorProcessorArgs)
+	txSimulator, err := transactionEvaluator.NewTransactionSimulator(txSimulatorProcessorArgs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	txCostSimulator, err := txsimulator.NewTransactionCostEstimator(txsimulator.ArgsTransactionCostSimulator{
+	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(transactionEvaluator.ArgsApiTransactionEvaluator{
 		TxTypeHandler:       txTypeHandler,
 		FeeHandler:          pcf.coreData.EconomicsData(),
 		TxSimulator:         txSimulator,
@@ -68,14 +78,14 @@ func (pcf *processComponentsFactory) createTxCostSimulator() (factory.Transactio
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	})
 
-	return txCostSimulator, vmContainerFactory, err
+	return apiTransactionEvaluator, vmContainerFactory, err
 }
 
 func (pcf *processComponentsFactory) createArgsTxSimulatorProcessor(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
-) (txsimulator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	if shardID == core.MetachainShardId {
 		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, vmOutputCacher, txLogsProcessor)
@@ -88,8 +98,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
-) (txsimulator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
-	args := txsimulator.ArgsTxSimulator{}
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
@@ -231,8 +241,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	accountsAdapter state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
-) (txsimulator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
-	args := txsimulator.ArgsTxSimulator{}
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
