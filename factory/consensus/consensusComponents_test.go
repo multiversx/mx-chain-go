@@ -136,7 +136,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 		},
-		StateComponents: &testscommon.StateComponentsMock{
+		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
 				trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
 				trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
@@ -553,7 +553,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = make(map[string]common.StorageManager) // missing UserAccountTrie
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
@@ -604,7 +604,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = make(map[string]common.StorageManager) // missing UserAccountTrie
 		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
@@ -625,7 +625,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = map[string]common.StorageManager{
 			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},

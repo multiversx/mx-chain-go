@@ -161,6 +161,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
+		FlagsConfig:          config.ContextFlagsConfig{},
 		BootstrapRoundIndex:  0,
 		CoreComponents:       coreComponents,
 		NetworkComponents:    networkComponents,
@@ -218,7 +219,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		SnapshotsEnabled:              false,
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 }
 
@@ -495,10 +496,10 @@ func GetProcessArgs(
 
 				return initialAccounts
 			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error) {
-				txsPool := make(map[uint32]*outport.Pool)
+			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+				txsPool := make(map[uint32]*outport.TransactionPool)
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &outport.Pool{}
+					txsPool[i] = &outport.TransactionPool{}
 				}
 
 				return make([]*block.MiniBlock, 4), txsPool, nil
@@ -538,8 +539,9 @@ func GetProcessArgs(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -564,9 +566,10 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:          "v1.0.0",
-		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
-		SnapshotsEnabled: false,
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		FlagsConfig: config.ContextFlagsConfig{
+			Version: "v1.0.0",
+		},
 	}
 }
 
@@ -590,6 +593,11 @@ func GetStatusComponents(
 				Username:       elasticUsername,
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:        false,
+				ProxyUrl:       "https://localhost:5000",
+				MarshallerType: "json",
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
@@ -647,8 +655,17 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				Password:       elasticPassword,
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
-			WebSocketConnector: config.WebSocketDriverConfig{
-				MarshallerType: "json",
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:           false,
+				ProxyUrl:          "http://localhost:5000",
+				RequestTimeoutSec: 30,
+				MarshallerType:    "json",
+			},
+			HostDriverConfig: config.HostDriverConfig{
+				MarshallerType:     "json",
+				Mode:               "client",
+				URL:                "localhost:12345",
+				RetryDurationInSec: 1,
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
