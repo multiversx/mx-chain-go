@@ -76,9 +76,8 @@ type DataTrieHandler interface {
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Get(key []byte) ([]byte, error)
+	TrieStorageInteractor
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
@@ -89,18 +88,22 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
-	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	GetBaseTrieStorageManager() StorageManager
-	GetIdentifier() string
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
 }
 
-// DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
-type DBWriteCacher interface {
+// TrieStorageInteractor defines the methods used for interacting with the trie storage
+type TrieStorageInteractor interface {
+	BaseStorer
+	GetIdentifier() string
+}
+
+// BaseStorer define the base methods needed for a storer
+type BaseStorer interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
 	Remove(key []byte) error
@@ -110,7 +113,7 @@ type DBWriteCacher interface {
 
 // SnapshotDbHandler is used to keep track of how many references a snapshot db has
 type SnapshotDbHandler interface {
-	DBWriteCacher
+	BaseStorer
 	IsInUse() bool
 	DecreaseNumReferences()
 	IncreaseNumReferences()

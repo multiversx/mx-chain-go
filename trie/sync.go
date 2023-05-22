@@ -32,7 +32,7 @@ type trieSyncer struct {
 	waitTimeBetweenRequests   time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        common.DBWriteCacher
+	db                        common.TrieStorageInteractor
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -303,7 +303,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {

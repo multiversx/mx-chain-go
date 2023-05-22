@@ -1033,11 +1033,6 @@ func (ps *PruningStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
 	debug.PrintStack()
 }
 
-// GetIdentifier returns the identifier for storer
-func (ps *PruningStorer) GetIdentifier() string {
-	return ps.identifier
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil

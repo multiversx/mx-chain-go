@@ -92,7 +92,7 @@ func getDefaultTrieAndAccountsDb() (common.Trie, *state.AccountsDB) {
 	return tr, adb
 }
 
-func getDefaultTrieAndAccountsDbWithCustomDB(db common.DBWriteCacher) (common.Trie, *state.AccountsDB) {
+func getDefaultTrieAndAccountsDbWithCustomDB(db common.BaseStorer) (common.Trie, *state.AccountsDB) {
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
 	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, db)
 	return tr, adb
@@ -100,7 +100,7 @@ func getDefaultTrieAndAccountsDbWithCustomDB(db common.DBWriteCacher) (common.Tr
 
 func getDefaultStateComponents(
 	hashesHolder trie.CheckpointHashesHolder,
-	db common.DBWriteCacher,
+	db common.BaseStorer,
 ) (*state.AccountsDB, common.Trie, common.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,

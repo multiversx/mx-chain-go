@@ -3,7 +3,6 @@ package trie
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
 	"time"
 
@@ -75,7 +74,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
+func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 	key, err := computeAndSetNodeHash(n)
 	if err != nil {
 		return 0, err
@@ -117,18 +116,12 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 	return key, nil
 }
 
-func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		dbWithID, ok := db.(dbWriteCacherWithIdentifier)
-		if !ok {
-			getNodeFromDbErr := core.NewGetNodeFromDBErrWithKey(n, err, "")
-			return nil, fmt.Errorf("db does not have an identifier, db type: %T, error: %w", db, getNodeFromDbErr)
-		}
-
-		return nil, core.NewGetNodeFromDBErrWithKey(n, err, dbWithID.GetIdentifier())
+		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
@@ -142,7 +135,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
+func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err

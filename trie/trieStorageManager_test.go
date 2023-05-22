@@ -98,6 +98,15 @@ func TestNewTrieStorageManager(t *testing.T) {
 		assert.Nil(t, ts)
 		assert.Error(t, err)
 	})
+	t.Run("invalid identifier", func(t *testing.T) {
+		t.Parallel()
+
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.Identifier = ""
+		ts, err := trie.NewTrieStorageManager(args)
+		assert.Nil(t, ts)
+		assert.Equal(t, trie.ErrInvalidIdentifier, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -892,27 +901,11 @@ func TestWriteInChanNonBlocking(t *testing.T) {
 func TestTrieStorageManager_GetIdentifier(t *testing.T) {
 	t.Parallel()
 
-	t.Run("db without identifier", func(t *testing.T) {
-		t.Parallel()
+	expectedId := "testId"
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	args.Identifier = expectedId
+	ts, _ := trie.NewTrieStorageManager(args)
 
-		ts, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
-		id := ts.GetIdentifier()
-		assert.Equal(t, "", id)
-	})
-
-	t.Run("db with identifier", func(t *testing.T) {
-		t.Parallel()
-
-		expectedIdentifier := "identifier"
-		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &storage.StorerStub{
-			GetIdentifierCalled: func() string {
-				return expectedIdentifier
-			},
-		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		id := ts.GetIdentifier()
-		assert.Equal(t, expectedIdentifier, id)
-	})
+	id := ts.GetIdentifier()
+	assert.Equal(t, expectedId, id)
 }

@@ -162,7 +162,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error {
+func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -200,8 +200,8 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 }
 
 func (en *extensionNode) commitCheckpoint(
-	originDb common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
@@ -243,7 +243,7 @@ func (en *extensionNode) commitCheckpoint(
 }
 
 func (en *extensionNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -281,7 +281,7 @@ func (en *extensionNode) commitSnapshot(
 	return en.saveToStorage(db, stats, depthLevel)
 }
 
-func (en *extensionNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
+func (en *extensionNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(_ byte, db common.DBWriteCacher) error {
+func (en *extensionNode) resolveCollapsed(_ byte, db common.TrieStorageInteractor) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
@@ -328,7 +328,7 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
+func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
 		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
@@ -350,7 +350,7 @@ func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.DBWri
 	return en.child.tryGet(key, currentDepth+1, db)
 }
 
-func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
+func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -372,7 +372,7 @@ func (en *extensionNode) getNext(key []byte, db common.DBWriteCacher) (node, []b
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insert(n *leafNode, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -395,7 +395,7 @@ func (en *extensionNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][
 	return en.insertInNewBn(n, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.DBWriteCacher) (node, [][]byte, error) {
+func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	n.Key = n.Key[keyMatchLen:]
 	newNode, oldHashes, err := en.child.insert(n, db)
 	if check.IfNil(newNode) || err != nil {
@@ -456,7 +456,7 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 	return newEn, oldHash, nil
 }
 
-func (en *extensionNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error) {
+func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -535,7 +535,7 @@ func (en *extensionNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (en *extensionNode) print(writer io.Writer, index int, db common.DBWriteCacher) {
+func (en *extensionNode) print(writer io.Writer, index int, db common.TrieStorageInteractor) {
 	if en == nil {
 		return
 	}
@@ -582,7 +582,7 @@ func (en *extensionNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	return nil
 }
 
-func (en *extensionNode) getChildren(db common.DBWriteCacher) ([]node, error) {
+func (en *extensionNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getChildren error %w", err)
@@ -639,7 +639,7 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -674,7 +674,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	return nil
 }
 
-func (en *extensionNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
+func (en *extensionNode) getAllHashes(db common.TrieStorageInteractor) ([][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
@@ -722,7 +722,7 @@ func (en *extensionNode) getValue() []byte {
 	return []byte{}
 }
 
-func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("collectStats error %w", err)

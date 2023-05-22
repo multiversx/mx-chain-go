@@ -247,7 +247,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error {
+func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -288,8 +288,8 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 }
 
 func (bn *branchNode) commitCheckpoint(
-	originDb common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
@@ -337,7 +337,7 @@ func (bn *branchNode) commitCheckpoint(
 }
 
 func (bn *branchNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
@@ -377,7 +377,7 @@ func (bn *branchNode) commitSnapshot(
 	return bn.saveToStorage(db, stats, depthLevel)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.DBWriteCacher, stats common.TrieStatisticsHandler, depthLevel int) error {
+func (bn *branchNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
 	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
@@ -408,7 +408,7 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsed(pos byte, db common.DBWriteCacher) error {
+func (bn *branchNode) resolveCollapsed(pos byte, db common.TrieStorageInteractor) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("resolveCollapsed error %w", err)
@@ -441,7 +441,7 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
+func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
 		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
@@ -465,7 +465,7 @@ func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.DBWriteC
 	return bn.children[childPos].tryGet(key, currentDepth+1, db)
 }
 
-func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte, error) {
+func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -489,7 +489,7 @@ func (bn *branchNode) getNext(key []byte, db common.DBWriteCacher) (node, []byte
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insert(n *leafNode, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -530,7 +530,7 @@ func (bn *branchNode) insertOnNilChild(n *leafNode, childPos byte) (node, [][]by
 	return bn, modifiedHashes, nil
 }
 
-func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db common.DBWriteCacher) (node, [][]byte, error) {
+func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	newNode, modifiedHashes, err := bn.children[childPos].insert(n, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
@@ -553,7 +553,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos by
 	return modifiedHashes
 }
 
-func (bn *branchNode) delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error) {
+func (bn *branchNode) delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -658,7 +658,7 @@ func (bn *branchNode) isEmptyOrNil() error {
 	return ErrEmptyBranchNode
 }
 
-func (bn *branchNode) print(writer io.Writer, index int, db common.DBWriteCacher) {
+func (bn *branchNode) print(writer io.Writer, index int, db common.TrieStorageInteractor) {
 	if bn == nil {
 		return
 	}
@@ -711,7 +711,7 @@ func (bn *branchNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	return nil
 }
 
-func (bn *branchNode) getChildren(db common.DBWriteCacher) ([]node, error) {
+func (bn *branchNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getChildren error %w", err)
@@ -781,7 +781,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -823,7 +823,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	return nil
 }
 
-func (bn *branchNode) getAllHashes(db common.DBWriteCacher) ([][]byte, error) {
+func (bn *branchNode) getAllHashes(db common.TrieStorageInteractor) ([][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
@@ -884,7 +884,7 @@ func (bn *branchNode) getValue() []byte {
 	return []byte{}
 }
 
-func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error {
+func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("collectStats error %w", err)

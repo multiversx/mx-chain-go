@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -1324,11 +1323,11 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, core.ErrContextClosing
-		},
+	db := testscommon.NewMemDbMock()
+	db.GetCalled = func(key []byte) ([]byte, error) {
+		return nil, core.ErrContextClosing
 	}
+
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
