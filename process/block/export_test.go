@@ -163,6 +163,7 @@ func NewShardProcessorEmptyWith3shards(
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -495,7 +496,7 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 }
 
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
+	return checkProcessorParameters(arguments)
 }
 
 func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {
