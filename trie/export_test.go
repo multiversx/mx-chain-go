@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -122,5 +123,6 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 		GeneralConfig:          generalCfg,
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
+		Identifier:             dataRetriever.UserAccountsUnit.String(),
 	}
 }

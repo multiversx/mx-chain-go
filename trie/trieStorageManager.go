@@ -32,6 +32,7 @@ type trieStorageManager struct {
 	closer                 core.SafeCloser
 	closed                 bool
 	idleProvider           IdleNodeProvider
+	identifier             string
 }
 
 type snapshotsQueueEntry struct {
@@ -53,6 +54,7 @@ type NewTrieStorageManagerArgs struct {
 	GeneralConfig          config.TrieStorageManagerConfig
 	CheckpointHashesHolder CheckpointHashesHolder
 	IdleProvider           IdleNodeProvider
+	Identifier             string
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -75,6 +77,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.IdleProvider) {
 		return nil, ErrNilIdleNodeProvider
 	}
+	if len(args.Identifier) == 0 {
+		return nil, ErrInvalidIdentifier
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -88,6 +93,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		checkpointHashesHolder: args.CheckpointHashesHolder,
 		closer:                 closing.NewSafeChanCloser(),
 		idleProvider:           args.IdleProvider,
+		identifier:             args.Identifier,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {

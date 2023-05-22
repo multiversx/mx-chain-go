@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -23,6 +24,7 @@ func GetStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 		},
 		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
+		Identifier:             dataRetriever.UserAccountsUnit.String(),
 	}
 }
 

@@ -231,6 +231,7 @@ func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTo
 func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
+	storageIdentifier dataRetriever.UnitType,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
@@ -261,6 +262,7 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:   brcf.snapshotsEnabled,
 		IdleProvider:       disabled.NewProcessStatusHandler(),
+		Identifier:         storageIdentifier.String(),
 	}
 	return trieFactoryInstance.Create(args)
 }
