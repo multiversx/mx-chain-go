@@ -46,7 +46,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	return blockProcessorComponents.blockProcessor, nil
 }
 
-// CreateTxSimulatorProcessor -
-func (pcf *processComponentsFactory) CreateTxSimulatorProcessor() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+// CreateAPITransactionEvaluator -
+func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
 	return pcf.createAPITransactionEvaluator()
 }

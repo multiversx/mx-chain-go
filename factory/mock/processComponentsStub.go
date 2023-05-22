@@ -186,7 +186,7 @@ func (pcm *ProcessComponentsMock) FallbackHeaderValidator() process.FallbackHead
 	return pcm.FallbackHdrValidator
 }
 
-// TransactionCostSimulator -
+// APITransactionEvaluator -
 func (pcm *ProcessComponentsMock) APITransactionEvaluator() factory.TransactionEvaluator {
 	return pcm.TxCostSimulator
 }
