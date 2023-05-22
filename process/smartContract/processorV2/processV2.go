@@ -106,6 +106,11 @@ type outputResultsToBeMerged struct {
 	vmOutput                *vmcommon.VMOutput
 }
 
+type internalIndexedScr struct {
+	result data.TransactionHandler
+	index  uint32
+}
+
 // NewSmartContractProcessorV2 creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
@@ -2329,11 +2334,12 @@ func (sc *scProcessor) createSCRIfNoOutputTransfer(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
+	scrIndex uint32,
 ) (bool, []internalIndexedScr) {
 	if callType == vmData.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
 		result := createBaseSCR(outAcc, tx, txHash, 0)
 		sc.addVMOutputResultsToSCR(vmOutput, result)
-		return true, []internalIndexedScr{{result, 0}}
+		return true, []internalIndexedScr{{result, scrIndex}}
 	}
 	return false, nil
 }
@@ -2369,11 +2375,6 @@ func GetOriginalSenderForTx(tx data.TransactionHandler) []byte {
 	}
 }
 
-type internalIndexedScr struct {
-	result data.TransactionHandler
-	index  uint32
-}
-
 func (sc *scProcessor) createSmartContractResults(
 	vmInput *vmcommon.VMInput,
 	vmOutput *vmcommon.VMOutput,
@@ -2382,14 +2383,16 @@ func (sc *scProcessor) createSmartContractResults(
 	txHash []byte,
 ) (bool, []internalIndexedScr) {
 
+	nextAvailableScrIndex := vmOutput.GetNextAvailableOutputTransferIndex()
+
 	result := sc.createSCRFromStakingSC(outAcc, tx, txHash)
 	if !check.IfNil(result) {
-		return false, []internalIndexedScr{{result, 0}}
+		return false, []internalIndexedScr{{result, nextAvailableScrIndex}}
 	}
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash, nextAvailableScrIndex)
 	}
 
 	createdAsyncCallBack := false
