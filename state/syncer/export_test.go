@@ -19,8 +19,8 @@ func CheckBaseAccountsSyncerArgs(args ArgsNewBaseAccountsSyncer) error {
 
 // SyncAccountDataTries -
 func (u *userAccountsSyncer) SyncAccountDataTries(
-	mainTrie common.Trie,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	return u.syncAccountDataTries(mainTrie, ctx)
+	return u.syncAccountDataTries(leavesChannels, ctx)
 }

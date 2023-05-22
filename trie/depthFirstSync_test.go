@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -109,6 +110,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
+	arg.LeavesChan = make(chan core.KeyValueHolder, 110)
 
 	d, _ := NewDepthFirstTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
@@ -135,6 +137,22 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	assert.True(t, d.NumTrieNodes() > d.NumLeaves())
 	assert.True(t, d.NumBytes() > 0)
 	assert.True(t, d.Duration() > 0)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(numKeysValues)
+
+	numLeavesOnChan := 0
+	go func() {
+		for range arg.LeavesChan {
+			numLeavesOnChan++
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	assert.Equal(t, numKeysValues, numLeavesOnChan)
+
 	log.Info("synced trie",
 		"num trie nodes", d.NumTrieNodes(),
 		"num leaves", d.NumLeaves(),

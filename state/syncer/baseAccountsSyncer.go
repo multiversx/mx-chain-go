@@ -27,7 +27,6 @@ type baseAccountsSyncer struct {
 	timeoutHandler                    trie.TimeoutHandler
 	shardId                           uint32
 	cacher                            storage.Cacher
-	rootHash                          []byte
 	maxTrieLevelInMemory              uint
 	name                              string
 	maxHardCapForMissingNodes         int
@@ -93,15 +92,11 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
 	ctx context.Context,
-) (common.Trie, error) {
-	b.rootHash = rootHash
+	leavesChan chan core.KeyValueHolder,
+) error {
 	atomic.AddInt32(&b.numMaxTries, 1)
 
 	log.Trace("syncing main trie", "roothash", rootHash)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
-	if err != nil {
-		return nil, err
-	}
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
@@ -116,22 +111,23 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
+		LeavesChan:                leavesChan,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	atomic.AddInt32(&b.numTriesSynced, 1)
 
 	log.Trace("finished syncing main trie", "roothash", rootHash)
 
-	return dataTrie.Recreate(rootHash)
+	return nil
 }
 
 func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context) {
