@@ -27,6 +27,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 	args := ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          gasScheduleNotifier,
 		MapDNSAddresses:      make(map[string]struct{}),
+		MapDNSV2Addresses:    make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &stateMock.AccountsStub{},
@@ -164,7 +165,7 @@ func TestCreateBuiltInFunctionContainer(t *testing.T) {
 		args := createMockArguments()
 		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
 		assert.Nil(t, err)
-		assert.Equal(t, 34, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
+		assert.Equal(t, 35, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
 
 		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 		assert.Nil(t, err)

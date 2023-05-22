@@ -248,6 +248,9 @@
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
     MultiClaimOnDelegationEnableEpoch = 3
 
+    # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
+    ChangeUsernameEnableEpoch = 2
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK"},

@@ -39,6 +39,7 @@ const defaultSpan = 300 * time.Second
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
 	Config                config.Config
+	FlagsConfig           config.ContextFlagsConfig
 	BootstrapRoundIndex   uint64
 	CoreComponents        factory.CoreComponentsHolder
 	NetworkComponents     factory.NetworkComponentsHolder
@@ -55,6 +56,7 @@ type ConsensusComponentsFactoryArgs struct {
 
 type consensusComponentsFactory struct {
 	config                config.Config
+	flagsConfig           config.ContextFlagsConfig
 	bootstrapRoundIndex   uint64
 	coreComponents        factory.CoreComponentsHolder
 	networkComponents     factory.NetworkComponentsHolder
@@ -88,6 +90,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 
 	return &consensusComponentsFactory{
 		config:                args.Config,
+		flagsConfig:           args.FlagsConfig,
 		bootstrapRoundIndex:   args.BootstrapRoundIndex,
 		coreComponents:        args.CoreComponents,
 		networkComponents:     args.NetworkComponents,
@@ -133,7 +136,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	cc.bootstrapper.StartSyncingBlocks()
+	err = cc.bootstrapper.StartSyncingBlocks()
+	if err != nil {
+		return nil, err
+	}
 
 	epoch := ccf.getEpoch()
 	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
@@ -471,6 +477,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -600,6 +607,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

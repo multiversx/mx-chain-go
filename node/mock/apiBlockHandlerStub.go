@@ -1,8 +1,8 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 )
 
 // BlockAPIHandlerStub -
@@ -10,7 +10,7 @@ type BlockAPIHandlerStub struct {
 	GetBlockByNonceCalled            func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByHashCalled             func(hash []byte, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRoundCalled            func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlockCalled func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error)
+	GetAlteredAccountsForBlockCalled func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 }
 
 // GetBlockByNonce -
@@ -41,7 +41,7 @@ func (bah *BlockAPIHandlerStub) GetBlockByRound(round uint64, options api.BlockQ
 }
 
 // GetAlteredAccountsForBlock -
-func (bah *BlockAPIHandlerStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (bah *BlockAPIHandlerStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	if bah.GetAlteredAccountsForBlockCalled != nil {
 		return bah.GetAlteredAccountsForBlockCalled(options)
 	}

@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -18,33 +17,52 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 	scrHash1 := "scrHash1"
 	scrHash2 := "scrHash2"
 	scrHash3 := "scrHash3"
-	pool := &outportcore.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			txHash: outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
-				Nonce: 1,
-			}, 0, big.NewInt(0)),
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			txHash: {
+				Transaction: &transaction.Transaction{
+					Nonce: 1,
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			scrHash1: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
-				Nonce:          2,
-				OriginalTxHash: []byte(txHash),
-			}, 0, big.NewInt(0)),
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			scrHash1: {
+				SmartContractResult: &smartContractResult.SmartContractResult{
+					Nonce:          2,
+					OriginalTxHash: []byte(txHash),
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 
-			scrHash2: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{}, 0, big.NewInt(0)),
-			scrHash3: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
-				Nonce:          3,
-				OriginalTxHash: []byte(txHash),
-			}, 0, big.NewInt(0)),
+			scrHash2: {
+				SmartContractResult: &smartContractResult.SmartContractResult{},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
+			scrHash3: {
+				SmartContractResult: &smartContractResult.SmartContractResult{
+					Nonce:          3,
+					OriginalTxHash: []byte(txHash),
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 		},
-		Logs: []*data.LogData{
+		Logs: []*outportcore.LogData{
 			{
-				TxHash: "hash",
+				Log:    &transaction.Log{Address: []byte("addr")},
+				TxHash: txHash,
 			},
 			{
-				TxHash: txHash,
-				LogHandler: &transaction.Log{
-					Address: []byte("addr"),
-				},
+				Log:    &transaction.Log{},
+				TxHash: "hash",
 			},
 		},
 	}
