@@ -935,6 +935,10 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		AddressLength: pubkeyConv.Len(),
 		Marshalizer:   integrationtests.TestMarshalizer,
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	txSimulatorProcessorArgs := transactionEvaluator.ArgsTxSimulator{
 		AddressPubKeyConverter: pubkeyConv,
 		ShardCoordinator:       shardCoordinator,
