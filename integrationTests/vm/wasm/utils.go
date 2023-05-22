@@ -245,6 +245,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
+		MapDNSV2Addresses:         DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
 		ShardCoordinator:          oneShardCoordinator,

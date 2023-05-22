@@ -9,7 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -18,6 +18,17 @@ import (
 )
 
 const counterPositionInLogMessage = 5
+
+func createSaveBlockArgs() *outportcore.OutportBlockWithHeaderAndBody {
+	return &outportcore.OutportBlockWithHeaderAndBody{
+		OutportBlock: &outportcore.OutportBlock{},
+		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+			Body:       &block.Body{},
+			Header:     &block.HeaderV2{},
+			HeaderHash: []byte("hash"),
+		},
+	}
+}
 
 func TestNewOutport(t *testing.T) {
 	t.Parallel()
@@ -43,7 +54,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
+		SaveAccountsCalled: func(accounts *outportcore.Accounts) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -53,7 +64,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveAccountsCalled: func(blockTimestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
+		SaveAccountsCalled: func(accounts *outportcore.Accounts) error {
 			numCalled2++
 			return nil
 		},
@@ -69,12 +80,12 @@ func TestOutport_SaveAccounts(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
+	outportHandler.SaveAccounts(&outportcore.Accounts{})
 	time.Sleep(time.Second)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts(0, map[string]*outportcore.AlteredAccount{}, 0)
+	outportHandler.SaveAccounts(&outportcore.Accounts{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -89,7 +100,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.OutportBlock) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -99,7 +110,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.OutportBlock) error {
 			numCalled2++
 			return nil
 		},
@@ -115,11 +126,12 @@ func TestOutport_SaveBlock(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveBlock(nil)
+	_ = outportHandler.SaveBlock(args)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -134,7 +146,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos *outportcore.RoundsInfo) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -144,7 +156,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos *outportcore.RoundsInfo) error {
 			numCalled2++
 			return nil
 		},
@@ -179,7 +191,7 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveValidatorsPubKeysCalled: func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
+		SaveValidatorsPubKeysCalled: func(validatorsRating *outportcore.ValidatorsPubKeys) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -189,7 +201,7 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveValidatorsPubKeysCalled: func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
+		SaveValidatorsPubKeysCalled: func(validatorsRating *outportcore.ValidatorsPubKeys) error {
 			numCalled2++
 			return nil
 		},
@@ -205,13 +217,13 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveValidatorsPubKeys(nil, 0)
+	outportHandler.SaveValidatorsPubKeys(&outportcore.ValidatorsPubKeys{})
 	time.Sleep(time.Second)
 
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveValidatorsPubKeys(nil, 0)
+	outportHandler.SaveValidatorsPubKeys(&outportcore.ValidatorsPubKeys{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -226,7 +238,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(validatorsRating *outportcore.ValidatorsRating) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -236,7 +248,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(validatorsRating *outportcore.ValidatorsRating) error {
 			numCalled2++
 			return nil
 		},
@@ -252,13 +264,13 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 		}
 	}
 
-	outportHandler.SaveValidatorsRating("", nil)
+	outportHandler.SaveValidatorsRating(&outportcore.ValidatorsRating{})
 	time.Sleep(time.Second)
 
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveValidatorsRating("", nil)
+	outportHandler.SaveValidatorsRating(&outportcore.ValidatorsRating{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -273,7 +285,7 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+		RevertIndexedBlockCalled: func(blockData *outportcore.BlockData) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -283,7 +295,7 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+		RevertIndexedBlockCalled: func(blockData *outportcore.BlockData) error {
 			numCalled2++
 			return nil
 		},
@@ -299,13 +311,14 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 		}
 	}
 
-	outportHandler.RevertIndexedBlock(nil, nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.RevertIndexedBlock(args.HeaderDataWithBody)
 	time.Sleep(time.Second)
 
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.RevertIndexedBlock(nil, nil)
+	_ = outportHandler.RevertIndexedBlock(args.HeaderDataWithBody)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 10, numCalled1)
@@ -320,7 +333,7 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 	numCalled1 := 0
 	numCalled2 := 0
 	driver1 := &mock.DriverStub{
-		FinalizedBlockCalled: func(headerHash []byte) error {
+		FinalizedBlockCalled: func(finalizedBlock *outportcore.FinalizedBlock) error {
 			numCalled1++
 			if numCalled1 < 10 {
 				return expectedError
@@ -330,7 +343,7 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 		},
 	}
 	driver2 := &mock.DriverStub{
-		FinalizedBlockCalled: func(headerHash []byte) error {
+		FinalizedBlockCalled: func(finalizedBlock *outportcore.FinalizedBlock) error {
 			numCalled2++
 			return nil
 		},
@@ -414,25 +427,25 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 
 	localErr := errors.New("driver stuck in error")
 	driver1 := &mock.DriverStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.OutportBlock) error {
 			return localErr
 		},
-		RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+		RevertIndexedBlockCalled: func(blockData *outportcore.BlockData) error {
 			return localErr
 		},
-		SaveRoundsInfoCalled: func(roundsInfos []*outportcore.RoundInfo) error {
+		SaveRoundsInfoCalled: func(roundsInfos *outportcore.RoundsInfo) error {
 			return localErr
 		},
-		SaveValidatorsPubKeysCalled: func(validatorsPubKeys map[uint32][][]byte, epoch uint32) error {
+		SaveValidatorsPubKeysCalled: func(validatorsPubKeys *outportcore.ValidatorsPubKeys) error {
 			return localErr
 		},
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []*outportcore.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(validatorsRating *outportcore.ValidatorsRating) error {
 			return localErr
 		},
-		SaveAccountsCalled: func(timestamp uint64, accs map[string]*outportcore.AlteredAccount) error {
+		SaveAccountsCalled: func(accounts *outportcore.Accounts) error {
 			return localErr
 		},
-		FinalizedBlockCalled: func(headerHash []byte) error {
+		FinalizedBlockCalled: func(finalizedBlock *outportcore.FinalizedBlock) error {
 			return localErr
 		},
 		CloseCalled: func() error {
@@ -445,15 +458,15 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(9)
 	go func() {
-		outportHandler.SaveAccounts(0, nil, 0)
+		outportHandler.SaveAccounts(nil)
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveBlock(nil)
+		_ = outportHandler.SaveBlock(nil)
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.RevertIndexedBlock(nil, nil)
+		_ = outportHandler.RevertIndexedBlock(nil)
 		wg.Done()
 	}()
 	go func() {
@@ -461,15 +474,15 @@ func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveValidatorsPubKeys(nil, 0)
+		outportHandler.SaveValidatorsPubKeys(nil)
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveValidatorsRating("", nil)
+		outportHandler.SaveValidatorsRating(nil)
 		wg.Done()
 	}()
 	go func() {
-		outportHandler.SaveAccounts(0, nil, 0)
+		outportHandler.SaveAccounts(nil)
 		wg.Done()
 	}()
 	go func() {
@@ -516,13 +529,14 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	}
 
 	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.OutportBlock) error {
 			time.Sleep(time.Second * 5)
 			return nil
 		},
 	})
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 
 	assert.True(t, logErrorCalled.IsSet())
 	assert.Equal(t, uint32(1), atomicGo.LoadUint32(&numLogDebugCalled))
@@ -555,12 +569,13 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	}
 
 	_ = outportHandler.SubscribeDriver(&mock.DriverStub{
-		SaveBlockCalled: func(args *outportcore.ArgsSaveBlockData) error {
+		SaveBlockCalled: func(args *outportcore.OutportBlock) error {
 			return nil
 		},
 	})
 
-	outportHandler.SaveBlock(nil)
+	args := createSaveBlockArgs()
+	_ = outportHandler.SaveBlock(args)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))

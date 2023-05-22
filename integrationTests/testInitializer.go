@@ -667,7 +667,7 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 				V1: config.GovernanceSystemSCConfigV1{
 					ProposalCost: "500",
 				},
@@ -676,6 +676,7 @@ func CreateFullGenesisBlocks(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
@@ -783,8 +784,9 @@ func CreateGenesisMetaBlock(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: DelegationManagerConfigChangeAddress,
+				OwnerAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1462,11 +1464,21 @@ func CreateNodesWithFullGenesis(
 	numMetaChainNodes int,
 	genesisFile string,
 ) ([]*TestProcessorNode, *TestProcessorNode) {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
+}
+
+// CreateNodesWithFullGenesisCustomEnableEpochs creates multiple nodes in different shards
+func CreateNodesWithFullGenesisCustomEnableEpochs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	genesisFile string,
+	enableEpochsConfig *config.EnableEpochs,
+) ([]*TestProcessorNode, *TestProcessorNode) {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	economicsConfig := createDefaultEconomicsConfig()
 	economicsConfig.GlobalSettings.YearSettings = append(

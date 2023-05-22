@@ -299,14 +299,8 @@ var ErrNilP2pPublicKey = errors.New("nil p2p public key")
 // ErrNilRater signals that a nil rater was provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingData signals that nil rating data were provided
-var ErrNilRatingData = errors.New("nil rating data")
-
 // ErrNilRatingsInfoHandler signals that nil ratings data information was provided
 var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
-
-// ErrNilRequestedItemHandler signals that a nil requested items handler was provided
-var ErrNilRequestedItemHandler = errors.New("nil requested item handler")
 
 // ErrNilRequestHandler signals that a nil request handler was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
@@ -322,9 +316,6 @@ var ErrNilRoundHandler = errors.New("nil roundHandler")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")
-
-// ErrNilSmartContractParser signals that a nil smart contract parser was provided
-var ErrNilSmartContractParser = errors.New("nil smart contract parser")
 
 // ErrNilSoftwareVersion signals that a nil software version was provided
 var ErrNilSoftwareVersion = errors.New("nil software version")
@@ -400,12 +391,6 @@ var ErrNilVmMarshalizer = errors.New("nil vm marshalizer")
 
 // ErrNilWatchdog signals that a nil watchdog was provided
 var ErrNilWatchdog = errors.New("nil watchdog")
-
-// ErrNilWhiteListHandler signals that a nil whitelist handler was provided
-var ErrNilWhiteListHandler = errors.New("nil white list handler")
-
-// ErrNilWhiteListVerifiedTxs signals that a nil whitelist for verified transactions was prvovided
-var ErrNilWhiteListVerifiedTxs = errors.New("nil white list verified txs")
 
 // ErrPollingFunctionRegistration signals an error while registering the polling function registration
 var ErrPollingFunctionRegistration = errors.New("cannot register handler func for num of connected peers")
@@ -562,3 +547,6 @@ var ErrNilLogger = errors.New("nil logger")
 
 // ErrNilShuffleOutCloser signals that a nil shuffle out closer has been provided
 var ErrNilShuffleOutCloser = errors.New("nil shuffle out closer")
+
+// ErrNilHistoryRepository signals that history processor is nil
+var ErrNilHistoryRepository = errors.New("history repository is nil")
