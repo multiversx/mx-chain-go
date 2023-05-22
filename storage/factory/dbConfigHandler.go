@@ -124,7 +124,7 @@ func checkIfDirExists(path string) (bool, error) {
 func checkIfDirIsEmpty(path string) bool {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		log.Debug("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
+		log.Trace("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
 		return true
 	}
 

@@ -364,9 +364,6 @@
         MaxBatchSize = 1000
         MaxOpenFiles = 10
 
-[StorageShardIDProvider]
-    NumShards = 4
-
 [EvictionWaitingList]
     #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
     RootHashesSize = 10000
