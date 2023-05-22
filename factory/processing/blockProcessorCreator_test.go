@@ -51,6 +51,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
 	)
 
 	require.NoError(t, err)
@@ -167,6 +168,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
 	)
 
 	require.NoError(t, err)

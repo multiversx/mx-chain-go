@@ -77,7 +77,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:         testscommon.GetGeneralConfig(),
 		EpochConfig:    config.EpochConfig{},
-		PrefConfigs:    config.PreferencesConfig{},
+		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
@@ -581,7 +581,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.Config.EpochStartConfig.RoundsPerEpoch = 0
-		args.PrefConfigs.FullArchive = true
+		args.PrefConfigs.Preferences.FullArchive = true
 		testCreateWithArgs(t, args, "rounds per epoch")
 	})
 	t.Run("createNetworkShardingCollector fails due to invalid PublicKeyPeerId config should error", func(t *testing.T) {
