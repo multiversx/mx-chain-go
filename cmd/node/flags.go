@@ -586,6 +586,11 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
 	}
 
+	if configs.PreferencesConfig.BlockProcessingCutoff.Enabled {
+		log.Debug("node is started by using the block processing cut-off - will disable the watchdog")
+		configs.FlagsConfig.DisableConsensusWatchdog = true
+	}
+
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
 	if err != nil {
 		return err

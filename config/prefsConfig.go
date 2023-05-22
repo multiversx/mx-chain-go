@@ -2,8 +2,9 @@ package config
 
 // Preferences will hold the configuration related to node's preferences
 type Preferences struct {
-	Preferences   PreferencesConfig
-	NamedIdentity []NamedIdentity
+	Preferences           PreferencesConfig
+	BlockProcessingCutoff BlockProcessingCutoffConfig
+	NamedIdentity         []NamedIdentity
 }
 
 // PreferencesConfig will hold the fields which are node specific such as the display name
@@ -23,6 +24,14 @@ type OverridableConfig struct {
 	File  string
 	Path  string
 	Value string
+}
+
+// BlockProcessingCutoffConfig holds the configuration for the block processing cutoff
+type BlockProcessingCutoffConfig struct {
+	Enabled       bool
+	Mode          string
+	CutoffTrigger string
+	Value         uint64
 }
 
 // NamedIdentity will hold the fields which are node named identities

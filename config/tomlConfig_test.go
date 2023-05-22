@@ -324,6 +324,12 @@ func TestTomlPreferencesParser(t *testing.T) {
 			RedundancyLevel:            redundancyLevel,
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
+		BlockProcessingCutoff: BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          "pause",
+			CutoffTrigger: "round",
+			Value:         55,
+		},
 	}
 
 	testString := `
@@ -336,6 +342,12 @@ func TestTomlPreferencesParser(t *testing.T) {
         "` + prefPubKey0 + `",
         "` + prefPubKey1 + `"
     ]
+
+[BlockProcessingCutoff]
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
