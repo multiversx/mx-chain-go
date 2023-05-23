@@ -347,7 +347,7 @@ type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
-	StartSyncingBlocks()
+	StartSyncingBlocks() error
 	IsInterfaceNil() bool
 }
 

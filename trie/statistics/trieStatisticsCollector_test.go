@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
+func TestSnapshotStatistics_Add(t *testing.T) {
 	t.Parallel()
 
 	tsc := NewTrieStatisticsCollector()
+
+	tsc.Add(nil, common.MainTrie) // coverage, early exit
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {
@@ -45,6 +47,8 @@ func TestSnapshotStatistics_AddTrieStats(t *testing.T) {
 		assert.Equal(t, numTriesToPrint, len(tsc.triesBySize))
 		assert.Equal(t, numTriesToPrint, len(tsc.triesByDepth))
 		assert.Equal(t, uint64(i+1), tsc.GetNumNodes())
+
+		tsc.Print() // coverage
 	}
 }
 

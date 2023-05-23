@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -23,7 +22,6 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config                   config.Config
-	ShardCoordinator         sharding.Coordinator
 	Core                     factory.CoreComponentsHolder
 	StatusCore               factory.StatusCoreComponentsHolder
 	StorageService           dataRetriever.StorageService
@@ -35,7 +33,6 @@ type StateComponentsFactoryArgs struct {
 
 type stateComponentsFactory struct {
 	config                   config.Config
-	shardCoordinator         sharding.Coordinator
 	core                     factory.CoreComponentsHolder
 	statusCore               factory.StatusCoreComponentsHolder
 	storageService           dataRetriever.StorageService
@@ -57,37 +54,18 @@ type stateComponents struct {
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
 func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponentsFactory, error) {
-	if args.Core == nil {
+	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
-	}
-	if check.IfNil(args.Core.Hasher()) {
-		return nil, errors.ErrNilHasher
-	}
-	if check.IfNil(args.Core.InternalMarshalizer()) {
-		return nil, errors.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.StorageService) {
 		return nil, errors.ErrNilStorageService
 	}
-	if check.IfNil(args.ChainHandler) {
-		return nil, errors.ErrNilBlockChainHandler
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
 	}
 
 	return &stateComponentsFactory{
 		config:                   args.Config,
-		shardCoordinator:         args.ShardCoordinator,
 		core:                     args.Core,
 		statusCore:               args.StatusCore,
 		storageService:           args.StorageService,

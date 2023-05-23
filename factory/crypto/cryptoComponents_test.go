@@ -144,6 +144,7 @@ func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cc)
 	assert.Equal(t, 0, len(cc.GetManagedPeersHolder().GetManagedKeysByCurrentNode()))
+	assert.Nil(t, cc.Close())
 }
 
 func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {

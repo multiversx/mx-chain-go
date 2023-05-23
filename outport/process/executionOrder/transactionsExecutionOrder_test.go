@@ -1,12 +1,13 @@
 package executionOrder
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -130,79 +131,79 @@ func TestAddExecutionOrderInTransactionPool(t *testing.T) {
 		},
 	}
 
-	pool := &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(txHashToMe):   &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 1}},
-			string(txHashFromMe): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 2}},
+	pool := &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(txHashToMe):   {Transaction: &transaction.Transaction{Nonce: 1}},
+			hex.EncodeToString(txHashFromMe): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(scrHashToMe): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &smartContractResult.SmartContractResult{Nonce: 3}},
-			string(scrHashFromMe): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &smartContractResult.SmartContractResult{
+		SmartContractResults: map[string]*outport.SCRInfo{
+			hex.EncodeToString(scrHashToMe): {SmartContractResult: &smartContractResult.SmartContractResult{Nonce: 3}},
+			hex.EncodeToString(scrHashFromMe): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          4,
 				OriginalTxHash: txHashToMe,
 			}},
-			string(scrHashIntra): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHashIntra): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          0,
 				OriginalTxHash: txHashToMe,
 			}},
 		},
-		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(rewardTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &rewardTx.RewardTx{}},
+		Rewards: map[string]*outport.RewardInfo{
+			hex.EncodeToString(rewardTxHash): {Reward: &rewardTx.RewardTx{}},
 		},
-		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(invalidTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 5}},
+		InvalidTxs: map[string]*outport.TxInfo{
+			hex.EncodeToString(invalidTxHash): {Transaction: &transaction.Transaction{Nonce: 5}},
 		},
-		Receipts: map[string]data.TransactionHandlerWithGasUsedAndFee{},
+		Receipts: map[string]*receipt.Receipt{},
 		Logs:     nil,
 	}
 
 	_, _, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
-	require.Equal(t, &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(txHashToMe): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 1},
-				ExecutionOrder:     0,
+	require.Equal(t, &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(txHashToMe): {
+				Transaction:    &transaction.Transaction{Nonce: 1},
+				ExecutionOrder: 0,
 			},
-			string(txHashFromMe): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 2},
-				ExecutionOrder:     3,
+			hex.EncodeToString(txHashFromMe): {
+				Transaction:    &transaction.Transaction{Nonce: 2},
+				ExecutionOrder: 3,
 			},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(scrHashToMe): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &smartContractResult.SmartContractResult{Nonce: 3},
-				ExecutionOrder:     1,
+		SmartContractResults: map[string]*outport.SCRInfo{
+			hex.EncodeToString(scrHashToMe): {
+				SmartContractResult: &smartContractResult.SmartContractResult{Nonce: 3},
+				ExecutionOrder:      1,
 			},
-			string(scrHashFromMe): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHashFromMe): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          4,
 					OriginalTxHash: txHashToMe,
 				},
 				ExecutionOrder: 0,
 			},
-			string(scrHashIntra): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &smartContractResult.SmartContractResult{
+			hex.EncodeToString(scrHashIntra): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          0,
 					OriginalTxHash: txHashToMe,
 				},
 				ExecutionOrder: 0,
 			},
 		},
-		Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(rewardTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &rewardTx.RewardTx{},
-				ExecutionOrder:     2,
+		Rewards: map[string]*outport.RewardInfo{
+			hex.EncodeToString(rewardTxHash): {
+				Reward:         &rewardTx.RewardTx{},
+				ExecutionOrder: 2,
 			},
 		},
-		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(invalidTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 5},
-				ExecutionOrder:     4,
+		InvalidTxs: map[string]*outport.TxInfo{
+			hex.EncodeToString(invalidTxHash): {
+				Transaction:    &transaction.Transaction{Nonce: 5},
+				ExecutionOrder: 4,
 			},
 		},
-		Receipts: map[string]data.TransactionHandlerWithGasUsedAndFee{},
+		Receipts: map[string]*receipt.Receipt{},
 		Logs:     nil,
 	}, pool)
 }
@@ -256,25 +257,25 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduled(t *test
 		},
 	}
 
-	pool := &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(firstTxHash):  &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 1}},
-			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 2}},
+	pool := &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(firstTxHash):  {Transaction: &transaction.Transaction{Nonce: 1}},
+			hex.EncodeToString(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
 	}
 
 	_, _, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, &block.Header{})
 	require.Nil(t, err)
 
-	require.Equal(t, &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 1},
-				ExecutionOrder:     0,
+	require.Equal(t, &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(firstTxHash): {
+				Transaction:    &transaction.Transaction{Nonce: 1},
+				ExecutionOrder: 0,
 			},
-			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 2},
-				ExecutionOrder:     1,
+			hex.EncodeToString(secondTxHash): {
+				Transaction:    &transaction.Transaction{Nonce: 2},
+				ExecutionOrder: 1,
 			},
 		},
 	}, pool)
@@ -369,15 +370,15 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 		},
 	}
 
-	pool := &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 2}},
+	pool := &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(secondTxHash): {Transaction: &transaction.Transaction{Nonce: 2}},
 		},
-		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &transaction.Transaction{Nonce: 1}},
+		InvalidTxs: map[string]*outport.TxInfo{
+			hex.EncodeToString(firstTxHash): {Transaction: &transaction.Transaction{Nonce: 1}},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(scrHash): &outport.TransactionHandlerWithGasAndFee{TransactionHandler: &smartContractResult.SmartContractResult{
+		SmartContractResults: map[string]*outport.SCRInfo{
+			hex.EncodeToString(scrHash): {SmartContractResult: &smartContractResult.SmartContractResult{
 				Nonce:          3,
 				OriginalTxHash: scheduledTx,
 			}},
@@ -386,22 +387,22 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 
 	scrsHashes, invalidTxsHashes, err := s.PutExecutionOrderInTransactionPool(pool, header, blockBody, prevHeader)
 	require.Nil(t, err)
-	require.Equal(t, &outport.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(secondTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 2},
-				ExecutionOrder:     1,
+	require.Equal(t, &outport.TransactionPool{
+		Transactions: map[string]*outport.TxInfo{
+			hex.EncodeToString(secondTxHash): {
+				Transaction:    &transaction.Transaction{Nonce: 2},
+				ExecutionOrder: 1,
 			},
 		},
-		Invalid: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(firstTxHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{Nonce: 1},
-				ExecutionOrder:     0,
+		InvalidTxs: map[string]*outport.TxInfo{
+			hex.EncodeToString(firstTxHash): {
+				Transaction:    &transaction.Transaction{Nonce: 1},
+				ExecutionOrder: 0,
 			},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(scrHash): &outport.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &smartContractResult.SmartContractResult{
+		SmartContractResults: map[string]*outport.SCRInfo{
+			hex.EncodeToString(scrHash): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          3,
 					OriginalTxHash: scheduledTx,
 				},
@@ -410,6 +411,6 @@ func TestAddExecutionOrderInTransactionPoolFromMeTransactionAndScheduledInvalid(
 		},
 	}, pool)
 
-	require.Equal(t, []string{string(scrHash)}, scrsHashes)
-	require.Equal(t, []string{string(scheduledInvalidTxHash)}, invalidTxsHashes)
+	require.Equal(t, []string{hex.EncodeToString(scrHash)}, scrsHashes)
+	require.Equal(t, []string{hex.EncodeToString(scheduledInvalidTxHash)}, invalidTxsHashes)
 }
