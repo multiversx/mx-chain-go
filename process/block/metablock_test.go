@@ -145,6 +145,7 @@ func createMockMetaArguments(
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
+			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -517,6 +518,17 @@ func TestNewMetaProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T)
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilBlockProcessingCutoffHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.BlockProcessingCutoffHandler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilBlockProcessingCutoffHandler, err)
 	assert.Nil(t, be)
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
@@ -47,7 +48,7 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 
 // CreateDisabled will return a new disabled persister
 func (pf *PersisterFactory) CreateDisabled() storage.Persister {
-	return &disabledPersister{}
+	return disabled.NewErrorDisabledPersister()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

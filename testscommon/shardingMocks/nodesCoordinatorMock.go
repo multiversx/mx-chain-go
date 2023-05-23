@@ -26,6 +26,7 @@ type NodesCoordinatorMock struct {
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32, uint32) int
 	GetValidatorsIndexesCalled               func(publicKeys []string, epoch uint32) ([]uint64, error)
+	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 }
 
 // NewNodesCoordinatorMock -
@@ -261,9 +262,10 @@ func (ncm *NodesCoordinatorMock) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
-func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
-	_ uint32,
-) (map[string]struct{}, error) {
+func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error) {
+	if ncm.GetConsensusWhitelistedNodesCalled != nil {
+		return ncm.GetConsensusWhitelistedNodesCalled(epoch)
+	}
 	return make(map[string]struct{}), nil
 }
 

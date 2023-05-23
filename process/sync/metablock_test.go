@@ -89,6 +89,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		RepopulateTokensSupplies:     false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -522,7 +523,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs, _ := sync.NewMetaBootstrap(args)
 
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	_ = bs.Close()
 }
@@ -598,7 +599,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 
 	time.Sleep(200 * time.Millisecond)
 

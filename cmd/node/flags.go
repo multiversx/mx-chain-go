@@ -384,6 +384,12 @@ var (
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
+
+	// repopulateTokensSupplies defines a flag that, if set, will repopulate the tokens supplies database by iterating over the trie
+	repopulateTokensSupplies = cli.BoolFlag{
+		Name:  "repopulate-tokens-supplies",
+		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -443,6 +449,7 @@ func getFlags() []cli.Flag {
 		dbDirectory,
 		logsDirectory,
 		operationMode,
+		repopulateTokensSupplies,
 	}
 }
 
@@ -472,6 +479,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
+	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 
 	return flagsConfig
 }
@@ -576,6 +584,11 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
+	}
+
+	if configs.PreferencesConfig.BlockProcessingCutoff.Enabled {
+		log.Debug("node is started by using the block processing cut-off - will disable the watchdog")
+		configs.FlagsConfig.DisableConsensusWatchdog = true
 	}
 
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)

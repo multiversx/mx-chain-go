@@ -3,6 +3,7 @@ package storagePruningManager
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -81,7 +82,7 @@ func (spm *storagePruningManager) markForEviction(
 		return err
 	}
 
-	logMapWithTrace("MarkForEviction "+string(identifier), "hash", hashes)
+	logMapWithTrace(fmt.Sprintf("MarkForEviction %d", identifier), "hash", hashes)
 	return nil
 }
 

@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -32,6 +32,9 @@ type NodeHandler interface {
 
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+
+	// GetGuardianData returns the guardian data for given account
+	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
@@ -58,8 +61,7 @@ type NodeHandler interface {
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
 
 	// CreateTransaction will return a transaction from all needed fields
-	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 
 	// ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -122,7 +124,7 @@ type ApiResolver interface {
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
+	GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	GetInternalShardBlockByNonce(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHash(format common.ApiOutputFormat, hash string) (interface{}, error)
 	GetInternalShardBlockByRound(format common.ApiOutputFormat, round uint64) (interface{}, error)

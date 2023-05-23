@@ -35,10 +35,15 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
-    # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
-    ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
-    ]
+   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+   # the activation of the configured guardian.
+   # Make sure that this is greater than the unbonding period!
+   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+
+   # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
+   ChainParametersByEpoch = [
+      { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+   ]
 
 [Versions]
     DefaultVersion = "default"
@@ -715,6 +720,9 @@
         "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
     ]
     MaxNumAddressesInTransferRole = 100
+    DNSV2Addresses =[
+        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+    ]
 
 [Hardfork]
     EnableTrigger = true

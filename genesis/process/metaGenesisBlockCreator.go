@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
+	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -357,15 +358,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
-	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Core.AddressPubKeyConverter(),
-		arg.Data.StorageService(),
-		arg.Data.Datapool(),
-		genesisFeeHandler,
-	)
+	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Hasher:              arg.Core.Hasher(),
+		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
+		Store:               arg.Data.StorageService(),
+		PoolsHolder:         arg.Data.Datapool(),
+		EconomicsFee:        genesisFeeHandler,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -447,6 +450,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
 		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    disabled.NewDisabledTxVersionChecker(),
+		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {

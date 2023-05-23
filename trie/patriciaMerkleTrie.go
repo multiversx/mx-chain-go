@@ -216,9 +216,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
+		log.Trace("trying to commit empty trie")
 		return nil
 	}
 	if !tr.root.isDirty() {
+		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
 		return nil
 	}
 	err := tr.root.setRootHash()
@@ -446,13 +448,13 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return nil
 	}
 
@@ -468,14 +470,14 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
-			writeInChanNonBlocking(leavesChannels.ErrChan, err)
+			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
 		tr.trieStorage.ExitPruningBufferingMode()
 
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 	}()
 
 	return nil

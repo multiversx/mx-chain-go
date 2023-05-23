@@ -255,6 +255,8 @@ func TestTomlEconomicsParser(t *testing.T) {
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
+	extraGasLimitGuardedTx := "50000"
+	maxGasPriceSetGuardian := "1234567"
 	protocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 	denomination := 18
 
@@ -283,11 +285,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			GasLimitSettings: []GasLimitSetting{
 				{
-					MaxGasLimitPerBlock: maxGasLimitPerBlock,
-					MinGasLimit:         minGasLimit,
+					MaxGasLimitPerBlock:    maxGasLimitPerBlock,
+					MinGasLimit:            minGasLimit,
+					ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
 				},
 			},
-			MinGasPrice: minGasPrice,
+			MinGasPrice:            minGasPrice,
+			MaxGasPriceSetGuardian: maxGasPriceSetGuardian,
 		},
 	}
 
@@ -310,8 +314,9 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
+    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"}] 
     MinGasPrice = "` + minGasPrice + `"
+	MaxGasPriceSetGuardian = "` + maxGasPriceSetGuardian + `"
 `
 	cfg := EconomicsConfig{}
 
@@ -337,6 +342,12 @@ func TestTomlPreferencesParser(t *testing.T) {
 			RedundancyLevel:            redundancyLevel,
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
+		BlockProcessingCutoff: BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          "pause",
+			CutoffTrigger: "round",
+			Value:         55,
+		},
 	}
 
 	testString := `
@@ -349,6 +360,12 @@ func TestTomlPreferencesParser(t *testing.T) {
         "` + prefPubKey0 + `",
         "` + prefPubKey1 + `"
     ]
+
+[BlockProcessingCutoff]
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
@@ -702,6 +719,18 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
+    # SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
+    SetGuardianEnableEpoch = 64
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 64
+
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
+    MultiClaimOnDelegationEnableEpoch = 65
+
+    # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
+    ChangeUsernameEnableEpoch = 64
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -797,6 +826,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			AlwaysSaveTokenMetaDataEnableEpoch:          61,
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
+			SetGuardianEnableEpoch:                      64,
+			MultiClaimOnDelegationEnableEpoch:           65,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:       64,
+			ChangeUsernameEnableEpoch:                   64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

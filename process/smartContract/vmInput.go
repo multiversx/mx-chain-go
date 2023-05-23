@@ -20,7 +20,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	vmCreateInput.ContractCode = deployData.Code
 	// when executing SC deploys we should always apply the flags
-	codeMetadata := sc.blockChainHook.ApplyFiltersOnCodeMetadata(deployData.CodeMetadata)
+	codeMetadata := sc.blockChainHook.ApplyFiltersOnSCCodeMetadata(deployData.CodeMetadata)
 	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
 	vmCreateInput.VMInput = vmcommon.VMInput{}
 	err = sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)
@@ -94,6 +94,11 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.Function = function
 	vmCallInput.CurrentTxHash = txHash
 	vmCallInput.GasLocked = gasLocked
+
+	gtx, ok := tx.(data.GuardedTransactionHandler)
+	if ok {
+		vmCallInput.TxGuardian = gtx.GetGuardianAddr()
+	}
 
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {

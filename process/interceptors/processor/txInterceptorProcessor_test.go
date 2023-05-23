@@ -80,7 +80,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	expectedErr := errors.New("tx validation error")
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+		CheckTxValidityCalled: func(interceptedTx process.InterceptedTransactionHandler) error {
 			return expectedErr
 		},
 	}
@@ -101,7 +101,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+		CheckTxValidityCalled: func(interceptedTx process.InterceptedTransactionHandler) error {
 			return nil
 		},
 	}

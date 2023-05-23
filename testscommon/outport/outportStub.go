@@ -1,37 +1,38 @@
 package outport
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
-	SaveBlockCalled             func(args *outportcore.ArgsSaveBlockData)
-	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*outportcore.ValidatorRatingInfo)
-	SaveValidatorsPubKeysCalled func(shardPubKeys map[uint32][][]byte, epoch uint32)
+	SaveBlockCalled             func(args *outportcore.OutportBlockWithHeaderAndBody) error
+	SaveValidatorsRatingCalled  func(validatorsRating *outportcore.ValidatorsRating)
+	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	HasDriversCalled            func() bool
 }
 
 // SaveBlock -
-func (as *OutportStub) SaveBlock(args *outportcore.ArgsSaveBlockData) {
+func (as *OutportStub) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) error {
 	if as.SaveBlockCalled != nil {
-		as.SaveBlockCalled(args)
+		return as.SaveBlockCalled(args)
 	}
+
+	return nil
 }
 
 // SaveValidatorsRating -
-func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*outportcore.ValidatorRatingInfo) {
+func (as *OutportStub) SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating) {
 	if as.SaveValidatorsRatingCalled != nil {
-		as.SaveValidatorsRatingCalled(index, validatorsInfo)
+		as.SaveValidatorsRatingCalled(validatorsRating)
 	}
 }
 
 // SaveValidatorsPubKeys -
-func (as *OutportStub) SaveValidatorsPubKeys(shardPubKeys map[uint32][][]byte, epoch uint32) {
+func (as *OutportStub) SaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys) {
 	if as.SaveValidatorsPubKeysCalled != nil {
-		as.SaveValidatorsPubKeysCalled(shardPubKeys, epoch)
+		as.SaveValidatorsPubKeysCalled(validatorsPubKeys)
 	}
 }
 
@@ -49,12 +50,12 @@ func (as *OutportStub) HasDrivers() bool {
 }
 
 // RevertIndexedBlock -
-func (as *OutportStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
-
+func (as *OutportStub) RevertIndexedBlock(_ *outportcore.HeaderDataWithBody) error {
+	return nil
 }
 
 // SaveAccounts -
-func (as *OutportStub) SaveAccounts(_ uint64, _ map[string]*outportcore.AlteredAccount, _ uint32) {
+func (as *OutportStub) SaveAccounts(_ *outportcore.Accounts) {
 
 }
 
@@ -64,7 +65,7 @@ func (as *OutportStub) Close() error {
 }
 
 // SaveRoundsInfo -
-func (as *OutportStub) SaveRoundsInfo(_ []*outportcore.RoundInfo) {
+func (as *OutportStub) SaveRoundsInfo(_ *outportcore.RoundsInfo) {
 
 }
 
@@ -74,5 +75,5 @@ func (as *OutportStub) SubscribeDriver(_ outport.Driver) error {
 }
 
 // FinalizedBlock -
-func (as *OutportStub) FinalizedBlock(_ []byte) {
+func (as *OutportStub) FinalizedBlock(_ *outportcore.FinalizedBlock) {
 }
