@@ -20,7 +20,7 @@ func TestNewTrieStorageManagerWithoutPruningWithNilStorage(t *testing.T) {
 func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, err := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
@@ -29,7 +29,7 @@ func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
 func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.False(t, ts.IsPruningEnabled())
 }

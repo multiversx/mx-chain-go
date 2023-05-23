@@ -36,11 +36,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/require"
@@ -319,23 +318,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	}
 }
 
-func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &hashingMocks.HasherMock{},
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
 // GetStateFactoryArgs -
 func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)

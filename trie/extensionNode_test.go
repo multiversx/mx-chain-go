@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1037,11 +1036,11 @@ func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, core.ErrContextClosing
-		},
+	db := testscommon.NewMemDbMock()
+	db.GetCalled = func(key []byte) ([]byte, error) {
+		return nil, core.ErrContextClosing
 	}
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)

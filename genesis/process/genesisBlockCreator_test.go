@@ -52,8 +52,8 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	storageManagerArgs, options := storageCommon.GetStorageManagerArgsAndOptions()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerArgs := storageCommon.GetStorageManagerArgs()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager

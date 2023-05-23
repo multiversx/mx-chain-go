@@ -910,13 +910,13 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := stateMock.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, stateMock.GetStorageManagerOptions())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()

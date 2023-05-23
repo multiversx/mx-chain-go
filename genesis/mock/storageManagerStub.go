@@ -7,13 +7,13 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-	DatabaseCalled                    func() common.DBWriteCacher
+	DatabaseCalled                    func() common.BaseStorer
 	TakeSnapshotCalled                func([]byte)
 	SetCheckpointCalled               func([]byte)
 	PruneCalled                       func([]byte)
 	CancelPruneCalled                 func([]byte)
 	MarkForEvictionCalled             func([]byte, common.ModifiedHashes) error
-	GetDbThatContainsHashCalled       func([]byte) common.DBWriteCacher
+	GetDbThatContainsHashCalled       func([]byte) common.BaseStorer
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) common.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
 	EnterSnapshotModeCalled           func()
@@ -22,7 +22,7 @@ type StorageManagerStub struct {
 }
 
 // Database -
-func (sms *StorageManagerStub) Database() common.DBWriteCacher {
+func (sms *StorageManagerStub) Database() common.BaseStorer {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
 	}

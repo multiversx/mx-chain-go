@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
@@ -1126,19 +1125,6 @@ func (boot *baseBootstrap) waitForMiniBlocks() error {
 	case <-time.After(boot.waitTime):
 		return process.ErrTimeIsOut
 	}
-}
-
-func (boot *baseBootstrap) getStorerIdentifier(unitType dataRetriever.UnitType) (string, error) {
-	storer, err := boot.store.GetStorer(unitType)
-	if err != nil {
-		return "", err
-	}
-	dbWithID, ok := storer.(dbStorerWithIdentifier)
-	if !ok {
-		return "", errors.ErrWrongTypeAssertion
-	}
-
-	return dbWithID.GetIdentifier(), nil
 }
 
 func (boot *baseBootstrap) init() {
