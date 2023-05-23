@@ -31,7 +31,7 @@ type doubleListTrieSyncer struct {
 	waitTimeBetweenChecks     time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        common.DBWriteCacher
+	db                        common.TrieStorageInteractor
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex

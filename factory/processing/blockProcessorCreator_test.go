@@ -84,14 +84,14 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
-	storageManagerArgs, options := storageManager.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storageManager.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
 	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser

@@ -13,7 +13,7 @@ type StorageManagerStub struct {
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
 	TakeSnapshotCalled                     func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
-	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
+	GetDbThatContainsHashCalled            func([]byte) common.BaseStorer
 	IsPruningEnabledCalled                 func() bool
 	IsPruningBlockedCalled                 func() bool
 	EnterPruningBufferingModeCalled        func()

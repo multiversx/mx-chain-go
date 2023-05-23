@@ -21,17 +21,18 @@ import (
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	mainStorer             common.DBWriteCacher
+	mainStorer             common.BaseStorer
+	checkpointsStorer      common.BaseStorer
 	pruningBlockingOps     uint32
 	snapshotReq            chan *snapshotsQueueEntry
 	checkpointReq          chan *snapshotsQueueEntry
-	checkpointsStorer      common.DBWriteCacher
 	checkpointHashesHolder CheckpointHashesHolder
 	storageOperationMutex  sync.RWMutex
 	cancelFunc             context.CancelFunc
 	closer                 core.SafeCloser
 	closed                 bool
 	idleProvider           IdleNodeProvider
+	identifier             string
 }
 
 type snapshotsQueueEntry struct {
@@ -46,13 +47,14 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	MainStorer             common.DBWriteCacher
-	CheckpointsStorer      common.DBWriteCacher
+	MainStorer             common.BaseStorer
+	CheckpointsStorer      common.BaseStorer
 	Marshalizer            marshal.Marshalizer
 	Hasher                 hashing.Hasher
 	GeneralConfig          config.TrieStorageManagerConfig
 	CheckpointHashesHolder CheckpointHashesHolder
 	IdleProvider           IdleNodeProvider
+	Identifier             string
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -75,6 +77,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.IdleProvider) {
 		return nil, ErrNilIdleNodeProvider
 	}
+	if len(args.Identifier) == 0 {
+		return nil, ErrInvalidIdentifier
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -88,6 +93,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		checkpointHashesHolder: args.CheckpointHashesHolder,
 		closer:                 closing.NewSafeChanCloser(),
 		idleProvider:           args.IdleProvider,
+		identifier:             args.Identifier,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
@@ -517,7 +523,7 @@ func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRoot
 }
 
 func newSnapshotNode(
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	rootHash []byte,
@@ -681,13 +687,7 @@ func (tsm *trieStorageManager) GetBaseTrieStorageManager() common.StorageManager
 
 // GetIdentifier returns the identifier of the main storer
 func (tsm *trieStorageManager) GetIdentifier() string {
-	dbWithIdentifier, ok := tsm.mainStorer.(dbWriteCacherWithIdentifier)
-	if !ok {
-		log.Warn("trieStorageManager.GetIdentifier mainStorer is not of type dbWriteCacherWithIdentifier", "type", fmt.Sprintf("%T", tsm.mainStorer))
-		return ""
-	}
-
-	return dbWithIdentifier.GetIdentifier()
+	return tsm.identifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

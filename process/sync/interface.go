@@ -29,7 +29,3 @@ type syncStarter interface {
 type forkDetector interface {
 	computeFinalCheckpoint()
 }
-
-type dbStorerWithIdentifier interface {
-	GetIdentifier() string
-}

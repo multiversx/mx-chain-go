@@ -10,13 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,20 +35,8 @@ func createMemUnit() storage.Storer {
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-	args := NewTrieStorageManagerArgs{
-		MainStorer:             store,
-		CheckpointsStorer:      store,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasherMock,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasherMock.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := GetDefaultTrieStorageManagerParameters()
+	args.MainStorer = store
 	tsm, _ := NewTrieStorageManager(args)
 
 	return tsm, store

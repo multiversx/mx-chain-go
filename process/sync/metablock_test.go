@@ -1626,7 +1626,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "userAccountsUnit")
+	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), dataRetriever.UserAccountsUnit.String())
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB
@@ -1742,7 +1742,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 			},
 		}
 
-		dbIdentifier := "userAccountsTrie"
+		dbIdentifier := dataRetriever.UserAccountsUnit.String()
 		args.Store = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType != dataRetriever.UserAccountsUnit {
@@ -1782,7 +1782,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 			},
 		}
 
-		dbIdentifier := "peerAccountsTrie"
+		dbIdentifier := dataRetriever.PeerAccountsUnit.String()
 		args.Store = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				if unitType != dataRetriever.PeerAccountsUnit {

@@ -37,7 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -45,18 +45,6 @@ import (
 )
 
 const denomination = "000000000000000000"
-
-func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             integrationTests.CreateMemUnit(),
-		CheckpointsStorer:      integrationTests.CreateMemUnit(),
-		Marshalizer:            integrationTests.TestMarshalizer,
-		Hasher:                 integrationTests.TestHasher,
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: &trieMock.CheckpointHashesHolderStub{},
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
 
 func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	// test simulates creation of a new account, data trie retrieval,
@@ -269,7 +257,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	args := getNewTrieStorageManagerArgs()
+	args := testStorage.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1054,7 +1042,7 @@ func createAccounts(
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := getNewTrieStorageManagerArgs()
+	args := testStorage.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
@@ -2486,7 +2474,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := getNewTrieStorageManagerArgs()
+	args := testStorage.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
