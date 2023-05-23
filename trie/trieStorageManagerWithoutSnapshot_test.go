@@ -15,10 +15,21 @@ import (
 func TestNewTrieStorageManagerWithoutSnapshot(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
-	ts, err := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
-	assert.Nil(t, err)
-	assert.NotNil(t, ts)
+	t.Run("nil trie storage manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		ts, err := trie.NewTrieStorageManagerWithoutSnapshot(nil)
+		assert.Equal(t, trie.ErrNilTrieStorage, err)
+		assert.Nil(t, ts)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		ts, err := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
+		assert.Nil(t, err)
+		assert.NotNil(t, ts)
+	})
 }
 
 func TestTrieStorageManagerWithoutSnapshot_GetFromCurrentEpoch(t *testing.T) {

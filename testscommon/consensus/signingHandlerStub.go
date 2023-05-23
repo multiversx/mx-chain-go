@@ -1,4 +1,4 @@
-package mock
+package consensus
 
 // SigningHandlerStub implements SigningHandler interface
 type SigningHandlerStub struct {

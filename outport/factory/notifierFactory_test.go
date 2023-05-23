@@ -4,10 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/factory"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +18,6 @@ func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 		Password:          "",
 		RequestTimeoutSec: 1,
 		Marshaller:        &marshallerMock.MarshalizerMock{},
-		Hasher:            &hashingMocks.HasherMock{},
-		PubKeyConverter:   &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -38,28 +33,6 @@ func TestCreateEventNotifier(t *testing.T) {
 		en, err := factory.CreateEventNotifier(args)
 		require.Nil(t, en)
 		require.Equal(t, core.ErrNilMarshalizer, err)
-	})
-
-	t.Run("nil hasher", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockNotifierFactoryArgs()
-		args.Hasher = nil
-
-		en, err := factory.CreateEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, core.ErrNilHasher, err)
-	})
-
-	t.Run("nil pub key converter", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockNotifierFactoryArgs()
-		args.PubKeyConverter = nil
-
-		en, err := factory.CreateEventNotifier(args)
-		require.Nil(t, en)
-		require.Equal(t, outport.ErrNilPubKeyConverter, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

@@ -1,145 +1,257 @@
 package status_test
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
-	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
+	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/assert"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	args.CoreComponents = nil
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilCoreComponentsHolder, err)
-}
-
-func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	args.NodesCoordinator = nil
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilNodesCoordinator, err)
-}
-
-func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	args.EpochStartNotifier = nil
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilEpochStartNotifier, err)
-}
-
-func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	args.NetworkComponents = nil
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilNetworkComponentsHolder, err)
-}
-
-func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	args.ShardCoordinator = nil
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilShardCoordinator, err)
-}
-
-func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	coreArgs := componentsMock.GetCoreArgs()
-	coreArgs.NodesFilename = "../mock/testdata/nodesSetupMockInvalidRound.json"
-	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
-	coreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
-	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-	err = coreComponents.Create()
-	require.Nil(t, err)
-	networkComponents := componentsMock.GetNetworkComponents(componentsMock.GetCryptoComponents(coreComponents))
-	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
-
-	statusArgs := statusComp.StatusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		ExternalConfig:       config.ExternalConfig{},
-		ShardCoordinator:     shardCoordinator,
-		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
-		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
-		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
-		EconomicsConfig:      config.EconomicsConfig{},
-		StatusCoreComponents: componentsMock.GetStatusCoreComponents(),
+func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryArgs {
+	return statusComp.StatusComponentsFactoryArgs{
+		Config: testscommon.GetGeneralConfig(),
+		ExternalConfig: config.ExternalConfig{
+			ElasticSearchConnector: config.ElasticSearchConfig{
+				Enabled:        false,
+				URL:            "url",
+				Username:       "user",
+				Password:       "pass",
+				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+			HostDriverConfig: config.HostDriverConfig{
+				MarshallerType: "json",
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				MarshallerType: "json",
+			},
+		},
+		EconomicsConfig:    config.EconomicsConfig{},
+		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
+		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		CoreComponents: &mock.CoreComponentsMock{
+			NodesConfig: &testscommon.NodesSetupStub{
+				GetRoundDurationCalled: func() uint64 {
+					return 1000
+				},
+			},
+			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
+		},
+		StatusCoreComponents: &factory.StatusCoreComponentsStub{
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			NetworkStatisticsField: &testscommon.NetworkStatisticsProviderStub{},
+		},
+		NetworkComponents: &testsMocks.NetworkComponentsStub{},
+		StateComponents:   &mock.StateComponentsHolderStub{},
+		IsInImportMode:    false,
 	}
-	scf, err := statusComp.NewStatusComponentsFactory(statusArgs)
-	assert.Nil(t, err)
-	assert.NotNil(t, scf)
-
-	statusComponents, err := scf.Create()
-	assert.Nil(t, statusComponents)
-	assert.Equal(t, errors.ErrInvalidRoundDuration, err)
 }
 
-func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
+func TestNewStatusComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	require.NoError(t, err)
-	require.False(t, check.IfNil(scf))
+	t.Run("nil CoreComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.CoreComponents = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
+	})
+	t.Run("CoreComponents with nil GenesisNodesSetup should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.CoreComponents = &mock.CoreComponentsMock{
+			NodesConfig: nil,
+		}
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilGenesisNodesSetupHandler, err)
+	})
+	t.Run("nil NetworkComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.NetworkComponents = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilNetworkComponentsHolder, err)
+	})
+	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.ShardCoordinator = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
+	})
+	t.Run("nil NodesCoordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.NodesCoordinator = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilNodesCoordinator, err)
+	})
+	t.Run("nil EpochStartNotifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.EpochStartNotifier = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilEpochStartNotifier, err)
+	})
+	t.Run("nil StatusCoreComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.StatusCoreComponents = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+		require.NotNil(t, scf)
+		require.NoError(t, err)
+	})
 }
 
 func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	scf, err := statusComp.NewStatusComponentsFactory(args)
-	require.Nil(t, err)
+	t.Run("NewSoftwareVersionFactory fails should return error", func(t *testing.T) {
+		t.Parallel()
 
-	res, err := scf.Create()
-	require.NoError(t, err)
-	require.NotNil(t, res)
+		args := createMockStatusComponentsFactoryArgs()
+		args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+			AppStatusHandlerField: nil, // make NewSoftwareVersionFactory fail
+		}
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		require.NotNil(t, scf)
+
+		sc, err := scf.Create()
+		require.Error(t, err)
+		require.Nil(t, sc)
+	})
+	t.Run("softwareVersionCheckerFactory.Create fails should return error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.Config.SoftwareVersionConfig.PollingIntervalInMinutes = 0
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		require.NotNil(t, scf)
+
+		sc, err := scf.Create()
+		require.Error(t, err)
+		require.Nil(t, sc)
+	})
+	t.Run("invalid round duration should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.CoreComponents = &mock.CoreComponentsMock{
+			NodesConfig: &testscommon.NodesSetupStub{
+				GetRoundDurationCalled: func() uint64 {
+					return 0
+				},
+			},
+		}
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		require.NotNil(t, scf)
+
+		sc, err := scf.Create()
+		require.Equal(t, errorsMx.ErrInvalidRoundDuration, err)
+		require.Nil(t, sc)
+	})
+	t.Run("makeWebSocketDriverArgs fails due to invalid marshaller type should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.ExternalConfig.HostDriverConfig.Enabled = true
+		args.ExternalConfig.HostDriverConfig.MarshallerType = "invalid type"
+		scf, _ := statusComp.NewStatusComponentsFactory(args)
+		require.NotNil(t, scf)
+
+		sc, err := scf.Create()
+		require.Error(t, err)
+		require.Nil(t, sc)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		shardCoordinator.SelfIDCalled = func() uint32 {
+			return core.MetachainShardId // coverage
+		}
+		args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
+		args.ExternalConfig.HostDriverConfig.Enabled = true // coverage
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, err)
+
+		sc, err := scf.Create()
+		require.NoError(t, err)
+		require.NotNil(t, sc)
+
+		require.NoError(t, sc.Close())
+	})
 }
 
-// ------------ Test StatusComponents --------------------
-func TestStatusComponents_CloseShouldWork(t *testing.T) {
+func TestStatusComponentsFactory_epochStartEventHandler(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	statusArgs, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-	scf, _ := statusComp.NewStatusComponentsFactory(statusArgs)
+	args := createMockStatusComponentsFactoryArgs()
+	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			return make(map[uint32][][]byte), errors.New("fail for coverage")
+		},
+	}
+	scf, _ := statusComp.NewStatusComponentsFactory(args)
+	require.NotNil(t, scf)
+
+	sc, _ := scf.Create()
+	require.NotNil(t, sc)
+
+	handler := sc.EpochStartEventHandler()
+	require.NotNil(t, handler)
+	handler.EpochStartAction(&testscommon.HeaderHandlerStub{})
+}
+
+func TestStatusComponentsFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStatusComponentsFactoryArgs()
+	args.CoreComponents = nil
+	scf, _ := statusComp.NewStatusComponentsFactory(args)
+	require.True(t, scf.IsInterfaceNil())
+
+	scf, _ = statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
+	require.False(t, scf.IsInterfaceNil())
+}
+
+func TestStatusComponents_Close(t *testing.T) {
+	t.Parallel()
+
+	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 	cc, err := scf.Create()
 	require.Nil(t, err)
 

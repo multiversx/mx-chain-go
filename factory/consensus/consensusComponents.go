@@ -39,6 +39,7 @@ const defaultSpan = 300 * time.Second
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
 	Config                config.Config
+	FlagsConfig           config.ContextFlagsConfig
 	BootstrapRoundIndex   uint64
 	CoreComponents        factory.CoreComponentsHolder
 	NetworkComponents     factory.NetworkComponentsHolder
@@ -55,6 +56,7 @@ type ConsensusComponentsFactoryArgs struct {
 
 type consensusComponentsFactory struct {
 	config                config.Config
+	flagsConfig           config.ContextFlagsConfig
 	bootstrapRoundIndex   uint64
 	coreComponents        factory.CoreComponentsHolder
 	networkComponents     factory.NetworkComponentsHolder
@@ -81,36 +83,14 @@ type consensusComponents struct {
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
 func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consensusComponentsFactory, error) {
-	if check.IfNil(args.CoreComponents) {
-		return nil, errors.ErrNilCoreComponentsHolder
-	}
-	if check.IfNil(args.DataComponents) {
-		return nil, errors.ErrNilDataComponentsHolder
-	}
-	if check.IfNil(args.CryptoComponents) {
-		return nil, errors.ErrNilCryptoComponentsHolder
-	}
-	if check.IfNil(args.NetworkComponents) {
-		return nil, errors.ErrNilNetworkComponentsHolder
-	}
-	if check.IfNil(args.ProcessComponents) {
-		return nil, errors.ErrNilProcessComponentsHolder
-	}
-	if check.IfNil(args.StateComponents) {
-		return nil, errors.ErrNilStateComponentsHolder
-	}
-	if check.IfNil(args.StatusComponents) {
-		return nil, errors.ErrNilStatusComponentsHolder
-	}
-	if check.IfNil(args.ScheduledProcessor) {
-		return nil, errors.ErrNilScheduledProcessor
-	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return nil, errors.ErrNilStatusCoreComponents
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &consensusComponentsFactory{
 		config:                args.Config,
+		flagsConfig:           args.FlagsConfig,
 		bootstrapRoundIndex:   args.BootstrapRoundIndex,
 		coreComponents:        args.CoreComponents,
 		networkComponents:     args.NetworkComponents,
@@ -130,10 +110,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	var err error
 
-	err = ccf.checkArgs()
-	if err != nil {
-		return nil, err
-	}
 	cc := &consensusComponents{}
 
 	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
@@ -160,7 +136,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	cc.bootstrapper.StartSyncingBlocks()
+	err = cc.bootstrapper.StartSyncingBlocks()
+	if err != nil {
+		return nil, err
+	}
 
 	epoch := ccf.getEpoch()
 	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
@@ -358,12 +337,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		Watchdog:         wd,
 		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
 	}
-	chronologyHandler, err := chronology.NewChronology(chronologyArg)
-	if err != nil {
-		return nil, err
-	}
-
-	return chronologyHandler, nil
+	return chronology.NewChronology(chronologyArg)
 }
 
 func (ccf *consensusComponentsFactory) getEpoch() uint32 {
@@ -503,18 +477,14 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 	}
 
-	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	return bootstrap, nil
+	return sync.NewShardBootstrap(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
@@ -638,6 +608,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -647,12 +618,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
 	}
 
-	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	return bootstrap, nil
+	return sync.NewMetaBootstrap(argsMetaBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusComponents) error {
@@ -711,33 +677,66 @@ func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Clos
 	return nil
 }
 
-func (ccf *consensusComponentsFactory) checkArgs() error {
-	blockchain := ccf.dataComponents.Blockchain()
-	if check.IfNil(blockchain) {
-		return errors.ErrNilBlockChainHandler
+func checkArgs(args ConsensusComponentsFactoryArgs) error {
+	if check.IfNil(args.CoreComponents) {
+		return errors.ErrNilCoreComponentsHolder
 	}
-	marshalizer := ccf.coreComponents.InternalMarshalizer()
-	if check.IfNil(marshalizer) {
-		return errors.ErrNilMarshalizer
+	if check.IfNil(args.CoreComponents.GenesisNodesSetup()) {
+		return errors.ErrNilGenesisNodesSetupHandler
 	}
-	dataPool := ccf.dataComponents.Datapool()
-	if check.IfNil(dataPool) {
+	if check.IfNil(args.DataComponents) {
+		return errors.ErrNilDataComponentsHolder
+	}
+	if check.IfNil(args.DataComponents.Datapool()) {
 		return errors.ErrNilDataPoolsHolder
 	}
-	shardCoordinator := ccf.processComponents.ShardCoordinator()
-	if check.IfNil(shardCoordinator) {
-		return errors.ErrNilShardCoordinator
+	if check.IfNil(args.DataComponents.Blockchain()) {
+		return errors.ErrNilBlockChainHandler
 	}
-	netMessenger := ccf.networkComponents.NetworkMessenger()
-	if check.IfNil(netMessenger) {
+	if check.IfNil(args.CryptoComponents) {
+		return errors.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(args.CryptoComponents.PublicKey()) {
+		return errors.ErrNilPublicKey
+	}
+	if check.IfNil(args.CryptoComponents.PrivateKey()) {
+		return errors.ErrNilPrivateKey
+	}
+	if check.IfNil(args.NetworkComponents) {
+		return errors.ErrNilNetworkComponentsHolder
+	}
+	if check.IfNil(args.NetworkComponents.NetworkMessenger()) {
 		return errors.ErrNilMessenger
 	}
-	hardforkTrigger := ccf.processComponents.HardforkTrigger()
-	if check.IfNil(hardforkTrigger) {
+	if check.IfNil(args.ProcessComponents) {
+		return errors.ErrNilProcessComponentsHolder
+	}
+	if check.IfNil(args.ProcessComponents.NodesCoordinator()) {
+		return errors.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.ProcessComponents.ShardCoordinator()) {
+		return errors.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.ProcessComponents.RoundHandler()) {
+		return errors.ErrNilRoundHandler
+	}
+	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
 		return errors.ErrNilHardforkTrigger
 	}
-	if check.IfNil(ccf.statusCoreComponents.AppStatusHandler()) {
-		return errors.ErrNilAppStatusHandler
+	if check.IfNil(args.StateComponents) {
+		return errors.ErrNilStateComponentsHolder
+	}
+	if check.IfNil(args.StatusComponents) {
+		return errors.ErrNilStatusComponentsHolder
+	}
+	if check.IfNil(args.StatusComponents.OutportHandler()) {
+		return errors.ErrNilOutportHandler
+	}
+	if check.IfNil(args.ScheduledProcessor) {
+		return errors.ErrNilScheduledProcessor
+	}
+	if check.IfNil(args.StatusCoreComponents) {
+		return errors.ErrNilStatusCoreComponents
 	}
 
 	return nil

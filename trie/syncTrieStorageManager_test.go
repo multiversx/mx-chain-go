@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -55,6 +56,22 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 	err := stsm.Put([]byte("key"), []byte("val"))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, putInEpochCalled)
+}
+
+func TestNewSyncTrieStorageManager_PutInEpochError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	_, trieStorage := newEmptyTrie()
+	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
+			return expectedErr
+		},
+	}
+	stsm, _ := NewSyncTrieStorageManager(trieStorage)
+
+	err := stsm.Put([]byte("key"), []byte("val"))
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {

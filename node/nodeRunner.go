@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -327,7 +328,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating state components")
 	managedStateComponents, err := nr.CreateManagedStateComponents(
 		managedCoreComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
 	)
@@ -389,7 +389,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
-		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
@@ -444,7 +443,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	if err != nil {
+		return true, err
+	}
+
 	err = managedStatusComponents.StartPolling()
 	if err != nil {
 		return true, err
@@ -815,6 +818,11 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
+	if nr.configs.PreferencesConfig.Preferences.FullArchive {
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
+	}
+
 	return nil
 }
 
@@ -857,6 +865,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 
 	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		FlagsConfig:           *nr.configs.FlagsConfig,
 		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
 		CoreComponents:        coreComponents,
 		NetworkComponents:     networkComponents,
@@ -1043,7 +1052,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
-	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
@@ -1056,7 +1064,6 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:       managedCoreComponents,
-		DataComponents:       managedDataComponents,
 		NetworkComponents:    managedNetworkComponents,
 		StateComponents:      managedStateComponents,
 		IsInImportMode:       isInImportMode,
@@ -1205,7 +1212,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                 *configs.GeneralConfig,
 		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		PrefConfigs:            *configs.PreferencesConfig,
 		ImportDBConfig:         *configs.ImportDbConfig,
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,
@@ -1224,11 +1231,9 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		MaxRating:              configs.RatingsConfig.General.MaxRating,
 		SystemSCConfig:         configs.SystemSCConfig,
-		Version:                configs.FlagsConfig.Version,
 		ImportStartHandler:     importStartHandler,
-		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
+		FlagsConfig:            *configs.FlagsConfig,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1272,8 +1277,8 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		SnapshotsEnabled:              configs.FlagsConfig.SnapshotsEnabled,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1306,13 +1311,11 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 // CreateManagedStateComponents is the managed state components factory
 func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
-	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
-		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
 		Core:                     coreComponents,
 		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),
@@ -1675,7 +1678,10 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  epoch,
+		})
 	}
 }
 

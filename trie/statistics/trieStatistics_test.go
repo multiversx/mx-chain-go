@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrieStatistics_AddBranchNode(t *testing.T) {
@@ -181,4 +182,40 @@ func TestTrieStatistics_MergeTriesStatistics(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("num leaves %v", 4), trieStatsStrings[10])
 	assert.Equal(t, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(1), 2), trieStatsStrings[11])
 	assert.Equal(t, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(0), 2), trieStatsStrings[12])
+}
+
+func TestTrieStatsDTO_ToString(t *testing.T) {
+	t.Parallel()
+
+	tsd := TrieStatsDTO{
+		Address:            "address",
+		RootHash:           []byte("root hash"),
+		TotalNodesSize:     1,
+		TotalNumNodes:      1,
+		MaxTrieDepth:       1,
+		BranchNodesSize:    1,
+		NumBranchNodes:     1,
+		ExtensionNodesSize: 1,
+		NumExtensionNodes:  1,
+		LeafNodesSize:      1,
+		NumLeafNodes:       1,
+	}
+
+	expectedLines := []string{
+		fmt.Sprintf("address %v,", tsd.Address),
+		fmt.Sprintf("rootHash %v,", hex.EncodeToString(tsd.RootHash)),
+		fmt.Sprintf("total trie size = %v,", core.ConvertBytes(tsd.TotalNodesSize)),
+		fmt.Sprintf("num trie nodes =  %v,", tsd.TotalNumNodes),
+		fmt.Sprintf("max trie depth = %v,", tsd.MaxTrieDepth),
+		fmt.Sprintf("branch nodes size %v,", core.ConvertBytes(tsd.BranchNodesSize)),
+		fmt.Sprintf("extension nodes size %v,", core.ConvertBytes(tsd.ExtensionNodesSize)),
+		fmt.Sprintf("leaf nodes size %v,", core.ConvertBytes(tsd.LeafNodesSize)),
+		fmt.Sprintf("num branches %v,", tsd.NumBranchNodes),
+		fmt.Sprintf("num extensions %v,", tsd.NumExtensionNodes),
+		fmt.Sprintf("num leaves %v", tsd.NumLeafNodes),
+	}
+	stringDTO := tsd.ToString()
+	for i, line := range stringDTO {
+		require.Equal(t, expectedLines[i], line)
+	}
 }

@@ -1,6 +1,7 @@
 package storageMarker
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -11,6 +12,36 @@ import (
 func TestTrieStorageMarker_MarkStorerAsSyncedAndActive(t *testing.T) {
 	t.Parallel()
 
+	t.Run("all operations error should work", func(t *testing.T) {
+		t.Parallel()
+
+		sm := NewTrieStorageMarker()
+		assert.NotNil(t, sm)
+
+		expectedErr := errors.New("expected err")
+
+		getLatestStorageEpochCalled := false
+		putCalled := false
+		putInEpochWithoutCacheCalled := false
+		storer := &testscommon.StorageManagerStub{
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				getLatestStorageEpochCalled = true
+				return 0, expectedErr
+			},
+			PutCalled: func(key []byte, val []byte) error {
+				putCalled = true
+				return expectedErr
+			},
+			PutInEpochWithoutCacheCalled: func(key []byte, val []byte, epoch uint32) error {
+				putInEpochWithoutCacheCalled = true
+				return expectedErr
+			},
+		}
+		sm.MarkStorerAsSyncedAndActive(storer)
+		assert.True(t, getLatestStorageEpochCalled)
+		assert.True(t, putCalled)
+		assert.True(t, putInEpochWithoutCacheCalled)
+	})
 	t.Run("mark storer as synced and active epoch 5", func(t *testing.T) {
 		sm := NewTrieStorageMarker()
 		assert.NotNil(t, sm)

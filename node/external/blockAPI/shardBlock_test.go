@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -663,11 +664,11 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 
 		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{}
 		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
-			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
-				retMap := map[string]*outportcore.AlteredAccount{}
-				for _, tx := range txPool.Txs {
-					retMap[string(tx.GetSndAddr())] = &outportcore.AlteredAccount{
-						Address: string(tx.GetSndAddr()),
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				retMap := map[string]*alteredAccount.AlteredAccount{}
+				for _, tx := range txPool.Transactions {
+					retMap[string(tx.Transaction.GetSndAddr())] = &alteredAccount.AlteredAccount{
+						Address: string(tx.Transaction.GetSndAddr()),
 						Balance: "10",
 					}
 				}
@@ -683,7 +684,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		require.True(t, areAlteredAccountsResponsesTheSame([]*outportcore.AlteredAccount{
+		require.True(t, areAlteredAccountsResponsesTheSame([]*alteredAccount.AlteredAccount{
 			{
 				Address: "addr0",
 				Balance: "10",
@@ -697,7 +698,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 	})
 }
 
-func areAlteredAccountsResponsesTheSame(first []*outportcore.AlteredAccount, second []*outportcore.AlteredAccount) bool {
+func areAlteredAccountsResponsesTheSame(first []*alteredAccount.AlteredAccount, second []*alteredAccount.AlteredAccount) bool {
 	if len(first) != len(second) {
 		return false
 	}

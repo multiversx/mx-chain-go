@@ -392,6 +392,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               arg.GasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		EnableUserNameChange:      false,
 		Marshalizer:               arg.Core.InternalMarshalizer(),
 		Accounts:                  arg.Accounts,
@@ -464,15 +465,17 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Core.AddressPubKeyConverter(),
-		arg.Data.StorageService(),
-		arg.Data.Datapool(),
-		genesisFeeHandler,
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Hasher:              arg.Core.Hasher(),
+		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
+		Store:               arg.Data.StorageService(),
+		PoolsHolder:         arg.Data.Datapool(),
+		EconomicsFee:        genesisFeeHandler,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -358,15 +358,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
-	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Core.AddressPubKeyConverter(),
-		arg.Data.StorageService(),
-		arg.Data.Datapool(),
-		genesisFeeHandler,
-	)
+	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		Hasher:              arg.Core.Hasher(),
+		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
+		Store:               arg.Data.StorageService(),
+		PoolsHolder:         arg.Data.Datapool(),
+		EconomicsFee:        genesisFeeHandler,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -324,6 +324,12 @@ func TestTomlPreferencesParser(t *testing.T) {
 			RedundancyLevel:            redundancyLevel,
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
+		BlockProcessingCutoff: BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          "pause",
+			CutoffTrigger: "round",
+			Value:         55,
+		},
 	}
 
 	testString := `
@@ -336,6 +342,12 @@ func TestTomlPreferencesParser(t *testing.T) {
         "` + prefPubKey0 + `",
         "` + prefPubKey1 + `"
     ]
+
+[BlockProcessingCutoff]
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
@@ -689,11 +701,17 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
-	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
-	SetGuardianEnableEpoch = 64
+    # SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
+    SetGuardianEnableEpoch = 64
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 64
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
     MultiClaimOnDelegationEnableEpoch = 65
+
+    # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
+    ChangeUsernameEnableEpoch = 64
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -792,6 +810,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeMemStoreLimitEnableEpoch:             63,
 			SetGuardianEnableEpoch:                      64,
 			MultiClaimOnDelegationEnableEpoch:           65,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:       64,
+			ChangeUsernameEnableEpoch:                   64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
