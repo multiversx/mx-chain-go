@@ -14,16 +14,16 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.0
-	github.com/multiversx/mx-chain-core-go v1.2.4
+	github.com/multiversx/mx-chain-core-go v1.2.5-0.20230523072611-5fe96e73325a
 	github.com/multiversx/mx-chain-crypto-go v1.2.6
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.3
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.16
 	github.com/multiversx/mx-chain-storage-go v1.0.8
-	github.com/multiversx/mx-chain-vm-common-go v1.4.2
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.53
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.54
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.80
+	github.com/multiversx/mx-chain-vm-common-go v1.4.3-0.20230523072935-fd81181efe64
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54-0.20230508132713-326b0a1fd4a3
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55-0.20230508132521-d4a2a04b3c46
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81-0.20230508132257-c46659ac7a63
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible

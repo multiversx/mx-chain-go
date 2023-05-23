@@ -15,7 +15,7 @@ func TestSnapshotStatistics_Add(t *testing.T) {
 
 	tsc := NewTrieStatisticsCollector()
 
-	tsc.Add(nil) // coverage, early exit
+	tsc.Add(nil, common.MainTrie) // coverage, early exit
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {

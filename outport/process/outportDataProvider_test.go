@@ -30,7 +30,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		EconomicsData:            &mock.EconomicsHandlerMock{},
 		ShardCoordinator:         &testscommon.ShardsCoordinatorMock{},
 		ExecutionOrderHandler:    &mock.ExecutionOrderHandlerStub{},
-		Marshaller:               &testscommon.MarshalizerMock{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
 	}
 }
 

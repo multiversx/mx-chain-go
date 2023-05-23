@@ -196,10 +196,11 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
-				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+				EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

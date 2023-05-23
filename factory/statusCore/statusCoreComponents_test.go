@@ -15,7 +15,6 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,48 +40,6 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 		args := componentsMock.GetStatusCoreArgs(coreComp)
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Equal(t, errorsMx.ErrNilEconomicsData, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil genesis node setup should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errorsMx.ErrNilGenesisNodesSetupHandler, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil marshaller should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:       &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:   &testscommon.NodesSetupStub{},
-			InternalMarshalizerField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errorsMx.ErrNilMarshalizer, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil slice converter should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:            &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:        &testscommon.NodesSetupStub{},
-			InternalMarshalizerField:      &marshallerMock.MarshalizerStub{},
-			Uint64ByteSliceConverterField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errorsMx.ErrNilUint64ByteSliceConverter, err)
 		require.Nil(t, sccf)
 	})
 	t.Run("should work", func(t *testing.T) {
