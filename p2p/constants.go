@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // NodeOperation defines the p2p node operation
