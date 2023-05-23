@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -815,7 +816,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
 
-		boot.outportHandler.RevertIndexedBlock(currHeader, currBody)
+		err = boot.outportHandler.RevertIndexedBlock(&outportcore.HeaderDataWithBody{
+			Body:       currBody,
+			HeaderHash: currHeaderHash,
+			Header:     currHeader,
+		})
+		if err != nil {
+			log.Warn("baseBootstrap.outportHandler.RevertIndexedBlock cannot revert indexed block", "error", err)
+		}
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

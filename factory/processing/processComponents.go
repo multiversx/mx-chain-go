@@ -12,8 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -43,6 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -128,7 +131,7 @@ type processComponents struct {
 type ProcessComponentsFactoryArgs struct {
 	Config                 config.Config
 	EpochConfig            config.EpochConfig
-	PrefConfigs            config.PreferencesConfig
+	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
@@ -156,7 +159,7 @@ type ProcessComponentsFactoryArgs struct {
 type processComponentsFactory struct {
 	config                 config.Config
 	epochConfig            config.EpochConfig
-	prefConfigs            config.PreferencesConfig
+	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
@@ -229,7 +232,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
 		pcf.coreData.GenesisTime().Unix(),
-		pcf.prefConfigs.FullArchive,
+		pcf.prefConfigs.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -577,6 +580,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	blockCutoffProcessingHandler, err := cutoff.CreateBlockProcessingCutoffHandler(pcf.prefConfigs.BlockProcessingCutoff)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -590,6 +598,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 	)
 	if err != nil {
@@ -627,7 +636,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:    pcf.prefConfigs.RedundancyLevel,
+		RedundancyLevel:    pcf.prefConfigs.Preferences.RedundancyLevel,
 		Messenger:          pcf.network.NetworkMessenger(),
 		ObserverPrivateKey: observerBLSPrivateKey,
 	}
@@ -861,14 +870,14 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return genesisBlocks, indexingData, nil
 }
 
-func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*outport.AlteredAccount, error) {
+func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string]*alteredAccount.AlteredAccount, error) {
 	if !pcf.statusComponents.OutportHandler().HasDrivers() {
-		return map[string]*outport.AlteredAccount{}, nil
+		return map[string]*alteredAccount.AlteredAccount{}, nil
 	}
 
 	rootHash, err := pcf.state.AccountsAdapter().RootHash()
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
 	leavesChannels := &common.TrieIteratorChannels{
@@ -877,10 +886,10 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 	}
 	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
-	genesisAccounts := make(map[string]*outport.AlteredAccount, 0)
+	genesisAccounts := make(map[string]*alteredAccount.AlteredAccount, 0)
 	for leaf := range leavesChannels.LeavesChan {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
@@ -890,11 +899,11 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 		encodedAddress, errEncode := pcf.coreData.AddressPubKeyConverter().Encode(userAccount.AddressBytes())
 		if errEncode != nil {
-			return map[string]*outport.AlteredAccount{}, errEncode
+			return map[string]*alteredAccount.AlteredAccount{}, errEncode
 		}
 
-		genesisAccounts[encodedAddress] = &outport.AlteredAccount{
-			AdditionalData: &outport.AdditionalAccountData{
+		genesisAccounts[encodedAddress] = &alteredAccount.AlteredAccount{
+			AdditionalData: &alteredAccount.AdditionalAccountData{
 				BalanceChanged: true,
 			},
 			Address: encodedAddress,
@@ -906,11 +915,15 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 
 	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
-		return map[string]*outport.AlteredAccount{}, err
+		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts, shardID)
+	pcf.statusComponents.OutportHandler().SaveAccounts(&outport.Accounts{
+		ShardID:         shardID,
+		BlockTimestamp:  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		AlteredAccounts: genesisAccounts,
+	})
 	return genesisAccounts, nil
 }
 
@@ -1069,10 +1082,10 @@ func (pcf *processComponentsFactory) createGenesisMiniBlockHandlers(miniBlocks [
 func (pcf *processComponentsFactory) indexGenesisBlocks(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	initialIndexingData map[uint32]*genesis.IndexingData,
-	alteredAccounts map[string]*outport.AlteredAccount,
+	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 ) error {
-	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
-	originalGenesisBlockHeader := genesisBlocks[currentShardId]
+	currentShardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
+	originalGenesisBlockHeader := genesisBlocks[currentShardID]
 	genesisBlockHeader := originalGenesisBlockHeader.ShallowClone()
 
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
@@ -1086,7 +1099,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 	}
 
 	intraShardMiniBlocks := getGenesisIntraShardMiniblocks(miniBlocks)
-	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardId)
+	genesisBody := getGenesisBlockForShard(miniBlocks, currentShardID)
 
 	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
@@ -1094,39 +1107,47 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		// manually add the genesis minting address as it is not exist in the trie
 		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
 
-		alteredAccounts[genesisAddress] = &outport.AlteredAccount{
+		alteredAccounts[genesisAddress] = &alteredAccount.AlteredAccount{
 			Address: genesisAddress,
 			Balance: "0",
 		}
 
-		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardId].Txs)))
+		_ = genesisBlockHeader.SetTxCount(uint32(len(txsPoolPerShard[currentShardID].Transactions)))
 
-		arg := &outport.ArgsSaveBlockData{
-			HeaderHash: genesisBlockHash,
-			Body:       genesisBody,
-			Header:     genesisBlockHeader,
-			HeaderGasConsumption: outport.HeaderGasConsumption{
-				GasProvided:    0,
-				GasRefunded:    0,
-				GasPenalized:   0,
-				MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardId),
+		arg := &outport.OutportBlockWithHeaderAndBody{
+			OutportBlock: &outport.OutportBlock{
+				BlockData: nil, // this will be filled by outport handler
+				HeaderGasConsumption: &outport.HeaderGasConsumption{
+					GasProvided:    0,
+					GasRefunded:    0,
+					GasPenalized:   0,
+					MaxGasPerBlock: pcf.coreData.EconomicsData().MaxGasLimitPerBlock(currentShardID),
+				},
+				TransactionPool: txsPoolPerShard[currentShardID],
+				AlteredAccounts: alteredAccounts,
 			},
-			TransactionsPool: txsPoolPerShard[currentShardId],
-			AlteredAccounts:  alteredAccounts,
+			HeaderDataWithBody: &outport.HeaderDataWithBody{
+				Body:       genesisBody,
+				Header:     genesisBlockHeader,
+				HeaderHash: genesisBlockHash,
+			},
 		}
-		pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		errOutport := pcf.statusComponents.OutportHandler().SaveBlock(arg)
+		if errOutport != nil {
+			log.Error("indexGenesisBlocks.outportHandler.SaveBlock cannot save block", "error", errOutport)
+		}
 	}
 
-	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardId, "hash", genesisBlockHash)
-	if txsPoolPerShard[currentShardId] != nil {
+	log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", currentShardID, "hash", genesisBlockHash)
+	if txsPoolPerShard[currentShardID] != nil {
 		err = pcf.historyRepo.RecordBlock(
 			genesisBlockHash,
 			originalGenesisBlockHeader,
 			genesisBody,
-			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
-			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			wrapSCRsInfo(txsPoolPerShard[currentShardID].SmartContractResults),
+			wrapReceipts(txsPoolPerShard[currentShardID].Receipts),
 			intraShardMiniBlocks,
-			txsPoolPerShard[currentShardId].Logs)
+			wrapLogs(txsPoolPerShard[currentShardID].Logs))
 		if err != nil {
 			return err
 		}
@@ -1137,14 +1158,14 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
-	if txsPoolPerShard[currentShardId] != nil {
-		err = pcf.saveGenesisTxsToStorage(unwrapTxs(txsPoolPerShard[currentShardId].Txs))
+	if txsPoolPerShard[currentShardID] != nil {
+		err = pcf.saveGenesisTxsToStorage(wrapTxsInfo(txsPoolPerShard[currentShardID].Transactions))
 		if err != nil {
 			return err
 		}
 	}
 
-	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardId)
+	nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(currentShardID)
 	nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
 	err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 	if err != nil {
@@ -1164,7 +1185,7 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 	genesisBlockHash []byte,
 	genesisBody *dataBlock.Body,
 	intraShardMiniBlocks []*dataBlock.MiniBlock,
-	txsPoolPerShard map[uint32]*outport.Pool,
+	txsPoolPerShard map[uint32]*outport.TransactionPool,
 ) error {
 	currentShardId := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 
@@ -1191,10 +1212,10 @@ func (pcf *processComponentsFactory) saveAlteredGenesisHeaderToStorage(
 			genesisBlockHash,
 			genesisBlockHeader,
 			genesisBody,
-			unwrapTxs(txsPoolPerShard[currentShardId].Scrs),
-			unwrapTxs(txsPoolPerShard[currentShardId].Receipts),
+			wrapSCRsInfo(txsPoolPerShard[currentShardId].SmartContractResults),
+			wrapReceipts(txsPoolPerShard[currentShardId].Receipts),
 			intraShardMiniBlocks,
-			txsPoolPerShard[currentShardId].Logs)
+			wrapLogs(txsPoolPerShard[currentShardId].Logs))
 		if err != nil {
 			return err
 		}
@@ -1324,7 +1345,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		IsFullHistoryNode:          pcf.prefConfigs.Preferences.FullArchive,
 		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
 		PayloadValidator:           payloadValidator,
 	}
@@ -1358,7 +1379,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		IsFullHistoryNode:          pcf.prefConfigs.Preferences.FullArchive,
 		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
 		PayloadValidator:           payloadValidator,
 	}
@@ -1457,7 +1478,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
 			Config:                        pcf.config,
-			PrefsConfig:                   pcf.prefConfigs,
+			PrefsConfig:                   pcf.prefConfigs.Preferences,
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
 			PathManager:                   pathManager,
 			EpochStartNotifier:            manualEpochStartNotifier,
@@ -1939,11 +1960,42 @@ func (pc *processComponents) Close() error {
 	return nil
 }
 
-func unwrapTxs(txs map[string]data.TransactionHandlerWithGasUsedAndFee) map[string]data.TransactionHandler {
-	output := make(map[string]data.TransactionHandler)
-	for hash, wrappedTx := range txs {
-		output[hash] = wrappedTx.GetTxHandler()
+func wrapTxsInfo(txs map[string]*outport.TxInfo) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(txs))
+	for hash, tx := range txs {
+		ret[hash] = tx.Transaction
 	}
 
-	return output
+	return ret
+}
+
+func wrapSCRsInfo(scrs map[string]*outport.SCRInfo) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(scrs))
+	for hash, scr := range scrs {
+		ret[hash] = scr.SmartContractResult
+	}
+
+	return ret
+}
+
+func wrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.TransactionHandler {
+	ret := make(map[string]data.TransactionHandler, len(receipts))
+	for hash, r := range receipts {
+		ret[hash] = r
+	}
+
+	return ret
+}
+
+func wrapLogs(logs []*outport.LogData) []*data.LogData {
+	ret := make([]*data.LogData, len(logs))
+
+	for idx, logData := range logs {
+		ret[idx] = &data.LogData{
+			LogHandler: logData.Log,
+			TxHash:     logData.TxHash,
+		}
+	}
+
+	return ret
 }

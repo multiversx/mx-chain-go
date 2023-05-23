@@ -406,7 +406,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
-		PrefConfigs:    pr.Config.PreferencesConfig.Preferences,
+		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
 			Version:          "test",
