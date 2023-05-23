@@ -42,6 +42,8 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+	nrEpochsChanges              int
+	roundsModulus                uint64
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -389,6 +391,8 @@ func (mp *metaProcessor) ProcessBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.ForceStart(header)
 
 	return nil
 }
@@ -744,6 +748,8 @@ func (mp *metaProcessor) CreateBlock(
 	}
 
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
+
+	mp.ForceStart(metaHdr)
 
 	return metaHdr, body, nil
 }
