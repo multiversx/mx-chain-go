@@ -118,6 +118,7 @@ func (s *MemDbMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 	}
 }
 
+// GetIdentifier returns the identifier of the storage medium
 func (s *MemDbMock) GetIdentifier() string {
 	if s.GetIdentifierCalled != nil {
 		return s.GetIdentifierCalled()

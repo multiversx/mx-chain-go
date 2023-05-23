@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"math/big"
 	"testing"
 
@@ -39,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
