@@ -156,7 +156,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(275), accumulatedFees)
 }
 
-func TestRelayedMoveBalanceInvalidNonce(t *testing.T) {
+func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		RelayedNonceFixEnableEpoch: 0,
 	})
@@ -185,4 +185,35 @@ func TestRelayedMoveBalanceInvalidNonce(t *testing.T) {
 	senderAccount, _ := testContext.Accounts.GetExistingAccount(sndAddr)
 	require.NotNil(t, senderAccount)
 	assert.Equal(t, uint64(0), senderAccount.GetNonce())
+}
+
+func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		RelayedNonceFixEnableEpoch: 0,
+	})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	relayerAddr := []byte("12345678901234567890123456789033")
+	sndAddr := []byte("12345678901234567890123456789012")
+	rcvAddr := []byte("12345678901234567890123456789022")
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 5, big.NewInt(0))
+	userTx := vm.CreateTransaction(4, big.NewInt(150), sndAddr, rcvAddr, 1, 100, []byte("aaaa"))
+
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
+
+	rtxData := utils.PrepareRelayerTxData(userTx)
+	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
+
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	senderAccount, _ := testContext.Accounts.GetExistingAccount(sndAddr)
+	require.NotNil(t, senderAccount)
+	assert.Equal(t, uint64(5), senderAccount.GetNonce())
 }
