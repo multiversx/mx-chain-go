@@ -213,7 +213,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-0.34.0.wasm",
+		"../esdt/testdata/vault-0.34.2.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -306,7 +306,7 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-0.34.0.wasm",
+		"../esdt/testdata/vault-0.34.2.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
