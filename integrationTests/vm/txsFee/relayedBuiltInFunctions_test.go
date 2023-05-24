@@ -162,7 +162,28 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 1000,
+			},
+			2)
+	})
+	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 0,
+			},
+			2)
+	})
+}
+
+func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(
+	t *testing.T,
+	enableEpochs config.EnableEpochs,
+	expectedOwnerNonce uint64,
+) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -196,7 +217,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+	vm.TestAccount(t, testContext.Accounts, owner, expectedOwnerNonce, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()

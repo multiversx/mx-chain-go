@@ -15,16 +15,36 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRelayedAsyncCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	senderAddr := []byte("12345678901234567890123456789011")
+
+	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
+		testContext := testRelayedAsyncCallShouldWork(t, config.EnableEpochs{
+			RelayedNonceFixEnableEpoch: 100000,
+		}, senderAddr)
+
+		senderAccount := getAccount(t, testContext, senderAddr)
+		assert.Equal(t, uint64(1), senderAccount.GetNonce())
+	})
+	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
+		testContext := testRelayedAsyncCallShouldWork(t, config.EnableEpochs{
+			RelayedNonceFixEnableEpoch: 0,
+		}, senderAddr)
+
+		senderAccount := getAccount(t, testContext, senderAddr)
+		assert.Equal(t, uint64(1), senderAccount.GetNonce())
+	})
+}
+
+func testRelayedAsyncCallShouldWork(t *testing.T, enableEpochs config.EnableEpochs, senderAddr []byte) *vm.VMTestContext {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)
-	defer testContext.Close()
 
 	egldBalance := big.NewInt(100000000)
-	senderAddr := []byte("12345678901234567890123456789011")
 	ownerAddr := []byte("12345678901234567890123456789010")
 	relayerAddr := []byte("12345678901234567890123456789017")
 
@@ -70,4 +90,6 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 
 	require.Equal(t, big.NewInt(50001950), testContext.TxFeeHandler.GetAccumulatedFees())
 	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
+
+	return testContext
 }
