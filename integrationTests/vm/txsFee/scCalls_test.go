@@ -513,12 +513,15 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 1, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
-		assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 	t.Run("second transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -537,12 +540,15 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 1, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(scr.ReturnMessage))
-		assert.Equal(t, sndAddr2, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 }
 
