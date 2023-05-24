@@ -33,6 +33,7 @@ type vmContext struct {
 	logs          []*vmcommon.LogEntry
 
 	enableEpochsHandler common.EnableEpochsHandler
+	crtTransferIndex    uint32
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
@@ -197,6 +198,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 				BalanceDelta: big.NewInt(0),
 			}
 		}
+		outputTransfer.Index = host.NextOutputTransferIndex()
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
@@ -249,6 +251,7 @@ func (host *vmContext) Transfer(
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
+		Index:    host.NextOutputTransferIndex(),
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
@@ -801,4 +804,11 @@ func (host *vmContext) CleanStorageUpdates() {
 // IsInterfaceNil returns if the underlying implementation is nil
 func (host *vmContext) IsInterfaceNil() bool {
 	return host == nil
+}
+
+// NextOutputTransferIndex returns next available output transfer index
+func (context *vmContext) NextOutputTransferIndex() uint32 {
+	index := context.crtTransferIndex
+	context.crtTransferIndex++
+	return index
 }
