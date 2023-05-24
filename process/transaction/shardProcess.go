@@ -945,7 +945,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 }
 
 func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+	if !txProc.enableEpochsHandler.IsRelayedNonceFixEnabled() {
 		return true
 	}
 

@@ -566,9 +566,8 @@ func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return false
 }
 
-// IsRelayedNonceFixEnableEpoch -
-func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnableEpoch() bool {
-	return true
+func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
