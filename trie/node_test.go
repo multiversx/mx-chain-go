@@ -668,7 +668,7 @@ func TestTreatLogError(t *testing.T) {
 			},
 			TraceCalled: func(message string, args ...interface{}) {
 				wasCalled = true
-				require.Equal(t, common.GetNodeFromDBErrorString, message)
+				require.Equal(t, core.GetNodeFromDBErrorString, message)
 				require.Equal(t, 6, len(args))
 				expectedFirst5Args := []interface{}{"error", err, "key", key, "stack trace"}
 				require.Equal(t, expectedFirst5Args, args[:5])

@@ -1,6 +1,8 @@
 package errors
 
-import "errors"
+import (
+	"errors"
+)
 
 // ErrAccountsAdapterCreation signals that the accounts adapter cannot be created based on provided data
 var ErrAccountsAdapterCreation = errors.New("error creating accounts adapter")
@@ -458,9 +460,6 @@ var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions 
 // ErrNilScheduledProcessor signals that a nil scheduled processor was provided
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
-// ErrContextClosing signals that the parent context requested the closing of its children
-var ErrContextClosing = errors.New("context closing")
-
 // ErrNilTxsSender signals that a nil transactions sender has been provided
 var ErrNilTxsSender = errors.New("nil transactions sender has been provided")
 
@@ -550,6 +549,9 @@ var ErrNilShuffleOutCloser = errors.New("nil shuffle out closer")
 
 // ErrNilHistoryRepository signals that history processor is nil
 var ErrNilHistoryRepository = errors.New("history repository is nil")
+
+// ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
+var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")
 
 // ErrInvalidTrieNodeVersion signals that an invalid trie node version has been provided
 var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")

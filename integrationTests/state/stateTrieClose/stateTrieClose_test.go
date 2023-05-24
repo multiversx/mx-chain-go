@@ -10,16 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 )
@@ -143,15 +139,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 }
 
 func TestTrieStorageManager_Close(t *testing.T) {
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &marshallerMock.MarshalizerMock{},
-		Hasher:                 &hashingMocks.HasherMock{},
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := storage.GetStorageManagerArgs()
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()

@@ -2,6 +2,7 @@ package rewardTransaction_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -218,6 +220,41 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
+	accountsDb := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			acc, _ := state.NewUserAccount(address)
+			acc.SetDataTrie(&trie.TrieStub{
+				GetCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, missingNodeErr
+				},
+			},
+			)
+
+			return acc, nil
+		},
+	}
+
+	rtp, _ := rewardTransaction.NewRewardTxProcessor(
+		accountsDb,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6},
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, missingNodeErr, err)
 }
 
 func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t *testing.T) {

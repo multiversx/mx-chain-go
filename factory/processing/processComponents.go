@@ -600,6 +600,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		processedMiniBlocksTracker,
 		receiptsRepository,
 		blockCutoffProcessingHandler,
+		pcf.state.MissingTrieNodesNotifier(),
 	)
 	if err != nil {
 		return nil, err

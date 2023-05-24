@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	mockTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +20,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{}
+				return &storageManager.StorageManagerStub{}
 			},
 		},
 		Hasher:                &testscommon.HasherStub{},

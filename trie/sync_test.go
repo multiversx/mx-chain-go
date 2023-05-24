@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -280,6 +280,6 @@ func TestTrieSync_StartSyncing(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		err := ts.StartSyncing([]byte("roothash"), ctx)
-		assert.Equal(t, errorsMx.ErrContextClosing, err)
+		assert.Equal(t, core.ErrContextClosing, err)
 	})
 }

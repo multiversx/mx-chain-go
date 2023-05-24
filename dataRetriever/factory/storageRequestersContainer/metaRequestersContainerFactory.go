@@ -195,6 +195,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
+		dataRetriever.UserAccountsUnit,
 		mrcf.enableEpochsHandler,
 	)
 	if err != nil {
@@ -232,6 +233,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		peerAccountsStorer,
 		peerAccountsCheckpointStorer,
+		dataRetriever.PeerAccountsUnit,
 		mrcf.enableEpochsHandler,
 	)
 	if err != nil {

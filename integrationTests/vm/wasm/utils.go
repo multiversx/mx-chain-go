@@ -291,8 +291,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
-		GasSchedule: gasSchedule,
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              gasSchedule,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

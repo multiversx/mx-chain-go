@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -729,10 +728,10 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := ln.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 
 	err = ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestLeafNode_getValue(t *testing.T) {

@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	containers "github.com/multiversx/mx-chain-go/update/container"
 	"github.com/multiversx/mx-chain-go/update/genesis"
@@ -156,7 +155,6 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 			EnableEpochsHandler:               a.enableEpochsHandler,
@@ -187,7 +185,6 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
 			EnableEpochsHandler:               a.enableEpochsHandler,

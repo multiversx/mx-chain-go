@@ -236,6 +236,7 @@ func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTo
 func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
 	checkpointsStorer storage.Storer,
+	storageIdentifier dataRetriever.UnitType,
 	handler common.EnableEpochsHandler,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
@@ -260,13 +261,14 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:          mainStorer,
-		CheckpointsStorer:   checkpointsStorer,
-		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:    brcf.snapshotsEnabled,
-		IdleProvider:        disabled.NewProcessStatusHandler(),
+		MainStorer:         mainStorer,
+		CheckpointsStorer:  checkpointsStorer,
+		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:   brcf.snapshotsEnabled,
+		IdleProvider:       disabled.NewProcessStatusHandler(),
+		Identifier:         storageIdentifier.String(),
 		EnableEpochsHandler: handler,
 	}
 	return trieFactoryInstance.Create(args)

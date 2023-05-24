@@ -32,13 +32,14 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:          testscommon.CreateMemUnit(),
-		CheckpointsStorer:   testscommon.CreateMemUnit(),
-		PruningEnabled:      false,
-		CheckpointsEnabled:  false,
-		SnapshotsEnabled:    true,
-		MaxTrieLevelInMem:   5,
-		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
+		MainStorer:         testscommon.CreateMemUnit(),
+		CheckpointsStorer:  testscommon.CreateMemUnit(),
+		PruningEnabled:     false,
+		CheckpointsEnabled: false,
+		SnapshotsEnabled:   true,
+		MaxTrieLevelInMem:  5,
+		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
+		Identifier:         dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

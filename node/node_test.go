@@ -61,6 +61,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	mockStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -5163,7 +5164,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &trieMock.TriesHolderStub{},
-			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]common.StorageManager{"0": &storageManager.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},

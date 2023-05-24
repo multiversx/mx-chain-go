@@ -1143,11 +1143,11 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storage.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,

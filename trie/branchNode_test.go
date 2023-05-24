@@ -8,18 +8,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
-	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -75,30 +71,12 @@ func emptyDirtyBranchNode() *branchNode {
 }
 
 func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
-	marsh, hsh := getTestMarshalizerAndHasher()
-
-	// TODO change this initialization of the persister  (and everywhere in this package)
-	// by using a persister factory
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	args := NewTrieStorageManagerArgs{
-		MainStorer:             createMemUnit(),
-		CheckpointsStorer:      createMemUnit(),
-		Marshalizer:            marsh,
-		Hasher:                 hsh,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hsh.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := GetDefaultTrieStorageManagerParameters()
 	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
-		marshalizer:          marsh,
-		hasher:               hsh,
+		marshalizer:          args.Marshalizer,
+		hasher:               args.Hasher,
 		oldHashes:            make([][]byte, 0),
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: 5,
@@ -214,26 +192,9 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
 	marsh, hsh := getTestMarshalizerAndHasher()
-	args := NewTrieStorageManagerArgs{
-		MainStorer:             createMemUnit(),
-		CheckpointsStorer:      createMemUnit(),
-		Marshalizer:            marsh,
-		Hasher:                 hsh,
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-	trieStorage1, _ := NewTrieStorageManager(args)
-	args = NewTrieStorageManagerArgs{
-		MainStorer:             createMemUnit(),
-		CheckpointsStorer:      createMemUnit(),
-		Marshalizer:            marsh,
-		Hasher:                 hsh,
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-	trieStorage2, _ := NewTrieStorageManager(args)
+
+	trieStorage1, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
+	trieStorage2, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 	maxTrieLevelInMemory := uint(5)
 
 	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
@@ -1373,20 +1334,20 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := bn.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 
 	err = bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, chainErrors.ErrContextClosing
-		},
+	db := testscommon.NewMemDbMock()
+	db.GetCalled = func(key []byte) ([]byte, error) {
+		return nil, core.ErrContextClosing
 	}
+
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)

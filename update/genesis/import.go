@@ -16,12 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
@@ -309,9 +309,9 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		return trieForShard, nil
 	}
 
-	trieStorageManager := si.trieStorageManagers[triesFactory.UserAccountTrie]
+	trieStorageManager := si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	if accType == ValidatorAccount {
-		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
+		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
 	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
@@ -346,7 +346,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}
