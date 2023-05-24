@@ -14,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 )
 
 // TestMarshalizer -
@@ -84,20 +84,12 @@ func CreateAccountsDB(db storage.Storer) *state.AccountsDB {
 		HashesSize:     10000,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             db,
-		CheckpointsStorer:      CreateMemUnit(),
-		Marshalizer:            TestMarshalizer,
-		Hasher:                 TestHasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+
+	args := testcommonStorage.GetStorageManagerArgs()
+	args.MainStorer = db
+	args.Marshalizer = TestMarshalizer
+	args.Hasher = TestHasher
+
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, MaxTrieLevelInMemory)

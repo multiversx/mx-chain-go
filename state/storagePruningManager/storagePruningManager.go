@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/pruningBuffer"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -176,7 +175,7 @@ func (spm *storagePruningManager) prune(rootHash []byte, tsm common.StorageManag
 
 	err := spm.removeFromDb(rootHash, tsm, handler)
 	if err != nil {
-		if errors.IsClosingError(err) {
+		if core.IsClosingError(err) {
 			log.Debug("did not remove hash", "rootHash", rootHash, "error", err)
 			return
 		}

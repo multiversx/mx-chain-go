@@ -60,9 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -612,7 +610,7 @@ func getUserAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
-	userTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.UserAccountTrie))
+	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storageManager := userTrie.GetStorageManager()
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(int32(config.TrieSync.NumConcurrentTrieSyncers))
@@ -645,7 +643,7 @@ func getValidatorAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
-	peerTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.PeerAccountTrie))
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storageManager := peerTrie.GetStorageManager()
 
 	args := syncer.ArgsNewValidatorAccountsSyncer{
@@ -680,7 +678,6 @@ func getBaseAccountSyncerArgs(
 		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
-		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
