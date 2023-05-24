@@ -2000,6 +2000,7 @@ func mergeMaps(map1 common.ModifiedHashes, map2 common.ModifiedHashes) {
 func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *testing.T) {
 	t.Parallel()
 
+	mutex := &sync.Mutex{}
 	newHashes := make(common.ModifiedHashes)
 	numRemoveCalls := 0
 	checkpointHashesHolder := &trieMock.CheckpointHashesHolderStub{
@@ -2007,9 +2008,11 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 			return true
 		},
 		RemoveCalled: func(hash []byte) {
+			mutex.Lock()
 			_, ok := newHashes[string(hash)]
 			assert.True(t, ok)
 			numRemoveCalls++
+			mutex.Unlock()
 		},
 	}
 
