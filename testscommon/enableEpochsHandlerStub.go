@@ -117,6 +117,7 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsRelayedNonceFixEnabledField                                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1012,6 +1013,14 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
+}
+
+// IsRelayedNonceFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRelayedNonceFixEnabledField
 }
 
 // IsInterfaceNil -

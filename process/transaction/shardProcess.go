@@ -672,6 +672,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) rel
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
+	executionErr error,
 ) error {
 	userAcnt, err := txProc.getAccountFromAddress(userTx.SndAddr)
 	if err != nil {
@@ -690,7 +691,10 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
-	userAcnt.IncreaseNonce(1)
+
+	if txProc.shouldIncreaseNonce(executionErr) {
+		userAcnt.IncreaseNonce(1)
+	}
 
 	err = txProc.accounts.SaveAccount(userAcnt)
 	if err != nil {
@@ -735,7 +739,7 @@ func (txProc *txProcessor) processUserTx(
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -787,7 +791,7 @@ func (txProc *txProcessor) processUserTx(
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -938,6 +942,19 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	}
 
 	return nil
+}
+
+func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
+	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+		return true
+	}
+
+	// todo add not executable for guardians
+	if errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrHigherNonceInTransaction) {
+		return false
+	}
+
+	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

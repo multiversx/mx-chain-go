@@ -157,7 +157,9 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidNonce(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		RelayedNonceFixEnableEpoch: 0,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
