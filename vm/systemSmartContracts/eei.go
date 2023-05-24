@@ -801,14 +801,19 @@ func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
 }
 
+// NextOutputTransferIndex returns next available output transfer index
+func (host *vmContext) NextOutputTransferIndex() uint32 {
+	index := host.crtTransferIndex
+	host.crtTransferIndex++
+	return index
+}
+
+// GetCrtTransferIndex returns the current output transfer index
+func (host *vmContext) GetCrtTransferIndex() uint32 {
+	return host.crtTransferIndex
+}
+
 // IsInterfaceNil returns if the underlying implementation is nil
 func (host *vmContext) IsInterfaceNil() bool {
 	return host == nil
-}
-
-// NextOutputTransferIndex returns next available output transfer index
-func (context *vmContext) NextOutputTransferIndex() uint32 {
-	index := context.crtTransferIndex
-	context.crtTransferIndex++
-	return index
 }

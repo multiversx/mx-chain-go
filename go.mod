@@ -20,8 +20,8 @@ require (
 	github.com/multiversx/mx-chain-p2p-go v1.0.16
 	github.com/multiversx/mx-chain-scenario-go v1.1.2
 	github.com/multiversx/mx-chain-storage-go v1.0.8
-	github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230524071014-8b5e5cba23ea
-	github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230524071200-0db9806a97dc
+	github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230524120401-e669b7d512f1
+	github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230524120507-ebf789464f5e
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54-0.20230425091341-4a24504bcde4
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55-0.20230425093821-9ea20e2ba44d
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81-0.20230425093655-5bda00c8ebe7
@@ -188,6 +188,6 @@ require (
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
-// replace github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230522062424-b2f41b1e9c0f => /home/bogdan/Elrond/elrond-vm-common
+// replace github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230524071014-8b5e5cba23ea => /home/bogdan/Elrond/elrond-vm-common
 
-// replace github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230522063003-45972becda87 => /home/bogdan/go2/src/github.com/multiversx/mx-chain-vm-go
+// replace github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230524071200-0db9806a97dc => /home/bogdan/go2/src/github.com/multiversx/mx-chain-vm-go
