@@ -571,6 +571,11 @@ func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false
 }
 
+// IsRelayedNonceFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

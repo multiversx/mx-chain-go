@@ -118,6 +118,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsRelayedNonceFixEnabledField                                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1021,6 +1022,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSetGuardianEnabledField
+}
+
+// IsRelayedNonceFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRelayedNonceFixEnabledField
 }
 
 // IsInterfaceNil -

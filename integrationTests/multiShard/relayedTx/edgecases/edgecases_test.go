@@ -68,7 +68,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 	for _, player := range players {
 		account := relayedTx.GetUserAccount(nodes, player.Address)
 		assert.True(t, account.GetBalance().Cmp(big.NewInt(0)) == 0)
-		assert.Equal(t, uint64(nrRoundsToTest)*2, account.GetNonce())
+		assert.Equal(t, uint64(0), account.GetNonce())
 	}
 
 	expectedBalance := big.NewInt(0).Sub(relayerInitialValue, totalFees)
