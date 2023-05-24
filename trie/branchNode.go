@@ -985,7 +985,7 @@ func (bn *branchNode) getVersionForChild(childIndex byte) core.TrieNodeVersion {
 
 func (bn *branchNode) collectLeavesForMigration(
 	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
 	shouldContinue := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()

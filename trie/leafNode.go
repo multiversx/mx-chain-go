@@ -576,7 +576,7 @@ func (ln *leafNode) getVersion() (core.TrieNodeVersion, error) {
 
 func (ln *leafNode) collectLeavesForMigration(
 	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
-	_ common.DBWriteCacher,
+	_ common.TrieStorageInteractor,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
 	shouldContinue := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()

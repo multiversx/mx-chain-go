@@ -44,7 +44,7 @@ type node interface {
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getValue() []byte
 	getVersion() (core.TrieNodeVersion, error)
-	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.DBWriteCacher, keyBuilder common.KeyBuilder) (bool, error)
+	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
 	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error

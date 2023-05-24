@@ -811,7 +811,7 @@ func (en *extensionNode) getVersion() (core.TrieNodeVersion, error) {
 
 func (en *extensionNode) collectLeavesForMigration(
 	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {
 	hasEnoughGasToContinueMigration := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()

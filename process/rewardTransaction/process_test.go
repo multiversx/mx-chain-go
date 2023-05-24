@@ -228,7 +228,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			acc, _ := state.NewUserAccount(address)
+			acc := stateMock.NewAccountWrapMock(address)
 			acc.SetDataTrie(&trie.TrieStub{
 				GetCalled: func(key []byte) ([]byte, uint32, error) {
 					return nil, 0, missingNodeErr
