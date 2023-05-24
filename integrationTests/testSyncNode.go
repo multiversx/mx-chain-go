@@ -101,6 +101,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
+		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

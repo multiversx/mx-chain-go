@@ -45,6 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -130,7 +131,7 @@ type processComponents struct {
 type ProcessComponentsFactoryArgs struct {
 	Config                 config.Config
 	EpochConfig            config.EpochConfig
-	PrefConfigs            config.PreferencesConfig
+	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
@@ -158,7 +159,7 @@ type ProcessComponentsFactoryArgs struct {
 type processComponentsFactory struct {
 	config                 config.Config
 	epochConfig            config.EpochConfig
-	prefConfigs            config.PreferencesConfig
+	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
@@ -231,7 +232,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
 		pcf.coreData.GenesisTime().Unix(),
-		pcf.prefConfigs.FullArchive,
+		pcf.prefConfigs.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -579,6 +580,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	blockCutoffProcessingHandler, err := cutoff.CreateBlockProcessingCutoffHandler(pcf.prefConfigs.BlockProcessingCutoff)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -592,6 +598,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockCutoffProcessingHandler,
+		pcf.state.MissingTrieNodesNotifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -628,7 +636,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:    pcf.prefConfigs.RedundancyLevel,
+		RedundancyLevel:    pcf.prefConfigs.Preferences.RedundancyLevel,
 		Messenger:          pcf.network.NetworkMessenger(),
 		ObserverPrivateKey: observerBLSPrivateKey,
 	}
@@ -1337,7 +1345,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		IsFullHistoryNode:          pcf.prefConfigs.Preferences.FullArchive,
 		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
 		PayloadValidator:           payloadValidator,
 	}
@@ -1371,7 +1379,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.prefConfigs.FullArchive,
+		IsFullHistoryNode:          pcf.prefConfigs.Preferences.FullArchive,
 		PreferredPeersHolder:       pcf.network.PreferredPeersHolderHandler(),
 		PayloadValidator:           payloadValidator,
 	}
@@ -1470,7 +1478,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
 			Config:                        pcf.config,
-			PrefsConfig:                   pcf.prefConfigs,
+			PrefsConfig:                   pcf.prefConfigs.Preferences,
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
 			PathManager:                   pathManager,
 			EpochStartNotifier:            manualEpochStartNotifier,

@@ -77,7 +77,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:         testscommon.GetGeneralConfig(),
 		EpochConfig:    config.EpochConfig{},
-		PrefConfigs:    config.PreferencesConfig{},
+		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
@@ -581,7 +581,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		args.Config.EpochStartConfig.RoundsPerEpoch = 0
-		args.PrefConfigs.FullArchive = true
+		args.PrefConfigs.Preferences.FullArchive = true
 		testCreateWithArgs(t, args, "rounds per epoch")
 	})
 	t.Run("createNetworkShardingCollector fails due to invalid PublicKeyPeerId config should error", func(t *testing.T) {
@@ -885,10 +885,11 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
-			PeersAcc:        realStateComp.PeerAccounts(),
-			Tries:           realStateComp.TriesContainer(),
-			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
-			StorageManagers: realStateComp.TrieStorageManagers(),
+			PeersAcc:             realStateComp.PeerAccounts(),
+			Tries:                realStateComp.TriesContainer(),
+			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
+			StorageManagers:      realStateComp.TrieStorageManagers(),
+			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
 		}
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
@@ -925,10 +926,11 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
-			PeersAcc:        realStateComp.PeerAccounts(),
-			Tries:           realStateComp.TriesContainer(),
-			AccountsAPI:     realStateComp.AccountsAdapterAPI(),
-			StorageManagers: realStateComp.TrieStorageManagers(),
+			PeersAcc:             realStateComp.PeerAccounts(),
+			Tries:                realStateComp.TriesContainer(),
+			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
+			StorageManagers:      realStateComp.TrieStorageManagers(),
+			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
 		}
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {

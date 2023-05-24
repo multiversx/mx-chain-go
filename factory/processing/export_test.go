@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 )
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
@@ -21,6 +22,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository factory.ReceiptsRepository,
+	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (process.BlockProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -35,6 +38,8 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockProcessingCutoff,
+		missingTrieNodesNotifier,
 	)
 	if err != nil {
 		return nil, err
