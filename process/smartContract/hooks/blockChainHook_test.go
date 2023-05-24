@@ -63,8 +63,9 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 	return arguments
 }
@@ -213,6 +214,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 				return args
 			},
 			expectedErr: storage.ErrCacheSizeIsLowerThanBatchSize,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.MissingTrieNodesNotifier = nil
+				return args
+			},
+			expectedErr: hooks.ErrNilMissingTrieNodesNotifier,
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
@@ -521,6 +530,95 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, variableValue, value)
 		assert.False(t, counterProcessedCalled)
+	})
+	t.Run("data trie node not found should call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		notifyMissingTrieNodeCalled := false
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					trieErr := core.NewGetNodeFromDBErrWithKey(key, errors.New(core.GetNodeFromDBErrorString), "")
+					return nil, 0, fmt.Errorf("error: %w", trieErr)
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Equal(t, missingDataTrieKey, hash)
+				notifyMissingTrieNodeCalled = true
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
+		assert.True(t, notifyMissingTrieNodeCalled)
+	})
+	t.Run("random retrieve err should not call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, errors.New("random error")
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
+	})
+	t.Run("unwrapped err is not of wanted type, should not call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					baseErr := errors.New(core.GetNodeFromDBErrorString)
+					return nil, 0, fmt.Errorf("error: %w", baseErr)
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
 	})
 }
 
