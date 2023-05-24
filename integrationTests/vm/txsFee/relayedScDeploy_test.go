@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -79,7 +79,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	scCodeBytes = append(scCodeBytes, []byte("aaaaa")...)
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, scCodeBytes)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -119,7 +119,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -159,7 +159,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 

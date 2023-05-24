@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -255,12 +254,6 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddr))
 	return scAddr, owner
-}
-
-// PrepareRelayerTxData -
-func PrepareRelayerTxData(innerTx *transaction.Transaction) []byte {
-	userTxBytes, _ := protoMarshalizer.Marshal(innerTx)
-	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
 }
 
 // CheckOwnerAddr -

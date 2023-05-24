@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -40,7 +41,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	// create user name for sender
 	innerTx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -62,7 +63,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	// create user name for receiver
 	innerTx = vm.CreateTransaction(0, big.NewInt(0), rcvAddr, scAddress, gasPrice, gasLimit, txData)
 
-	rtxData = utils.PrepareRelayerTxData(innerTx)
+	rtxData = integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit = 1 + gasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(1, innerTx.Value, relayerAddr, rcvAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -84,7 +85,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	innerTx.SndUserName = sndAddrUserName
 	innerTx.RcvUserName = rcvAddrUserName
 
-	rtxData = utils.PrepareRelayerTxData(innerTx)
+	rtxData = integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit = 1 + gasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(2, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 

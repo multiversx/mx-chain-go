@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -54,7 +55,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractHalf")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -113,7 +114,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractRejected")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -172,7 +173,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractHalf")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 

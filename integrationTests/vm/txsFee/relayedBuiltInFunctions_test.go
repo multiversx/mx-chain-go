@@ -42,7 +42,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -89,7 +89,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -135,7 +135,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -180,7 +180,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -225,7 +225,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 

@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +35,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	// gas consumed = 50
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -74,7 +76,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 2 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
@@ -106,7 +108,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
@@ -138,7 +140,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
@@ -166,23 +168,44 @@ func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
-	userTx := vm.CreateTransaction(100, big.NewInt(150), sndAddr, rcvAddr, 1, 100, []byte("aaaa"))
-
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
+	userTx := vm.CreateTransaction(100, big.NewInt(150), sndAddr, rcvAddr, 1, 100, nil)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
-	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
-	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
+	t.Run("inactive flag should increment", func(t *testing.T) {
+		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
-	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
-	require.Equal(t, vmcommon.UserError, retCode)
+		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
 
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
+		senderAccount := getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce+1, senderAccount.GetNonce())
 
-	senderAccount, _ := testContext.Accounts.GetExistingAccount(sndAddr)
-	require.NotNil(t, senderAccount)
-	assert.Equal(t, uint64(0), senderAccount.GetNonce())
+		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+
+		senderAccount = getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce+2, senderAccount.GetNonce())
+	})
+	t.Run("active flag should not increment", func(t *testing.T) {
+		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
+		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
+
+		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+
+		senderAccount := getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
+
+		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+
+		senderAccount = getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
+	})
 }
 
 func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
@@ -195,21 +218,69 @@ func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 5, big.NewInt(0))
-	userTx := vm.CreateTransaction(4, big.NewInt(150), sndAddr, rcvAddr, 1, 100, []byte("aaaa"))
-
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
+	userTx := vm.CreateTransaction(4, big.NewInt(150), sndAddr, rcvAddr, 1, 100, nil)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
-	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
-	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
+	t.Run("inactive flag should increment", func(t *testing.T) {
+		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
-	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
-	require.Equal(t, vmcommon.UserError, retCode)
+		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
 
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
+		senderAccount := getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce+1, senderAccount.GetNonce())
 
-	senderAccount, _ := testContext.Accounts.GetExistingAccount(sndAddr)
-	require.NotNil(t, senderAccount)
-	assert.Equal(t, uint64(5), senderAccount.GetNonce())
+		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+
+		senderAccount = getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce+2, senderAccount.GetNonce())
+	})
+	t.Run("active flag should not increment", func(t *testing.T) {
+		testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
+		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
+
+		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+
+		senderAccount := getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
+
+		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+
+		senderAccount = getAccount(t, testContext, sndAddr)
+		require.NotNil(t, senderAccount)
+		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
+	})
+}
+
+func executeRelayedTransaction(
+	tb testing.TB,
+	testContext *vm.VMTestContext,
+	relayerAddress []byte,
+	userTx *dataTransaction.Transaction,
+	userTxPrepared []byte,
+	value *big.Int,
+	senderAddress []byte,
+) {
+	relayerAccount := getAccount(tb, testContext, relayerAddress)
+	gasLimit := 1 + userTx.GasLimit + uint64(len(userTxPrepared))
+
+	relayedTx := vm.CreateTransaction(relayerAccount.GetNonce(), value, relayerAddress, senderAddress, 1, gasLimit, userTxPrepared)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(relayedTx)
+	require.Equal(tb, vmcommon.UserError, retCode)
+
+	_, err := testContext.Accounts.Commit()
+	require.Nil(tb, err)
+}
+
+func getAccount(tb testing.TB, testContext *vm.VMTestContext, address []byte) vmcommon.UserAccountHandler {
+	account, err := testContext.Accounts.LoadAccount(address)
+	require.Nil(tb, err)
+
+	return account.(vmcommon.UserAccountHandler)
 }
