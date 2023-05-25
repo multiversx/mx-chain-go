@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 	scrHash3 := "scrHash3"
 	pool := &outportcore.TransactionPool{
 		Transactions: map[string]*outportcore.TxInfo{
-			txHash: {
+			hex.EncodeToString([]byte(txHash)): {
 				Transaction: &transaction.Transaction{
 					Nonce: 1,
 				},
@@ -29,7 +30,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 			},
 		},
 		SmartContractResults: map[string]*outportcore.SCRInfo{
-			scrHash1: {
+			hex.EncodeToString([]byte(scrHash1)): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          2,
 					OriginalTxHash: []byte(txHash),
@@ -39,13 +40,13 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 				},
 			},
 
-			scrHash2: {
+			hex.EncodeToString([]byte(scrHash2)): {
 				SmartContractResult: &smartContractResult.SmartContractResult{},
 				FeeInfo: &outportcore.FeeInfo{
 					Fee: big.NewInt(0),
 				},
 			},
-			scrHash3: {
+			hex.EncodeToString([]byte(scrHash3)): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          3,
 					OriginalTxHash: []byte(txHash),
@@ -58,7 +59,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 		Logs: []*outportcore.LogData{
 			{
 				Log:    &transaction.Log{Address: []byte("addr")},
-				TxHash: txHash,
+				TxHash: hex.EncodeToString([]byte(txHash)),
 			},
 			{
 				Log:    &transaction.Log{},
@@ -70,7 +71,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 	res := prepareTransactionsAndScrs(pool)
 	require.NotNil(t, res)
 	require.Equal(t, 1, len(res.txsWithResults))
-	require.Equal(t, 2, len(res.txsWithResults[txHash].scrs))
-	require.NotNil(t, res.txsWithResults[txHash].log)
+	require.Equal(t, 2, len(res.txsWithResults[hex.EncodeToString([]byte(txHash))].scrs))
+	require.NotNil(t, res.txsWithResults[hex.EncodeToString([]byte(txHash))].log)
 	require.Equal(t, 1, len(res.scrsNoTx))
 }
