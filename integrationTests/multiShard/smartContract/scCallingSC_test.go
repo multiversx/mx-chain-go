@@ -492,6 +492,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		vmOutput.ReturnCode = vmcommon.Ok
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
+			Index:     1,
 			Value:     big.NewInt(0),
 			GasLimit:  200000,
 			GasLocked: vmInput.GasLocked,
