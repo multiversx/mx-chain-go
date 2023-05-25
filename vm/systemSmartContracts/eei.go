@@ -33,6 +33,7 @@ type vmContext struct {
 	logs          []*vmcommon.LogEntry
 
 	enableEpochsHandler common.EnableEpochsHandler
+	crtTransferIndex    uint32
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
@@ -197,6 +198,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 				BalanceDelta: big.NewInt(0),
 			}
 		}
+		outputTransfer.Index = host.NextOutputTransferIndex()
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
@@ -249,6 +251,7 @@ func (host *vmContext) Transfer(
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
+		Index:    host.NextOutputTransferIndex(),
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
@@ -597,6 +600,7 @@ func (host *vmContext) CleanCache() {
 	host.returnMessage = ""
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
+	host.crtTransferIndex = 1
 }
 
 // SetGasProvided sets the provided gas
@@ -796,6 +800,18 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
+// NextOutputTransferIndex returns next available output transfer index
+func (host *vmContext) NextOutputTransferIndex() uint32 {
+	index := host.crtTransferIndex
+	host.crtTransferIndex++
+	return index
+}
+
+// GetCrtTransferIndex returns the current output transfer index
+func (host *vmContext) GetCrtTransferIndex() uint32 {
+	return host.crtTransferIndex
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

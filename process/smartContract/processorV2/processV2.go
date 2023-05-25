@@ -106,6 +106,11 @@ type outputResultsToBeMerged struct {
 	vmOutput                *vmcommon.VMOutput
 }
 
+type internalIndexedScr struct {
+	result data.TransactionHandler
+	index  uint32
+}
+
 // NewSmartContractProcessorV2 creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
@@ -2329,11 +2334,12 @@ func (sc *scProcessor) createSCRIfNoOutputTransfer(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
-) (bool, []data.TransactionHandler) {
+	scrIndex uint32,
+) (bool, []internalIndexedScr) {
 	if callType == vmData.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
 		result := createBaseSCR(outAcc, tx, txHash, 0)
 		sc.addVMOutputResultsToSCR(vmOutput, result)
-		return true, []data.TransactionHandler{result}
+		return true, []internalIndexedScr{{result, scrIndex}}
 	}
 	return false, nil
 }
@@ -2375,20 +2381,22 @@ func (sc *scProcessor) createSmartContractResults(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
-) (bool, []data.TransactionHandler) {
+) (bool, []internalIndexedScr) {
+
+	nextAvailableScrIndex := vmOutput.GetNextAvailableOutputTransferIndex()
 
 	result := sc.createSCRFromStakingSC(outAcc, tx, txHash)
 	if !check.IfNil(result) {
-		return false, []data.TransactionHandler{result}
+		return false, []internalIndexedScr{{result, nextAvailableScrIndex}}
 	}
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash, nextAvailableScrIndex)
 	}
 
 	createdAsyncCallBack := false
-	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
+	indexedSCResults := make([]internalIndexedScr, 0, len(outAcc.OutputTransfers))
 	for i, outputTransfer := range outAcc.OutputTransfers {
 		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
@@ -2423,10 +2431,10 @@ func (sc *scProcessor) createSmartContractResults(
 			}
 		}
 
-		scResults = append(scResults, result)
+		indexedSCResults = append(indexedSCResults, internalIndexedScr{result, outputTransfer.Index})
 	}
 
-	return createdAsyncCallBack, scResults
+	return createdAsyncCallBack, indexedSCResults
 }
 
 func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
