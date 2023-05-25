@@ -98,6 +98,7 @@ type EnableEpochs struct {
 	ChangeUsernameEnableEpoch                         uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 	SetGuardianEnableEpoch                            uint32
+	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
