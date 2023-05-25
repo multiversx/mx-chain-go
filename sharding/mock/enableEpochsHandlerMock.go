@@ -581,6 +581,16 @@ func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
 	return false
 }
 
+// IsChangeUsernameEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
+	return false
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return false
+}
+
 // FixDelegationChangeOwnerOnAccountEnabled -
 func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
 	return false

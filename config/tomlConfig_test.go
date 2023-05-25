@@ -324,6 +324,12 @@ func TestTomlPreferencesParser(t *testing.T) {
 			RedundancyLevel:            redundancyLevel,
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
+		BlockProcessingCutoff: BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          "pause",
+			CutoffTrigger: "round",
+			Value:         55,
+		},
 	}
 
 	testString := `
@@ -336,6 +342,12 @@ func TestTomlPreferencesParser(t *testing.T) {
         "` + prefPubKey0 + `",
         "` + prefPubKey1 + `"
     ]
+
+[BlockProcessingCutoff]
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
@@ -689,8 +701,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
     RuntimeMemStoreLimitEnableEpoch = 63
 
-	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
-	SetGuardianEnableEpoch = 64
+    # SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
+    SetGuardianEnableEpoch = 64
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 65
@@ -698,8 +710,14 @@ func TestEnableEpochConfig(t *testing.T) {
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
     MultiClaimOnDelegationEnableEpoch = 66
 
+    # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
+    ChangeUsernameEnableEpoch = 67
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 68
+
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
-    FixDelegationChangeOwnerOnAccountEnableEpoch = 67
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 69
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -799,7 +817,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			SetGuardianEnableEpoch:                       64,
 			KeepExecOrderOnCreatedSCRsEnableEpoch:        65,
 			MultiClaimOnDelegationEnableEpoch:            66,
-			FixDelegationChangeOwnerOnAccountEnableEpoch: 67,
+			ChangeUsernameEnableEpoch:                    67,
+			ConsistentTokensValuesLengthCheckEnableEpoch: 68,
+			FixDelegationChangeOwnerOnAccountEnableEpoch: 69,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

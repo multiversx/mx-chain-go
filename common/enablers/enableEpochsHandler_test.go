@@ -94,7 +94,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RuntimeCodeSizeFixEnableEpoch:                     77,
 		MultiClaimOnDelegationEnableEpoch:                 78,
 		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
-		FixDelegationChangeOwnerOnAccountEnableEpoch:      80,
+		ChangeUsernameEnableEpoch:                         80,
+		FixDelegationChangeOwnerOnAccountEnableEpoch:      81,
 	}
 }
 
@@ -217,8 +218,10 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
+		assert.False(t, handler.IsChangeUsernameEnabled())
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
@@ -321,6 +324,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.True(t, handler.IsChangeUsernameEnabled())
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
@@ -418,6 +422,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.False(t, handler.IsChangeUsernameEnabled())
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 }

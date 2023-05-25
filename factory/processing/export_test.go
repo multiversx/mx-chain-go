@@ -5,7 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 )
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
@@ -18,12 +18,13 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository factory.ReceiptsRepository,
-) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
+	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+) (process.BlockProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -33,15 +34,21 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txSimulatorProcessorArgs,
 		wasmVMChangeLocker,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockProcessingCutoff,
+		missingTrieNodesNotifier,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return blockProcessorComponents.blockProcessor, blockProcessorComponents.vmFactoryForTxSimulate, nil
+	return blockProcessorComponents.blockProcessor, nil
+}
+
+// CreateTxSimulatorProcessor -
+func (pcf *processComponentsFactory) CreateTxSimulatorProcessor() (factory.TransactionSimulatorProcessor, process.VirtualMachinesContainerFactory, error) {
+	return pcf.createTxSimulatorProcessor()
 }

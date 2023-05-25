@@ -109,7 +109,7 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		AccountsDBsSyncers: &mock.AccountsDBSyncersStub{
 			GetCalled: func(key string) (syncer update.AccountsDBSyncer, err error) {
 				return &mock.AccountsDBSyncerStub{
-					SyncAccountsCalled: func(rootHash []byte) error {
+					SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 						if retErr {
 							return errors.New("err")
 						}

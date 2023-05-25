@@ -95,8 +95,10 @@ type EnableEpochs struct {
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
 	MultiClaimOnDelegationEnableEpoch                 uint32
+	ChangeUsernameEnableEpoch                         uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 	SetGuardianEnableEpoch                            uint32
+	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 }
 
