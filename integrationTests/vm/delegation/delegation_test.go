@@ -328,11 +328,18 @@ func createNewDelegationSystemSC(
 	txData := "createNewDelegationContract" + "@00@00"
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
 
-	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(rewardAddress, vm.FirstDelegationSCAddress)
-	rewardAddress[28] = 2
 	time.Sleep(time.Second)
-	return rewardAddress
+	return generateSecondDelegationAddress()
+}
+
+// generateSecondDelegationAddress will generate the address of the second delegation address (the exact next one after vm.FirstDelegationSCAddress)
+// by copying the vm.FirstDelegationSCAddress bytes and altering the corresponding position (28-th) to 2
+func generateSecondDelegationAddress() []byte {
+	address := make([]byte, len(vm.FirstDelegationSCAddress))
+	copy(address, vm.FirstDelegationSCAddress)
+	address[28] = 2
+
+	return address
 }
 
 func convertValidatorToDelegationSystemSC(
@@ -342,11 +349,8 @@ func convertValidatorToDelegationSystemSC(
 	txData := "makeNewContractFromValidatorData" + "@00@00"
 	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
 
-	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(rewardAddress, vm.FirstDelegationSCAddress)
-	rewardAddress[28] = 2
 	time.Sleep(time.Second)
-	return rewardAddress
+	return generateSecondDelegationAddress()
 }
 
 func delegateToSystemSC(
