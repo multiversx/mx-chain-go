@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -220,16 +221,19 @@ func (context *TestContext) initFeeHandlers() {
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				MinGasPrice:      minGasPrice,
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
+				MinGasPrice:            minGasPrice,
+				GasPerDataByte:         "1",
+				GasPriceModifier:       1.0,
+				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
 		EpochNotifier:               context.EpochNotifier,
 		EnableEpochsHandler:         context.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -241,12 +245,14 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
+		MapDNSV2Addresses:         DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
 		ShardCoordinator:          oneShardCoordinator,
 		EpochNotifier:             context.EpochNotifier,
 		EnableEpochsHandler:       context.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 
@@ -285,8 +291,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
-		GasSchedule: gasSchedule,
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              gasSchedule,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -383,6 +390,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: context.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

@@ -143,3 +143,8 @@ func (uam *UserAccountMock) GetUserName() []byte {
 func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
 	return nil, nil
 }
+
+// IsGuarded -
+func (uam *UserAccountMock) IsGuarded() bool {
+	return false
+}

@@ -8,14 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -24,16 +23,12 @@ import (
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
@@ -43,7 +38,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -52,25 +47,20 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
+		&testscommon.MissingTrieNodesNotifierStub{},
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardC := mock.NewMultiShardsCoordinatorMock(1)
@@ -94,24 +84,24 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
-	storageManagerArgs, options := storageManager.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storageManager.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
 	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
-	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	accounts, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
-		trieStorageManagers[trieFactory.UserAccountTrie],
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 	)
 	require.Nil(t, err)
 
@@ -166,7 +156,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -175,18 +165,16 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
+		&testscommon.MissingTrieNodesNotifierStub{},
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func createAccountAdapter(

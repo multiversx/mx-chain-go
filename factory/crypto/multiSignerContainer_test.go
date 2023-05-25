@@ -269,9 +269,6 @@ func TestContainer_sortMultiSignerConfig(t *testing.T) {
 
 func Test_getMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.ConsensusType = ""
@@ -284,9 +281,6 @@ func Test_getMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
 
 func Test_getMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.MultiSigHasherType = "sha256"
@@ -298,9 +292,6 @@ func Test_getMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *test
 
 func Test_getMultiSigHasherFromConfigOK(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.ConsensusType = "bls"

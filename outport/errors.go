@@ -13,3 +13,7 @@ var ErrInvalidRetrialInterval = errors.New("invalid retrial interval")
 
 // ErrNilPubKeyConverter signals that a nil pubkey converter has been provided
 var ErrNilPubKeyConverter = errors.New("nil pub key converter")
+
+var errNilSaveBlockArgs = errors.New("nil save blocks args provided")
+
+var errNilHeaderAndBodyArgs = errors.New("nil header and body args provided")

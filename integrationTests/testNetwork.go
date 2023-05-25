@@ -309,7 +309,7 @@ func (net *TestNetwork) CreateTx(
 
 // SignTx signs a transaction with the provided `signer` wallet.
 func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transaction) {
-	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	net.handleOrBypassError(err)
 
 	signature, err := signer.SingleSigner.Sign(signer.SkTxSign, txBuff)

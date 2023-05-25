@@ -391,7 +391,7 @@ var ErrWrongTypeInMiniBlock = errors.New("type in miniblock is not correct for p
 var ErrNilTransactionCoordinator = errors.New("transaction coordinator is nil")
 
 // ErrNilUint64Converter signals that uint64converter is nil
-var ErrNilUint64Converter = errors.New("unit64converter is nil")
+var ErrNilUint64Converter = errors.New("uint64converter is nil")
 
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
@@ -521,6 +521,18 @@ var ErrMaxGasLimitUsedForDestMeTxsIsReached = errors.New("max gas limit used for
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
+
+// ErrInvalidExtraGasLimitGuardedTx signals that an invalid gas limit has been provided in the config file
+var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for guarded transactions")
+
+// ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
+var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
+
+// ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
+var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
+
+// ErrGuardianAddressNotExpected signals that the guardian address is not expected
+var ErrGuardianAddressNotExpected = errors.New("guardian address not expected")
 
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
@@ -1119,6 +1131,9 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
+// ErrNilBlockProcessingCutoffHandler signals that a nil block processing cutoff handler has been provided
+var ErrNilBlockProcessingCutoffHandler = errors.New("nil block processing cutoff handler")
+
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
 
@@ -1148,3 +1163,39 @@ var ErrNilProcessDebugger = errors.New("nil process debugger")
 
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")
+
+// ErrNilGuardianChecker signals that a nil guardian checker was provided
+var ErrNilGuardianChecker = errors.New("nil guardian checker")
+
+// ErrAccountHasNoGuardianSet signals that the account has no guardians set
+var ErrAccountHasNoGuardianSet = errors.New("account has no guardian set")
+
+// ErrAccountHasNoActiveGuardian signals that the account has no active guardian
+var ErrAccountHasNoActiveGuardian = errors.New("account has no active guardian")
+
+// ErrAccountHasNoPendingGuardian signals that the account has no pending guardian
+var ErrAccountHasNoPendingGuardian = errors.New("account has no pending guardian")
+
+// ErrNilGuardedAccountHandler signals that a nil guarded account handler was provided
+var ErrNilGuardedAccountHandler = errors.New("nil guarded account handler")
+
+// ErrTransactionNotExecutable signals that a transaction is not executable and gas will not be consumed
+var ErrTransactionNotExecutable = errors.New("transaction is not executable and gas will not be consumed")
+
+// ErrTransactionAndAccountGuardianMismatch signals a mismatch between the guardian on the account and the one on the transaction
+var ErrTransactionAndAccountGuardianMismatch = errors.New("mismatch between transaction guardian and configured account guardian")
+
+// ErrInvalidSetGuardianEpochsDelay signals an invalid configuration for the epochs delay
+var ErrInvalidSetGuardianEpochsDelay = errors.New("incorrect setting for set guardian epochs delay")
+
+// ErrCannotReplaceGuardedAccountPendingGuardian signals that a pending guardian on a guarded account cannot be replaced
+var ErrCannotReplaceGuardedAccountPendingGuardian = errors.New("cannot replace pending guardian on guarded account")
+
+// ErrNilGuardianServiceUID signals that a nil guardian service identifier was provided
+var ErrNilGuardianServiceUID = errors.New("nil guardian service unique identifier")
+
+// ErrGasPriceTooHigh signals a too high gas price
+var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
+
+// ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
+var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")

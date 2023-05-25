@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -50,7 +51,7 @@ func CreateAccountWithESDTBalance(
 		}
 	}
 
-	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	esdtDataBytes, err := integrationTests.TestMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
 	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
@@ -99,7 +100,7 @@ func CreateAccountWithNFT(
 		},
 	}
 
-	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	esdtDataBytes, err := integrationTests.TestMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
 	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
@@ -124,7 +125,7 @@ func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tok
 	esdtDataOnSystemAcc.Reserved = []byte{1}
 	esdtDataOnSystemAcc.Value.Set(esdtData.Value)
 
-	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
+	esdtDataBytes, err := integrationTests.TestMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
 	sysAccount, err := accnts.LoadAccount(core.SystemAccountAddress)
@@ -183,7 +184,7 @@ func SetESDTRoles(
 		Roles: roles,
 	}
 
-	rolesDataBytes, err := protoMarshalizer.Marshal(rolesData)
+	rolesDataBytes, err := integrationTests.TestMarshalizer.Marshal(rolesData)
 	require.Nil(t, err)
 
 	err = userAccount.SaveKeyValue(key, rolesDataBytes)

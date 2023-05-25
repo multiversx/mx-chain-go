@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -139,7 +140,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
 	if err != nil {
@@ -156,7 +157,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		delegators = append(delegators, leafKey)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

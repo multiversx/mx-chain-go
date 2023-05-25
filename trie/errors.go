@@ -114,3 +114,6 @@ var ErrNilTrieIteratorLeavesChannel = errors.New("nil trie iterator leaves chann
 
 // ErrNilTrieIteratorErrChannel signals that a nil trie iterator error channel has been provided
 var ErrNilTrieIteratorErrChannel = errors.New("nil trie iterator error channel")
+
+// ErrInvalidIdentifier signals that an invalid identifier was provided
+var ErrInvalidIdentifier = errors.New("invalid identifier")

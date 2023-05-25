@@ -90,7 +90,10 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
+	setGuardianFlag                             *atomic.Flag
+	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
+	changeUsernameFlag                          *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -180,7 +183,10 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
+		setGuardianFlag:                             &atomic.Flag{},
+		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
+		changeUsernameFlag:                          &atomic.Flag{},
 	}
 }
 
@@ -662,7 +668,22 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
 }
 
+// IsSetGuardianEnabled returns true if setGuardianFlag is enabled
+func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
+	return holder.setGuardianFlag.IsSet()
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled returns true if keepExecOrderOnCreatedSCRsFlag is enabled
+func (holder *epochFlagsHolder) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return holder.keepExecOrderOnCreatedSCRsFlag.IsSet()
+}
+
 // IsMultiClaimOnDelegationEnabled returns true if multi claim on delegation is enabled
 func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 	return holder.multiClaimOnDelegationFlag.IsSet()
+}
+
+// IsChangeUsernameEnabled returns true if changeUsernameFlag is enabled
+func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
+	return holder.changeUsernameFlag.IsSet()
 }

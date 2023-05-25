@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 
 	tce, err := NewTransactionCostEstimator(
 		nil,
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
@@ -55,7 +56,7 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 
 	tce, err := NewTransactionCostEstimator(
 		&testscommon.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		nil,
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
@@ -70,7 +71,7 @@ func TestTransactionCostEstimator_NilEnableEpochsHandlerShouldErr(t *testing.T) 
 
 	tce, err := NewTransactionCostEstimator(
 		&testscommon.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
@@ -85,7 +86,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 
 	tce, err := NewTransactionCostEstimator(
 		&testscommon.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
@@ -103,8 +104,8 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -136,8 +137,8 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
@@ -166,8 +167,8 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 	},
@@ -199,8 +200,8 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 	},
@@ -226,8 +227,8 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 	},
@@ -253,8 +254,8 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	}, &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 	},
@@ -288,7 +289,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 				return process.RelayedTx, process.RelayedTx
 			},
 		},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&mock.TransactionSimulatorStub{},
 		&stateMock.AccountsStub{},
 		&mock.ShardCoordinatorStub{},

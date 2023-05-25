@@ -49,12 +49,12 @@ type txInfoHolder struct {
 	tx   *transaction.Transaction
 }
 
-func feeHandlerMock() *mock.FeeHandlerStub {
-	return &mock.FeeHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
+	return &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return MaxGasLimitPerBlock
 		},
 		MaxGasLimitPerMiniBlockCalled: func() uint64 {
@@ -1153,6 +1153,38 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(0), receiverShardID)
 }
 
+func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, missingNodeErr
+		},
+	}
+	preprocessor, _ := NewTransactionPreprocessor(args)
+
+	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
+	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+	}
+	miniBlockHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
+	body := block.Body{
+		MiniBlocks: []*block.MiniBlock{miniBlock},
+	}
+
+	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
+
+	err := preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
+	assert.Equal(t, missingNodeErr, err)
+}
+
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1310,8 +1342,8 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	txGasLimitInSender := maxGasLimit + 1
 	txGasLimitInReceiver := maxGasLimit
 	args := createDefaultTransactionsProcessorArgs()
-	args.EconomicsFee = &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return maxGasLimit
 		},
 	}
@@ -1356,7 +1388,7 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	args := createDefaultTransactionsProcessorArgs()
 	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{}
 	args.EnableEpochsHandler = enableEpochsHandlerStub
-	args.EconomicsFee = &mock.FeeHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimitPerMiniBlock
 		},

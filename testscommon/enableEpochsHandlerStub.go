@@ -117,7 +117,10 @@ type EnableEpochsHandlerStub struct {
 	IsMaxBlockchainHookCountersFlagEnabledField                  bool
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
+	IsSetGuardianEnabledField                                    bool
+	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
+	IsChangeUsernameEnabledField                                 bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1015,12 +1018,36 @@ func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return stub.IsAlwaysSaveTokenMetaDataEnabledField
 }
 
+// IsSetGuardianEnabled -
+func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSetGuardianEnabledField
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (stub *EnableEpochsHandlerStub) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsKeepExecOrderOnCreatedSCRsEnabledField
+}
+
 // IsMultiClaimOnDelegationEnabled -
 func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsMultiClaimOnDelegationEnabledField
+}
+
+// IsChangeUsernameEnabled -
+func (stub *EnableEpochsHandlerStub) IsChangeUsernameEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsChangeUsernameEnabledField
 }
 
 // IsInterfaceNil -
