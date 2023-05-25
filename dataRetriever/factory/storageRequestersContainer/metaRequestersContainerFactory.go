@@ -194,6 +194,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
+		dataRetriever.UserAccountsUnit,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
@@ -230,6 +231,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		peerAccountsStorer,
 		peerAccountsCheckpointStorer,
+		dataRetriever.PeerAccountsUnit,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)

@@ -25,7 +25,7 @@ func TestNewTrieStorageManagerWithoutCheckpoints(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+		tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 		ts, err := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 		assert.Nil(t, err)
 		assert.NotNil(t, ts)
@@ -35,7 +35,7 @@ func TestNewTrieStorageManagerWithoutCheckpoints(t *testing.T) {
 func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
 	iteratorChannels := &common.TrieIteratorChannels{
@@ -62,7 +62,7 @@ func TestTrieStorageManagerWithoutCheckpoints_SetCheckpoint(t *testing.T) {
 func TestTrieStorageManagerWithoutCheckpoints_AddDirtyCheckpointHashes(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, _ := trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
 
 	assert.False(t, ts.AddDirtyCheckpointHashes([]byte("rootHash"), nil))
