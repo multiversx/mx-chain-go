@@ -3263,6 +3263,7 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 
 		assert.True(t, txProc.ShouldIncreaseNonce(nil))
 		assert.True(t, txProc.ShouldIncreaseNonce(fmt.Errorf("random error")))
+		assert.True(t, txProc.ShouldIncreaseNonce(process.ErrWrongTransaction))
 	})
 	t.Run("fix enabled, errors for an un-executable transaction should return false", func(t *testing.T) {
 		args := createArgsForTxProcessor()
@@ -3273,5 +3274,6 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 
 		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrLowerNonceInTransaction))
 		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrHigherNonceInTransaction))
+		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrTransactionNotExecutable))
 	})
 }

@@ -691,11 +691,6 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if check.IfNil(userAcnt) {
 		return process.ErrNilUserAccount
 	}
-
-	if txProc.shouldIncreaseNonce(executionErr) {
-		userAcnt.IncreaseNonce(1)
-	}
-
 	err = userAcnt.SubFromBalance(relayedTxValue)
 	if err != nil {
 		return err
@@ -706,7 +701,10 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
-	userAcnt.IncreaseNonce(1)
+
+	if txProc.shouldIncreaseNonce(executionErr) {
+		userAcnt.IncreaseNonce(1)
+	}
 
 	err = txProc.accounts.SaveAccount(userAcnt)
 	if err != nil {
