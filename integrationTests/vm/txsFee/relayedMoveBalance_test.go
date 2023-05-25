@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -179,14 +181,14 @@ func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
 		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.UserError)
 
 		senderAccount := getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
 		assert.Equal(t, initialSenderNonce+1, senderAccount.GetNonce())
 
 		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr, vmcommon.UserError)
 
 		senderAccount = getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
@@ -197,14 +199,14 @@ func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
 		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.UserError)
 
 		senderAccount := getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
 		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
 
 		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr, vmcommon.UserError)
 
 		senderAccount = getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
@@ -231,14 +233,14 @@ func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
 		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
 		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.UserError)
 
 		senderAccount := getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
 		assert.Equal(t, initialSenderNonce+1, senderAccount.GetNonce())
 
 		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr, vmcommon.UserError)
 
 		senderAccount = getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
@@ -249,19 +251,70 @@ func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
 		initialSenderNonce := getAccount(t, testContext, sndAddr).GetNonce()
 
 		rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.UserError)
 
 		senderAccount := getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
 		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
 
 		rtxDataV2 := integrationTests.PrepareRelayedTxDataV2(userTx)
-		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr)
+		executeRelayedTransaction(t, testContext, relayerAddr, userTx, rtxDataV2, big.NewInt(0), sndAddr, vmcommon.UserError)
 
 		senderAccount = getAccount(t, testContext, sndAddr)
 		require.NotNil(t, senderAccount)
 		assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
 	})
+}
+
+func TestRelayedMoveBalanceHigherNonceWithActivatedFixCrossShard(t *testing.T) {
+	enableEpochs := config.EnableEpochs{
+		RelayedNonceFixEnableEpoch: 0,
+	}
+
+	shardCoordinator0, _ := sharding.NewMultiShardCoordinator(2, 0)
+	testContext0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinator0,
+		integrationtests.CreateMemUnit(),
+		vm.CreateMockGasScheduleNotifier(),
+	)
+	require.Nil(t, err)
+
+	shardCoordinator1, _ := sharding.NewMultiShardCoordinator(2, 1)
+	testContext1, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+		enableEpochs,
+		shardCoordinator1,
+		integrationtests.CreateMemUnit(),
+		vm.CreateMockGasScheduleNotifier(),
+	)
+	require.Nil(t, err)
+	defer testContext0.Close()
+	defer testContext1.Close()
+
+	relayerAddr := []byte("relayer-000000000000000000000000")
+	assert.Equal(t, uint32(0), shardCoordinator0.ComputeId(relayerAddr)) // shard 0
+	sndAddr := []byte("sender-1111111111111111111111111")
+	assert.Equal(t, uint32(1), shardCoordinator0.ComputeId(sndAddr)) // shard 1
+	rcvAddr := []byte("receiver-22222222222222222222222")
+	assert.Equal(t, uint32(0), shardCoordinator0.ComputeId(rcvAddr)) // shard 0
+
+	_, _ = vm.CreateAccount(testContext0.Accounts, relayerAddr, 0, big.NewInt(3000)) // create relayer in shard 0
+	_, _ = vm.CreateAccount(testContext1.Accounts, sndAddr, 0, big.NewInt(0))        // create sender in shard 1
+
+	userTx := vm.CreateTransaction(1, big.NewInt(150), sndAddr, rcvAddr, 1, 100, nil)
+	initialSenderNonce := getAccount(t, testContext1, sndAddr).GetNonce()
+
+	rtxDataV1 := integrationTests.PrepareRelayedTxDataV1(userTx)
+	executeRelayedTransaction(t, testContext0, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.Ok)
+
+	results := testContext0.GetIntermediateTransactions(t)
+	assert.Equal(t, 0, len(results)) // no scrs, the exact relayed tx will be executed on the receiver shard
+
+	executeRelayedTransaction(t, testContext1, relayerAddr, userTx, rtxDataV1, big.NewInt(100), sndAddr, vmcommon.UserError)
+
+	senderAccount := getAccount(t, testContext1, sndAddr)
+	require.NotNil(t, senderAccount)
+	assert.Equal(t, initialSenderNonce, senderAccount.GetNonce())
 }
 
 func executeRelayedTransaction(
@@ -272,13 +325,14 @@ func executeRelayedTransaction(
 	userTxPrepared []byte,
 	value *big.Int,
 	senderAddress []byte,
+	expectedReturnCode vmcommon.ReturnCode,
 ) {
 	relayerAccount := getAccount(tb, testContext, relayerAddress)
 	gasLimit := 1 + userTx.GasLimit + uint64(len(userTxPrepared))
 
 	relayedTx := vm.CreateTransaction(relayerAccount.GetNonce(), value, relayerAddress, senderAddress, 1, gasLimit, userTxPrepared)
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(relayedTx)
-	require.Equal(tb, vmcommon.UserError, retCode)
+	require.Equal(tb, expectedReturnCode, retCode)
 
 	_, err := testContext.Accounts.Commit()
 	require.Nil(tb, err)

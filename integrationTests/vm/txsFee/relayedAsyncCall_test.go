@@ -26,6 +26,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 		testContext := testRelayedAsyncCallShouldWork(t, config.EnableEpochs{
 			RelayedNonceFixEnableEpoch: 100000,
 		}, senderAddr)
+		defer testContext.Close()
 
 		senderAccount := getAccount(t, testContext, senderAddr)
 		assert.Equal(t, uint64(1), senderAccount.GetNonce())
@@ -34,6 +35,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 		testContext := testRelayedAsyncCallShouldWork(t, config.EnableEpochs{
 			RelayedNonceFixEnableEpoch: 0,
 		}, senderAddr)
+		defer testContext.Close()
 
 		senderAccount := getAccount(t, testContext, senderAddr)
 		assert.Equal(t, uint64(1), senderAccount.GetNonce())
