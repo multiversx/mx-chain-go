@@ -600,6 +600,7 @@ func (host *vmContext) CleanCache() {
 	host.returnMessage = ""
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
+	host.crtTransferIndex = 1
 }
 
 // SetGasProvided sets the provided gas

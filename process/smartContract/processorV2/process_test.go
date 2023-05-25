@@ -2782,7 +2782,7 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	outacc1.Nonce = 0
 	outacc1.Balance = big.NewInt(5)
 	outacc1.BalanceDelta = big.NewInt(15)
-	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
+	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5), Index: 1}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
 
 	tx := &transaction.Transaction{}
