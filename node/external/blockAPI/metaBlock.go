@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -112,7 +112,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
-func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	headerHash, blockBytes, err := mbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
 	if err != nil {
 		return nil, err

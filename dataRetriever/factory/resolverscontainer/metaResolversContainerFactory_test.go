@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,8 +82,8 @@ func createStoreForMeta() dataRetriever.StorageService {
 
 func createTriesHolderForMeta() common.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), &trieMock.TrieStub{})
 	return triesHolder
 }
 

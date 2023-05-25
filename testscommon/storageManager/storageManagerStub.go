@@ -1,4 +1,4 @@
-package testscommon
+package storageManager
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
@@ -13,7 +13,7 @@ type StorageManagerStub struct {
 	GetFromCurrentEpochCalled              func([]byte) ([]byte, error)
 	TakeSnapshotCalled                     func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
 	SetCheckpointCalled                    func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
-	GetDbThatContainsHashCalled            func([]byte) common.DBWriteCacher
+	GetDbThatContainsHashCalled            func([]byte) common.BaseStorer
 	IsPruningEnabledCalled                 func() bool
 	IsPruningBlockedCalled                 func() bool
 	EnterPruningBufferingModeCalled        func()
@@ -28,6 +28,7 @@ type StorageManagerStub struct {
 	IsClosedCalled                         func() bool
 	RemoveFromCheckpointHashesHolderCalled func([]byte)
 	GetBaseTrieStorageManagerCalled        func() common.StorageManager
+	GetIdentifierCalled                    func() string
 	CloseCalled                            func() error
 }
 
@@ -216,6 +217,15 @@ func (sms *StorageManagerStub) GetBaseTrieStorageManager() common.StorageManager
 	}
 
 	return nil
+}
+
+// GetIdentifier -
+func (sms *StorageManagerStub) GetIdentifier() string {
+	if sms.GetIdentifierCalled != nil {
+		return sms.GetIdentifierCalled()
+	}
+
+	return ""
 }
 
 // IsInterfaceNil -

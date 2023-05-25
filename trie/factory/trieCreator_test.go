@@ -37,6 +37,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		SnapshotsEnabled:   true,
 		MaxTrieLevelInMem:  5,
 		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
+		Identifier:         dataRetriever.UserAccountsUnit.String(),
 	}
 }
 
