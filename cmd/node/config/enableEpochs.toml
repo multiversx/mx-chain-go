@@ -225,7 +225,7 @@
     RuntimeMemStoreLimitEnableEpoch = 1
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
-    AutoBalanceDataTriesEnableEpoch = 1
+    AutoBalanceDataTriesEnableEpoch = 5
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
     SetSenderInEeiOutputTransferEnableEpoch = 1
