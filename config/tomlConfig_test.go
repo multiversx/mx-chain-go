@@ -692,6 +692,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
 	SetGuardianEnableEpoch = 64
 
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 65
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -788,6 +791,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeCodeSizeFixEnableEpoch:               62,
 			RuntimeMemStoreLimitEnableEpoch:             63,
 			SetGuardianEnableEpoch:                      64,
+			RelayedNonceFixEnableEpoch:                  65,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

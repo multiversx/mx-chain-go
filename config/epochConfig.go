@@ -95,6 +95,7 @@ type EnableEpochs struct {
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 	SetGuardianEnableEpoch                            uint32
+	RelayedNonceFixEnableEpoch                        uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
