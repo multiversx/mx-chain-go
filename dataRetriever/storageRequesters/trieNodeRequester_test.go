@@ -199,7 +199,7 @@ func TestTrieNodeRequester_Close(t *testing.T) {
 		t.Parallel()
 
 		args := createMockTrieRequesterArguments()
-		args.TrieStorageManager = &testscommon.StorageManagerStub{
+		args.TrieStorageManager = &storageManager.StorageManagerStub{
 			CloseCalled: func() error {
 				return expectedErr
 			},
