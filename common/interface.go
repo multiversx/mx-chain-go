@@ -71,6 +71,12 @@ type TrieStats interface {
 	GetTrieStats(address string, rootHash []byte) (TrieStatisticsHandler, error)
 }
 
+// StorageMarker is used to mark the given storer as synced and active
+type StorageMarker interface {
+	MarkStorerAsSyncedAndActive(storer StorageManager)
+	IsInterfaceNil() bool
+}
+
 // KeyBuilder is used for building trie keys as you traverse the trie
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)
@@ -89,9 +95,8 @@ type DataTrieHandler interface {
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Get(key []byte) ([]byte, error)
+	TrieStorageInteractor
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
@@ -102,7 +107,6 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
-	Remove(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	GetBaseTrieStorageManager() StorageManager
@@ -111,8 +115,14 @@ type StorageManager interface {
 	IsInterfaceNil() bool
 }
 
-// DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
-type DBWriteCacher interface {
+// TrieStorageInteractor defines the methods used for interacting with the trie storage
+type TrieStorageInteractor interface {
+	BaseStorer
+	GetIdentifier() string
+}
+
+// BaseStorer define the base methods needed for a storer
+type BaseStorer interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
 	Remove(key []byte) error
@@ -122,7 +132,7 @@ type DBWriteCacher interface {
 
 // SnapshotDbHandler is used to keep track of how many references a snapshot db has
 type SnapshotDbHandler interface {
-	DBWriteCacher
+	BaseStorer
 	IsInUse() bool
 	DecreaseNumReferences()
 	IncreaseNumReferences()
@@ -397,5 +407,18 @@ type ManagedPeersHolder interface {
 	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyMode() bool
+	IsInterfaceNil() bool
+}
+
+// MissingTrieNodesNotifier defines the operations of an entity that notifies about missing trie nodes
+type MissingTrieNodesNotifier interface {
+	RegisterHandler(handler StateSyncNotifierSubscriber) error
+	AsyncNotifyMissingTrieNode(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
+type StateSyncNotifierSubscriber interface {
+	MissingDataTrieNodeFound(hash []byte)
 	IsInterfaceNil() bool
 }

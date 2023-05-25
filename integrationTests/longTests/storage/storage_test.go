@@ -106,10 +106,12 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
-	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storage.GetStorageManagerArgs()
 	storageManagerArgs.MainStorer = store
 	storageManagerArgs.Marshalizer = &marshal.JsonMarshalizer{}
 	storageManagerArgs.Hasher = blake2b.NewBlake2b()
+
+	options := storage.GetStorageManagerOptions()
 	options.CheckpointsEnabled = false
 	options.PruningEnabled = false
 

@@ -1155,6 +1155,38 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(0), receiverShardID)
 }
 
+func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, missingNodeErr
+		},
+	}
+	preprocessor, _ := NewTransactionPreprocessor(args)
+
+	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
+	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+	}
+	miniBlockHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
+	body := block.Body{
+		MiniBlocks: []*block.MiniBlock{miniBlock},
+	}
+
+	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
+
+	err := preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
+	assert.Equal(t, missingNodeErr, err)
+}
+
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 

@@ -19,15 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/config"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -50,29 +47,8 @@ func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) 
 	return tr
 }
 
-func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
-
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
-	args := getDefaultTrieStorageManagerParameters()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
 
@@ -1112,7 +1088,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	t.Parallel()
 
-	args := getDefaultTrieStorageManagerParameters()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	args.MainStorer = &storage.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			// gets take a long time

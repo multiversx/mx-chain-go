@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -375,25 +376,26 @@ func createScQueryElement(
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              args.stateComponents.AccountsAdapterAPI(),
-		PubkeyConv:            args.coreComponents.AddressPubKeyConverter(),
-		StorageService:        args.dataComponents.StorageService(),
-		BlockChain:            args.dataComponents.Blockchain(),
-		ShardCoordinator:      args.processComponents.ShardCoordinator(),
-		Marshalizer:           args.coreComponents.InternalMarshalizer(),
-		Uint64Converter:       args.coreComponents.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
-		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
-		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		DataPool:              args.dataComponents.Datapool(),
-		ConfigSCStorage:       scStorage,
-		CompiledSCPool:        smartContractsCache,
-		WorkingDir:            args.workingDir,
-		EpochNotifier:         args.coreComponents.EpochNotifier(),
-		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
-		NilCompiledSCStore:    true,
-		GasSchedule:           args.gasScheduleNotifier,
-		Counter:               counters.NewDisabledCounter(),
+		Accounts:                 args.stateComponents.AccountsAdapterAPI(),
+		PubkeyConv:               args.coreComponents.AddressPubKeyConverter(),
+		StorageService:           args.dataComponents.StorageService(),
+		BlockChain:               args.dataComponents.Blockchain(),
+		ShardCoordinator:         args.processComponents.ShardCoordinator(),
+		Marshalizer:              args.coreComponents.InternalMarshalizer(),
+		Uint64Converter:          args.coreComponents.Uint64ByteSliceConverter(),
+		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		DataPool:                 args.dataComponents.Datapool(),
+		ConfigSCStorage:          scStorage,
+		CompiledSCPool:           smartContractsCache,
+		WorkingDir:               args.workingDir,
+		EpochNotifier:            args.coreComponents.EpochNotifier(),
+		EnableEpochsHandler:      args.coreComponents.EnableEpochsHandler(),
+		NilCompiledSCStore:       true,
+		GasSchedule:              args.gasScheduleNotifier,
+		Counter:                  counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery

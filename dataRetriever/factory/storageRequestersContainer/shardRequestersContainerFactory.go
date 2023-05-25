@@ -170,6 +170,7 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
+		dataRetriever.UserAccountsUnit,
 		srcf.enableEpochsHandler,
 	)
 	if err != nil {

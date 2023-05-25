@@ -227,6 +227,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
+		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
 	}
 }
 

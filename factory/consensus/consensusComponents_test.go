@@ -35,7 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
@@ -141,11 +141,12 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
-				trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-				trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+				retriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
+				retriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 			},
-			Accounts: &stateMocks.AccountsStub{},
-			PeersAcc: &stateMocks.AccountsStub{},
+			Accounts:             &stateMocks.AccountsStub{},
+			PeersAcc:             &stateMocks.AccountsStub{},
+			MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		},
 		StatusComponents: &testsMocks.StatusComponentsStub{
 			Outport: &outportMocks.OutportStub{},
@@ -631,7 +632,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = map[string]common.StorageManager{
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			retriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		} // missing PeerAccountTrie
 		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
 		require.True(t, ok)

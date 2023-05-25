@@ -912,13 +912,13 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs, options := stateMock.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := stateMock.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, stateMock.GetStorageManagerOptions())
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
@@ -963,23 +963,24 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	nodesSetup := &mock.NodesSetupStub{}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              userAccountsDB,
-		PubkeyConv:            &testscommon.PubkeyConverterMock{},
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            blockChain,
-		ShardCoordinator:      &mock.ShardCoordinatorStub{},
-		Marshalizer:           marshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
-		DataPool:              testDataPool,
-		CompiledSCPool:        testDataPool.SmartContracts(),
-		EpochNotifier:         en,
-		EnableEpochsHandler:   enableEpochsHandler,
-		NilCompiledSCStore:    true,
-		GasSchedule:           gasScheduleNotifier,
-		Counter:               &testscommon.BlockChainHookCounterStub{},
+		Accounts:                 userAccountsDB,
+		PubkeyConv:               &testscommon.PubkeyConverterMock{},
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               blockChain,
+		ShardCoordinator:         &mock.ShardCoordinatorStub{},
+		Marshalizer:              marshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler:    &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:                 testDataPool,
+		CompiledSCPool:           testDataPool.SmartContracts(),
+		EpochNotifier:            en,
+		EnableEpochsHandler:      enableEpochsHandler,
+		NilCompiledSCStore:       true,
+		GasSchedule:              gasScheduleNotifier,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
