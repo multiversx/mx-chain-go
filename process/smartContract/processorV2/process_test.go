@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"sync"
 	"testing"
 
@@ -2781,7 +2782,7 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	outacc1.Nonce = 0
 	outacc1.Balance = big.NewInt(5)
 	outacc1.BalanceDelta = big.NewInt(15)
-	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
+	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5), Index: 1}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
 
 	tx := &transaction.Transaction{}
@@ -3493,7 +3494,7 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
-	scr := results[0].(*smartContractResult.SmartContractResult)
+	scr := results[0].result.(*smartContractResult.SmartContractResult)
 	gasLocked := sc.getGasLockedFromSCR(scr)
 	require.Equal(t, gasLocked, outTransfer.GasLocked)
 
@@ -3513,9 +3514,65 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
-	scr = results[0].(*smartContractResult.SmartContractResult)
+	scr = results[0].result.(*smartContractResult.SmartContractResult)
 	gasLocked = sc.getGasLockedFromSCR(scr)
 	require.Equal(t, gasLocked, uint64(0))
+}
+
+func TestSmartContractProcessor_indexedOutputTransfers(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId() + 1
+	}
+	arguments.ShardCoordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessorV2(arguments)
+
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Nonce = 0
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(0)
+
+	index := uint32(1)
+	outTransfer1Acc1 := vmcommon.OutputTransfer{
+		Index:     index,
+		Value:     big.NewInt(0),
+		CallType:  vmData.DirectCall,
+		GasLocked: 100,
+		GasLimit:  100,
+		Data:      []byte(fmt.Sprintf("index%d", index)),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer1Acc1)
+
+	index = 0
+	outTransfer2Acc1 := vmcommon.OutputTransfer{
+		Index:     index,
+		Value:     big.NewInt(0),
+		CallType:  vmData.DirectCall,
+		GasLocked: 100,
+		GasLimit:  100,
+		Data:      []byte(fmt.Sprintf("index%d", index)),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer2Acc1)
+	vmOutput := &vmcommon.VMOutput{
+		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
+	}
+	vmOutput.OutputAccounts[string(outaddress)] = outacc1
+
+	_, results, err := sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, &transaction.Transaction{Value: big.NewInt(0)}, []byte("hash"))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(results))
+
+	for index, result := range results {
+		dataAsString := string(result.GetData())
+		if strings.HasPrefix(dataAsString, "index") {
+			require.Equal(t, fmt.Sprintf("index%d", index), dataAsString)
+		}
+	}
 }
 
 func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
