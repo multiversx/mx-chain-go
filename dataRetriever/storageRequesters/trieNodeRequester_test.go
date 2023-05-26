@@ -127,6 +127,38 @@ func TestTrieNodeRequester_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendToConnectedPeerCalled))
 }
 
+func TestTrieNodeRequester_RequestDataFromHashArrayMarshalFails(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTrieRequesterArguments()
+	buff := []byte("data")
+	args.TrieDataGetter = &trieMock.TrieStub{
+		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
+			return [][]byte{buff}, 1, nil
+		},
+	}
+	args.Messenger = &p2pmocks.MessengerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			assert.Fail(t, "should not have been called")
+			return nil
+		},
+	}
+	args.Marshalizer = &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	tnr, _ := NewTrieNodeRequester(args)
+
+	err := tnr.RequestDataFromHashArray(
+		[][]byte{
+			[]byte("hash1"),
+			[]byte("hash2"),
+		}, 0)
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, 0, len(args.ChanGracefullyClose))
+}
+
 func TestTrieNodeRequester_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -158,4 +190,31 @@ func TestTrieNodeRequester_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(args.ChanGracefullyClose))
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendToConnectedPeerCalled))
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numGetSerializedNodesCalled))
+}
+
+func TestTrieNodeRequester_Close(t *testing.T) {
+	t.Parallel()
+
+	t.Run("trieStorageManager.Close error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockTrieRequesterArguments()
+		args.TrieStorageManager = &storageManager.StorageManagerStub{
+			CloseCalled: func() error {
+				return expectedErr
+			},
+		}
+		tnr, _ := NewTrieNodeRequester(args)
+
+		err := tnr.Close()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tnr, _ := NewTrieNodeRequester(createMockTrieRequesterArguments())
+
+		err := tnr.Close()
+		assert.NoError(t, err)
+	})
 }
