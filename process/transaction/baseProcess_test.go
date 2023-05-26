@@ -94,6 +94,34 @@ func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
 		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
 		require.True(t, strings.Contains(err.Error(), expectedError.Error()))
 	})
+	t.Run("set guardian builtin call not allowed to bypass if transaction has sender username", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("SetGuardian@")
+		txCopy.SndUserName = []byte("someUsername")
+		err := baseProc.checkOperationAllowedToBypassGuardian(&txCopy)
+		require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+		require.True(t, strings.Contains(err.Error(), "username"))
+	})
+	t.Run("set guardian builtin call not allowed to bypass if transaction has receiver username address", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("SetGuardian@")
+		txCopy.RcvUserName = []byte("someUsername")
+		err := baseProc.checkOperationAllowedToBypassGuardian(&txCopy)
+		require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+		require.True(t, strings.Contains(err.Error(), "username"))
+	})
 	t.Run("set guardian builtin call ok", func(t *testing.T) {
 		txCopy := *tx
 		baseProc := createMockBaseTxProcessor()

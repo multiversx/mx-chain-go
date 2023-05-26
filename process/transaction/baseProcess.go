@@ -222,12 +222,20 @@ func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) er
 
 // Setting a guardian is allowed with regular transactions on a guarded account
 // but in this case is set with the default epochs delay
-func (txProc *baseTxProcessor) checkOperationAllowedToBypassGuardian(tx data.TransactionHandler) error {
+func (txProc *baseTxProcessor) checkOperationAllowedToBypassGuardian(tx *transaction.Transaction) error {
 	if !process.IsSetGuardianCall(tx.GetData()) {
 		return fmt.Errorf("%w, not allowed to bypass guardian", process.ErrTransactionNotExecutable)
 	}
 
-	return txProc.CheckSetGuardianExecutable(tx)
+	err := txProc.CheckSetGuardianExecutable(tx)
+	if err != nil {
+		return err
+	}
+	if len(tx.GetRcvUserName()) > 0 || len(tx.GetSndUserName()) > 0 {
+		return fmt.Errorf("%w, SetGuardian does not support usernames", process.ErrTransactionNotExecutable)
+	}
+
+	return nil
 }
 
 // CheckSetGuardianExecutable checks if the setGuardian builtin function is executable
