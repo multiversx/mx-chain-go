@@ -118,11 +118,14 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	err := txProc.checkUserNames(tx, acntSnd, acntDst)
+	err := txProc.verifyGuardian(tx, acntSnd)
 	if err != nil {
 		return err
 	}
-
+	err = txProc.checkUserNames(tx, acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -164,11 +167,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if acntSnd.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
-	}
-
-	err = txProc.verifyGuardian(tx, acntSnd)
-	if err != nil {
-		return err
 	}
 
 	return nil

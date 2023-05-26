@@ -92,6 +92,7 @@ type epochFlagsHolder struct {
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	guardAccountFlag                            *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
+	relayedNonceFixFlag                         *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -183,6 +184,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		guardAccountFlag:                            &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
+		relayedNonceFixFlag:                         &atomic.Flag{},
 	}
 }
 
@@ -667,4 +669,9 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled
 func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
+}
+
+// IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
+func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
+	return holder.relayedNonceFixFlag.IsSet()
 }
