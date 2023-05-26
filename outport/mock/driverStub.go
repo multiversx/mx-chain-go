@@ -8,14 +8,16 @@ import (
 
 // DriverStub -
 type DriverStub struct {
-	SaveBlockCalled             func(outportBlock *outportcore.OutportBlock) error
-	RevertIndexedBlockCalled    func(blockData *outportcore.BlockData) error
-	SaveRoundsInfoCalled        func(roundsInfos *outportcore.RoundsInfo) error
-	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys) error
-	SaveValidatorsRatingCalled  func(validatorsRating *outportcore.ValidatorsRating) error
-	SaveAccountsCalled          func(accounts *outportcore.Accounts) error
-	FinalizedBlockCalled        func(finalizedBlock *outportcore.FinalizedBlock) error
-	CloseCalled                 func() error
+	SaveBlockCalled                         func(outportBlock *outportcore.OutportBlock) error
+	RevertIndexedBlockCalled                func(blockData *outportcore.BlockData) error
+	SaveRoundsInfoCalled                    func(roundsInfos *outportcore.RoundsInfo) error
+	SaveValidatorsPubKeysCalled             func(validatorsPubKeys *outportcore.ValidatorsPubKeys) error
+	SaveValidatorsRatingCalled              func(validatorsRating *outportcore.ValidatorsRating) error
+	SaveAccountsCalled                      func(accounts *outportcore.Accounts) error
+	FinalizedBlockCalled                    func(finalizedBlock *outportcore.FinalizedBlock) error
+	CloseCalled                             func() error
+	RegisterHandlerForSettingsRequestCalled func(handlerFunction func()) error
+	CurrentSettingsCalled                   func(config outportcore.OutportConfig) error
 }
 
 // SaveBlock -
@@ -84,6 +86,24 @@ func (d *DriverStub) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) 
 // GetMarshaller -
 func (d *DriverStub) GetMarshaller() marshal.Marshalizer {
 	return testscommon.MarshalizerMock{}
+}
+
+// CurrentSettings -
+func (d *DriverStub) CurrentSettings(config outportcore.OutportConfig) error {
+	if d.CurrentSettingsCalled != nil {
+		return d.CurrentSettingsCalled(config)
+	}
+
+	return nil
+}
+
+// RegisterHandlerForSettingsRequest -
+func (d *DriverStub) RegisterHandlerForSettingsRequest(handlerFunction func()) error {
+	if d.RegisterHandlerForSettingsRequestCalled != nil {
+		return d.RegisterHandlerForSettingsRequestCalled(handlerFunction)
+	}
+
+	return nil
 }
 
 // Close -

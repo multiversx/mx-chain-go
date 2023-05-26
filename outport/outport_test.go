@@ -2,6 +2,7 @@ package outport
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	atomicGo "sync/atomic"
 	"testing"
@@ -579,4 +580,91 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))
+}
+
+func TestOutport_SettingsRequestAndReceive(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	t.Run("RegisterHandlerForSettingsRequest errors, should not add the driver", func(t *testing.T) {
+		t.Parallel()
+
+		driver := &mock.DriverStub{
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+				return expectedErr
+			},
+		}
+
+		outportHandler, _ := NewOutport(time.Second)
+		err := outportHandler.SubscribeDriver(driver)
+		assert.Equal(t, expectedErr, err)
+		require.False(t, outportHandler.HasDrivers())
+	})
+	t.Run("CurrentSettings errors, should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, fmt.Sprintf("should have not failed %v", r))
+			}
+		}()
+
+		currentSettingsCalled := false
+		var callback func()
+		driver := &mock.DriverStub{
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+				callback = handlerFunction
+
+				return nil
+			},
+			CurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+				currentSettingsCalled = true
+				return expectedErr
+			},
+		}
+
+		outportHandler, _ := NewOutport(time.Second)
+		err := outportHandler.SubscribeDriver(driver)
+
+		callback()
+
+		assert.Nil(t, err)
+		assert.True(t, currentSettingsCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		var driverRequestHandler func()
+		receivedOutportConfig := outportcore.OutportConfig{}
+		driver := &mock.DriverStub{
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+				driverRequestHandler = handlerFunction
+
+				return nil
+			},
+			CurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+				receivedOutportConfig = config
+				return nil
+			},
+		}
+
+		outportHandler, _ := NewOutport(time.Second)
+		err := outportHandler.SubscribeDriver(driver)
+		assert.Nil(t, err)
+		assert.True(t, outportHandler.HasDrivers())
+
+		assert.NotNil(t, driverRequestHandler) // the RegisterHandlerForSettingsRequest should have been called, handler set
+
+		// the expected config should be empty as the handler should not call the driver's CurrentSettings automatically at subscribe time
+		expectedConfig := outportcore.OutportConfig{}
+		assert.Equal(t, expectedConfig, receivedOutportConfig)
+
+		// driver not calls the handler because it wants the config
+		driverRequestHandler()
+		expectedConfig = outportcore.OutportConfig{ // TODO: remove this, use the providedConfigs when injecting the configs on the constructor
+			IsInImportDBMode: true,
+		}
+		assert.Equal(t, expectedConfig, receivedOutportConfig)
+	})
 }
