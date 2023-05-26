@@ -13,7 +13,7 @@ import (
 
 const minRoundModulus = uint64(4)
 
-func (mp *metaProcessor) ForceStart(metaHdr *block.MetaBlock) {
+func (mp *metaProcessor) TryForceEpochStart(metaHdr *block.MetaBlock) {
 	txBlockTxs := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 
 	for _, tx := range txBlockTxs {
@@ -33,7 +33,7 @@ func (mp *metaProcessor) ForceStart(metaHdr *block.MetaBlock) {
 }
 
 func isEpochsFastForwardTx(tx data.TransactionHandler) bool {
-	return bytes.Compare(tx.GetRcvAddr(), vm.ValidatorSCAddress) == 0 &&
+	return bytes.Equal(tx.GetRcvAddr(), vm.ValidatorSCAddress) &&
 		strings.HasPrefix(string(tx.GetData()), "epochFastForward")
 }
 
@@ -62,7 +62,10 @@ func parseFastForwardArguments(tx data.TransactionHandler) (int, uint64) {
 }
 
 func (mp *metaProcessor) tryFastForwardEpoch(metaHdr *block.MetaBlock) {
-	forceEpochTrigger := mp.epochStartTrigger.(update.EpochHandler)
+	forceEpochTrigger, ok := mp.epochStartTrigger.(update.EpochHandler)
+	if !ok {
+		return
+	}
 
 	correctRoundsAndEpochs := mp.roundsModulus > 0 && metaHdr.GetRound()%mp.roundsModulus == 0 && mp.nrEpochsChanges > 0
 

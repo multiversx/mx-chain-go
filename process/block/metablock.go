@@ -392,7 +392,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.ForceStart(header)
+	mp.TryForceEpochStart(header)
 
 	return nil
 }
@@ -749,7 +749,7 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
 
-	mp.ForceStart(metaHdr)
+	mp.TryForceEpochStart(metaHdr)
 
 	return metaHdr, body, nil
 }
