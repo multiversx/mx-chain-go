@@ -79,3 +79,8 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTxHash,
 		errorMsg)
 }
+
+// ShouldIncreaseNonce -
+func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
+	return txProc.shouldIncreaseNonce(executionErr)
+}

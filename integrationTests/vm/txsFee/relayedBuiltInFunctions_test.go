@@ -42,7 +42,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -89,7 +89,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -135,7 +135,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -162,7 +162,28 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 1000,
+			},
+			2)
+	})
+	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 0,
+			},
+			2)
+	})
+}
+
+func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(
+	t *testing.T,
+	enableEpochs config.EnableEpochs,
+	expectedOwnerNonce uint64,
+) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -180,7 +201,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
@@ -196,7 +217,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+	vm.TestAccount(t, testContext.Accounts, owner, expectedOwnerNonce, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
@@ -225,7 +246,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
