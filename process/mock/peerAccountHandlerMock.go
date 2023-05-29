@@ -56,11 +56,6 @@ func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
 }
 
-// GetBLSPublicKey -
-func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
-	return nil
-}
-
 // SetBLSPublicKey -
 func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
 	return nil

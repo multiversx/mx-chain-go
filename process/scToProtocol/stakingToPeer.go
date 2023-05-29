@@ -226,7 +226,7 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+	if !bytes.Equal(account.AddressBytes(), blsPubKey) {
 		err = account.SetBLSPublicKey(blsPubKey)
 		if err != nil {
 			return err
@@ -281,10 +281,10 @@ func (stp *stakingToPeer) updatePeerState(
 		return err
 	}
 
-	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
+	isUnJailForInactive := len(account.AddressBytes()) > 0 && !stakingData.Staked &&
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(common.JailedList)
 	if isUnJailForInactive {
-		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey(), "unStakedEpoch", stakingData.UnStakedEpoch)
+		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.AddressBytes(), "unStakedEpoch", stakingData.UnStakedEpoch)
 		account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce))
 		if account.GetTempRating() < stp.unJailRating {
 			account.SetTempRating(stp.unJailRating)
@@ -314,7 +314,7 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+	if !bytes.Equal(account.AddressBytes(), blsPubKey) {
 		log.Debug("new node", "blsKey", blsPubKey)
 		err = account.SetBLSPublicKey(blsPubKey)
 		if err != nil {

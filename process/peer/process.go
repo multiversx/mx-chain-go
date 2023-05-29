@@ -489,7 +489,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	}
 
 	return &state.ValidatorInfo{
-		PublicKey:                       peerAccount.GetBLSPublicKey(),
+		PublicKey:                       peerAccount.AddressBytes(),
 		ShardId:                         peerAccount.GetShardId(),
 		List:                            list,
 		Index:                           peerAccount.GetIndexInList(),
@@ -1029,7 +1029,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			log.Debug("updateValidatorInfoOnSuccessfulBlock",
 				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
 				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
-				"leader", core.GetTrimmedPk(string(peerAcc.GetBLSPublicKey())))
+				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())))
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
@@ -1147,7 +1147,7 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Trace("validator statistics",
-		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.GetBLSPublicKey())),
+		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.AddressBytes())),
 		"leader fail", peerAcc.GetLeaderSuccessRate().NumFailure,
 		"leader success", peerAcc.GetLeaderSuccessRate().NumSuccess,
 		"val success", peerAcc.GetValidatorSuccessRate().NumSuccess,

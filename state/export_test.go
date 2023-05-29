@@ -10,14 +10,6 @@ import (
 // LastSnapshotStarted -
 const LastSnapshotStarted = lastSnapshotStarted
 
-// NewEmptyBaseAccount -
-func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
-	return &baseAccount{
-		address:         address,
-		dataTrieTracker: tracker,
-	}
-}
-
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
@@ -97,9 +89,4 @@ func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
 	}
 
 	return dd
-}
-
-// SaveDirtyData -
-func (a *userAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
-	return a.dataTrieTracker.SaveDirtyData(trie)
 }

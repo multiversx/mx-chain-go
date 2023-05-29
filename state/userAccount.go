@@ -19,8 +19,11 @@ var _ UserAccountHandler = (*userAccount)(nil)
 
 // Account is the struct used in serialization/deserialization
 type userAccount struct {
-	*baseAccount
 	UserAccountData
+
+	dataTrieInteractor
+	code                []byte
+	hasNewCode          bool
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
 }
@@ -53,15 +56,12 @@ func NewUserAccount(
 	}
 
 	return &userAccount{
-		baseAccount: &baseAccount{
-			address:         address,
-			dataTrieTracker: tdt,
-		},
 		UserAccountData: UserAccountData{
 			DeveloperReward: big.NewInt(0),
 			Balance:         big.NewInt(0),
 			Address:         address,
 		},
+		dataTrieInteractor:  tdt,
 		marshaller:          args.Marshaller,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
@@ -88,10 +88,7 @@ func NewUserAccountFromBytes(
 		return nil, err
 	}
 
-	acc.baseAccount = &baseAccount{
-		address:         acc.Address,
-		dataTrieTracker: tdt,
-	}
+	acc.dataTrieInteractor = tdt
 	acc.marshaller = args.Marshaller
 	acc.enableEpochsHandler = args.EnableEpochsHandler
 
@@ -110,6 +107,11 @@ func checkArgs(args ArgsAccountCreation) error {
 	}
 
 	return nil
+}
+
+// AddressBytes returns the address associated with the account as byte slice
+func (a *userAccount) AddressBytes() []byte {
+	return a.Address
 }
 
 // SetUserName sets the users name
@@ -172,7 +174,7 @@ func (a *userAccount) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) e
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
 		return ErrOperationNotPermitted
 	}
-	if len(newAddress) != len(a.address) {
+	if len(newAddress) != len(a.Address) {
 		return ErrInvalidAddressLength
 	}
 
@@ -218,12 +220,16 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	dataTrie := a.dataTrieTracker.DataTrie()
-	if check.IfNil(dataTrie) {
+	if check.IfNil(a.dataTrieInteractor) {
+		return ErrNilTrackableDataTrie
+	}
+
+	dt := a.dataTrieInteractor.DataTrie()
+	if check.IfNil(dt) {
 		return ErrNilTrie
 	}
 
-	rootHash, err := dataTrie.RootHash()
+	rootHash, err := dt.RootHash()
 	if err != nil {
 		return err
 	}
@@ -233,17 +239,37 @@ func (a *userAccount) GetAllLeaves(
 		return err
 	}
 
-	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
+	return dt.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
 }
 
 // IsDataTrieMigrated returns true if the data trie is migrated to the latest version
 func (a *userAccount) IsDataTrieMigrated() (bool, error) {
-	dt := a.dataTrieTracker.DataTrie()
+	if check.IfNil(a.dataTrieInteractor) {
+		return false, ErrNilTrackableDataTrie
+	}
+
+	dt := a.dataTrieInteractor.DataTrie()
 	if check.IfNil(dt) {
 		return false, ErrNilTrie
 	}
 
 	return dt.IsMigratedToLatestVersion()
+}
+
+// SetCode sets the actual code that needs to be run in the VM
+func (a *userAccount) SetCode(code []byte) {
+	a.hasNewCode = true
+	a.code = code
+}
+
+// HasNewCode returns true if there was a code change for the account
+func (a *userAccount) HasNewCode() bool {
+	return a.hasNewCode
+}
+
+// AccountDataHandler returns the account data handler
+func (a *userAccount) AccountDataHandler() vmcommon.AccountDataHandler {
+	return a.dataTrieInteractor
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

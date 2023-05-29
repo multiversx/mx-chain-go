@@ -788,7 +788,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+	if !bytes.Equal(account.AddressBytes(), blsPubKey) {
 		err = account.SetBLSPublicKey(blsPubKey)
 		if err != nil {
 			return nil, err

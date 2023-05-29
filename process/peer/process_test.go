@@ -101,7 +101,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -1981,7 +1981,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		return expectedErr
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
-		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
+		if bytes.Equal(pa0.AddressBytes(), address) {
 			return pa0, nil
 		}
 		return nil, expectedErr
@@ -2044,7 +2044,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 		return expectedErr
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
-		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
+		if bytes.Equal(pa0.AddressBytes(), address) {
 			return pa0, nil
 		}
 		return nil, expectedErr
@@ -2427,7 +2427,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 
 	ratingModifier := float32(chancesForRating) / float32(chancesForStartRating)
 
-	assert.Equal(t, peerAccount.GetBLSPublicKey(), vs.PublicKey)
+	assert.Equal(t, peerAccount.AddressBytes(), vs.PublicKey)
 	assert.Equal(t, peerAccount.GetShardId(), vs.ShardId)
 	assert.Equal(t, peerAccount.GetList(), vs.List)
 	assert.Equal(t, peerAccount.GetIndexInList(), vs.Index)
@@ -2470,7 +2470,7 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 	assert.Equal(t, peerAccount.GetShardId(), validatorInfo.ShardId)
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
-	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
+	assert.Equal(t, peerAccount.AddressBytes(), validatorInfo.PublicKey)
 	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumFailure, validatorInfo.ValidatorFailure)
 	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumSuccess, validatorInfo.ValidatorSuccess)
 	assert.Equal(t, peerAccount.GetValidatorIgnoredSignaturesRate(), validatorInfo.ValidatorIgnoredSignatures)
