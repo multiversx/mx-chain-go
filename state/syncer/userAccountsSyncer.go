@@ -150,13 +150,9 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 		return err
 	}
 
-<<<<<<< HEAD
-	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
+	storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
 	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
-=======
-	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
->>>>>>> rc/v1.6.0
 
 	return nil
 }
@@ -198,12 +194,8 @@ func (u *userAccountsSyncer) createAndStartSyncer(
 		TrieSyncStatistics:        u.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
-<<<<<<< HEAD
-		CheckNodesOnDisk:          u.checkNodesOnDisk,
-		LeavesChan:                nil, // not used for data tries
-=======
 		CheckNodesOnDisk:          checkNodesOnDisk,
->>>>>>> rc/v1.6.0
+		LeavesChan:                nil, // not used for data tries
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {

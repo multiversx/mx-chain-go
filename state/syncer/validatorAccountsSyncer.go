@@ -88,11 +88,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker co
 		return err
 	}
 
-<<<<<<< HEAD
-	v.storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
-=======
-	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
->>>>>>> rc/v1.6.0
+	storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
 
 	return nil
 }
