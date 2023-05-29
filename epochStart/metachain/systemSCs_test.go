@@ -47,8 +47,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	storageManagerMock "github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -910,11 +910,7 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-<<<<<<< HEAD
-	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
-=======
 	storageManagerArgs := stateMock.GetStorageManagerArgs()
->>>>>>> rc/v1.6.0
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer

@@ -289,6 +289,8 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 	bootstrapStorer, err := pr.DataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(tb, err)
 
+	numEpochsToStore := uint32(4)
+
 	pr.NodesCoordinator, err = factoryBootstrap.CreateNodesCoordinator(
 		nodesShufflerOut,
 		pr.CoreComponents.GenesisNodesSetup(),
@@ -307,6 +309,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		numEpochsToStore,
 	)
 	require.Nil(tb, err)
 

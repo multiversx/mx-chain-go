@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	storageManagerMock "github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -105,11 +105,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
 	store := testStorage.CreateStorageLevelDB()
-<<<<<<< HEAD
-	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
-=======
 	storageManagerArgs := storage.GetStorageManagerArgs()
->>>>>>> rc/v1.6.0
 	storageManagerArgs.MainStorer = store
 	storageManagerArgs.Marshalizer = &marshal.JsonMarshalizer{}
 	storageManagerArgs.Hasher = blake2b.NewBlake2b()

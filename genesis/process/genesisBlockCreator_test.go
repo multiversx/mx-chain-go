@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
-	storageManagerMock "github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/update"
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
@@ -53,13 +52,8 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-<<<<<<< HEAD
-	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
-=======
 	storageManagerArgs := storageCommon.GetStorageManagerArgs()
 	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
->>>>>>> rc/v1.6.0
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
