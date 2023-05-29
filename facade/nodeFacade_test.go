@@ -1385,7 +1385,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 			Identifier: logId,
 			Address:    convertAddressFunc(logAddr),
 			Topics:     logTopics,
-			Data:       logData[0],
+			Data:       logData,
 		},
 	}
 
