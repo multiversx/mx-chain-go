@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 package syncer_test
 
 import (
@@ -53,10 +54,22 @@ func TestNewValidatorAccountsSyncer(t *testing.T) {
 		require.NotNil(t, v)
 	})
 }
+=======
+package syncer
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// TODO add more tests
+>>>>>>> rc/v1.6.0
 
 func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 	t.Parallel()
 
+<<<<<<< HEAD
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
 	}
@@ -95,4 +108,16 @@ func TestValidatorAccountsSyncer_IsInterfaceNil(t *testing.T) {
 	vas, err := syncer.NewValidatorAccountsSyncer(args)
 	require.Nil(t, err)
 	assert.False(t, vas.IsInterfaceNil())
+=======
+	args := ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+	}
+
+	syncer, err := NewValidatorAccountsSyncer(args)
+	assert.Nil(t, err)
+	assert.NotNil(t, syncer)
+
+	err = syncer.SyncAccounts([]byte("rootHash"), nil)
+	assert.Equal(t, ErrNilStorageMarker, err)
+>>>>>>> rc/v1.6.0
 }

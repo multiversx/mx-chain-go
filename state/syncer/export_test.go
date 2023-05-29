@@ -1,5 +1,6 @@
 package syncer
 
+<<<<<<< HEAD
 import (
 	"context"
 
@@ -23,4 +24,9 @@ func (u *userAccountsSyncer) SyncAccountDataTries(
 	ctx context.Context,
 ) error {
 	return u.syncAccountDataTries(leavesChannels, ctx)
+=======
+// GetNumHandlers -
+func (mtnn *missingTrieNodesNotifier) GetNumHandlers() int {
+	return len(mtnn.handlers)
+>>>>>>> rc/v1.6.0
 }

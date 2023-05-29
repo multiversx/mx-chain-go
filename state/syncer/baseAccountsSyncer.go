@@ -31,7 +31,6 @@ type baseAccountsSyncer struct {
 	name                              string
 	maxHardCapForMissingNodes         int
 	checkNodesOnDisk                  bool
-	storageMarker                     trie.StorageMarker
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	appStatusHandler                  core.AppStatusHandler
 
@@ -47,7 +46,6 @@ type ArgsNewBaseAccountsSyncer struct {
 	Hasher                            hashing.Hasher
 	Marshalizer                       marshal.Marshalizer
 	TrieStorageManager                common.StorageManager
-	StorageMarker                     trie.StorageMarker
 	RequestHandler                    trie.RequestHandler
 	Timeout                           time.Duration
 	Cacher                            storage.Cacher

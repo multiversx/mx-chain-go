@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
-var _ epochStart.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
+var _ state.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
 
 type validatorAccountsSyncer struct {
 	*baseAccountsSyncer
@@ -47,7 +48,6 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:                 args.TrieSyncerVersion,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
-		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		appStatusHandler:                  args.AppStatusHandler,
 	}
@@ -60,7 +60,11 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
-func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
+func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
+	if check.IfNil(storageMarker) {
+		return ErrNilStorageMarker
+	}
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
@@ -84,7 +88,11 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
+<<<<<<< HEAD
 	v.storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
+=======
+	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+>>>>>>> rc/v1.6.0
 
 	return nil
 }

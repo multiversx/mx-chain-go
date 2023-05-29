@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
@@ -24,9 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/timecache"
@@ -39,6 +39,7 @@ const defaultSpan = 300 * time.Second
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
 	Config                config.Config
+	FlagsConfig           config.ContextFlagsConfig
 	BootstrapRoundIndex   uint64
 	CoreComponents        factory.CoreComponentsHolder
 	NetworkComponents     factory.NetworkComponentsHolder
@@ -55,6 +56,7 @@ type ConsensusComponentsFactoryArgs struct {
 
 type consensusComponentsFactory struct {
 	config                config.Config
+	flagsConfig           config.ContextFlagsConfig
 	bootstrapRoundIndex   uint64
 	coreComponents        factory.CoreComponentsHolder
 	networkComponents     factory.NetworkComponentsHolder
@@ -88,6 +90,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 
 	return &consensusComponentsFactory{
 		config:                args.Config,
+		flagsConfig:           args.FlagsConfig,
 		bootstrapRoundIndex:   args.BootstrapRoundIndex,
 		coreComponents:        args.CoreComponents,
 		networkComponents:     args.NetworkComponents,
@@ -133,7 +136,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	cc.bootstrapper.StartSyncingBlocks()
+	err = cc.bootstrapper.StartSyncingBlocks()
+	if err != nil {
+		return nil, err
+	}
 
 	epoch := ccf.getEpoch()
 	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
@@ -443,6 +449,15 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
+	stateNodesNotifierSubscriber, ok := accountsDBSyncer.(common.StateSyncNotifierSubscriber)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
+	}
+	err = ccf.stateComponents.MissingTrieNodesNotifier().RegisterHandler(stateNodesNotifierSubscriber)
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
@@ -471,6 +486,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -492,14 +508,13 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
-		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 	}
 }
 
 func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.PeerAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.PeerAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}
@@ -511,7 +526,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.UserAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.UserAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}
@@ -600,6 +615,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

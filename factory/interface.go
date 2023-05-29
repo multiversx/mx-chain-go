@@ -325,6 +325,8 @@ type StateComponentsHolder interface {
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
+	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
+	Close() error
 	IsInterfaceNil() bool
 }
 

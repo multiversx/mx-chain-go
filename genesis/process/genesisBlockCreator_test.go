@@ -33,7 +33,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -53,12 +52,12 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 
-	storageManagerArgs, options := storageCommon.GetStorageManagerArgsAndOptions()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerArgs := storageCommon.GetStorageManagerArgs()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = storageManager
-	trieStorageManagers[factory.PeerAccountTrie] = storageManager
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -70,7 +69,7 @@ func createMockArgument(
 			UInt64ByteSliceConv:      &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:           testscommon.NewPubkeyConverterMock(32),
 			Chain:                    "chainID",
-			TxVersionCheck:      &testscommon.TxVersionCheckerStub{},
+			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
 		},
@@ -105,8 +104,9 @@ func createMockArgument(
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     nodePrice.Text(10),
@@ -155,7 +155,7 @@ func createMockArgument(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		factoryState.NewAccountCreator(),
-		trieStorageManagers[factory.UserAccountTrie],
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 	)
 	require.Nil(t, err)

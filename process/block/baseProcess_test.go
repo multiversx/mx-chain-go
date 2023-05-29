@@ -122,6 +122,7 @@ func createArgBaseProcessor(
 		ScheduledMiniBlocksEnableEpoch: 2,
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 	}
 }
 

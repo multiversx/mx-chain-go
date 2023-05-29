@@ -13,14 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
+var _ state.AccountsDBSyncer = (*userAccountsSyncer)(nil)
 
 var log = logger.GetOrCreate("syncer")
 
@@ -87,7 +86,6 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:                 args.TrieSyncerVersion,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
-		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
 	}
@@ -103,7 +101,11 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
-func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
+func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
+	if check.IfNil(storageMarker) {
+		return ErrNilStorageMarker
+	}
+
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -148,9 +150,13 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
+<<<<<<< HEAD
 	u.storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
 	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
+=======
+	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+>>>>>>> rc/v1.6.0
 
 	return nil
 }
@@ -166,6 +172,21 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
+	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash, u.checkNodesOnDisk)
+	if err != nil {
+		return err
+	}
+
+	u.updateDataTrieStatistics(trieSyncer, address)
+
+	return nil
+}
+
+func (u *userAccountsSyncer) createAndStartSyncer(
+	ctx context.Context,
+	hash []byte,
+	checkNodesOnDisk bool,
+) (trie.TrieSyncer, error) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
@@ -177,23 +198,24 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx c
 		TrieSyncStatistics:        u.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
+<<<<<<< HEAD
 		CheckNodesOnDisk:          u.checkNodesOnDisk,
 		LeavesChan:                nil, // not used for data tries
+=======
+		CheckNodesOnDisk:          checkNodesOnDisk,
+>>>>>>> rc/v1.6.0
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
-
-		return err
+		return nil, err
 	}
 
-	err = trieSyncer.StartSyncing(rootHash, ctx)
+	err = trieSyncer.StartSyncing(hash, ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	u.updateDataTrieStatistics(trieSyncer, address)
-
-	return nil
+	return trieSyncer, nil
 }
 
 func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer, address []byte) {
@@ -319,6 +341,30 @@ func (u *userAccountsSyncer) checkGoRoutinesThrottler(ctx context.Context) error
 // requesting trie nodes as to prevent the sync process being terminated prematurely.
 func (u *userAccountsSyncer) resetTimeoutHandlerWatchdog() {
 	u.timeoutHandler.ResetWatchdog()
+}
+
+// MissingDataTrieNodeFound is called whenever a missing data trie node is found.
+// This will trigger the sync process for the whole sub trie, starting from the given hash.
+func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
+	defer u.printDataTrieStatistics()
+
+	u.timeoutHandler.ResetWatchdog()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		u.cacher.Clear()
+		cancel()
+	}()
+
+	trieSyncer, err := u.createAndStartSyncer(ctx, hash, true)
+	if err != nil {
+		log.Error("cannot sync trie", "err", err, "hash", hash)
+		return
+	}
+
+	u.updateDataTrieStatistics(trieSyncer, hash)
+
+	log.Debug("finished sync data trie", "hash", hash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

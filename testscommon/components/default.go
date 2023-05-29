@@ -5,6 +5,7 @@ import (
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -13,13 +14,14 @@ import (
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 // GetDefaultCoreComponents -
@@ -86,16 +88,17 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsMock {
 }
 
 // GetDefaultStateComponents -
-func GetDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func GetDefaultStateComponents() *factory.StateComponentsMock {
+	return &factory.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                                     &storageManager.StorageManagerStub{},
+			dataRetriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
+			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
+		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 }
 
