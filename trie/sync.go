@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -34,7 +33,7 @@ type trieSyncer struct {
 	waitTimeBetweenRequests   time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        common.DBWriteCacher
+	db                        common.TrieStorageInteractor
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -164,7 +163,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			return errors.ErrContextClosing
+			return core.ErrContextClosing
 		}
 	}
 }
@@ -311,7 +310,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {

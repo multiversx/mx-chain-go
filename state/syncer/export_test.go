@@ -24,3 +24,8 @@ func (u *userAccountsSyncer) SyncAccountDataTries(
 ) error {
 	return u.syncAccountDataTries(leavesChannels, ctx)
 }
+
+// GetNumHandlers -
+func (mtnn *missingTrieNodesNotifier) GetNumHandlers() int {
+	return len(mtnn.handlers)
+}

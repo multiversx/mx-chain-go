@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -258,4 +259,51 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, numLeaves, numLeavesOnChan)
+}
+
+func TestTrieSync_StartSyncing(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil hash should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		timeout := time.Second * 2
+		arg := createMockArgument(timeout)
+		ts, _ := NewTrieSyncer(arg)
+
+		err := ts.StartSyncing(nil, context.Background())
+		assert.NoError(t, err)
+	})
+	t.Run("empty trie hash should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		timeout := time.Second * 2
+		arg := createMockArgument(timeout)
+		ts, _ := NewTrieSyncer(arg)
+
+		err := ts.StartSyncing(common.EmptyTrieHash, context.Background())
+		assert.NoError(t, err)
+	})
+	t.Run("nil context should error", func(t *testing.T) {
+		t.Parallel()
+
+		timeout := time.Second * 2
+		arg := createMockArgument(timeout)
+		ts, _ := NewTrieSyncer(arg)
+
+		err := ts.StartSyncing([]byte("roothash"), nil)
+		assert.Equal(t, ErrNilContext, err)
+	})
+	t.Run("closed context should error", func(t *testing.T) {
+		t.Parallel()
+
+		timeout := time.Second * 2
+		arg := createMockArgument(timeout)
+		ts, _ := NewTrieSyncer(arg)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		err := ts.StartSyncing([]byte("roothash"), ctx)
+		assert.Equal(t, core.ErrContextClosing, err)
+	})
 }

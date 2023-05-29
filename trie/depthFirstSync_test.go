@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +80,7 @@ func TestDepthFirstTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)
-	require.Equal(t, errors.ErrContextClosing, err)
+	require.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestDepthFirstTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {

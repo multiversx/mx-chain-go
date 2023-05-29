@@ -14,6 +14,7 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -44,12 +45,13 @@ type stateComponentsFactory struct {
 
 // stateComponents struct holds the state components of the MultiversX protocol
 type stateComponents struct {
-	peerAccounts        state.AccountsAdapter
-	accountsAdapter     state.AccountsAdapter
-	accountsAdapterAPI  state.AccountsAdapter
-	accountsRepository  state.AccountsRepository
-	triesContainer      common.TriesHolder
-	trieStorageManagers map[string]common.StorageManager
+	peerAccounts             state.AccountsAdapter
+	accountsAdapter          state.AccountsAdapter
+	accountsAdapterAPI       state.AccountsAdapter
+	accountsRepository       state.AccountsRepository
+	triesContainer           common.TriesHolder
+	trieStorageManagers      map[string]common.StorageManager
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -99,18 +101,19 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}
 
 	return &stateComponents{
-		peerAccounts:        peerAdapter,
-		accountsAdapter:     accountsAdapter,
-		accountsAdapterAPI:  accountsAdapterAPI,
-		accountsRepository:  accountsRepository,
-		triesContainer:      triesContainer,
-		trieStorageManagers: trieStorageManagers,
+		peerAccounts:             peerAdapter,
+		accountsAdapter:          accountsAdapter,
+		accountsAdapterAPI:       accountsAdapterAPI,
+		accountsRepository:       accountsRepository,
+		triesContainer:           triesContainer,
+		trieStorageManagers:      trieStorageManagers,
+		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}, nil
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
 	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, nil, nil, err
@@ -176,7 +179,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, err

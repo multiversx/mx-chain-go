@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,8 +17,7 @@ func getDefaultBaseAccSyncerArgs() syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                            &hashingMocks.HasherMock{},
 		Marshalizer:                       testscommon.MarshalizerMock{},
-		TrieStorageManager:                &testscommon.StorageManagerStub{},
-		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
+		TrieStorageManager:                &storageManager.StorageManagerStub{},
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		Timeout:                           time.Second,
 		Cacher:                            testscommon.NewCacherMock(),

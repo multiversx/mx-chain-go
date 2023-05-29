@@ -8,7 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,30 +59,50 @@ func TestNewValidatorAccountsSyncer(t *testing.T) {
 func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 	t.Parallel()
 
-	args := syncer.ArgsNewValidatorAccountsSyncer{
-		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
-	}
-
 	key := []byte("rootHash")
-	serializedLeafNode := getSerializedTrieNode(key, args.Marshalizer, args.Hasher)
-	itn, err := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
-	require.Nil(t, err)
 
-	args.TrieStorageManager = &testscommon.StorageManagerStub{
-		GetCalled: func(b []byte) ([]byte, error) {
-			return serializedLeafNode, nil
-		},
-	}
+	t.Run("nil storage marker", func(t *testing.T) {
+		t.Parallel()
 
-	cacher := testscommon.NewCacherMock()
-	cacher.Put(key, itn, 0)
-	args.Cacher = cacher
+		args := syncer.ArgsNewValidatorAccountsSyncer{
+			ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+		}
 
-	v, err := syncer.NewValidatorAccountsSyncer(args)
-	require.Nil(t, err)
+		v, err := syncer.NewValidatorAccountsSyncer(args)
+		require.Nil(t, err)
+		require.NotNil(t, v)
 
-	err = v.SyncAccounts(key)
-	require.Nil(t, err)
+		err = v.SyncAccounts(key, nil)
+		require.Equal(t, syncer.ErrNilStorageMarker, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := syncer.ArgsNewValidatorAccountsSyncer{
+			ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),
+		}
+
+		serializedLeafNode := getSerializedTrieNode(key, args.Marshalizer, args.Hasher)
+		itn, err := trie.NewInterceptedTrieNode(serializedLeafNode, args.Hasher)
+		require.Nil(t, err)
+
+		args.TrieStorageManager = &storageManager.StorageManagerStub{
+			GetCalled: func(b []byte) ([]byte, error) {
+				return serializedLeafNode, nil
+			},
+		}
+
+		cacher := testscommon.NewCacherMock()
+		cacher.Put(key, itn, 0)
+		args.Cacher = cacher
+
+		v, err := syncer.NewValidatorAccountsSyncer(args)
+		require.Nil(t, err)
+
+		err = v.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
+		require.Nil(t, err)
+	})
 }
 
 func TestValidatorAccountsSyncer_IsInterfaceNil(t *testing.T) {
