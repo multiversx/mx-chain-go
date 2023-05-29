@@ -329,3 +329,35 @@ func TestShardAssignment(t *testing.T) {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
 }
+
+func TestProcessDestinationShardAsObserver(t *testing.T) {
+	t.Parallel()
+
+	shard, err := common.ProcessDestinationShardAsObserver("")
+	require.True(t, strings.Contains(err.Error(), "option DestinationShardAsObserver is not set in prefs.toml"))
+	require.Zero(t, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver(common.NotSetDestinationShardID)
+	require.NoError(t, err)
+	require.Equal(t, common.DisabledShardIDAsObserver, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver("metachain")
+	require.NoError(t, err)
+	require.Equal(t, common.MetachainShardId, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver("MeTaChAiN")
+	require.NoError(t, err)
+	require.Equal(t, common.MetachainShardId, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver("METACHAIN")
+	require.NoError(t, err)
+	require.Equal(t, common.MetachainShardId, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver("not uint")
+	require.True(t, strings.Contains(err.Error(), "error parsing DestinationShardAsObserver"))
+	require.Zero(t, shard)
+
+	shard, err = common.ProcessDestinationShardAsObserver("1")
+	require.NoError(t, err)
+	require.Equal(t, uint32(1), shard)
+}
