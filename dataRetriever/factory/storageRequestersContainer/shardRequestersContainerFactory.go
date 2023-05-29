@@ -169,6 +169,7 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
+		dataRetriever.UserAccountsUnit,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

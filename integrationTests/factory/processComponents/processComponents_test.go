@@ -76,7 +76,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
-		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
 		false,
@@ -107,7 +106,8 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	require.Nil(t, err)
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 

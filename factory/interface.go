@@ -325,6 +325,8 @@ type StateComponentsHolder interface {
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
+	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -340,7 +342,7 @@ type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
 	// SetForkDetector should be set before starting Polling for updates
-	SetForkDetector(forkDetector process.ForkDetector)
+	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
 }
 

@@ -422,6 +422,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

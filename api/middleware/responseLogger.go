@@ -66,7 +66,7 @@ func (rlm *responseLoggerMiddleware) logRequestAndResponse(c *gin.Context, durat
 		reqBody := c.Request.Body
 		reqBodyBytes, err := ioutil.ReadAll(reqBody)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug(err.Error())
 			return
 		}
 

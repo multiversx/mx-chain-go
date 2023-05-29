@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -26,7 +26,7 @@ type FacadeStub struct {
 	GetHeartbeatsHandler                        func() ([]data.PubKeyHeartbeat, error)
 	GetBalanceCalled                            func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
 	GetAccountCalled                            func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
-	GetAccountsCalled          func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
+	GetAccountsCalled                           func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GenerateTransactionHandler                  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler                    func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
@@ -56,7 +56,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -83,6 +83,10 @@ type FacadeStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
+	RestApiInterfaceCalled                      func() string
+	RestAPIServerDebugModeCalled                func() bool
+	PprofEnabledCalled                          func() bool
+	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 }
 
 // GetTokenSupply -
@@ -159,16 +163,25 @@ func (f *FacadeStub) GetThrottlerForEndpoint(endpoint string) (core.Throttler, b
 
 // RestApiInterface -
 func (f *FacadeStub) RestApiInterface() string {
+	if f.RestApiInterfaceCalled != nil {
+		return f.RestApiInterfaceCalled()
+	}
 	return "localhost:8080"
 }
 
 // RestAPIServerDebugMode -
 func (f *FacadeStub) RestAPIServerDebugMode() bool {
+	if f.RestAPIServerDebugModeCalled != nil {
+		return f.RestAPIServerDebugModeCalled()
+	}
 	return false
 }
 
 // PprofEnabled -
 func (f *FacadeStub) PprofEnabled() bool {
+	if f.PprofEnabledCalled != nil {
+		return f.PprofEnabledCalled()
+	}
 	return false
 }
 
@@ -353,6 +366,9 @@ func (f *FacadeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 
 // DecodeAddressPubkey -
 func (f *FacadeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if f.DecodeAddressPubkeyCalled != nil {
+		return f.DecodeAddressPubkeyCalled(pk)
+	}
 	return hex.DecodeString(pk)
 }
 
@@ -395,7 +411,7 @@ func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions
 }
 
 // GetAlteredAccountsForBlock -
-func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	if f.GetAlteredAccountsForBlockCalled != nil {
 		return f.GetAlteredAccountsForBlockCalled(options)
 	}

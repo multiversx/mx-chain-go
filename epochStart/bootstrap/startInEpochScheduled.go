@@ -254,7 +254,11 @@ func (ses *startInEpochWithScheduledDataSyncer) prepareScheduledIntermediateTxs(
 
 	additionalData := header.GetAdditionalData()
 	if additionalData != nil {
-		scheduledIntermediateTxsMap := getScheduledIntermediateTxsMap(miniBlocks, scheduledIntermediateTxs)
+		scheduledIntermediateTxsMap := getScheduledIntermediateTxsMapInOrder(
+			header.GetMiniBlockHeaderHandlers(),
+			miniBlocks,
+			scheduledIntermediateTxs,
+		)
 		gasAndFees := scheduled.GasAndFees{
 			AccumulatedFees: additionalData.GetScheduledAccumulatedFees(),
 			DeveloperFees:   additionalData.GetScheduledDeveloperFees(),
@@ -343,16 +347,27 @@ func isScheduledIntermediateTx(
 	return isScheduledIntermediateTransaction && isTxExecutedInSelfShard
 }
 
-func getScheduledIntermediateTxsMap(
+func getScheduledIntermediateTxsMapInOrder(
+	miniBlockHeaderHandlerList []data.MiniBlockHeaderHandler,
 	miniBlocks map[string]*block.MiniBlock,
 	intermediateTxs map[string]data.TransactionHandler,
 ) map[block.Type][]data.TransactionHandler {
-
 	intermediateTxsMap := make(map[block.Type][]data.TransactionHandler)
 
-	for txHash, tx := range intermediateTxs {
-		blockType := getBlockTypeOfTx([]byte(txHash), miniBlocks)
-		intermediateTxsMap[blockType] = append(intermediateTxsMap[blockType], tx)
+	for _, mbHeader := range miniBlockHeaderHandlerList {
+		miniBlock, ok := miniBlocks[string(mbHeader.GetHash())]
+		if !ok {
+			continue
+		}
+
+		for _, hash := range miniBlock.TxHashes {
+			txHandler, ok := intermediateTxs[string(hash)]
+			if !ok {
+				continue
+			}
+
+			intermediateTxsMap[miniBlock.Type] = append(intermediateTxsMap[miniBlock.Type], txHandler)
+		}
 	}
 
 	return intermediateTxsMap

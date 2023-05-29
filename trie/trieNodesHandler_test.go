@@ -63,6 +63,20 @@ func TestTrieNodesHandler_jobDone(t *testing.T) {
 	assert.True(t, handler.jobDone())
 }
 
+func TestTrieNodesHandler_noMissingHashes(t *testing.T) {
+	t.Parallel()
+
+	roothash := "roothash"
+	handler := newTrieNodesHandler()
+	assert.True(t, handler.noMissingHashes())
+
+	handler.addInitialRootHash(roothash)
+	assert.False(t, handler.noMissingHashes())
+
+	handler.processMissingHashWasFound(&leafNode{}, roothash)
+	assert.True(t, handler.noMissingHashes())
+}
+
 func TestTrieNodesHandler_replaceParentWithChildren(t *testing.T) {
 	t.Parallel()
 

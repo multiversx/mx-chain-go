@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -862,7 +861,7 @@ func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message strin
 	}
 
 	logLevel := logger.LogError
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		logLevel = logger.LogDebug
 	}
 

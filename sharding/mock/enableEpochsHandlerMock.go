@@ -571,8 +571,23 @@ func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false
 }
 
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return false
+}
+
 // IsMultiClaimOnDelegationEnabled -
 func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
+	return false
+}
+
+// IsChangeUsernameEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
+	return false
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
 	return false
 }
 

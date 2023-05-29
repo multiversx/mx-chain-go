@@ -910,13 +910,17 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
+<<<<<<< HEAD
 	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
+=======
+	storageManagerArgs := stateMock.GetStorageManagerArgs()
+>>>>>>> rc/v1.6.0
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, stateMock.GetStorageManagerOptions())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
 	en := forking.NewGenericEpochNotifier()
@@ -953,23 +957,24 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	nodesSetup := &mock.NodesSetupStub{}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              userAccountsDB,
-		PubkeyConv:            &testscommon.PubkeyConverterMock{},
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            blockChain,
-		ShardCoordinator:      &mock.ShardCoordinatorStub{},
-		Marshalizer:           marshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
-		DataPool:              testDataPool,
-		CompiledSCPool:        testDataPool.SmartContracts(),
-		EpochNotifier:         en,
-		EnableEpochsHandler:   enableEpochsHandler,
-		NilCompiledSCStore:    true,
-		GasSchedule:           gasScheduleNotifier,
-		Counter:               &testscommon.BlockChainHookCounterStub{},
+		Accounts:                 userAccountsDB,
+		PubkeyConv:               &testscommon.PubkeyConverterMock{},
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               blockChain,
+		ShardCoordinator:         &mock.ShardCoordinatorStub{},
+		Marshalizer:              marshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler:    &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:                 testDataPool,
+		CompiledSCPool:           testDataPool.SmartContracts(),
+		EpochNotifier:            en,
+		EnableEpochsHandler:      enableEpochsHandler,
+		NilCompiledSCStore:       true,
+		GasSchedule:              gasScheduleNotifier,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
@@ -988,13 +993,17 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost: "500",
+				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1110,7 +1119,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler:         &testscommon.EnableEpochsHandlerStub{},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData

@@ -730,10 +730,6 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
 
-// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
-// do not follow this protocol
-const WrongP2PMessageBlacklistDuration = time.Second * 7200
-
 // InvalidSigningBlacklistDuration defines the time to keep a peer id in blacklist if it signs a message with invalid signature
 const InvalidSigningBlacklistDuration = time.Second * 7200
 
@@ -773,9 +769,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
-
-// GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
-const GetNodeFromDBErrorString = "getNodeFromDB error"
 
 // TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
 const TimeoutGettingTrieNodes = 2 * time.Minute // to consider syncing a very large trie node of 64MB at ~1MB/s
@@ -825,6 +818,28 @@ const (
 
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
+)
+
+// BlockProcessingCutoffMode represents the type to be used to identify the mode of the block processing cutoff
+type BlockProcessingCutoffMode string
+
+const (
+	// BlockProcessingCutoffModePause represents the mode where the node will pause the processing at the given coordinates
+	BlockProcessingCutoffModePause = "pause"
+	// BlockProcessingCutoffModeProcessError represents the mode where the node will reprocess with error the block at the given coordinates
+	BlockProcessingCutoffModeProcessError = "process-error"
+)
+
+// BlockProcessingCutoffTrigger represents the trigger of the cutoff potentially used in block processing
+type BlockProcessingCutoffTrigger string
+
+const (
+	// BlockProcessingCutoffByNonce represents the cutoff by nonce
+	BlockProcessingCutoffByNonce BlockProcessingCutoffTrigger = "nonce"
+	// BlockProcessingCutoffByRound represents the cutoff by round
+	BlockProcessingCutoffByRound BlockProcessingCutoffTrigger = "round"
+	// BlockProcessingCutoffByEpoch represents the cutoff by epoch
+	BlockProcessingCutoffByEpoch BlockProcessingCutoffTrigger = "epoch"
 )
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block

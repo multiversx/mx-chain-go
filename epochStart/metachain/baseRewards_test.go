@@ -1136,11 +1136,15 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
+<<<<<<< HEAD
 	storageManagerArgs, options := storageManagerMock.GetStorageManagerArgsAndOptions()
+=======
+	storageManagerArgs := storage.GetStorageManagerArgs()
+>>>>>>> rc/v1.6.0
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
