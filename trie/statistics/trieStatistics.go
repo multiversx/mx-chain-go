@@ -238,7 +238,7 @@ func (ts *trieStatistics) ToString() []string {
 func getMigrationStatsString(migrationStats map[core.TrieNodeVersion]uint64) []string {
 	stats := make([]string, 0)
 	for version, numNodes := range migrationStats {
-		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", core.GetStringForVersion(version), numNodes))
+		stats = append(stats, fmt.Sprintf("num leaves with %s version = %v", version, numNodes))
 	}
 
 	sort.Slice(stats, func(i, j int) bool {
