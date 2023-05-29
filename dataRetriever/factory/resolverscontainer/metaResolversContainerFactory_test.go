@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -87,6 +88,17 @@ func createTriesHolderForMeta() common.TriesHolder {
 }
 
 // ------- NewResolversContainerFactory
+
+func TestNewMetaResolversContainerFactory_NewNumGoRoutinesThrottlerFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.NumConcurrentResolvingJobs = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, core.ErrNotPositiveValue, err)
+}
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -278,6 +290,18 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	err := rcf.AddShardTrieNodeResolvers(container)
 	assert.Nil(t, err)
 	assert.Equal(t, totalResolvers+noOfShards, container.Len())
+}
+
+func TestMetaResolversContainerFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.ShardCoordinator = nil
+	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
+	assert.True(t, rcf.IsInterfaceNil())
+
+	rcf, _ = resolverscontainer.NewMetaResolversContainerFactory(getArgumentsMeta())
+	assert.False(t, rcf.IsInterfaceNil())
 }
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {

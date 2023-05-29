@@ -384,6 +384,7 @@ type EnableEpochsHandler interface {
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool
+	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
 
 	IsInterfaceNil() bool

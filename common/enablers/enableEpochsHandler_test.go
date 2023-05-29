@@ -217,6 +217,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.False(t, handler.IsChangeUsernameEnabled())
