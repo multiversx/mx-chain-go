@@ -254,14 +254,17 @@
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
     ChangeUsernameEnableEpoch = 2
 
-    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
-    BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 1, Type = "KOSK"}
-    ]
-
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 2
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 2
+
+    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
+    BLSMultiSignerEnableEpoch = [
+        { EnableEpoch = 0, Type = "no-KOSK" },
+        { EnableEpoch = 1, Type = "KOSK" }
+    ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

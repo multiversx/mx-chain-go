@@ -380,7 +380,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		require.NotNil(t, err)
 		assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrValidatorInfoNotFound.Error()))
 	})
-	t.Run("pack data in chuncks returns error", func(t *testing.T) {
+	t.Run("pack data in chunks returns error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgValidatorInfoResolver()
@@ -406,6 +406,40 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			Data: [][]byte{[]byte("hash")},
 		}
 		buff, _ := args.Marshaller.Marshal(b)
+		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("send returns error", func(t *testing.T) {
+		t.Parallel()
+
+		numOfProvidedData := 3
+		providedHashes := make([][]byte, 0)
+		providedData := make([]state.ValidatorInfo, 0)
+		for i := 0; i < numOfProvidedData; i++ {
+			hashStr := fmt.Sprintf("hash%d", i)
+			providedHashes = append(providedHashes, []byte(hashStr))
+			pkStr := fmt.Sprintf("pk%d", i)
+			providedData = append(providedData, createMockValidatorInfo([]byte(pkStr)))
+		}
+		args := createMockArgValidatorInfoResolver()
+		numOfCalls := 0
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				val := providedData[numOfCalls]
+				numOfCalls++
+				return val, true
+			},
+		}
+		args.SenderResolver = &mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer core.PeerID) error {
+				return expectedErr
+			},
+		}
+		args.DataPacker, _ = partitioning.NewSimpleDataPacker(args.Marshaller)
+		res, _ := resolvers.NewValidatorInfoResolver(args)
+		require.False(t, check.IfNil(res))
+
+		buff, _ := args.Marshaller.Marshal(&batch.Batch{Data: providedHashes})
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
 		assert.Equal(t, expectedErr, err)
 	})

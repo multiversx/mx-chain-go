@@ -586,6 +586,11 @@ func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
 	return false
 }
 
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return false
+}
+
 // IsAutoBalanceDataTriesEnabled -
 func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
 	return false
