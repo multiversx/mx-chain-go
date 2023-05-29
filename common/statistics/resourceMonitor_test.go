@@ -101,7 +101,8 @@ func TestResourceMonitor_StartMonitoringShouldNotPanic(t *testing.T) {
 
 	assert.Nil(t, err)
 	resourceMonitor.StartMonitoring()
-	time.Sleep(time.Second * time.Duration(cfg.ResourceStats.RefreshIntervalInSec)) // allow one loop
+	threshold := time.Millisecond * 300
+	time.Sleep(time.Second*time.Duration(cfg.ResourceStats.RefreshIntervalInSec) + threshold) // allow one loop
 
 	assert.Nil(t, resourceMonitor.Close())
 }

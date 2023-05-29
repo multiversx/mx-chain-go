@@ -39,6 +39,8 @@ func TestLoadP2PConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		conf, err := common.LoadP2PConfig(filePath)
 		assert.NotNil(t, conf)
 		assert.Nil(t, err)
@@ -76,6 +78,8 @@ func TestLoadMainConfig(t *testing.T) {
 
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		conf, err := common.LoadMainConfig(filePath)
 		assert.NotNil(t, conf)
@@ -116,6 +120,8 @@ func TestLoadApiConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		conf, err := common.LoadApiConfig(filePath)
 		assert.NotNil(t, conf)
 		assert.Nil(t, err)
@@ -151,6 +157,8 @@ func TestLoadEconomicsConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		conf, err := common.LoadEconomicsConfig(filePath)
 		assert.NotNil(t, conf)
 		assert.Nil(t, err)
@@ -183,6 +191,8 @@ func TestLoadSystemSmartContractsConfig(t *testing.T) {
 
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		conf, err := common.LoadSystemSmartContractsConfig(filePath)
 		assert.NotNil(t, conf)
@@ -219,6 +229,8 @@ func TestLoadRatingsConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		conf, err := common.LoadRatingsConfig(filePath)
 		assert.NotNil(t, conf)
 		assert.Nil(t, err)
@@ -253,6 +265,8 @@ func TestLoadPreferencesConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		conf, err := common.LoadPreferencesConfig(filePath)
 		assert.NotNil(t, conf)
 		assert.Nil(t, err)
@@ -284,6 +298,8 @@ func TestLoadExternalConfig(t *testing.T) {
 
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		conf, err := common.LoadExternalConfig(filePath)
 		assert.NotNil(t, conf)
@@ -323,6 +339,8 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		gasSchedule, err := common.LoadGasScheduleConfig(filePath)
 		assert.Nil(t, err)
 
@@ -361,12 +379,10 @@ func TestLoadRoundConfig(t *testing.T) {
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		roundActivationConfig, err := common.LoadRoundConfig(filePath)
 		assert.Nil(t, err)
-
-		if _, err = os.Stat("testEnableRounds.toml"); err == nil {
-			_ = os.Remove("testEnableRounds.toml")
-		}
 
 		require.Equal(t, &config.RoundConfig{}, roundActivationConfig)
 	})
@@ -396,6 +412,8 @@ func TestLoadEpochConfig(t *testing.T) {
 
 		_, err = file.WriteString(testString)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		conf, err := common.LoadEpochConfig(filePath)
 		assert.NotNil(t, conf)
@@ -431,6 +449,8 @@ func TestGetSkBytesFromP2pKey(t *testing.T) {
 		_, err = file.WriteString("invalid pem file")
 		assert.Nil(t, err)
 
+		assert.Nil(t, file.Close())
+
 		key, err := common.GetSkBytesFromP2pKey(filePath)
 		assert.Nil(t, key)
 		assert.Error(t, err)
@@ -451,6 +471,8 @@ YmE0MDczMzhmNWQ1MmM2OWU3YjA5ZTRjMTMxNzE2NGQ=
 
 		_, err = file.WriteString(invalidPem)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		key, err := common.GetSkBytesFromP2pKey(filePath)
 		assert.Nil(t, key)
@@ -473,6 +495,8 @@ YmE0MDczMzhmNWQ1MmM2OWU3YjA5ZTRjMTMxNzE2NGQ=
 
 		_, err = file.WriteString(validPem)
 		assert.Nil(t, err)
+
+		assert.Nil(t, file.Close())
 
 		key, err := common.GetSkBytesFromP2pKey(filePath)
 		assert.NotNil(t, key)

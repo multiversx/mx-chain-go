@@ -333,31 +333,31 @@ func TestShardAssignment(t *testing.T) {
 func TestProcessDestinationShardAsObserver(t *testing.T) {
 	t.Parallel()
 
-	shard, err := common.ProcessDestinationShardAsObserver("")
-	require.True(t, strings.Contains(err.Error(), "option DestinationShardAsObserver is not set in prefs.toml"))
-	require.Zero(t, shard)
+	t.Run("empty shard should error", testProcessDestinationShardAsObserver("", 0, "option DestinationShardAsObserver is not set in prefs.toml"))
+	t.Run("disabled shard should return disabled",
+		testProcessDestinationShardAsObserver(common.NotSetDestinationShardID, common.DisabledShardIDAsObserver, ""))
+	t.Run("metachain should return metachain",
+		testProcessDestinationShardAsObserver("metachain", common.MetachainShardId, ""))
+	t.Run("MeTaChAiN should return metachain",
+		testProcessDestinationShardAsObserver("MeTaChAiN", common.MetachainShardId, ""))
+	t.Run("METACHAIN should return metachain",
+		testProcessDestinationShardAsObserver("METACHAIN", common.MetachainShardId, ""))
+	t.Run("invalid uint should error",
+		testProcessDestinationShardAsObserver("not uint", 0, "error parsing DestinationShardAsObserver"))
+	t.Run("should work",
+		testProcessDestinationShardAsObserver("1", 1, ""))
+}
 
-	shard, err = common.ProcessDestinationShardAsObserver(common.NotSetDestinationShardID)
-	require.NoError(t, err)
-	require.Equal(t, common.DisabledShardIDAsObserver, shard)
+func testProcessDestinationShardAsObserver(providedShard string, expectedShard uint32, expectedError string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
 
-	shard, err = common.ProcessDestinationShardAsObserver("metachain")
-	require.NoError(t, err)
-	require.Equal(t, common.MetachainShardId, shard)
-
-	shard, err = common.ProcessDestinationShardAsObserver("MeTaChAiN")
-	require.NoError(t, err)
-	require.Equal(t, common.MetachainShardId, shard)
-
-	shard, err = common.ProcessDestinationShardAsObserver("METACHAIN")
-	require.NoError(t, err)
-	require.Equal(t, common.MetachainShardId, shard)
-
-	shard, err = common.ProcessDestinationShardAsObserver("not uint")
-	require.True(t, strings.Contains(err.Error(), "error parsing DestinationShardAsObserver"))
-	require.Zero(t, shard)
-
-	shard, err = common.ProcessDestinationShardAsObserver("1")
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), shard)
+		shard, err := common.ProcessDestinationShardAsObserver(providedShard)
+		if len(expectedError) == 0 {
+			require.NoError(t, err)
+		} else {
+			require.True(t, strings.Contains(err.Error(), expectedError))
+		}
+		require.Equal(t, expectedShard, shard)
+	}
 }
