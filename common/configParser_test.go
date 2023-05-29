@@ -460,7 +460,7 @@ YmE0MDczMzhmNWQ1MmM2OWU3YjA5ZTRjMTMxNzE2NGQ=
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		invalidPem := `
+		validPem := `
 -----BEGIN PRIVATE KEY for erd1ecdwux5tvanwryhr7cn5l9kc07ayquec7h2jc608kz0ycychzexsj6qw4j-----
 NDliYzliZTI4ODY1ZGQ1MzZmOWYyOGEwOTZhNmY5NmQ2MzZjMjhmNzMzNDAwNDBj
 MTU0ZDA4Nzg3MTBhOTE5ZWNlMWFlZTFhOGI2NzY2ZTE5MmUzZjYyNzRmOTZkODdm
@@ -471,7 +471,7 @@ YmE0MDczMzhmNWQ1MmM2OWU3YjA5ZTRjMTMxNzE2NGQ=
 		file, err := os.Create(filePath)
 		assert.Nil(t, err)
 
-		_, err = file.WriteString(invalidPem)
+		_, err = file.WriteString(validPem)
 		assert.Nil(t, err)
 
 		key, err := common.GetSkBytesFromP2pKey(filePath)
