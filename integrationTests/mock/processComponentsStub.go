@@ -17,11 +17,14 @@ import (
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
+	NodesCoordinatorCalled               func() nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
+	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
+	RoundHandlerCalled                   func() consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
 	ForkDetect                           process.ForkDetector
@@ -73,11 +76,17 @@ func (pcs *ProcessComponentsStub) CheckSubcomponents() error {
 
 // NodesCoordinator -
 func (pcs *ProcessComponentsStub) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+	if pcs.NodesCoordinatorCalled != nil {
+		return pcs.NodesCoordinatorCalled()
+	}
 	return pcs.NodesCoord
 }
 
 // ShardCoordinator -
 func (pcs *ProcessComponentsStub) ShardCoordinator() sharding.Coordinator {
+	if pcs.ShardCoordinatorCalled != nil {
+		return pcs.ShardCoordinatorCalled()
+	}
 	return pcs.ShardCoord
 }
 
@@ -98,6 +107,9 @@ func (pcs *ProcessComponentsStub) RequestersFinder() dataRetriever.RequestersFin
 
 // RoundHandler -
 func (pcs *ProcessComponentsStub) RoundHandler() consensus.RoundHandler {
+	if pcs.RoundHandlerCalled != nil {
+		return pcs.RoundHandlerCalled()
+	}
 	return pcs.RoundHandlerField
 }
 

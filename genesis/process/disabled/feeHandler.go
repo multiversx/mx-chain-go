@@ -42,6 +42,16 @@ func (fh *FeeHandler) MinGasLimit() uint64 {
 	return 0
 }
 
+// ExtraGasLimitGuardedTx returns 0
+func (fh *FeeHandler) ExtraGasLimitGuardedTx() uint64 {
+	return 0
+}
+
+// MaxGasPriceSetGuardian returns 0
+func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
+	return 0
+}
+
 // MaxGasLimitPerBlock returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerBlock(uint32) uint64 {
 	return math.MaxUint64

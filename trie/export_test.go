@@ -3,8 +3,13 @@ package trie
 import (
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -75,11 +80,14 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
-	writeInChanNonBlocking(errChan, err)
+	select {
+	case errChan <- err:
+	default:
+	}
 }
 
 type StorageManagerExtensionStub struct {
-	*testscommon.StorageManagerStub
+	*storageManager.StorageManagerStub
 }
 
 // IsBaseTrieStorageManager -
@@ -97,4 +105,24 @@ func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 // NewBaseIterator -
 func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
 	return newBaseIterator(trie)
+}
+
+// GetDefaultTrieStorageManagerParameters -
+func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		SnapshotsGoroutineNum: 1,
+	}
+
+	return NewTrieStorageManagerArgs{
+		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
+		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:            &marshal.GogoProtoMarshalizer{},
+		Hasher:                 &testscommon.KeccakMock{},
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
+		Identifier:             dataRetriever.UserAccountsUnit.String(),
+	}
 }

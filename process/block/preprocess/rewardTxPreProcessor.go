@@ -266,7 +266,10 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
+			err = rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
+			if err != nil {
+				return err
+			}
 
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
@@ -494,7 +497,10 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 			break
 		}
 
-		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
+		err = rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])

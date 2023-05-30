@@ -124,6 +124,13 @@ updateNodeConfig() {
 		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
 	fi
 
+	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
+    sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_observer.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_observer.toml
+	  sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_validator.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
+	fi
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 

@@ -7,12 +7,13 @@ import (
 
 // StateComponentsHolderStub -
 type StateComponentsHolderStub struct {
-	PeerAccountsCalled        func() state.AccountsAdapter
-	AccountsAdapterCalled     func() state.AccountsAdapter
-	AccountsAdapterAPICalled  func() state.AccountsAdapter
-	AccountsRepositoryCalled  func() state.AccountsRepository
-	TriesContainerCalled      func() common.TriesHolder
-	TrieStorageManagersCalled func() map[string]common.StorageManager
+	PeerAccountsCalled             func() state.AccountsAdapter
+	AccountsAdapterCalled          func() state.AccountsAdapter
+	AccountsAdapterAPICalled       func() state.AccountsAdapter
+	AccountsRepositoryCalled       func() state.AccountsRepository
+	TriesContainerCalled           func() common.TriesHolder
+	TrieStorageManagersCalled      func() map[string]common.StorageManager
+	MissingTrieNodesNotifierCalled func() common.MissingTrieNodesNotifier
 }
 
 // PeerAccounts -
@@ -66,6 +67,20 @@ func (s *StateComponentsHolderStub) TrieStorageManagers() map[string]common.Stor
 		return s.TrieStorageManagersCalled()
 	}
 
+	return nil
+}
+
+// MissingTrieNodesNotifier -
+func (s *StateComponentsHolderStub) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
+	if s.MissingTrieNodesNotifierCalled != nil {
+		return s.MissingTrieNodesNotifierCalled()
+	}
+
+	return nil
+}
+
+// Close -
+func (s *StateComponentsHolderStub) Close() error {
 	return nil
 }
 

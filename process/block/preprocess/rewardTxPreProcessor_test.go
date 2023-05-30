@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -676,6 +678,59 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	_, err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: mbHash1}, {TxCount: 1, Hash: mbHash2}}}, &blockBody, haveTimeTrue)
 	assert.Nil(t, err)
+}
+
+func TestRewardTxPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
+	txHash := testTxHash
+	tdp := initDataPool()
+	rtp, _ := NewRewardTxPreprocessor(
+		tdp.RewardTransactions(),
+		&storageStubs.ChainStorerStub{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.RewardTxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{
+			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return nil, missingNodeErr
+			},
+		},
+		func(shardID uint32, txHashes [][]byte) {},
+		&testscommon.GasHandlerStub{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+	)
+
+	txHashes := [][]byte{[]byte(txHash)}
+	txs := []data.TransactionHandler{&rewardTx.RewardTx{}}
+	rtp.AddTxs(txHashes, txs)
+
+	mb1 := block.MiniBlock{
+		TxHashes:        txHashes,
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		Type:            block.RewardsBlock,
+	}
+	mb2 := block.MiniBlock{
+		TxHashes:        txHashes,
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		Type:            block.RewardsBlock,
+	}
+
+	mbHash1, _ := core.CalculateHash(rtp.marshalizer, rtp.hasher, &mb1)
+	mbHash2, _ := core.CalculateHash(rtp.marshalizer, rtp.hasher, &mb2)
+
+	var blockBody block.Body
+	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
+
+	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: mbHash1}, {TxCount: 1, Hash: mbHash2}}}, &blockBody, haveTimeTrue)
+	assert.Equal(t, missingNodeErr, err)
 }
 
 func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {

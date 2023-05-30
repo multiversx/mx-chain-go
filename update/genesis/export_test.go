@@ -295,7 +295,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 
 				go func() {
 					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-					channels.ErrChan <- expectedErr
+					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 				}()
 
@@ -345,7 +345,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 				go func() {
 					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
 					close(channels.LeavesChan)
-					close(channels.ErrChan)
+					channels.ErrChan.Close()
 				}()
 
 				return nil
