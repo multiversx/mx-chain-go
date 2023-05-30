@@ -7,7 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +15,7 @@ import (
 func TestGetLogsBasedOnBody(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &testscommon.MarshalizerMock{}
+	marshalizer := &marshallerMock.MarshalizerMock{}
 	txHash := []byte("txHash")
 	scrHash := []byte("scrHash")
 
@@ -62,7 +62,7 @@ func TestGetLogsBasedOnBody(t *testing.T) {
 func TestGetLogsWrongBodyType(t *testing.T) {
 	t.Parallel()
 
-	getter := newLogsGetter(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{})
+	getter := newLogsGetter(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{})
 
 	_, err := getter.getLogsBasedOnBody(nil)
 	require.Equal(t, errCannotCastToBlockBody, err)

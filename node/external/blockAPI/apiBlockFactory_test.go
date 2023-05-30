@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -39,7 +40,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		EnableEpochsHandler:          &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -98,7 +99,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
@@ -112,7 +113,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: handler,

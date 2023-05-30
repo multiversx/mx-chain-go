@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -43,7 +44,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 		},
 		CoreComponents: &factory.CoreComponentsHolderStub{
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshalizerStub{}
+				return &marshallerMock.MarshalizerStub{}
 			},
 			HardforkTriggerPubKeyCalled: func() []byte {
 				return []byte("hardfork pub key")

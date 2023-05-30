@@ -19,7 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -37,7 +39,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		ArgParser:   &mock.ArgumentParserMock{},
 		CurrTxs:     &mock.TxForCurrentBlockStub{},
 		RatingsData: &mock.RatingsInfoMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledField:                 true,
 			IsValidatorToDelegationFlagEnabledField: true,
 		},
@@ -55,6 +57,16 @@ func createBlockBody() *block.Body {
 			},
 		},
 	}
+}
+
+func createStakingScAccount() state.UserAccountHandler {
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress, argsAccCreation)
+	return userAcc
 }
 
 func TestNewStakingToPeerNilAddrConverterShouldErr(t *testing.T) {
@@ -256,7 +268,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	}
 
 	arguments := createMockArgumentsNewStakingToPeer()
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -310,7 +322,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -366,7 +378,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 		return fmt.Errorf("error")
 	}
 
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -433,7 +445,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -496,7 +508,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -562,7 +574,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.Marshalizer = marshalizer
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil
@@ -621,7 +633,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	}
 	marshalizer := &mock.MarshalizerMock{}
 
-	userAcc, _ := state.NewUserAccount(vm.StakingSCAddress)
+	userAcc := createStakingScAccount()
 	baseState := &stateMock.AccountsStub{}
 	baseState.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return userAcc, nil

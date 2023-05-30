@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -116,6 +117,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
 		AddressConverter:    gbc.arg.Core.AddressPubKeyConverter(),
+		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
@@ -473,14 +475,25 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 		return newArgument, nil
 	}
-
 	newArgument := gbc.arg // copy the arguments
+
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              newArgument.Core.Hasher(),
+		Marshaller:          newArgument.Core.InternalMarshalizer(),
+		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, err
+	}
+
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
-		factoryState.NewAccountCreator(),
+		accCreator,
 		gbc.arg.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		gbc.arg.Core.AddressPubKeyConverter(),
+		newArgument.Core.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",

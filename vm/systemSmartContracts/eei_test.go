@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
@@ -97,7 +100,12 @@ func TestVmContext_GetBalance(t *testing.T) {
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
-	account, _ := state.NewUserAccount([]byte("123"))
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	account, _ := state.NewUserAccount([]byte("123"), argsAccCreation)
 	_ = account.AddToBalance(balance)
 
 	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {
@@ -196,7 +204,7 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 	args := createDefaultEeiArgs()
 	args.ValidatorAccountsDB = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewEmptyUserAccount(), nil
+			return &stateMock.AccountWrapMock{}, nil
 		},
 	}
 	vmCtx, _ := NewVMContext(args)
