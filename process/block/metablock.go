@@ -399,7 +399,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	return header, body, nil

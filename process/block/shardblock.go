@@ -348,7 +348,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	return header, body, nil

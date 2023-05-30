@@ -731,7 +731,7 @@ func (pcf *processComponentsFactory) createResolverRequestHandler(
 	case common.ChainRunTypeSovereign:
 		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 
@@ -754,7 +754,7 @@ func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (proce
 	case common.ChainRunTypeSovereign:
 		return &processDisabled.ScheduledTxsExecutionHandler{}, nil
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 
@@ -796,7 +796,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
-	return pcf.createValidatorStatisticsProcessor(args)
+	return pcf.createValidatorStatisticsProcessor(arguments)
 }
 
 func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
@@ -811,7 +811,7 @@ func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args pee
 	case common.ChainRunTypeSovereign:
 		return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 
@@ -1374,7 +1374,7 @@ func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker trac
 	case common.ChainRunTypeSovereign:
 		return track.NewSovereignChainShardBlockTrack(blockTracker)
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 
@@ -1778,7 +1778,7 @@ func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList pro
 	case common.ChainRunTypeSovereign:
 		return sync.NewSovereignChainShardForkDetector(forkDetector)
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 

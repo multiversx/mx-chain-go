@@ -92,7 +92,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		return nil, err
 	}
 
-	err := checkCompatibleArguments(args)
+	err = checkCompatibleArguments(args)
 	if err != nil {
 		return nil, err
 	}

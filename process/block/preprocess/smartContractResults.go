@@ -332,7 +332,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)

@@ -268,7 +268,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 
 			err = rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)

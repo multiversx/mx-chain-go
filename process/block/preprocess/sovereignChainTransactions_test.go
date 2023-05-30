@@ -9,11 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/mock"
 	state2 "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -453,7 +453,7 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
 			},
@@ -484,7 +484,7 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
 			},
@@ -516,7 +516,7 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()
-		args.EconomicsFee = &mock.FeeHandlerStub{
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
 			},

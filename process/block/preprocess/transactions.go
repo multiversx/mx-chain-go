@@ -586,7 +586,7 @@ func (txs *transactions) processTxsToMe(header data.HeaderHandler, body *block.B
 
 		err = txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if scheduledMode {
