@@ -3,7 +3,6 @@ package storage
 import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -15,7 +14,7 @@ func GetStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		MainStorer:        testscommon.NewSnapshotPruningStorerMock(),
 		CheckpointsStorer: testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:       &mock.MarshalizerMock{},
+		Marshalizer:       &testscommon.MarshalizerMock{},
 		Hasher:            &hashingMocks.HasherMock{},
 		GeneralConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,
