@@ -7,7 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/stretchr/testify/require"
@@ -16,13 +18,14 @@ import (
 func getDefaultBaseAccSyncerArgs() syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                            &hashingMocks.HasherMock{},
-		Marshalizer:                       testscommon.MarshalizerMock{},
+		Marshalizer:                       marshallerMock.MarshalizerMock{},
 		TrieStorageManager:                &storageManager.StorageManagerStub{},
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		Timeout:                           time.Second,
 		Cacher:                            testscommon.NewCacherMock(),
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
+		EnableEpochsHandler:               &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		MaxTrieLevelInMemory:              5,
 		MaxHardCapForMissingNodes:         100,
 		TrieSyncerVersion:                 3,

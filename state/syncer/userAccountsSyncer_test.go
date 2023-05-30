@@ -15,8 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
@@ -32,6 +36,14 @@ func getDefaultUserAccountsSyncerArgs() syncer.ArgsNewUserAccountsSyncer {
 		ShardId:                   1,
 		Throttler:                 &mock.ThrottlerStub{},
 		AddressPubKeyConverter:    &testscommon.PubkeyConverterStub{},
+	}
+}
+
+func getDefaultArgsAccountCreation() state.ArgsAccountCreation {
+	return state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -105,7 +117,7 @@ func getSerializedTrieNode(
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, 5)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	_ = tr.Update(key, []byte("value"))
 	_ = tr.Commit()
 
@@ -156,7 +168,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
 
@@ -180,7 +192,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
 }
 
 func emptyTrie() common.Trie {
@@ -232,10 +244,10 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, 5)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 		tr := emptyTrie()
 
-		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice)
+		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice, getDefaultArgsAccountCreation())
 		require.Nil(t, err)
 		account.SetRootHash(key)
 
@@ -255,7 +267,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		rootHash, err := tr.RootHash()
 		require.Nil(t, err)
 
-		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		require.Nil(t, err)
 
 		ctx, cancel := context.WithCancel(context.TODO())
@@ -289,10 +301,10 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, 5)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 		tr := emptyTrie()
 
-		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice)
+		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice, getDefaultArgsAccountCreation())
 		require.Nil(t, err)
 		account.SetRootHash(key)
 
@@ -312,7 +324,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		rootHash, err := tr.RootHash()
 		require.Nil(t, err)
 
-		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		require.Nil(t, err)
 
 		err = s.SyncAccountDataTries(leavesChannels, context.TODO())
@@ -356,7 +368,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, 5)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)
