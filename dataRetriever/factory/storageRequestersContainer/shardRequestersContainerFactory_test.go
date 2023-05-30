@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -209,5 +210,6 @@ func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 		SnapshotsEnabled:         true,
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

@@ -227,6 +227,10 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
 	txError error,
 ) error {
+	if core.IsGetNodeFromDBError(txError) {
+		return txError
+	}
+
 	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
 	if err != nil {
 		return err

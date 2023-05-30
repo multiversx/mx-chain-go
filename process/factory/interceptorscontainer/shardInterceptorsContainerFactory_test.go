@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -686,7 +687,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
-		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{

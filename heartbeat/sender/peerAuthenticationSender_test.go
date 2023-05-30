@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -259,7 +260,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
 		}
-		argsBase.marshaller = &testscommon.MarshalizerStub{
+		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -303,7 +304,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
 			},
 		}
-		argsBase.marshaller = &testscommon.MarshalizerStub{
+		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				numCalls++
 				if numCalls < 2 {

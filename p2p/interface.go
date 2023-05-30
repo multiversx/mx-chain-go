@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do

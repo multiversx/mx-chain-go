@@ -37,10 +37,10 @@ func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.Transacti
 	return isESDTTransferOperation && isReceiverSC && hasFunction
 }
 
-func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandler) bool {
+func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHashHex string, tx data.TransactionHandler) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())
 	isRightNonce := scr.Nonce == tx.GetNonce()+1
-	isFromCurrentTx := bytes.Equal(scr.PrevTxHash, txHash)
+	isFromCurrentTx := hex.EncodeToString(scr.PrevTxHash) == txHashHex
 	isScrDataOk := isDataOk(scr.Data)
 
 	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk

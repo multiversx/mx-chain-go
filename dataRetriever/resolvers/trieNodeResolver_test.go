@@ -249,6 +249,49 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
+func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesUnmarshalFails(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTrieNodeResolver()
+	initialMarshaller := arg.Marshaller
+	cnt := 0
+	arg.Marshaller = &mock.MarshalizerStub{
+		MarshalCalled: initialMarshaller.Marshal,
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			cnt++
+			if cnt > 1 {
+				return expectedErr
+			}
+			return initialMarshaller.Unmarshal(obj, buff)
+		},
+	}
+	arg.TrieDataGetter = &trieMock.TrieStub{
+		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
+			assert.Fail(t, "should have not called send")
+			return nil, nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("hash1")},
+	}
+	buffBatch, _ := arg.Marshaller.Marshal(b)
+
+	data, _ := arg.Marshaller.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffBatch,
+		},
+	)
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeErrorsShouldNotSend(t *testing.T) {
 	t.Parallel()
 

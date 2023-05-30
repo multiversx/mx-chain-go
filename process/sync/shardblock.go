@@ -4,15 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -155,32 +152,17 @@ func (boot *ShardBootstrap) StartSyncingBlocks() error {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if isErrGetNodeFromDB(err) {
-		errSync := boot.syncUserAccountsState()
+	if core.IsGetNodeFromDBError(err) {
+		getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
+			return err
+		}
+
+		errSync := boot.syncUserAccountsState(getNodeErr.GetKey())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
-}
-
-func isErrGetNodeFromDB(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), errors.ErrContextClosing.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-		return true
-	}
-
-	return false
 }
 
 // Close closes the synchronization loop
