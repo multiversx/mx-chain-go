@@ -18,10 +18,12 @@ type ArgsHostDriver struct {
 }
 
 type hostDriver struct {
-	marshaller marshal.Marshalizer
-	senderHost SenderHost
-	isClosed   atomic.Flag
-	log        core.Logger
+	marshaller  marshal.Marshalizer
+	senderHost  SenderHost
+	isClosed    atomic.Flag
+	log         core.Logger
+	cfg         outport.OutportConfig
+	payloadProc payloadProcessorHandler
 }
 
 // NewHostDriver will create a new instance of hostDriver
@@ -34,6 +36,16 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	}
 	if check.IfNil(args.Log) {
 		return nil, core.ErrNilLogger
+	}
+
+	payloadProc, err := newPayloadProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = args.SenderHost.SetPayloadHandler(payloadProc)
+	if err != nil {
+		return nil, err
 	}
 
 	return &hostDriver{
@@ -100,6 +112,21 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 	}
 
 	return nil
+}
+
+// RegisterHandlerForSettingsRequest will register the handler function for the settings request
+func (o *hostDriver) RegisterHandlerForSettingsRequest(handlerFunction func()) error {
+	return o.payloadProc.SetHandlerFunc(handlerFunction)
+}
+
+// CurrentSettings will send the current settings
+func (o *hostDriver) CurrentSettings(config outport.OutportConfig) error {
+	configBytes, err := o.marshaller.Marshal(&config)
+	if err != nil {
+		return err
+	}
+
+	return o.senderHost.Send(configBytes, outport.TopicSettings)
 }
 
 // Close will handle the closing of the outport driver web socket sender
