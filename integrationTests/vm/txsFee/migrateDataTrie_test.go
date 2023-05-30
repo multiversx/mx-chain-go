@@ -45,7 +45,6 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 	gasScheduleNotifier.GasSchedule[core.BuiltInCostString]["TrieLoadPerNode"] = trieLoadPerNode
 	gasScheduleNotifier.GasSchedule[core.BuiltInCostString]["TrieStorePerNode"] = trieStorePerNode
 	sndAddr := []byte("12345678901234567890123456789111")
-	gasPrice := uint64(10)
 
 	t.Run("deterministic trie", func(t *testing.T) {
 		t.Parallel()
@@ -193,8 +192,8 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		acc = getAccount(t, testContext, sndAddr)
 
 		for _, key := range nonMigratedKeys {
-			val, _, err := acc.RetrieveValue(key)
-			require.Nil(t, err)
+			val, _, errRetrieve := acc.RetrieveValue(key)
+			require.Nil(t, errRetrieve)
 			require.Equal(t, key, val)
 		}
 	})
@@ -309,19 +308,19 @@ func testGasConsumed(
 	require.Equal(t, expectedGasConsumed, gasConsumed)
 }
 
-func getAccount(t *testing.T, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
+func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
 	scAcc, err := testContext.Accounts.LoadAccount(scAddress)
-	require.Nil(t, err)
+	require.Nil(tb, err)
 	acc, ok := scAcc.(state.UserAccountHandler)
-	require.True(t, ok)
+	require.True(tb, ok)
 
 	return acc
 }
 
 func getAccountDataTrie(t *testing.T, testContext *vm.VMTestContext, address []byte) common.Trie {
 	acc := getAccount(t, testContext, address)
-	dataTrie, ok := acc.DataTrie().(common.Trie)
+	dataTrieInstance, ok := acc.DataTrie().(common.Trie)
 	require.True(t, ok)
 
-	return dataTrie
+	return dataTrieInstance
 }

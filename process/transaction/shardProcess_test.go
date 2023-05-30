@@ -3200,7 +3200,7 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 
 	t.Run("fix not enabled, should return true", func(t *testing.T) {
 		args := createArgsForTxProcessor()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRelayedNonceFixEnabledField: false,
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
@@ -3209,7 +3209,7 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	})
 	t.Run("fix enabled, different errors should return true", func(t *testing.T) {
 		args := createArgsForTxProcessor()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRelayedNonceFixEnabledField: true,
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
@@ -3220,7 +3220,7 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	})
 	t.Run("fix enabled, errors for an un-executable transaction should return false", func(t *testing.T) {
 		args := createArgsForTxProcessor()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRelayedNonceFixEnabledField: true,
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
