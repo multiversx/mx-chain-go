@@ -656,7 +656,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			Address:        logAddress,
 			Topics:         originalLog.Topics,
 			Data:           originalLog.GetFirstDataItem(),
-			AdditionalData: originalLog.GetTailDataItems(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 

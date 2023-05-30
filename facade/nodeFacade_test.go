@@ -1325,29 +1325,26 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 }
 
 func TestFacade_convertVmOutputToApiResponseNilLogData(t *testing.T) {
-	expectedLogData := []byte{}
-	expectedAdditionalLogData := [][]byte{}
-	testConvertVmOutput(t, nil, expectedLogData, expectedAdditionalLogData)
+	testConvertVmOutput(t, nil, nil, nil)
 }
 
 func TestFacade_convertVmOutputToApiResponseEmptyLogData(t *testing.T) {
 	logData := [][]byte{}
-	expectedLogData := []byte{}
 	expectedAdditionalLogData := [][]byte{}
-	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+	testConvertVmOutput(t, logData, nil, expectedAdditionalLogData)
 }
 
 func TestFacade_convertVmOutputToApiResponseSingleLogData(t *testing.T) {
 	logData := [][]byte{[]byte("log_data")}
 	expectedLogData := []byte("log_data")
-	expectedAdditionalLogData := [][]byte{}
+	expectedAdditionalLogData := [][]byte{[]byte("log_data")}
 	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
 }
 
 func TestFacade_convertVmOutputToApiResponseMultiLogData(t *testing.T) {
 	logData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
 	expectedLogData := []byte("log_data1")
-	expectedAdditionalLogData := [][]byte{[]byte("log_data2"), []byte("log_data3")}
+	expectedAdditionalLogData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
 	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
 }
 
