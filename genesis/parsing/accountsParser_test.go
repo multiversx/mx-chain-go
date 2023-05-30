@@ -44,6 +44,9 @@ func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
 		},
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+			return hex.EncodeToString(pkBytes)
+		},
 	}
 }
 
@@ -743,4 +746,12 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 		assert.Equal(t, txHash, []byte(hashString))
 		assert.Equal(t, tx, v.Transaction)
 	}
+}
+
+func TestAccountsParser_GenesisMintingAddress(t *testing.T) {
+	t.Parallel()
+
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	addr := ap.GenesisMintingAddress()
+	assert.Equal(t, hex.EncodeToString([]byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")), addr)
 }
