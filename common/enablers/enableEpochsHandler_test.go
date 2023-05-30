@@ -94,10 +94,11 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MultiClaimOnDelegationEnableEpoch:                 78,
 		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
 		ChangeUsernameEnableEpoch:                         80,
-		RefactorPeersMiniBlocksEnableEpoch:                81,
-		ConsistentTokensValuesLengthCheckEnableEpoch:      82,
-		SetSenderInEeiOutputTransferEnableEpoch:           83,
-		SetGuardianEnableEpoch:                            84,
+		AutoBalanceDataTriesEnableEpoch:                   81,
+		RefactorPeersMiniBlocksEnableEpoch:                82,
+		ConsistentTokensValuesLengthCheckEnableEpoch:      83,
+		SetSenderInEeiOutputTransferEnableEpoch:           84,
+		SetGuardianEnableEpoch:                            85,
 	}
 }
 
@@ -109,7 +110,7 @@ func TestNewEnableEpochsHandler(t *testing.T) {
 
 		handler, err := NewEnableEpochsHandler(createEnableEpochsConfig(), nil)
 		assert.Equal(t, process.ErrNilEpochNotifier, err)
-		assert.Nil(t, handler)
+		assert.True(t, check.IfNil(handler))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -121,7 +122,7 @@ func TestNewEnableEpochsHandler(t *testing.T) {
 			},
 		})
 		assert.Nil(t, err)
-		assert.NotNil(t, handler)
+		assert.False(t, check.IfNil(handler))
 		assert.True(t, wasCalled)
 	})
 }
@@ -134,9 +135,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 
 		cfg := createEnableEpochsConfig()
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
-		require.NotNil(t, handler)
+		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(85, 0)
+		handler.EpochConfirmed(86, 0)
 
 		assert.True(t, handler.IsSCDeployFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionsFlagEnabled())
@@ -223,6 +224,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.True(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.True(t, handler.IsChangeUsernameEnabled())
+		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.True(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
 		assert.True(t, handler.IsSaveToSystemAccountFlagEnabled())
@@ -239,7 +241,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(85)
+		epoch := uint32(86)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
@@ -247,7 +249,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		cfg.CorrectLastUnjailedEnableEpoch = epoch
 
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
-		require.NotNil(t, handler)
+		require.False(t, check.IfNil(handler))
 
 		handler.EpochConfirmed(epoch, 0)
 
@@ -336,6 +338,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.True(t, handler.IsChangeUsernameEnabled())
+		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.True(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
 		assert.True(t, handler.IsSaveToSystemAccountFlagEnabled())
@@ -443,7 +446,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
 		assert.False(t, handler.IsChangeUsernameEnabled())
-		assert.False(t, handler.IsChangeUsernameEnabled())
+		assert.False(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.False(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
 		assert.False(t, handler.IsSaveToSystemAccountFlagEnabled())

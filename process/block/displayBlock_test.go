@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +37,7 @@ func createMockArgsTransactionCounter() ArgsTransactionCounter {
 	return ArgsTransactionCounter{
 		AppStatusHandler: &statusHandler.AppStatusHandlerStub{},
 		Hasher:           &testscommon.HasherStub{},
-		Marshalizer:      &testscommon.MarshalizerMock{},
+		Marshalizer:      &marshallerMock.MarshalizerMock{},
 		ShardID:          0,
 	}
 }
