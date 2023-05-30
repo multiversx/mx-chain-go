@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -70,7 +73,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, time.Second), nil
+			return createScAccount(addressContainer, validators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -114,7 +117,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, 0), nil
+			return createScAccount(addressContainer, validators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -146,13 +149,18 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)
 }
 
-func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address)
+func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
 	acc.SetDataTrie(&trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 			go func() {
 				time.Sleep(timeSleep)
 				for _, leafBuff := range leaves {

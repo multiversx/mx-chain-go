@@ -96,6 +96,7 @@ type EnableEpochs struct {
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
 	MultiClaimOnDelegationEnableEpoch                 uint32
 	ChangeUsernameEnableEpoch                         uint32
+	AutoBalanceDataTriesEnableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 	SetGuardianEnableEpoch                            uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32

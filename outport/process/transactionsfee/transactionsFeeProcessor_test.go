@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +22,7 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
-		Marshaller:         testscommon.MarshalizerMock{},
+		Marshaller:         marshallerMock.MarshalizerMock{},
 		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dbLookupExtMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/require"
@@ -105,8 +106,8 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 		testscommon.RealWorldBech32PubkeyConverter,
 		historyRepo,
 		genericMocks.NewChainStorerMock(epoch),
-		&testscommon.MarshalizerMock{},
-		newTransactionUnmarshaller(&testscommon.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser, shardCoordinator),
+		&marshallerMock.MarshalizerMock{},
+		newTransactionUnmarshaller(&marshallerMock.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser, shardCoordinator),
 		&testscommon.LogsFacadeStub{},
 		shardCoordinator,
 		dataFieldParser,

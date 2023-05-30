@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -21,7 +23,7 @@ import (
 func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	numLeavesToAdd := 200
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, 5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 
 	for i := 0; i < numLeavesToAdd; i++ {
 		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -36,7 +38,13 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
@@ -48,7 +56,13 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
@@ -63,7 +77,13 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
@@ -78,7 +98,13 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel2,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
