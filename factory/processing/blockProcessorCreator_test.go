@@ -21,7 +21,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	storageManager "github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -88,11 +87,11 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	storageManagerArgs := storage.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
 	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
