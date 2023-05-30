@@ -681,6 +681,7 @@ func getBaseAccountSyncerArgs(
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 

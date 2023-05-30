@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -504,6 +505,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testHasher := sha256.NewSha256()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	accnts := integrationtests.CreateInMemoryShardAccountsDB()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -512,7 +514,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:      parsers.NewCallArgsParser(),
 		ESDTTransferParser:  esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &economicsmocks.EconomicsHandlerStub{
@@ -542,7 +544,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

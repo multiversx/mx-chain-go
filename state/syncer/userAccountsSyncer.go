@@ -66,6 +66,9 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
 	if err != nil {
@@ -88,6 +91,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -242,12 +246,15 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	defer u.printDataTrieStatistics()
 
 	wg := sync.WaitGroup{}
-
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              u.hasher,
+		Marshaller:          u.marshalizer,
+		EnableEpochsHandler: u.enableEpochsHandler,
+	}
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
-		account := state.NewEmptyUserAccount()
-		err := u.marshalizer.Unmarshal(account, leaf.Value())
+		account, err := state.NewUserAccountFromBytes(leaf.Value(), argsAccCreation)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue

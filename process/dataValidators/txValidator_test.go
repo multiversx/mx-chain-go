@@ -14,6 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +26,12 @@ import (
 func getAccAdapter(nonce uint64, balance *big.Int) *stateMock.AccountsStub {
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address)
+		argsAccCreation := state.ArgsAccountCreation{
+			Hasher:              &hashingMocks.HasherMock{},
+			Marshaller:          &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		}
+		acc, _ := state.NewUserAccount(address, argsAccCreation)
 		acc.Nonce = nonce
 		acc.Balance = balance
 
