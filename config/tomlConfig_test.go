@@ -704,17 +704,20 @@ func TestEnableEpochConfig(t *testing.T) {
     # SetGuardianEnableEpoch represents the epoch when guard account feature is enabled
     SetGuardianEnableEpoch = 64
 
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 65
+
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 65
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 66
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation function is enabled
-    MultiClaimOnDelegationEnableEpoch = 66
+    MultiClaimOnDelegationEnableEpoch = 67
 
     # ChangeUsernameEnableEpoch represents the epoch when change username is enabled
-    ChangeUsernameEnableEpoch = 67
+    ChangeUsernameEnableEpoch = 68
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 68
+    ConsistentTokensValuesLengthCheckEnableEpoch = 69
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -812,10 +815,11 @@ func TestEnableEpochConfig(t *testing.T) {
 			RuntimeCodeSizeFixEnableEpoch:                62,
 			RuntimeMemStoreLimitEnableEpoch:              63,
 			SetGuardianEnableEpoch:                       64,
-			KeepExecOrderOnCreatedSCRsEnableEpoch:        65,
-			MultiClaimOnDelegationEnableEpoch:            66,
-			ChangeUsernameEnableEpoch:                    67,
-			ConsistentTokensValuesLengthCheckEnableEpoch: 68,
+			RelayedNonceFixEnableEpoch:                   65,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:        66,
+			MultiClaimOnDelegationEnableEpoch:            67,
+			ChangeUsernameEnableEpoch:                    68,
+			ConsistentTokensValuesLengthCheckEnableEpoch: 69,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

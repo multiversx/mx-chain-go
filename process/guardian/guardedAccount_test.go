@@ -314,19 +314,17 @@ func TestGuardedAccount_setAccountGuardian(t *testing.T) {
 		err := ga.setAccountGuardian(ua, newGuardian)
 		require.True(t, errors.Is(err, process.ErrAccountHasNoActiveGuardian))
 	})
-	t.Run("setGuardian same guardian ok, not changing existing config", func(t *testing.T) {
+	t.Run("setGuardian same guardian ok, changing existing config", func(t *testing.T) {
 		existingGuardian := &guardians.Guardian{
 			Address:         []byte("guardian address"),
 			ActivationEpoch: 9,
 		}
 		newGuardian := newGuardian
 		newGuardian.Address = existingGuardian.Address
-		configuredGuardians := &guardians.Guardians{Slice: []*guardians.Guardian{existingGuardian}}
-
 		expectedValue := []byte(nil)
 		ua := &stateMocks.UserAccountStub{
 			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
-				expectedValue, _ = ga.marshaller.Marshal(configuredGuardians)
+				expectedValue, _ = ga.marshaller.Marshal(&guardians.Guardians{Slice: []*guardians.Guardian{existingGuardian, newGuardian}})
 				return expectedValue, 0, nil
 			},
 			AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
