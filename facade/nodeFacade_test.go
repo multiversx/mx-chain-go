@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1186,6 +1187,59 @@ func TestNodeFacade_VerifyProof(t *testing.T) {
 	response, err := nf.VerifyProof("hash", "addr", [][]byte{[]byte("proof")})
 	require.NoError(t, err)
 	require.True(t, response)
+}
+
+func TestNodeFacade_IsDataTrieMigrated(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return false if trie is not migrated", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			IsDataTrieMigratedCalled: func(_ string, _ api.AccountQueryOptions) (bool, error) {
+				return false, nil
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		isMigrated, err := nf.IsDataTrieMigrated("address", api.AccountQueryOptions{})
+		assert.Nil(t, err)
+		assert.False(t, isMigrated)
+	})
+
+	t.Run("should return true if trie is migrated", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			IsDataTrieMigratedCalled: func(_ string, _ api.AccountQueryOptions) (bool, error) {
+				return true, nil
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		isMigrated, err := nf.IsDataTrieMigrated("address", api.AccountQueryOptions{})
+		assert.Nil(t, err)
+		assert.True(t, isMigrated)
+	})
+
+	t.Run("should return error if node returns err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := fmt.Errorf(" expected error")
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			IsDataTrieMigratedCalled: func(_ string, _ api.AccountQueryOptions) (bool, error) {
+				return false, expectedErr
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		isMigrated, err := nf.IsDataTrieMigrated("address", api.AccountQueryOptions{})
+		assert.Equal(t, expectedErr, err)
+		assert.False(t, isMigrated)
+	})
 }
 
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {

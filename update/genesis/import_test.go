@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
@@ -71,6 +72,7 @@ func TestNewStateImport(t *testing.T) {
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
 				AddressConverter:    &testscommon.PubkeyConverterMock{},
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			exError: nil,
 		},
@@ -98,6 +100,7 @@ func TestImportAll(t *testing.T) {
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
 		AddressConverter:    &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -133,6 +136,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
 		AddressConverter:    &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)

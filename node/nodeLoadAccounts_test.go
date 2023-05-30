@@ -24,8 +24,8 @@ import (
 func TestNode_GetAccountWithOptionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	alice, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
-	alice.Balance = big.NewInt(100)
+	alice := createAcc(testscommon.TestPubKeyAlice)
+	_ = alice.AddToBalance(big.NewInt(100))
 
 	accountsRepostitory := &mockState.AccountsRepositoryStub{}
 	accountsRepostitory.GetAccountWithBlockInfoCalled = func(pubkey []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {

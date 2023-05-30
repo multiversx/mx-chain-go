@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -16,7 +16,7 @@ import (
 
 func getTrieAccountsIteratorArgs() ArgsTrieAccountsIterator {
 	return ArgsTrieAccountsIterator{
-		Marshaller: &testscommon.MarshalizerMock{},
+		Marshaller: &marshallerMock.MarshalizerMock{},
 		Accounts:   &stateMock.AccountsStub{},
 	}
 }
@@ -102,7 +102,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				return expectedErr
 			},
 		}
@@ -120,7 +120,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: []byte("rootHash"),
 				}
@@ -147,7 +147,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: []byte("rootHash"),
 				}
@@ -175,7 +175,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: nil,
 				}
@@ -202,9 +202,10 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
-				userAcc := state.NewEmptyUserAccount()
-				userAcc.SetRootHash([]byte("root"))
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
+				userAcc := stateMock.AccountWrapMock{
+					RootHash: []byte("root"),
+				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
 				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
 				close(iter.LeavesChan)
@@ -228,7 +229,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: []byte("rootHash"),
 				}
@@ -261,7 +262,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: []byte("rootHash"),
 				}
@@ -297,7 +298,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
 			},
-			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(iter *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				userAcc := &stateMock.AccountWrapMock{
 					RootHash: []byte("rootHash"),
 				}

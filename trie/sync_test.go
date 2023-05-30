@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 		InterceptedNodes:          testscommon.NewCacherMock(),
 		DB:                        trieStorage,
 		Hasher:                    &hashingMocks.HasherMock{},
-		Marshalizer:               &testscommon.MarshalizerMock{},
+		Marshalizer:               &marshallerMock.MarshalizerMock{},
 		ShardId:                   0,
 		Topic:                     "topic",
 		TrieSyncStatistics:        statistics.NewTrieSyncStatistics(),

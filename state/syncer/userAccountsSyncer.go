@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -66,6 +67,9 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
 	if err != nil {
@@ -88,6 +92,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -239,15 +244,40 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return trie.ErrNilTrieIteratorChannels
 	}
 
+<<<<<<< HEAD
 	defer u.printDataTrieStatistics()
+=======
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		mainRootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
+	if err != nil {
+		return err
+	}
+>>>>>>> rc/v1.6.0
 
 	wg := sync.WaitGroup{}
-
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              u.hasher,
+		Marshaller:          u.marshalizer,
+		EnableEpochsHandler: u.enableEpochsHandler,
+	}
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
+<<<<<<< HEAD
 		account := state.NewEmptyUserAccount()
 		err := u.marshalizer.Unmarshal(account, leaf.Value())
+=======
+		account, err := state.NewUserAccountFromBytes(leaf.Value(), argsAccCreation)
+>>>>>>> rc/v1.6.0
 		if err != nil {
 			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue
