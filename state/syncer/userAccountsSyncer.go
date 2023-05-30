@@ -243,6 +243,8 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		return trie.ErrNilTrieIteratorChannels
 	}
 
+	defer u.printDataTrieStatistics()
+
 	wg := sync.WaitGroup{}
 	argsAccCreation := state.ArgsAccountCreation{
 		Hasher:              u.hasher,
