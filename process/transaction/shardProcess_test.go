@@ -91,6 +91,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		},
 		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	return args
 }
@@ -264,6 +265,17 @@ func TestNewTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.TxLogsProcessor = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilTxLogsProcessor, err)
 	assert.Nil(t, txProc)
 }
 
@@ -3275,5 +3287,68 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrLowerNonceInTransaction))
 		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrHigherNonceInTransaction))
 		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrTransactionNotExecutable))
+	})
+}
+
+func TestTxProcessor_AddUnExecutableLog(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	sender := []byte("sender")
+	relayer := []byte("relayer")
+	originalTx := &transaction.Transaction{
+		SndAddr: relayer,
+		RcvAddr: sender,
+	}
+	originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
+	assert.Nil(t, err)
+
+	t.Run("not an un-executable error should not add", func(t *testing.T) {
+		t.Parallel()
+
+		argsLocal := args
+		argsLocal.TxLogsProcessor = &mock.TxLogsProcessorStub{
+			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+				assert.Fail(t, "should have not called SaveLog")
+
+				return nil
+			},
+		}
+		txProc, _ := txproc.NewTxProcessor(argsLocal)
+		err = txProc.AddUnExecutableLog(errors.New("random error"), originalTxHash, originalTx)
+		assert.Nil(t, err)
+	})
+	t.Run("is execution error should record log", func(t *testing.T) {
+		t.Parallel()
+
+		argsLocal := args
+		numLogsSaved := 0
+		argsLocal.TxLogsProcessor = &mock.TxLogsProcessorStub{
+			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+				assert.Equal(t, originalTxHash, txHash)
+				assert.Equal(t, originalTx, tx)
+				assert.Equal(t, 1, len(vmLogs))
+				firstLog := vmLogs[0]
+				assert.Equal(t, core.SignalErrorOperation, string(firstLog.Identifier))
+				assert.Equal(t, sender, firstLog.Address)
+				assert.Empty(t, firstLog.Data)
+				assert.Empty(t, firstLog.Topics)
+				numLogsSaved++
+
+				return nil
+			},
+		}
+
+		txProc, _ := txproc.NewTxProcessor(argsLocal)
+		err = txProc.AddUnExecutableLog(process.ErrLowerNonceInTransaction, originalTxHash, originalTx)
+		assert.Nil(t, err)
+
+		err = txProc.AddUnExecutableLog(process.ErrHigherNonceInTransaction, originalTxHash, originalTx)
+		assert.Nil(t, err)
+
+		err = txProc.AddUnExecutableLog(process.ErrTransactionNotExecutable, originalTxHash, originalTx)
+		assert.Nil(t, err)
+
+		assert.Equal(t, 3, numLogsSaved)
 	})
 }

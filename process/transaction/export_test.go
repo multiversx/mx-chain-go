@@ -3,6 +3,7 @@ package transaction
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
@@ -91,4 +92,9 @@ func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account s
 // ShouldIncreaseNonce -
 func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
 	return txProc.shouldIncreaseNonce(executionErr)
+}
+
+// AddUnExecutableLog -
+func (txProc *txProcessor) AddUnExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	return txProc.addUnExecutableLog(executionErr, originalTxHash, originalTx)
 }
