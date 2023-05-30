@@ -1,4 +1,4 @@
-package testscommon
+package enableEpochsHandlerMock
 
 import "sync"
 
@@ -121,6 +121,8 @@ type EnableEpochsHandlerStub struct {
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
+	IsConsistentTokensValuesLengthCheckEnabledField              bool
+	IsAutoBalanceDataTriesEnabledField                           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1048,6 +1050,22 @@ func (stub *EnableEpochsHandlerStub) IsChangeUsernameEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsChangeUsernameEnabledField
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (stub *EnableEpochsHandlerStub) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsConsistentTokensValuesLengthCheckEnabledField
+}
+
+// IsAutoBalanceDataTriesEnabled -
+func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsAutoBalanceDataTriesEnabledField
 }
 
 // IsInterfaceNil -

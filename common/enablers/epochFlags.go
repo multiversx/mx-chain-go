@@ -94,6 +94,8 @@ type epochFlagsHolder struct {
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
 	changeUsernameFlag                          *atomic.Flag
+	consistentTokensValuesCheckFlag             *atomic.Flag
+	autoBalanceDataTriesFlag                    *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -185,8 +187,10 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
+		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 		changeUsernameFlag:                          &atomic.Flag{},
+		autoBalanceDataTriesFlag:                    &atomic.Flag{},
 	}
 }
 
@@ -673,6 +677,11 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
 }
 
+// IsConsistentTokensValuesLengthCheckEnabled returns true if consistentTokensValuesCheckFlag is enabled
+func (holder *epochFlagsHolder) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return holder.consistentTokensValuesCheckFlag.IsSet()
+}
+
 // IsKeepExecOrderOnCreatedSCRsEnabled returns true if keepExecOrderOnCreatedSCRsFlag is enabled
 func (holder *epochFlagsHolder) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
 	return holder.keepExecOrderOnCreatedSCRsFlag.IsSet()
@@ -686,4 +695,9 @@ func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 // IsChangeUsernameEnabled returns true if changeUsernameFlag is enabled
 func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
 	return holder.changeUsernameFlag.IsSet()
+}
+
+// IsAutoBalanceDataTriesEnabled returns true if autoBalanceDataTriesFlag is enabled
+func (holder *epochFlagsHolder) IsAutoBalanceDataTriesEnabled() bool {
+	return holder.autoBalanceDataTriesFlag.IsSet()
 }

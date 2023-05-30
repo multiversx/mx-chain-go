@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -194,7 +196,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -204,7 +206,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, errErd.ErrNilShuffleOutCloser, err)
@@ -219,7 +221,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -229,7 +231,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
@@ -244,7 +246,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			nil,
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -254,7 +256,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, errErd.ErrNilEpochStartNotifier, err)
@@ -269,7 +271,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			nil,
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -279,7 +281,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, errErd.ErrNilPublicKey, err)
@@ -294,7 +296,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -304,7 +306,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, errErd.ErrNilBootstrapParamsHandler, err)
@@ -319,7 +321,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -329,7 +331,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			nil,
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Equal(t, nodesCoordinator.ErrNilNodeStopChannel, err)
@@ -346,7 +348,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -356,7 +358,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.NotNil(t, err)
@@ -377,7 +379,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 					return nil, expectedErr
 				},
 			},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -387,7 +389,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
@@ -408,7 +410,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 					return nil, expectedErr
 				},
 			},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -418,7 +420,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
@@ -439,7 +441,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 					return nil, nil // no error but nil pub key to force NewShuffledOutTrigger to fail
 				},
 			},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -449,7 +451,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.NotNil(t, err)
@@ -480,7 +482,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.NotNil(t, err)
@@ -501,7 +503,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 					return []byte("public key"), nil
 				},
 			},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			nil, // force NewIndexHashedNodesCoordinatorWithRater to fail
 			&storage.StorerStub{},
@@ -532,7 +534,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.NotNil(t, err)
@@ -553,7 +555,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 					return []byte("public key"), nil
 				},
 			},
-			&testscommon.MarshalizerStub{},
+			&marshallerMock.MarshalizerStub{},
 			&testscommon.HasherStub{},
 			&testscommon.RaterMock{},
 			&storage.StorerStub{},
@@ -584,7 +586,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			0,
 			make(chan endProcess.ArgEndProcess, 1),
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
-			&testscommon.EnableEpochsHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 		)
 		require.Nil(t, err)

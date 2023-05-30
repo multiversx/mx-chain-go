@@ -54,6 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -385,24 +386,25 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:              accnts,
-		PubkeyConv:            pubkeyConv,
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            &testscommon.ChainHandlerStub{},
-		ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(2),
-		Marshalizer:           integrationtests.TestMarshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
-		DataPool:              datapool,
-		CompiledSCPool:        datapool.SmartContracts(),
-		NilCompiledSCStore:    true,
-		ConfigSCStorage:       *defaultStorageConfig(),
-		EpochNotifier:         genericEpochNotifier,
-		EnableEpochsHandler:   enableEpochsHandler,
-		GasSchedule:           gasScheduleNotifier,
-		Counter:               &testscommon.BlockChainHookCounterStub{},
+		Accounts:                 accnts,
+		PubkeyConv:               pubkeyConv,
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ShardCoordinator:         mock.NewMultiShardsCoordinatorMock(2),
+		Marshalizer:              integrationtests.TestMarshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         builtInFuncs,
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler:    &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:                 datapool,
+		CompiledSCPool:           datapool.SmartContracts(),
+		NilCompiledSCStore:       true,
+		ConfigSCStorage:          *defaultStorageConfig(),
+		EpochNotifier:            genericEpochNotifier,
+		EnableEpochsHandler:      enableEpochsHandler,
+		GasSchedule:              gasScheduleNotifier,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -488,24 +490,25 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:              accnts,
-		PubkeyConv:            pubkeyConv,
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            &testscommon.ChainHandlerStub{},
-		ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(2),
-		Marshalizer:           integrationtests.TestMarshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
-		DataPool:              datapool,
-		CompiledSCPool:        datapool.SmartContracts(),
-		NilCompiledSCStore:    true,
-		ConfigSCStorage:       *defaultStorageConfig(),
-		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
-		GasSchedule:           CreateMockGasScheduleNotifier(),
-		Counter:               &testscommon.BlockChainHookCounterStub{},
+		Accounts:                 accnts,
+		PubkeyConv:               pubkeyConv,
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ShardCoordinator:         mock.NewMultiShardsCoordinatorMock(2),
+		Marshalizer:              integrationtests.TestMarshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		GlobalSettingsHandler:    &testscommon.ESDTGlobalSettingsHandlerStub{},
+		DataPool:                 datapool,
+		CompiledSCPool:           datapool.SmartContracts(),
+		NilCompiledSCStore:       true,
+		ConfigSCStorage:          *defaultStorageConfig(),
+		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		GasSchedule:              CreateMockGasScheduleNotifier(),
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -558,24 +561,25 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:              accnts,
-		PubkeyConv:            pubkeyConv,
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            chainHandler,
-		ShardCoordinator:      shardCoordinator,
-		Marshalizer:           integrationtests.TestMarshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
-		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
-		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		DataPool:              datapool,
-		CompiledSCPool:        datapool.SmartContracts(),
-		NilCompiledSCStore:    true,
-		ConfigSCStorage:       *defaultStorageConfig(),
-		EpochNotifier:         epochNotifierInstance,
-		EnableEpochsHandler:   enableEpochsHandler,
-		GasSchedule:           gasSchedule,
-		Counter:               counter,
+		Accounts:                 accnts,
+		PubkeyConv:               pubkeyConv,
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               chainHandler,
+		ShardCoordinator:         shardCoordinator,
+		Marshalizer:              integrationtests.TestMarshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		DataPool:                 datapool,
+		CompiledSCPool:           datapool.SmartContracts(),
+		NilCompiledSCStore:       true,
+		ConfigSCStorage:          *defaultStorageConfig(),
+		EpochNotifier:            epochNotifierInstance,
+		EnableEpochsHandler:      enableEpochsHandler,
+		GasSchedule:              gasSchedule,
+		Counter:                  counter,
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -646,23 +650,24 @@ func CreateVMAndBlockchainHookMeta(
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:              accnts,
-		PubkeyConv:            pubkeyConv,
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            &testscommon.ChainHandlerStub{},
-		ShardCoordinator:      shardCoordinator,
-		Marshalizer:           integrationtests.TestMarshalizer,
-		Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
-		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
-		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		DataPool:              datapool,
-		CompiledSCPool:        datapool.SmartContracts(),
-		NilCompiledSCStore:    true,
-		EpochNotifier:         globalEpochNotifier,
-		EnableEpochsHandler:   enableEpochsHandler,
-		GasSchedule:           gasSchedule,
-		Counter:               &testscommon.BlockChainHookCounterStub{},
+		Accounts:                 accnts,
+		PubkeyConv:               pubkeyConv,
+		StorageService:           &storageStubs.ChainStorerStub{},
+		BlockChain:               &testscommon.ChainHandlerStub{},
+		ShardCoordinator:         shardCoordinator,
+		Marshalizer:              integrationtests.TestMarshalizer,
+		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		DataPool:                 datapool,
+		CompiledSCPool:           datapool.SmartContracts(),
+		NilCompiledSCStore:       true,
+		EpochNotifier:            globalEpochNotifier,
+		EnableEpochsHandler:      enableEpochsHandler,
+		GasSchedule:              gasSchedule,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})
@@ -1135,12 +1140,12 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := integrationtests.CreateAccountsDB(db)
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
 	vmConfig := createDefaultVMConfig()
 	wasmVMChangeLocker := &sync.RWMutex{}
 
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
 
 	var err error

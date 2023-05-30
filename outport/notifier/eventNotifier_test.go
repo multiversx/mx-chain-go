@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/notifier"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,7 @@ import (
 func createMockEventNotifierArgs() notifier.ArgsEventNotifier {
 	return notifier.ArgsEventNotifier{
 		HttpClient:     &mock.HTTPClientStub{},
-		Marshaller:     &testscommon.MarshalizerMock{},
+		Marshaller:     &marshallerMock.MarshalizerMock{},
 		BlockContainer: &outportStub.BlockContainerStub{},
 	}
 }

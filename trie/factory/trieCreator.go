@@ -23,6 +23,8 @@ type TrieCreateArgs struct {
 	SnapshotsEnabled   bool
 	MaxTrieLevelInMem  uint
 	IdleProvider       trie.IdleNodeProvider
+	Identifier         string
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type trieCreator struct {
@@ -64,6 +66,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		GeneralConfig:          tc.trieStorageManagerConfig,
 		CheckpointHashesHolder: tc.getCheckpointHashesHolder(args.CheckpointsEnabled),
 		IdleProvider:           args.IdleProvider,
+		Identifier:             args.Identifier,
 	}
 
 	options := trie.StorageManagerOptions{
@@ -80,7 +83,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.MaxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, args.MaxTrieLevelInMem)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,6 +143,8 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:         dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -149,8 +154,8 @@ func CreateTriesComponentsForShardId(
 	trieContainer := state.NewDataTriesHolder()
 	trieStorageManagers := make(map[string]common.StorageManager)
 
-	trieContainer.Put([]byte(UserAccountTrie), userAccountTrie)
-	trieStorageManagers[UserAccountTrie] = userStorageManager
+	trieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), userAccountTrie)
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = userStorageManager
 
 	mainStorer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 	if err != nil {
@@ -170,14 +175,16 @@ func CreateTriesComponentsForShardId(
 		MaxTrieLevelInMem:  generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:         dataRetriever.PeerAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	trieContainer.Put([]byte(PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[PeerAccountTrie] = peerStorageManager
+	trieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerAccountsTrie)
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = peerStorageManager
 
 	return trieContainer, trieStorageManagers, nil
 }

@@ -13,8 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -55,9 +57,9 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 			},
 		},
 		hasher:      &hashingMocks.HasherMock{},
-		marshalizer: &testscommon.MarshalizerMock{},
+		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
-		enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
@@ -115,9 +117,9 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		},
 		hasher:      &hashingMocks.HasherMock{},
-		marshalizer: &testscommon.MarshalizerMock{},
+		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
-		enableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
