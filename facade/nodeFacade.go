@@ -579,6 +579,11 @@ func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byt
 	return nf.node.VerifyProof(rootHash, address, proof)
 }
 
+// IsDataTrieMigrated returns true if the data trie for the given address is migrated
+func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.AccountQueryOptions) (bool, error) {
+	return nf.node.IsDataTrieMigrated(address, options)
+}
+
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {

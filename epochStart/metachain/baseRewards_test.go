@@ -22,7 +22,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -833,8 +835,13 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccount.AddressBytes())
 	require.False(t, isDelegationSCAddress)
 
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"))
+	userAccount, err := state.NewUserAccount([]byte("userAddress"), argsAccCreation)
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{
@@ -1141,7 +1148,16 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	storageManagerArgs.Hasher = hasher
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
-	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              hasher,
+		Marshaller:          marshalizer,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		SwitchJailWaitingEnableEpochField: 0,
+	}
+	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -1165,10 +1181,8 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB: userAccountsDB,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			SwitchJailWaitingEnableEpochField: 0,
-		},
+		UserAccountsDB:      userAccountsDB,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 }
 

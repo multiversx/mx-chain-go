@@ -7,14 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgsPrintDoubleTransactionsDetector() ArgsPrintDoubleTransactionsDetector {
 	return ArgsPrintDoubleTransactionsDetector{
-		Marshaller:          &testscommon.MarshalizerMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
 		Hasher:              &testscommon.HasherStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -131,7 +133,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
 		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)

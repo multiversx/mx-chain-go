@@ -1,10 +1,12 @@
 package statistics
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,11 +15,11 @@ func TestSnapshotStatistics_Add(t *testing.T) {
 
 	tsc := NewTrieStatisticsCollector()
 
-	tsc.Add(nil) // coverage, early exit
+	tsc.Add(nil, common.MainTrie) // coverage, early exit
 
 	numInserts := 100
 	for i := 0; i < numInserts; i++ {
-		tsc.Add(getTrieStatsDTO(rand.Intn(numInserts), uint64(rand.Intn(numInserts))))
+		tsc.Add(getTrieStats(rand.Intn(numInserts), uint64(rand.Intn(numInserts))), common.DataTrie)
 		isSortedBySize := sort.SliceIsSorted(tsc.triesBySize, func(a, b int) bool {
 			if tsc.triesBySize[b] == nil && tsc.triesBySize[a] == nil {
 				return false
@@ -26,7 +28,7 @@ func TestSnapshotStatistics_Add(t *testing.T) {
 				return false
 			}
 
-			return tsc.triesBySize[b].TotalNodesSize < tsc.triesBySize[a].TotalNodesSize
+			return tsc.triesBySize[b].GetTotalNodesSize() < tsc.triesBySize[a].GetTotalNodesSize()
 		})
 
 		isSortedByDepth := sort.SliceIsSorted(tsc.triesByDepth, func(a, b int) bool {
@@ -37,7 +39,7 @@ func TestSnapshotStatistics_Add(t *testing.T) {
 				return false
 			}
 
-			return tsc.triesByDepth[b].MaxTrieDepth < tsc.triesByDepth[a].MaxTrieDepth
+			return tsc.triesByDepth[b].GetMaxTrieDepth() < tsc.triesByDepth[a].GetMaxTrieDepth()
 		})
 
 		assert.True(t, isSortedBySize)
@@ -50,9 +52,23 @@ func TestSnapshotStatistics_Add(t *testing.T) {
 	}
 }
 
-func getTrieStatsDTO(maxLevel int, size uint64) *TrieStatsDTO {
+func getTrieStats(maxLevel int, size uint64) common.TrieStatisticsHandler {
 	ts := NewTrieStatistics()
 	ts.AddBranchNode(maxLevel, size)
 
-	return ts.GetTrieStats()
+	return ts
+}
+
+func TestGetNumTriesByTypeString(t *testing.T) {
+	t.Parallel()
+
+	numMainTries := 1
+	numDataTries := 500
+	numTriesByType := make(map[common.TrieType]uint64)
+	numTriesByType[common.MainTrie] = uint64(numMainTries)
+	numTriesByType[common.DataTrie] = uint64(numDataTries)
+
+	numTriesByTypeString := getNumTriesByTypeString(numTriesByType)
+	expectedRes := fmt.Sprintf("%v: %v, %v: %v", common.DataTrie, numDataTries, common.MainTrie, numMainTries)
+	assert.Equal(t, expectedRes, numTriesByTypeString)
 }

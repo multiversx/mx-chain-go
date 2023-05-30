@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -153,7 +154,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = simAccountsDB.GetAllLeaves(allLeaves, context.Background(), nil)
+	err = simAccountsDB.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewMainTrieLeafParser())
 	require.NoError(t, err)
 
 	err = allLeaves.ErrChan.ReadFromChanNonBlocking()

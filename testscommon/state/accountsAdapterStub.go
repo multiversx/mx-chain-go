@@ -30,7 +30,7 @@ type AccountsStub struct {
 	SnapshotStateCalled           func(rootHash []byte)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
+	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
@@ -106,9 +106,9 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash)
+		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash, trieLeafParser)
 	}
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -67,6 +68,9 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
 	if err != nil {
@@ -90,6 +94,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -230,7 +235,13 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
+	err = mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		mainRootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	if err != nil {
 		return err
 	}
@@ -238,12 +249,15 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	var errFound error
 	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
-
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              u.hasher,
+		Marshaller:          u.marshalizer,
+		EnableEpochsHandler: u.enableEpochsHandler,
+	}
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
-		account := state.NewEmptyUserAccount()
-		err = u.marshalizer.Unmarshal(account, leaf.Value())
+		account, err := state.NewUserAccountFromBytes(leaf.Value(), argsAccCreation)
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue

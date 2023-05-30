@@ -17,26 +17,27 @@ import (
 )
 
 const (
-	getAccountPath            = "/:address"
-	getAccountsPath           = "/bulk"
-	getBalancePath            = "/:address/balance"
-	getUsernamePath           = "/:address/username"
-	getCodeHashPath           = "/:address/code-hash"
-	getKeysPath               = "/:address/keys"
-	getKeyPath                = "/:address/key/:key"
-	getESDTTokensPath         = "/:address/esdt"
-	getESDTBalancePath        = "/:address/esdt/:tokenIdentifier"
-	getESDTTokensWithRolePath = "/:address/esdts-with-role/:role"
-	getESDTsRolesPath         = "/:address/esdts/roles"
-	getRegisteredNFTsPath     = "/:address/registered-nfts"
-	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
-	getGuardianData           = "/:address/guardian-data"
-	urlParamOnFinalBlock      = "onFinalBlock"
-	urlParamOnStartOfEpoch    = "onStartOfEpoch"
-	urlParamBlockNonce        = "blockNonce"
-	urlParamBlockHash         = "blockHash"
-	urlParamBlockRootHash     = "blockRootHash"
-	urlParamHintEpoch         = "hintEpoch"
+	getAccountPath                 = "/:address"
+	getAccountsPath                = "/bulk"
+	getBalancePath                 = "/:address/balance"
+	getUsernamePath                = "/:address/username"
+	getCodeHashPath                = "/:address/code-hash"
+	getKeysPath                    = "/:address/keys"
+	getKeyPath                     = "/:address/key/:key"
+	getDataTrieMigrationStatusPath = "/:address/is-data-trie-migrated"
+	getESDTTokensPath              = "/:address/esdt"
+	getESDTBalancePath             = "/:address/esdt/:tokenIdentifier"
+	getESDTTokensWithRolePath      = "/:address/esdts-with-role/:role"
+	getESDTsRolesPath              = "/:address/esdts/roles"
+	getRegisteredNFTsPath          = "/:address/registered-nfts"
+	getESDTNFTDataPath             = "/:address/nft/:tokenIdentifier/nonce/:nonce"
+	getGuardianData                = "/:address/guardian-data"
+	urlParamOnFinalBlock           = "onFinalBlock"
+	urlParamOnStartOfEpoch         = "onStartOfEpoch"
+	urlParamBlockNonce             = "blockNonce"
+	urlParamBlockHash              = "blockHash"
+	urlParamBlockRootHash          = "blockRootHash"
+	urlParamHintEpoch              = "hintEpoch"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
@@ -54,6 +55,7 @@ type addressFacadeHandler interface {
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
+	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -163,6 +165,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getGuardianData,
 			Method:  http.MethodGet,
 			Handler: ag.getGuardianData,
+		},
+		{
+			Path:    getDataTrieMigrationStatusPath,
+			Method:  http.MethodGet,
+			Handler: ag.isDataTrieMigrated,
 		},
 	}
 	ag.endpoints = endpoints
@@ -440,6 +447,29 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens, "blockInfo": blockInfo})
+}
+
+// isDataTrieMigrated returns true if the data trie is migrated for the given address
+func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, err)
+		return
+	}
+
+	isMigrated, err := ag.getFacade().IsDataTrieMigrated(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrIsDataTrieMigrated, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"isMigrated": isMigrated})
 }
 
 func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {

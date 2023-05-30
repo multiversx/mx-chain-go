@@ -100,6 +100,7 @@ type NodeHandler interface {
 	GetProof(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
+	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement

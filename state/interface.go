@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -86,6 +87,7 @@ type UserAccountHandler interface {
 	SetUserName(userName []byte)
 	GetUserName() []byte
 	IsGuarded() bool
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
 	vmcommon.AccountHandler
 }
 
@@ -95,7 +97,8 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) (map[string][]byte, error)
+	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
 
@@ -120,7 +123,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
+	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
 	GetTrie(rootHash []byte) (common.Trie, error)
 	GetStackDebugFirstEntry() []byte
@@ -171,7 +174,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) (map[string][]byte, error)
+	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -223,4 +226,11 @@ type AccountsAdapterAPI interface {
 	AccountsAdapter
 	GetAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
 	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
+}
+
+type dataTrie interface {
+	common.Trie
+
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }

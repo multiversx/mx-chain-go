@@ -24,6 +24,7 @@ type TrieCreateArgs struct {
 	MaxTrieLevelInMem  uint
 	IdleProvider       trie.IdleNodeProvider
 	Identifier         string
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type trieCreator struct {
@@ -82,7 +83,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.MaxTrieLevelInMem)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, args.MaxTrieLevelInMem)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,6 +144,7 @@ func CreateTriesComponentsForShardId(
 		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:         dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -174,6 +176,7 @@ func CreateTriesComponentsForShardId(
 		SnapshotsEnabled:   snapshotsEnabled,
 		IdleProvider:       coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:         dataRetriever.PeerAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {
