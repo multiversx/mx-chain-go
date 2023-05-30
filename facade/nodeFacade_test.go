@@ -1324,7 +1324,34 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	assert.Equal(t, ret, blk)
 }
 
-func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
+func TestFacade_convertVmOutputToApiResponseNilLogData(t *testing.T) {
+	expectedLogData := []byte{}
+	expectedAdditionalLogData := [][]byte{}
+	testConvertVmOutput(t, nil, expectedLogData, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseEmptyLogData(t *testing.T) {
+	logData := [][]byte{}
+	expectedLogData := []byte{}
+	expectedAdditionalLogData := [][]byte{}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseSingleLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data")}
+	expectedLogData := []byte("log_data")
+	expectedAdditionalLogData := [][]byte{}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseMultiLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
+	expectedLogData := []byte("log_data1")
+	expectedAdditionalLogData := [][]byte{[]byte("log_data2"), []byte("log_data3")}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func testConvertVmOutput(t *testing.T, logData [][]byte, expectedLogData []byte, expectedAdditionalLogData [][]byte) {
 	arg := createMockArguments()
 	nf, _ := NewNodeFacade(arg)
 
@@ -1336,7 +1363,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 	retData := [][]byte{[]byte("ret_data_0")}
 	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
 	outAccTransferSndrAddr := []byte("addr1")
-	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, [][]byte{[]byte("log_data")}
+	logId, logAddr, logTopics := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}
 	vmInput := vmcommon.VMOutput{
 		ReturnData: retData,
 		OutputAccounts: map[string]*vmcommon.OutputAccount{
@@ -1382,10 +1409,11 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 
 	expectedLogs := []*vm.LogEntryApi{
 		{
-			Identifier: logId,
-			Address:    convertAddressFunc(logAddr),
-			Topics:     logTopics,
-			Data:       logData,
+			Identifier:     logId,
+			Address:        convertAddressFunc(logAddr),
+			Topics:         logTopics,
+			Data:           expectedLogData,
+			AdditionalData: expectedAdditionalLogData,
 		},
 	}
 
