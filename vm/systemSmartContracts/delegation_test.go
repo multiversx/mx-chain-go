@@ -4809,7 +4809,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
-	epochHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	epochHandler.IsMultiClaimOnDelegationEnabledField = false
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
@@ -4877,7 +4877,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
-	epochHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
 	account := &stateMock.AccountWrapMock{}
 	argsVmContext := VMContextArgs{
@@ -4893,7 +4893,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
 	}
-	args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)
 
@@ -4927,7 +4927,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	epochHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
 
 	account := &stateMock.AccountWrapMock{}

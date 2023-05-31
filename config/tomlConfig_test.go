@@ -773,7 +773,7 @@ func TestEnableEpochConfig(t *testing.T) {
     ConsistentTokensValuesLengthCheckEnableEpoch = 86
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
-    FixDelegationChangeOwnerOnAccountEnableEpoch = 69
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 87
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

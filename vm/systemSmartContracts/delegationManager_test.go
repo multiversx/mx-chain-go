@@ -1259,7 +1259,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgumentsForDelegationManager()
-		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		epochsHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
 		args.Eei = &mock.SystemEIStub{
 			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
@@ -1276,7 +1276,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgumentsForDelegationManager()
-		epochsHandler := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+		epochsHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
 		updateCalled := false
 		args.Eei = &mock.SystemEIStub{

@@ -235,7 +235,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.True(t, handler.IsChangeUsernameEnabled())
 		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
-		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
