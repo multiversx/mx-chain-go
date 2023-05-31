@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +19,7 @@ func TestStorer_MethodsDoNotPanic(t *testing.T) {
 	}()
 
 	s := NewStorer()
-	assert.False(t, check.IfNil(s))
+	assert.False(t, s.IsInterfaceNil())
 	assert.Nil(t, s.Put(nil, nil))
 	assert.Nil(t, s.PutInEpoch(nil, nil, 0))
 	assert.Nil(t, s.Has(nil))

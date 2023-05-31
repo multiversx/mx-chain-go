@@ -251,7 +251,7 @@ func TestResolversContainer_IterateNilHandlerShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			assert.Fail(t, "should not have paniced")
+			assert.Fail(t, "should not have panicked")
 		}
 	}()
 
@@ -269,7 +269,7 @@ func TestResolversContainer_IterateNotAValidKeyShouldWorkAndNotPanic(t *testing.
 	defer func() {
 		r := recover()
 		if r != nil {
-			assert.Fail(t, "should not have paniced")
+			assert.Fail(t, "should not have panicked")
 		}
 	}()
 
@@ -292,7 +292,7 @@ func TestResolversContainer_IterateNotAValidValueShouldWorkAndNotPanic(t *testin
 	defer func() {
 		r := recover()
 		if r != nil {
-			assert.Fail(t, "should not have paniced")
+			assert.Fail(t, "should not have panicked")
 		}
 	}()
 

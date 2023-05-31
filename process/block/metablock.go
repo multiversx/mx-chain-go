@@ -46,7 +46,7 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +133,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 	}
 
 	mp := metaProcessor{
@@ -392,6 +393,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1341,6 +1347,8 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+
+	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

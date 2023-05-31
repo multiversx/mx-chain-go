@@ -725,6 +725,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 				"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 				"error", errProc,
 			)
+
 			continue
 		}
 

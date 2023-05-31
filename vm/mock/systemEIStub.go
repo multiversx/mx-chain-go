@@ -104,6 +104,16 @@ func (s *SystemEIStub) UseGas(gas uint64) error {
 	return nil
 }
 
+// GetTotalSentToUser -
+func (s *SystemEIStub) GetTotalSentToUser(_ []byte) *big.Int {
+	return big.NewInt(0)
+}
+
+// GetLogs -
+func (s *SystemEIStub) GetLogs() []*vmcommon.LogEntry {
+	return make([]*vmcommon.LogEntry, 0)
+}
+
 // SetGasProvided -
 func (s *SystemEIStub) SetGasProvided(_ uint64) {
 }

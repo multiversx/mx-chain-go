@@ -330,9 +330,12 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 			}
 
-			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			if err != nil {
+				return nil, err
+			}
 
-			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
+			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return nil, err
 			}
@@ -614,7 +617,10 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			}
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		err = scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])

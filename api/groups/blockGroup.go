@@ -108,7 +108,6 @@ func (bg *blockGroup) getBlockByNonce(c *gin.Context) {
 	}
 
 	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
-
 }
 
 func (bg *blockGroup) getBlockByHash(c *gin.Context) {
@@ -166,11 +165,7 @@ func (bg *blockGroup) getAlteredAccountsByNonce(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
-	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
-		return
-	}
+	options := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
 
 	options.GetBlockParameters = api.GetBlockParameters{
 		RequestType: api.BlockFetchTypeByNonce,
@@ -195,11 +190,7 @@ func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
 		return
 	}
 
-	options, err := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
-	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetAlteredAccountsForBlock, err)
-		return
-	}
+	options := parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c)
 
 	options.GetBlockParameters = api.GetBlockParameters{
 		RequestType: api.BlockFetchTypeByHash,
@@ -232,12 +223,12 @@ func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
 	return options, nil
 }
 
-func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) (api.GetAlteredAccountsForBlockOptions, error) {
+func parseAlteredAccountsForBlockQueryOptionsWithoutRequestType(c *gin.Context) api.GetAlteredAccountsForBlockOptions {
 	tokensFilter := c.Request.URL.Query().Get(urlParamTokensFilter)
 
 	return api.GetAlteredAccountsForBlockOptions{
 		TokensFilter: tokensFilter,
-	}, nil
+	}
 }
 
 func getQueryParamNonce(c *gin.Context) (uint64, error) {

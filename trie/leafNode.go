@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var _ = node(&leafNode{})
@@ -112,7 +111,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb common.DBWriteCacher) error {
+func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -129,8 +128,8 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.DBWriteCacher, targetDb
 }
 
 func (ln *leafNode) commitCheckpoint(
-	_ common.DBWriteCacher,
-	targetDb common.DBWriteCacher,
+	_ common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
 	checkpointHashes CheckpointHashesHolder,
 	leavesChan chan core.KeyValueHolder,
 	ctx context.Context,
@@ -139,7 +138,7 @@ func (ln *leafNode) commitCheckpoint(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -175,7 +174,7 @@ func (ln *leafNode) commitCheckpoint(
 }
 
 func (ln *leafNode) commitSnapshot(
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
@@ -184,7 +183,7 @@ func (ln *leafNode) commitSnapshot(
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return errors.ErrContextClosing
+		return core.ErrContextClosing
 	}
 
 	err := ln.isEmptyOrNil()
@@ -236,7 +235,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ common.DBWriteCacher) error {
+func (ln *leafNode) resolveCollapsed(_ byte, _ common.TrieStorageInteractor) error {
 	return nil
 }
 
@@ -248,7 +247,7 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.DBWriteCacher) (value []byte, maxDepth uint32, err error) {
+func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
@@ -260,7 +259,7 @@ func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.DBWriteCach
 	return nil, currentDepth, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -270,7 +269,7 @@ func (ln *leafNode) getNext(key []byte, _ common.DBWriteCacher) (node, []byte, e
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(n *leafNode, _ common.DBWriteCacher) (node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode, _ common.TrieStorageInteractor) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -344,7 +343,7 @@ func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
 	return bn, nil
 }
 
-func (ln *leafNode) delete(key []byte, _ common.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
 	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
@@ -377,7 +376,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int, _ common.DBWriteCacher) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteractor) {
 	if ln == nil {
 		return
 	}
@@ -409,7 +408,7 @@ func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	return nil
 }
 
-func (ln *leafNode) getChildren(_ common.DBWriteCacher) ([]node, error) {
+func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) {
 	return nil, nil
 }
 
@@ -428,7 +427,7 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 func (ln *leafNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
-	_ common.DBWriteCacher,
+	_ common.TrieStorageInteractor,
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
@@ -459,7 +458,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 }
 
-func (ln *leafNode) getAllHashes(_ common.DBWriteCacher) ([][]byte, error) {
+func (ln *leafNode) getAllHashes(_ common.TrieStorageInteractor) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
@@ -495,7 +494,7 @@ func (ln *leafNode) getValue() []byte {
 	return ln.Value
 }
 
-func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.DBWriteCacher) error {
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.TrieStorageInteractor) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("collectStats error %w", err)
