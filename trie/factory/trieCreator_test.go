@@ -11,7 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/factory"
@@ -21,7 +23,7 @@ import (
 
 func getArgs() factory.TrieFactoryArgs {
 	return factory.TrieFactoryArgs{
-		Marshalizer:              &testscommon.MarshalizerMock{},
+		Marshalizer:              &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		PathManager:              &testscommon.PathManagerStub{},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
@@ -38,6 +40,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		MaxTrieLevelInMem:  5,
 		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
 		Identifier:         dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -194,10 +197,11 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
-				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+				EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -219,10 +223,11 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
-				InternalMarshalizerField:     &testscommon.MarshalizerMock{},
+				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
 				HasherField:                  &hashingMocks.HasherMock{},
 				PathHandlerField:             &testscommon.PathManagerStub{},
 				ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+				EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			&storageStubs.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

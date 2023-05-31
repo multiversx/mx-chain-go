@@ -75,7 +75,7 @@ func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	assert.Equal(t, excludedTopic, dplc.ExcludedPeersOnTopic())
 }
 
-func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
+func TestMakeDiffList_EmptyExcludedShouldRetAllPeersList(t *testing.T) {
 	t.Parallel()
 
 	allPeers := []core.PeerID{core.PeerID("peer1"), core.PeerID("peer2")}
@@ -239,4 +239,22 @@ func TestDiffPeerListCreator_IntraShardPeersList(t *testing.T) {
 	)
 
 	assert.Equal(t, peerList, dplc.IntraShardPeerList())
+}
+
+func TestDiffPeerListCreator_FullHistoryList(t *testing.T) {
+	t.Parallel()
+
+	peerList := []core.PeerID{"pid1", "pid2"}
+	dplc, _ := topicsender.NewDiffPeerListCreator(
+		&mock.MessageHandlerStub{
+			ConnectedFullHistoryPeersOnTopicCalled: func(topic string) []core.PeerID {
+				return peerList
+			},
+		},
+		mainTopic,
+		intraTopic,
+		excludedTopic,
+	)
+
+	assert.Equal(t, peerList, dplc.FullHistoryList())
 }

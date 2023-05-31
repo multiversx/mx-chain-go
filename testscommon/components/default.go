@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -27,9 +28,9 @@ import (
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 	return &mock.CoreComponentsMock{
-		IntMarsh:            &testscommon.MarshalizerMock{},
-		TxMarsh:             &testscommon.MarshalizerMock{},
-		VmMarsh:             &testscommon.MarshalizerMock{},
+		IntMarsh:            &marshallerMock.MarshalizerMock{},
+		TxMarsh:             &marshallerMock.MarshalizerMock{},
+		VmMarsh:             &marshallerMock.MarshalizerMock{},
 		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),

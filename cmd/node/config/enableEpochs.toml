@@ -242,6 +242,15 @@
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
     RuntimeCodeSizeFixEnableEpoch = 1
 
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 2
+
+    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+    SetGuardianEnableEpoch = 2
+
+    # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
+    AutoBalanceDataTriesEnableEpoch = 5
+
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 2
 
@@ -250,9 +259,6 @@
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
     ChangeUsernameEnableEpoch = 2
-
-    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    SetGuardianEnableEpoch = 2
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
     ConsistentTokensValuesLengthCheckEnableEpoch = 2

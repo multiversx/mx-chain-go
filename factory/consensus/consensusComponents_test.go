@@ -25,9 +25,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportMocks "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -43,7 +45,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
 		CoreComponents: &mock.CoreComponentsMock{
-			IntMarsh: &testscommon.MarshalizerStub{},
+			IntMarsh: &marshallerMock.MarshalizerStub{},
 			Hash: &testscommon.HasherStub{
 				SizeCalled: func() int {
 					return 1
@@ -63,8 +65,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return 2
 				},
 			},
-			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			StartTime:           time.Time{},
+			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
+			StartTime:                time.Time{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},

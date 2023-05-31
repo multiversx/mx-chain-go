@@ -116,7 +116,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -572,11 +571,11 @@ func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
 	trieStorageManager := CreateTrieStorageManagerWithPruningStorer(tpn.ShardCoordinator, tpn.EpochStartNotifier)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
-	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
@@ -588,11 +587,11 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 	trieStorageManager, _ := CreateTrieStorageManager(store)
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie common.Trie
-	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
+	tpn.AccntState, stateTrie = CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), stateTrie)
 
 	var peerTrie common.Trie
-	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
+	tpn.PeerState, peerTrie = CreateAccountsDBWithEnableEpochsHandler(ValidatorAccount, trieStorageManager, tpn.EnableEpochsHandler)
 	tpn.TrieContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), peerTrie)
 
 	tpn.TrieStorageManagers = make(map[string]common.StorageManager)
@@ -3295,12 +3294,11 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		acc, _ := n.AccntState.LoadAccount(vm.ESDTSCAddress)
 		userAcc, _ := acc.(state.UserAccountHandler)
 
-		rootHash, _ := userAcc.DataTrie().RootHash()
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
-		_ = userAcc.DataTrie().GetAllLeavesOnChannel(chLeaves, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		_ = userAcc.GetAllLeaves(chLeaves, context.Background())
 		for leaf := range chLeaves.LeavesChan {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

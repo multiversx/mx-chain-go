@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 type tokensSuppliesProcessor struct {
@@ -64,30 +63,27 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 		return nil
 	}
 
-	dataTrie := &common.TrieIteratorChannels{
+	dataTrieChan := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
-	errDataTrieGet := userAccount.DataTrie().GetAllLeavesOnChannel(dataTrie, context.Background(), rh, keyBuilder.NewKeyBuilder())
+	errDataTrieGet := userAccount.GetAllLeaves(dataTrieChan, context.Background())
 	if errDataTrieGet != nil {
 		return fmt.Errorf("%w while getting all leaves for root hash %s", errDataTrieGet, hex.EncodeToString(rh))
 	}
 
 	log.Trace("extractTokensSupplies - parsing account", "address", userAccount.AddressBytes())
 	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
-	for userLeaf := range dataTrie.LeavesChan {
+	for userLeaf := range dataTrieChan.LeavesChan {
 		if !bytes.HasPrefix(userLeaf.Key(), esdtPrefix) {
 			continue
 		}
 
 		tokenKey := userLeaf.Key()
 		lenESDTPrefix := len(esdtPrefix)
-		suffix := append(userLeaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := userLeaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			return fmt.Errorf("%w while parsing the token with key %s", errVal, hex.EncodeToString(tokenKey))
-		}
+		value := userLeaf.Value()
+
 		var esToken esdt.ESDigitalToken
 		err := t.marshaller.Unmarshal(&esToken, value)
 		if err != nil {
@@ -99,7 +95,7 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 		t.addToBalance(tokenID, nonce, esToken.Value)
 	}
 
-	err := dataTrie.ErrChan.ReadFromChanNonBlocking()
+	err := dataTrieChan.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return fmt.Errorf("%w while parsing errors from the trie iteration", err)
 	}

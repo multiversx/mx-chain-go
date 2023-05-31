@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -57,7 +57,7 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:   10,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsGovernanceFlagEnabledField: true,
 		},
 	}
@@ -71,7 +71,7 @@ func createEEIWithBlockchainHook(blockchainHook vm.BlockchainHook) vm.ContextHan
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -299,7 +299,7 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	gsc, _ := NewGovernanceContract(args)
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
