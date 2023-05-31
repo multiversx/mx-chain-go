@@ -87,3 +87,8 @@ func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
 func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	return txProc.verifyGuardian(tx, account)
 }
+
+// ShouldIncreaseNonce -
+func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
+	return txProc.shouldIncreaseNonce(executionErr)
+}
