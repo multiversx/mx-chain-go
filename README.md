@@ -11,7 +11,7 @@
 [![codecov](https://codecov.io/gh/multiversx/mx-chain-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/multiversx/mx-chain-go)
 [![Contributors](https://img.shields.io/github/contributors/multiversx/mx-chain-go)](https://github.com/multiversx/mx-chain-go/graphs/contributors)
 
-# mx-chain-go
+#    mx-chain-go
 
 The go implementation for the MultiversX protocol
 
