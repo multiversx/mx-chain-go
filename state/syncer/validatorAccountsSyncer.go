@@ -43,7 +43,6 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		timeoutHandler:                    timeoutHandler,
 		shardId:                           core.MetachainShardId,
 		cacher:                            args.Cacher,
-		rootHash:                          nil,
 		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
 		name:                              "peer accounts",
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
@@ -80,12 +79,17 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker co
 
 	go v.printStatisticsAndUpdateMetrics(ctx)
 
-	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
+	err := v.syncMainTrie(
+		rootHash,
+		factory.ValidatorTrieNodesTopic,
+		ctx,
+		nil, // not used for validator accounts syncer
+	)
 	if err != nil {
 		return err
 	}
 
-	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
 
 	return nil
 }
