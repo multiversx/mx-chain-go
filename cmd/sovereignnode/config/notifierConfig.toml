@@ -12,3 +12,7 @@ SubscribedEvents = [
     BlockingAckOnError = false
     # Possible values: sha256, keccak, blake2b. Should be compatible with mx-chain-node outport driver config
     HasherType = "blake2b"
+    # This flag describes the mode to start the WebSocket connector. Can be "client" or "server"
+    Mode = "client"
+    # This flag specifies if we should send an acknowledge signal upon recieving data
+    WithAcknowledge = true
