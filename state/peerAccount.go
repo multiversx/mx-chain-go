@@ -12,6 +12,8 @@ type peerAccount struct {
 	PeerAccountData
 }
 
+// TODO: replace NewEmptyPeerAccount with GetPeerAccountFromBytes
+
 // NewEmptyPeerAccount returns an empty peerAccount
 func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
@@ -37,6 +39,7 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 	}, nil
 }
 
+// AddressBytes returns the account's address
 func (pa *peerAccount) AddressBytes() []byte {
 	return pa.BLSPublicKey
 }

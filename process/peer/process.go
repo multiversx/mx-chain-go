@@ -977,11 +977,6 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKey(node.PubKeyBytes())
-	if err != nil {
-		return err
-	}
-
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)

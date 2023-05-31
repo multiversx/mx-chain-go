@@ -17,7 +17,7 @@ import (
 
 var _ UserAccountHandler = (*userAccount)(nil)
 
-// Account is the struct used in serialization/deserialization
+// userAccount holds all the information about a user account
 type userAccount struct {
 	UserAccountData
 

@@ -226,13 +226,6 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 	}
 
-	if !bytes.Equal(account.AddressBytes(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
-	}
-
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
 
@@ -276,12 +269,12 @@ func (stp *stakingToPeer) updatePeerState(
 		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
 	}
 
-	account, err := stp.getPeerAccount(blsPubKey)
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(stp.peerState, blsPubKey)
 	if err != nil {
 		return err
 	}
 
-	isUnJailForInactive := len(account.AddressBytes()) > 0 && !stakingData.Staked &&
+	isUnJailForInactive := !isNew && !stakingData.Staked &&
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(common.JailedList)
 	if isUnJailForInactive {
 		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.AddressBytes(), "unStakedEpoch", stakingData.UnStakedEpoch)
@@ -314,12 +307,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if !bytes.Equal(account.AddressBytes(), blsPubKey) {
+	if isNew {
 		log.Debug("new node", "blsKey", blsPubKey)
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
 	}
 
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
