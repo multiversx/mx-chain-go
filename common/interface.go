@@ -381,6 +381,7 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsSetGuardianEnabled() bool
+	IsRelayedNonceFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool
