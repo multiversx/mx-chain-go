@@ -220,6 +220,7 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
+	// TODO: remove this check when user account is moved in it's own package
 	if check.IfNil(a.dataTrieInteractor) {
 		return ErrNilTrackableDataTrie
 	}
@@ -244,6 +245,7 @@ func (a *userAccount) GetAllLeaves(
 
 // IsDataTrieMigrated returns true if the data trie is migrated to the latest version
 func (a *userAccount) IsDataTrieMigrated() (bool, error) {
+	// TODO: remove this check when user account is moved in it's own package
 	if check.IfNil(a.dataTrieInteractor) {
 		return false, ErrNilTrackableDataTrie
 	}
