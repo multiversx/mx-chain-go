@@ -399,10 +399,11 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event := allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.BuiltInFunctionSetGuardian),
-		Topics:     [][]byte{bob, uuid},
-		Data:       []byte{},
+		Address:        alice,
+		Identifier:     []byte(core.BuiltInFunctionSetGuardian),
+		Topics:         [][]byte{bob, uuid},
+		Data:           nil,
+		AdditionalData: nil,
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 
@@ -430,10 +431,11 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event = allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.SignalErrorOperation),
-		Topics:     [][]byte{alice, []byte("account has no active guardian")},
-		Data:       []byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e"),
+		Address:        alice,
+		Identifier:     []byte(core.SignalErrorOperation),
+		Topics:         [][]byte{alice, []byte("account has no active guardian")},
+		Data:           []byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e"),
+		AdditionalData: [][]byte{[]byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e")},
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 
@@ -458,9 +460,10 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event = allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.BuiltInFunctionGuardAccount),
-		Data:       []byte{},
+		Address:        alice,
+		Identifier:     []byte(core.BuiltInFunctionGuardAccount),
+		Data:           nil,
+		AdditionalData: nil,
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 }
