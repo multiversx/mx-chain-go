@@ -717,7 +717,7 @@ func TestEnableEpochConfig(t *testing.T) {
     ConsistentTokensValuesLengthCheckEnableEpoch = 68
 
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
-    ConsensusModelV2EnableEpoch = 64
+    ConsensusModelV2EnableEpoch = 69
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
