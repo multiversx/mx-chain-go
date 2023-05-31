@@ -6,13 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -337,21 +335,4 @@ func executeRelayedTransaction(
 
 	_, err := testContext.Accounts.Commit()
 	require.Nil(tb, err)
-}
-
-func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
-	scAcc, err := testContext.Accounts.LoadAccount(scAddress)
-	require.Nil(tb, err)
-	acc, ok := scAcc.(state.UserAccountHandler)
-	require.True(tb, ok)
-
-	return acc
-}
-
-func getAccountDataTrie(t *testing.T, testContext *vm.VMTestContext, address []byte) common.Trie {
-	acc := getAccount(t, testContext, address)
-	dataTrieInstance, ok := acc.DataTrie().(common.Trie)
-	require.True(t, ok)
-
-	return dataTrieInstance
 }
