@@ -46,7 +46,8 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
 		CoreComponents: &mock.CoreComponentsMock{
-			IntMarsh: &testscommon.MarshalizerStub{},
+			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
+			IntMarsh:                 &testscommon.MarshalizerStub{},
 			Hash: &testscommon.HasherStub{
 				SizeCalled: func() int {
 					return 1
@@ -157,6 +158,8 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
+		ChainRunType:          common.ChainRunTypeRegular,
+		ConsensusModel:        consensus.ConsensusModelV1,
 	}
 }
 

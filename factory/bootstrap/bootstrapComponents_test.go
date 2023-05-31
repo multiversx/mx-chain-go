@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -285,6 +286,6 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 		bc, err := bcf.Create()
 
 		assert.Nil(t, bc)
-		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+		require.True(t, errors.Is(err, errorsMx.ErrUnimplementedChainRunType))
 	})
 }
