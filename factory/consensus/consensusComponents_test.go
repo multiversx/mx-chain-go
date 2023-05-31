@@ -8,13 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -24,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -38,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1011,6 +1011,6 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 		cc, err := ccf.Create()
 
 		assert.Nil(t, cc)
-		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+		require.True(t, errors.Is(err, errorsMx.ErrUnimplementedChainRunType))
 	})
 }

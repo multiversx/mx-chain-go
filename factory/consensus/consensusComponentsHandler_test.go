@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"testing"
 
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
+
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func TestManagedConsensusComponents_CreateWithInvalidArgsShouldErr(t *testing.T)
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &factoryMocks.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 	}
 	args.StatusCoreComponents = statusCoreComponents
@@ -127,7 +128,7 @@ func TestManagedConsensusComponents_Create(t *testing.T) {
 		require.NotNil(t, managedConsensusComponents.ConsensusWorker())
 		require.NotNil(t, managedConsensusComponents.Bootstrapper())
 
-		require.Equal(t, factory.ConsensusComponentsName, managedConsensusComponents.String())
+		require.Equal(t, mxFactory.ConsensusComponentsName, managedConsensusComponents.String())
 	})
 }
 

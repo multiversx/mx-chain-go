@@ -50,6 +50,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -232,6 +233,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -1036,7 +1038,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
@@ -1053,7 +1055,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
