@@ -1181,7 +1181,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 
 	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
 
-	err := preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
+	_, err := preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
 	assert.Equal(t, missingNodeErr, err)
 }
 
