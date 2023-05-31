@@ -307,20 +307,3 @@ func testGasConsumed(
 	fmt.Println("expected gas consumed", expectedGasConsumed)
 	require.Equal(t, expectedGasConsumed, gasConsumed)
 }
-
-func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
-	scAcc, err := testContext.Accounts.LoadAccount(scAddress)
-	require.Nil(tb, err)
-	acc, ok := scAcc.(state.UserAccountHandler)
-	require.True(tb, ok)
-
-	return acc
-}
-
-func getAccountDataTrie(t *testing.T, testContext *vm.VMTestContext, address []byte) common.Trie {
-	acc := getAccount(t, testContext, address)
-	dataTrieInstance, ok := acc.DataTrie().(common.Trie)
-	require.True(t, ok)
-
-	return dataTrieInstance
-}
