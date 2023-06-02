@@ -230,12 +230,7 @@ func (agc *guardedAccount) updateGuardians(newGuardian *guardians.Guardian, acco
 		// no active guardian, do not replace the already pending guardian
 		return nil, fmt.Errorf("%w in updateGuardians, with %d configured guardians", err, numSetGuardians)
 	}
-
-	if bytes.Equal(activeGuardian.Address, newGuardian.Address) {
-		accountGuardians.Slice = []*guardians.Guardian{activeGuardian}
-	} else {
-		accountGuardians.Slice = []*guardians.Guardian{activeGuardian, newGuardian}
-	}
+	accountGuardians.Slice = []*guardians.Guardian{activeGuardian, newGuardian}
 
 	return accountGuardians, nil
 }

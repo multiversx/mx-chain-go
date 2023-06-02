@@ -15,6 +15,8 @@ import (
 	processOut "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -22,9 +24,9 @@ import (
 func newArgStorer() ArgSorter {
 	return ArgSorter{
 		Hasher:     testscommon.KeccakMock{},
-		Marshaller: testscommon.MarshalizerMock{},
+		Marshaller: marshallerMock.MarshalizerMock{},
 		MbsStorer:  testscommon.CreateMemUnit(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFrontRunningProtectionFlagEnabledField: true,
 		},
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"sync"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&extensionNode{})
@@ -25,11 +27,20 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
+	if check.IfNil(child) {
+		return nil, ErrNilNode
+	}
+
+	childVersion, err := child.getVersion()
+	if err != nil {
+		return nil, err
+	}
 
 	return &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
+			ChildVersion: uint32(childVersion),
 		},
 		child: child,
 		baseNode: &baseNode{
@@ -372,7 +383,7 @@ func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (n
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db common.TrieStorageInteractor) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -383,21 +394,21 @@ func (en *extensionNode) insert(n *leafNode, db common.TrieStorageInteractor) (n
 		return nil, emptyHashes, err
 	}
 
-	keyMatchLen := prefixLen(n.Key, en.Key)
+	keyMatchLen := prefixLen(newData.Key, en.Key)
 
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		return en.insertInSameEn(n, keyMatchLen, db)
+		return en.insertInSameEn(newData, keyMatchLen, db)
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(n, keyMatchLen)
+	return en.insertInNewBn(newData, keyMatchLen)
 }
 
-func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
-	n.Key = n.Key[keyMatchLen:]
-	newNode, oldHashes, err := en.child.insert(n, db)
+func (en *extensionNode) insertInSameEn(newData core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
+	newData.Key = newData.Key[keyMatchLen:]
+	newNode, oldHashes, err := en.child.insert(newData, db)
 	if check.IfNil(newNode) || err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -414,7 +425,7 @@ func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db common.
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -426,23 +437,20 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
-	newChildPos := n.Key[keyMatchLen]
+	newChildPos := newData.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
-	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
+	err = en.insertOldChildInBn(bn, oldChildPos, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
 
-	if len(followingExtensionNode.Key) < 1 {
-		bn.children[oldChildPos] = en.child
-	} else {
-		bn.children[oldChildPos] = followingExtensionNode
+	err = en.insertNewChildInBn(bn, newData, newChildPos, keyMatchLen)
+	if err != nil {
+		return nil, [][]byte{}, err
 	}
-	n.Key = n.Key[keyMatchLen+1:]
-	bn.children[newChildPos] = n
 
 	if keyMatchLen == 0 {
 		return bn, oldHash, nil
@@ -454,6 +462,41 @@ func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]
 	}
 
 	return newEn, oldHash, nil
+}
+
+func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, keyMatchLen int) error {
+	keyReminder := en.Key[keyMatchLen+1:]
+	childVersion, err := en.child.getVersion()
+	if err != nil {
+		return err
+	}
+	bn.setVersionForChild(childVersion, oldChildPos)
+
+	if len(keyReminder) < 1 {
+		bn.children[oldChildPos] = en.child
+		return nil
+	}
+
+	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
+	if err != nil {
+		return err
+	}
+
+	bn.children[oldChildPos] = followingExtensionNode
+	return nil
+}
+
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData core.TrieData, newChildPos byte, keyMatchLen int) error {
+	newData.Key = newData.Key[keyMatchLen+1:]
+
+	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
+	if err != nil {
+		return err
+	}
+
+	bn.children[newChildPos] = newLeaf
+	bn.setVersionForChild(newData.Version, newChildPos)
+	return nil
 }
 
 func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
@@ -483,29 +526,38 @@ func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bo
 		oldHashes = append(oldHashes, en.hash)
 	}
 
-	var n node
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		n, err = newLeafNode(concat(en.Key, newNode.Key...), newNode.Value, en.marsh, en.hasher)
+		newLeafData := core.TrieData{
+			Key:     concat(en.Key, newNode.Key...),
+			Value:   newNode.Value,
+			Version: core.TrieNodeVersion(newNode.Version),
+		}
+		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
 		return true, n, oldHashes, nil
 	case *extensionNode:
-		n, err = newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
+		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
 		return true, n, oldHashes, nil
+	case *branchNode:
+		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
+		if err != nil {
+			return false, nil, emptyHashes, err
+		}
+
+		return true, n, oldHashes, nil
+	case nil:
+		log.Warn("nil child after deleting from extension node")
+		return true, nil, oldHashes, nil
 	default:
-		n, err = newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		return true, n, oldHashes, nil
+		return false, nil, oldHashes, ErrInvalidNode
 	}
 }
 
@@ -639,6 +691,7 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	keyBuilder common.KeyBuilder,
+	trieLeafParser common.TrieLeafParser,
 	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	chanClose chan struct{},
@@ -663,7 +716,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		keyBuilder.BuildKey(en.Key)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), db, marshalizer, chanClose, ctx)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, keyBuilder.Clone(), trieLeafParser, db, marshalizer, chanClose, ctx)
 		if err != nil {
 			return err
 		}
@@ -745,6 +798,42 @@ func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLeve
 
 	ts.AddExtensionNode(depthLevel, uint64(len(val)))
 	return nil
+}
+
+func (en *extensionNode) getVersion() (core.TrieNodeVersion, error) {
+	if en.ChildVersion > math.MaxUint8 {
+		log.Warn("invalid trie node version for extension node", "child version", en.ChildVersion, "max version", math.MaxUint8)
+		return core.NotSpecified, ErrInvalidNodeVersion
+	}
+
+	return core.TrieNodeVersion(en.ChildVersion), nil
+}
+
+func (en *extensionNode) collectLeavesForMigration(
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
+	db common.TrieStorageInteractor,
+	keyBuilder common.KeyBuilder,
+) (bool, error) {
+	hasEnoughGasToContinueMigration := migrationArgs.TrieMigrator.ConsumeStorageLoadGas()
+	if !hasEnoughGasToContinueMigration {
+		return false, nil
+	}
+
+	shouldMigrateNode, err := shouldMigrateCurrentNode(en, migrationArgs)
+	if err != nil {
+		return false, err
+	}
+	if !shouldMigrateNode {
+		return true, nil
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return false, err
+	}
+
+	keyBuilder.BuildKey(en.Key)
+	return en.child.collectLeavesForMigration(migrationArgs, db, keyBuilder.Clone())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

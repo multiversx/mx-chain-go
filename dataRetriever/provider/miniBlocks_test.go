@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -247,7 +248,7 @@ func TestMiniBlockProvider_GetMiniBlocksFromStorerShouldBeFoundInStorage(t *test
 
 	cnt := 0
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
-	arg.Marshalizer = &testscommon.MarshalizerStub{
+	arg.Marshalizer = &marshallerMock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			cnt++
 			if cnt == 1 {

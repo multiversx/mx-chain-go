@@ -8,8 +8,8 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,7 +117,7 @@ func TestManagedCoreComponents(t *testing.T) {
 		require.NotNil(t, managedCoreComponents.ChanStopNodeProcess())
 		require.NotNil(t, managedCoreComponents.NodeTypeProvider())
 		require.NotNil(t, managedCoreComponents.EnableEpochsHandler())
-		require.Nil(t, managedCoreComponents.SetInternalMarshalizer(&testscommon.MarshalizerStub{}))
+		require.Nil(t, managedCoreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{}))
 
 		require.Equal(t, factory.CoreComponentsName, managedCoreComponents.String())
 	})

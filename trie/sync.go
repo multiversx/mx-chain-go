@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -40,6 +41,7 @@ type trieSyncer struct {
 	trieSyncStatistics        data.SyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
+	leavesChan                chan core.KeyValueHolder
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -57,6 +59,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
+	LeavesChan                chan core.KeyValueHolder
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -85,6 +88,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
+		leavesChan:                arg.LeavesChan,
 	}
 
 	return ts, nil
@@ -244,6 +248,9 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
+
+			writeLeafNodeToChan(currentNode, ts.leavesChan)
+
 			ts.timeoutHandler.ResetWatchdog()
 
 			ts.updateStats(uint64(numBytes), currentNode)
@@ -361,6 +368,20 @@ func trieNode(
 	decodedNode.setDirty(true)
 
 	return decodedNode, nil
+}
+
+func writeLeafNodeToChan(element node, ch chan core.KeyValueHolder) {
+	if ch == nil {
+		return
+	}
+
+	leafNodeElement, isLeaf := element.(*leafNode)
+	if !isLeaf {
+		return
+	}
+
+	trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+	ch <- trieLeaf
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

@@ -1,49 +1,51 @@
 package factory
 
 import (
-	"errors"
-
-	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // PersisterFactory is the factory which will handle creating new databases
 type PersisterFactory struct {
-	dbType            string
-	batchDelaySeconds int
-	maxBatchSize      int
-	maxOpenFiles      int
+	dbConfigHandler storage.DBConfigHandler
 }
 
 // NewPersisterFactory will return a new instance of a PersisterFactory
-func NewPersisterFactory(config config.DBConfig) *PersisterFactory {
-	return &PersisterFactory{
-		dbType:            config.Type,
-		batchDelaySeconds: config.BatchDelaySeconds,
-		maxBatchSize:      config.MaxBatchSize,
-		maxOpenFiles:      config.MaxOpenFiles,
+func NewPersisterFactory(dbConfigHandler storage.DBConfigHandler) (*PersisterFactory, error) {
+	if check.IfNil(dbConfigHandler) {
+		return nil, storage.ErrNilDBConfigHandler
 	}
+
+	return &PersisterFactory{
+		dbConfigHandler: dbConfigHandler,
+	}, nil
 }
 
 // Create will return a new instance of a DB with a given path
 func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	if len(path) == 0 {
-		return nil, errors.New("invalid file path")
+		return nil, storage.ErrInvalidFilePath
 	}
 
-	switch storageunit.DBType(pf.dbType) {
-	case storageunit.LvlDB:
-		return database.NewLevelDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageunit.LvlDBSerial:
-		return database.NewSerialDB(path, pf.batchDelaySeconds, pf.maxBatchSize, pf.maxOpenFiles)
-	case storageunit.MemoryDB:
-		return database.NewMemDB(), nil
-	default:
-		return nil, storage.ErrNotSupportedDBType
+	dbConfig, err := pf.dbConfigHandler.GetDBConfig(path)
+	if err != nil {
+		return nil, err
 	}
+
+	pc := newPersisterCreator(*dbConfig)
+
+	persister, err := pc.Create(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pf.dbConfigHandler.SaveDBConfigToFilePath(path, dbConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return persister, nil
 }
 
 // CreateDisabled will return a new disabled persister

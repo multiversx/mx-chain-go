@@ -22,10 +22,12 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
@@ -296,9 +298,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 					return []byte(humanReadable), nil
 				},
 			},
-			IntMarsh:                   &testscommon.MarshalizerStub{},
+			IntMarsh:                   &marshallerMock.MarshalizerStub{},
 			EpochChangeNotifier:        &epochNotifierMock.EpochNotifierStub{},
-			EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			UInt64ByteSliceConv:        &testsMocks.Uint64ByteSliceConverterMock{},
 			EconomicsHandler:           &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:                &testscommon.NodesSetupStub{},

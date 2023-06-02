@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -278,4 +279,24 @@ func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []by
 
 	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
+}
+
+func shouldMigrateCurrentNode(
+	currentNode node,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
+) (bool, error) {
+	version, err := currentNode.getVersion()
+	if err != nil {
+		return false, err
+	}
+
+	if version == migrationArgs.NewVersion {
+		return false, nil
+	}
+
+	if version != migrationArgs.OldVersion && version != core.NotSpecified {
+		return false, nil
+	}
+
+	return true, nil
 }
