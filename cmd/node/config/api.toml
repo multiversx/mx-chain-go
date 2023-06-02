@@ -83,7 +83,10 @@
         { Name = "/:address/esdts-with-role/:role", Open = true },
 
         # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
-        { Name = "/:address/registered-nfts", Open = true }
+        { Name = "/:address/registered-nfts", Open = true },
+
+        # /address/:address/is-data-trie-migrated will return the status of the data trie migration for the given address
+        { Name = "/:address/is-data-trie-migrated", Open = true }
     ]
 
 [APIPackages.hardfork]

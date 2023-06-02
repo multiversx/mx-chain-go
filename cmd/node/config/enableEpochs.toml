@@ -62,7 +62,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 1000000
+    GovernanceEnableEpoch = 5
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -242,17 +242,32 @@
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
     RuntimeCodeSizeFixEnableEpoch = 1
 
-    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
-    MultiClaimOnDelegationEnableEpoch = 3
-
-    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
-    BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 1, Type = "KOSK"}
-    ]
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 2
 
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 2
+
+    # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
+    AutoBalanceDataTriesEnableEpoch = 5
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 2
+
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
+    MultiClaimOnDelegationEnableEpoch = 3
+
+    # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
+    ChangeUsernameEnableEpoch = 2
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 2
+
+    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
+    BLSMultiSignerEnableEpoch = [
+        { EnableEpoch = 0, Type = "no-KOSK" },
+        { EnableEpoch = 1, Type = "KOSK" }
+    ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

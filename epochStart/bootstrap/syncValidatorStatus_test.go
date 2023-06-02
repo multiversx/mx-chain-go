@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -306,7 +307,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:       false,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		NumStoredEpochs:     4,
 	}
 }

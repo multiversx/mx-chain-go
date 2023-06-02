@@ -56,6 +56,7 @@ func GetGeneralConfig() config.Config {
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
 			SetGuardianEpochsDelay:               20,
+			StatusPollingIntervalSec:             10,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -430,6 +431,11 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 			MaxNumAddressesInTransferRole: 100,
+			DNSV2Addresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
 		},
 	}
 }

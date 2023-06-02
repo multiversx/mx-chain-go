@@ -6,9 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -271,7 +271,7 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions)
 }
 
 // GetAlteredAccountsForBlock returns nil and error
-func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nil, errNodeStarting
 }
 
@@ -398,6 +398,11 @@ func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common
 // GetGasConfigs return a nil map and error
 func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return nil, errNodeStarting
+}
+
+// IsDataTrieMigrated returns false and error
+func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
+	return false, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

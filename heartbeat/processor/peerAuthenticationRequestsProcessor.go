@@ -55,12 +55,26 @@ type peerAuthenticationRequestsProcessor struct {
 
 // NewPeerAuthenticationRequestsProcessor creates a new instance of peerAuthenticationRequestsProcessor
 func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsProcessor) (*peerAuthenticationRequestsProcessor, error) {
+	processor, err := newPeerAuthenticationRequestsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	var ctx context.Context
+	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeoutForRequests)
+
+	go processor.startRequestingMessages(ctx)
+
+	return processor, nil
+}
+
+func newPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsProcessor) (*peerAuthenticationRequestsProcessor, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	processor := &peerAuthenticationRequestsProcessor{
+	return &peerAuthenticationRequestsProcessor{
 		requestHandler:          args.RequestHandler,
 		nodesCoordinator:        args.NodesCoordinator,
 		peerAuthenticationPool:  args.PeerAuthenticationPool,
@@ -70,14 +84,7 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 		delayBetweenRequests:    args.DelayBetweenRequests,
 		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
 		randomizer:              args.Randomizer,
-	}
-
-	var ctx context.Context
-	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeoutForRequests)
-
-	go processor.startRequestingMessages(ctx)
-
-	return processor, nil
+	}, nil
 }
 
 func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {

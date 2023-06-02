@@ -21,12 +21,14 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the database configuration
 type DBConfig struct {
-	FilePath          string
-	Type              string
-	BatchDelaySeconds int
-	MaxBatchSize      int
-	MaxOpenFiles      int
-	UseTmpAsFilePath  bool
+	FilePath            string
+	Type                string
+	BatchDelaySeconds   int
+	MaxBatchSize        int
+	MaxOpenFiles        int
+	UseTmpAsFilePath    bool
+	ShardIDProviderType string
+	NumShards           int32
 }
 
 // StorageConfig will map the storage unit configuration
@@ -422,6 +424,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

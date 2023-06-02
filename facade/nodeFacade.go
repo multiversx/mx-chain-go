@@ -12,9 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -68,8 +68,6 @@ type nodeFacade struct {
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
 	blockchain             chainData.ChainHandler
-	ctx                    context.Context
-	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -115,7 +113,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		peerState:              arg.PeerState,
 		blockchain:             arg.Blockchain,
 	}
-	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
 }
@@ -502,7 +499,7 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for a given block
-func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nf.apiResolver.GetAlteredAccountsForBlock(options)
 }
 
@@ -557,8 +554,6 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
 
-	nf.cancelFunc()
-
 	return nil
 }
 
@@ -588,6 +583,11 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
 	return nf.node.VerifyProof(rootHash, address, proof)
+}
+
+// IsDataTrieMigrated returns true if the data trie for the given address is migrated
+func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.AccountQueryOptions) (bool, error) {
+	return nf.node.IsDataTrieMigrated(address, options)
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

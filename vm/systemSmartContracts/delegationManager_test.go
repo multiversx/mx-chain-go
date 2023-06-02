@@ -10,7 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -37,7 +37,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		ConfigChangeAddress:    configChangeAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsDelegationManagerFlagEnabledField:     true,
 			IsValidatorToDelegationFlagEnabledField: true,
 			IsMultiClaimOnDelegationEnabledField:    true,
@@ -189,7 +189,7 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 	args := createMockArgumentsForDelegationManager()
 	eei := createDefaultEei()
 	args.Eei = eei
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	enableEpochsHandler.IsDelegationManagerFlagEnabledField = false
@@ -680,7 +680,7 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
@@ -722,7 +722,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
@@ -761,7 +761,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
-	enableEpochsHandler, _ := args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
@@ -846,7 +846,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	serviceFee := []byte{10}
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
-	enableEpochsHandler, _ := d.enableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -1096,7 +1096,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 		createSystemSCContainer(eei),
 	)
 
-	enableHandlerStub := &testscommon.EnableEpochsHandlerStub{
+	enableHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsMultiClaimOnDelegationEnabledField: false,
 		IsDelegationManagerFlagEnabledField:  true,
 	}

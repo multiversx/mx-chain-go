@@ -13,12 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createEnableEpochsHandler() common.EnableEpochsHandler {
-	return &testscommon.EnableEpochsHandlerStub{
+	return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsSCDeployFlagEnabledField: true,
 	}
 }
@@ -446,7 +447,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -526,7 +527,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}

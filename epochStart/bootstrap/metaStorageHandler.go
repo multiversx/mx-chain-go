@@ -55,6 +55,7 @@ func NewMetaStorageHandler(
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            nodeProcessingMode,
 			SnapshotsEnabled:              snapshotsEnabled,
+			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:            managedPeersHolder,
 		},
 	)

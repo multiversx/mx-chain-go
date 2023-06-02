@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -253,7 +253,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 
 		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
 
-		storer := &storage.StorerStub{
+		storer := &mock.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
 				case bytes.Equal(epoch10Key, key):
@@ -311,7 +311,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 		epoch8Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(8))...)
 
 		numPutCalls := uint32(0)
-		storer := &storage.StorerStub{
+		storer := &mock.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
 				switch {
 				case bytes.Equal(epoch10Key, key):
@@ -364,7 +364,7 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			CurrentEpoch: 10,
 		}
 
-		storer := &storage.StorerStub{
+		storer := &mock.StorerStub{
 			GetCalled: func(key []byte) (b []byte, err error) {
 				return nil, errors.New("get failed")
 			},
@@ -391,7 +391,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 	t.Run("nil nodes config, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		err := SaveNodesCoordinatorRegistry(nil, &storage.StorerStub{})
+		err := SaveNodesCoordinatorRegistry(nil, &mock.StorerStub{})
 		require.Equal(t, ErrNilNodesCoordinatorRegistry, err)
 	})
 
@@ -425,7 +425,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 		}
 
 		expectedErr := errors.New("expected error")
-		storer := &storage.StorerStub{
+		storer := &mock.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				return expectedErr
 			},
@@ -472,7 +472,7 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 		}
 
 		putCalls := 0
-		storer := &storage.StorerStub{
+		storer := &mock.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				switch {
 				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):

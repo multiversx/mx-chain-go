@@ -1222,11 +1222,6 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
@@ -1539,10 +1534,6 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 	if len(args.Arguments) != 1 {
 		v.eei.AddReturnMessage("should have specified one argument containing the unstake value")
-		return vmcommon.UserError
-	}
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 
