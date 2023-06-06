@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -56,7 +56,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -87,6 +87,7 @@ type FacadeStub struct {
 	RestAPIServerDebugModeCalled                func() bool
 	PprofEnabledCalled                          func() bool
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
+	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetTokenSupply -
@@ -411,7 +412,7 @@ func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions
 }
 
 // GetAlteredAccountsForBlock -
-func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	if f.GetAlteredAccountsForBlockCalled != nil {
 		return f.GetAlteredAccountsForBlockCalled(options)
 	}
@@ -551,6 +552,15 @@ func (f *FacadeStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*sta
 	}
 
 	return nil, nil
+}
+
+// IsDataTrieMigrated -
+func (f *FacadeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	if f.IsDataTrieMigratedCalled != nil {
+		return f.IsDataTrieMigratedCalled(address, options)
+	}
+
+	return false, nil
 }
 
 // Trigger -

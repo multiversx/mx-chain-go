@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
@@ -48,8 +49,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				ChangeConfigAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -76,7 +78,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		},
 		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
-		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

@@ -225,6 +225,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
+	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
 	if err != nil {
 		return nil, err

@@ -43,26 +43,27 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts              state.AccountsAdapter
-	PubkeyConv            core.PubkeyConverter
-	StorageService        dataRetriever.StorageService
-	DataPool              dataRetriever.PoolsHolder
-	BlockChain            data.ChainHandler
-	ShardCoordinator      sharding.Coordinator
-	Marshalizer           marshal.Marshalizer
-	Uint64Converter       typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions      vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
-	GlobalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
-	CompiledSCPool        storage.Cacher
-	ConfigSCStorage       config.StorageConfig
-	EnableEpochs          config.EnableEpochs
-	EpochNotifier         vmcommon.EpochNotifier
-	EnableEpochsHandler   common.EnableEpochsHandler
-	WorkingDir            string
-	NilCompiledSCStore    bool
-	GasSchedule           core.GasScheduleNotifier
-	Counter               BlockChainHookCounter
+	Accounts                 state.AccountsAdapter
+	PubkeyConv               core.PubkeyConverter
+	StorageService           dataRetriever.StorageService
+	DataPool                 dataRetriever.PoolsHolder
+	BlockChain               data.ChainHandler
+	ShardCoordinator         sharding.Coordinator
+	Marshalizer              marshal.Marshalizer
+	Uint64Converter          typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions         vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler        vmcommon.SimpleESDTNFTStorageHandler
+	GlobalSettingsHandler    vmcommon.ESDTGlobalSettingsHandler
+	CompiledSCPool           storage.Cacher
+	ConfigSCStorage          config.StorageConfig
+	EnableEpochs             config.EnableEpochs
+	EpochNotifier            vmcommon.EpochNotifier
+	EnableEpochsHandler      common.EnableEpochsHandler
+	WorkingDir               string
+	NilCompiledSCStore       bool
+	GasSchedule              core.GasScheduleNotifier
+	Counter                  BlockChainHookCounter
+	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -92,8 +93,9 @@ type BlockChainHookImpl struct {
 
 	mapActivationEpochs map[uint32]struct{}
 
-	mutGasLock  sync.RWMutex
-	gasSchedule core.GasScheduleNotifier
+	mutGasLock               sync.RWMutex
+	gasSchedule              core.GasScheduleNotifier
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -106,23 +108,24 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:              args.Accounts,
-		pubkeyConv:            args.PubkeyConv,
-		storageService:        args.StorageService,
-		blockChain:            args.BlockChain,
-		shardCoordinator:      args.ShardCoordinator,
-		marshalizer:           args.Marshalizer,
-		uint64Converter:       args.Uint64Converter,
-		builtInFunctions:      args.BuiltInFunctions,
-		compiledScPool:        args.CompiledSCPool,
-		configSCStorage:       args.ConfigSCStorage,
-		workingDir:            args.WorkingDir,
-		nilCompiledSCStore:    args.NilCompiledSCStore,
-		nftStorageHandler:     args.NFTStorageHandler,
-		globalSettingsHandler: args.GlobalSettingsHandler,
-		enableEpochsHandler:   args.EnableEpochsHandler,
-		gasSchedule:           args.GasSchedule,
-		counter:               args.Counter,
+		accounts:                 args.Accounts,
+		pubkeyConv:               args.PubkeyConv,
+		storageService:           args.StorageService,
+		blockChain:               args.BlockChain,
+		shardCoordinator:         args.ShardCoordinator,
+		marshalizer:              args.Marshalizer,
+		uint64Converter:          args.Uint64Converter,
+		builtInFunctions:         args.BuiltInFunctions,
+		compiledScPool:           args.CompiledSCPool,
+		configSCStorage:          args.ConfigSCStorage,
+		workingDir:               args.WorkingDir,
+		nilCompiledSCStore:       args.NilCompiledSCStore,
+		nftStorageHandler:        args.NFTStorageHandler,
+		globalSettingsHandler:    args.GlobalSettingsHandler,
+		enableEpochsHandler:      args.EnableEpochsHandler,
+		gasSchedule:              args.GasSchedule,
+		counter:                  args.Counter,
+		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -202,7 +205,9 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.Counter) {
 		return ErrNilBlockchainHookCounter
 	}
-
+	if check.IfNil(args.MissingTrieNodesNotifier) {
+		return ErrNilMissingTrieNodesNotifier
+	}
 	return nil
 }
 
@@ -268,12 +273,27 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	if err != nil {
 		messages = append(messages, "error")
 		messages = append(messages, err)
+
+		bh.syncIfMissingDataTrieNode(err)
 	}
 	log.Trace("GetStorageData ", messages...)
 
 	// returning nil here ensures backwards compatibility as the error wasn't taken into account by the previous versions
 	// of the vm. Now, the VM take into account this error so the processMaxReadsCounters call can stop the execution of the contract
 	return value, trieDepth, nil
+}
+
+func (bh *BlockChainHookImpl) syncIfMissingDataTrieNode(err error) {
+	if !core.IsGetNodeFromDBError(err) {
+		return
+	}
+
+	getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+	if check.IfNil(getNodeErr) {
+		return
+	}
+
+	bh.missingTrieNodesNotifier.AsyncNotifyMissingTrieNode(getNodeErr.GetKey())
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {

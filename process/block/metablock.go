@@ -46,7 +46,7 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +134,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 	}
 
 	mp := metaProcessor{
@@ -397,6 +398,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -618,15 +624,24 @@ func (mp *metaProcessor) indexBlock(
 		HeaderHash:             headerHash,
 		Header:                 metaBlock,
 		Body:                   body,
+		PreviousHeader:         lastMetaBlock,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		PreviousHeader:         lastMetaBlock,
+		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
+		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 		return
 	}
-	mp.outportHandler.SaveBlock(argSaveBlock)
+	err = mp.outportHandler.SaveBlock(argSaveBlock)
+	if err != nil {
+		log.Error("metaProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
+		return
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
@@ -1333,6 +1348,8 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+
+	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

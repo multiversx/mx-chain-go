@@ -31,6 +31,8 @@ type BuiltInCost struct {
 	SetGuardian              uint64
 	GuardAccount             uint64
 	UnGuardAccount           uint64
+	TrieLoadPerNode          uint64
+	TrieStorePerNode         uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

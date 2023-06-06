@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
@@ -39,7 +39,7 @@ func TestNewBlockGroup(t *testing.T) {
 
 type alteredAccountsForBlockResponse struct {
 	Data struct {
-		Accounts []*outport.AlteredAccount `json:"accounts"`
+		Accounts []*alteredAccount.AlteredAccount `json:"accounts"`
 	} `json:"data"`
 	Error string `json:"error"`
 	Code  string `json:"code"`
@@ -251,7 +251,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 		t.Parallel()
 
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				return nil, expectedErr
 			},
 		}
@@ -275,7 +275,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 				Nonce:       providedNonce,
 			},
 		}
-		expectedResponse := []*outport.AlteredAccount{
+		expectedResponse := []*alteredAccount.AlteredAccount{
 			{
 				Address: "alice",
 				Balance: "100000",
@@ -283,7 +283,7 @@ func TestBlockGroup_getAlteredAccountsByNonce(t *testing.T) {
 		}
 
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				require.Equal(t, expectedOptions, options)
 				return expectedResponse, nil
 			},
@@ -320,7 +320,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 
 		providedHash := hex.EncodeToString([]byte("hash"))
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				return nil, expectedErr
 			},
 		}
@@ -344,7 +344,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 				Hash:        []byte("hash"),
 			},
 		}
-		expectedResponse := []*outport.AlteredAccount{
+		expectedResponse := []*alteredAccount.AlteredAccount{
 			{
 				Address: "alice",
 				Balance: "100000",
@@ -352,7 +352,7 @@ func TestBlockGroup_getAlteredAccountsByHash(t *testing.T) {
 		}
 
 		facade := &mock.FacadeStub{
-			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+			GetAlteredAccountsForBlockCalled: func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 				require.Equal(t, providedHash, hex.EncodeToString(options.Hash))
 				require.Equal(t, expectedOptions, options)
 				return expectedResponse, nil

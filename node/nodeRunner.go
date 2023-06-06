@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -59,9 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -611,7 +610,7 @@ func getUserAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
-	userTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.UserAccountTrie))
+	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storageManager := userTrie.GetStorageManager()
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(int32(config.TrieSync.NumConcurrentTrieSyncers))
@@ -644,7 +643,7 @@ func getValidatorAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
-	peerTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.PeerAccountTrie))
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storageManager := peerTrie.GetStorageManager()
 
 	args := syncer.ArgsNewValidatorAccountsSyncer{
@@ -679,10 +678,10 @@ func getBaseAccountSyncerArgs(
 		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
-		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 
@@ -863,6 +862,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 
 	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		FlagsConfig:           *nr.configs.FlagsConfig,
 		BootstrapRoundIndex:   nr.configs.FlagsConfig.BootstrapRoundIndex,
 		CoreComponents:        coreComponents,
 		NetworkComponents:     networkComponents,
@@ -1209,7 +1209,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                 *configs.GeneralConfig,
 		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		PrefConfigs:            *configs.PreferencesConfig,
 		ImportDBConfig:         *configs.ImportDbConfig,
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,
@@ -1228,11 +1228,9 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		MaxRating:              configs.RatingsConfig.General.MaxRating,
 		SystemSCConfig:         configs.SystemSCConfig,
-		Version:                configs.FlagsConfig.Version,
 		ImportStartHandler:     importStartHandler,
-		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
+		FlagsConfig:            *configs.FlagsConfig,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1276,8 +1274,8 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		SnapshotsEnabled:              configs.FlagsConfig.SnapshotsEnabled,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1677,7 +1675,10 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  epoch,
+		})
 	}
 }
 

@@ -1,10 +1,10 @@
 package transactionsfee
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -14,37 +14,56 @@ import (
 func TestTransactionsAndScrsHolder(t *testing.T) {
 	t.Parallel()
 
-	txHash := "txHash"
-	scrHash1 := "scrHash1"
-	scrHash2 := "scrHash2"
-	scrHash3 := "scrHash3"
-	pool := &outportcore.Pool{
-		Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			txHash: outportcore.NewTransactionHandlerWithGasAndFee(&transaction.Transaction{
-				Nonce: 1,
-			}, 0, big.NewInt(0)),
+	txHash := []byte("txHash")
+	scrHash1 := []byte("scrHash1")
+	scrHash2 := []byte("scrHash2")
+	scrHash3 := []byte("scrHash3")
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): {
+				Transaction: &transaction.Transaction{
+					Nonce: 1,
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 		},
-		Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-			scrHash1: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
-				Nonce:          2,
-				OriginalTxHash: []byte(txHash),
-			}, 0, big.NewInt(0)),
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrHash1): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
+					Nonce:          2,
+					OriginalTxHash: txHash,
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 
-			scrHash2: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{}, 0, big.NewInt(0)),
-			scrHash3: outportcore.NewTransactionHandlerWithGasAndFee(&smartContractResult.SmartContractResult{
-				Nonce:          3,
-				OriginalTxHash: []byte(txHash),
-			}, 0, big.NewInt(0)),
+			hex.EncodeToString(scrHash2): {
+				SmartContractResult: &smartContractResult.SmartContractResult{},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
+			hex.EncodeToString(scrHash3): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
+					Nonce:          3,
+					OriginalTxHash: txHash,
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
 		},
-		Logs: []*data.LogData{
+		Logs: []*outportcore.LogData{
 			{
-				TxHash: "hash",
+				Log:    &transaction.Log{Address: []byte("addr")},
+				TxHash: hex.EncodeToString(txHash),
 			},
 			{
-				TxHash: txHash,
-				LogHandler: &transaction.Log{
-					Address: []byte("addr"),
-				},
+				Log:    &transaction.Log{},
+				TxHash: "hash",
 			},
 		},
 	}
@@ -52,7 +71,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 	res := prepareTransactionsAndScrs(pool)
 	require.NotNil(t, res)
 	require.Equal(t, 1, len(res.txsWithResults))
-	require.Equal(t, 2, len(res.txsWithResults[txHash].scrs))
-	require.NotNil(t, res.txsWithResults[txHash].log)
+	require.Equal(t, 2, len(res.txsWithResults[hex.EncodeToString(txHash)].scrs))
+	require.NotNil(t, res.txsWithResults[hex.EncodeToString(txHash)].log)
 	require.Equal(t, 1, len(res.scrsNoTx))
 }
