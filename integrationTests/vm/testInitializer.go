@@ -1181,7 +1181,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		shardCoordinator,
 		db,
 		gasScheduleNotifier,
-		config.RoundConfig{},
+		integrationTests.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }
