@@ -3,6 +3,7 @@ package groups_test
 import (
 	"bytes"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
+	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
@@ -77,6 +79,18 @@ type internalValidatorsInfoResponse struct {
 	Code  string `json:"code"`
 }
 
+var (
+	expectedRawBlockOutput = bytes.Repeat([]byte("1"), 10)
+	expectedMetaBlock      = block.MetaBlock{
+		Nonce: 15,
+		Epoch: 15,
+	}
+	expectedShardBlock = block.Header{
+		Nonce: 15,
+		Round: 15,
+	}
+)
+
 func TestNewInternalBlockGroup(t *testing.T) {
 	t.Parallel()
 
@@ -93,1467 +107,849 @@ func TestNewInternalBlockGroup(t *testing.T) {
 	})
 }
 
-// ---- RAW
-
-// ---- MetaBlock - by nonce
-
-func TestGetRawMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
+func TestInternalBlockGroup_getMetaBlockByNonce(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockNonce.Error()))
-}
-
-func TestGetRawMetaBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawMetaBlockByNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MetaBlock - by round
-
-func TestGetRawMetaBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-round", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawMetaBlockByRound_InvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-round/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockRound.Error()))
-}
-
-func TestGetRawMetaBlockByRound_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawMetaBlockByRound_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MetaBlock - by hash
-
-func TestGetRawMetaBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawMetaBlockByHash_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-hash/dummyhash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawMetaBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- StartOfEpoch MetaBlock - raw
-
-func TestGetRawStartOfEpochMetaBlock_NoEpochUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/a", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-}
-
-func TestGetRawStartOfEpochMetaBlock_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawStartOfEpochMetaBlock_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/startofepoch/metablock/by-epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ----------------- Shard Block ---------------
-
-func TestGetRawShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-}
-
-func TestGetRawShardBlockByNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- ShardBlock - by round
-
-func TestGetRawShardBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-round", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawShardBlockByRound_InvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-round/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockRound.Error()))
-}
-
-func TestGetRawShardBlockByRound_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawShardBlockByRound_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- ShardBlock - by hash
-
-func TestGetRawShardBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawShardBlockByHash_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-hash/dummyhash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetRawShardBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MiniBlock
-
-func TestGetRawMiniBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawMiniBlockByHash_NoEpochUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/aaaa/epoch", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetRawMiniBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/raw/miniblock/by-hash/aaaa/epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- JSON
-
-// ---- MetaBlock - by nonce
-
-func TestGetInternalMetaBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-nonce", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalMetaBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-nonce/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockNonce.Error()))
-}
-
-func TestGetInternalMetaBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalMetaBlockByNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.MetaBlock{
-		Nonce: 15,
-		Epoch: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MetaBlock - by round
-
-func TestGetInternalMetaBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-round", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalMetaBlockByRound_InvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-round/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockRound.Error()))
-}
-
-func TestGetInternalMetaBlockByRound_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalMetaBlockByRound_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.MetaBlock{
-		Nonce: 15,
-		Epoch: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MetaBlock - by hash
-
-func TestGetInternalMetaBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalMetaBlockByHash_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-hash/dummyhash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalMetaBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.MetaBlock{
-		Nonce: 15,
-		Epoch: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMetaBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- StartOfEpoch MetaBlock - json
-
-func TestGetInternalStartOfEpochMetaBlock_NoEpochUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalStartOfEpochMetaBlock_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalStartOfEpochMetaBlock_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := bytes.Repeat([]byte("1"), 10)
-
-	facade := mock.FacadeStub{
-		GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/startofepoch/metablock/by-epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ----------------- Shard Block ---------------
-
-func TestGetInternalShardBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-nonce", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalShardBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-nonce/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-}
-
-func TestGetInternalShardBlockByNonce_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.Header{
-		Nonce: 15,
-		Round: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-nonce/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- ShardBlock - by round
-
-func TestGetInternalShardBlockByRound_EmptyRoundUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-round", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalShardBlockByRound_InvalidRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-round/invalid", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.True(t, strings.Contains(response.Error, apiErrors.ErrInvalidBlockRound.Error()))
-}
-
-func TestGetInternalShardBlockByRound_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalShardBlockByRound_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.Header{
-		Nonce: 15,
-		Round: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-round/15", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- ShardBlock - by hash
-
-func TestGetInternalShardBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalShardBlockByHash_FacadeErrorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("local err")
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return nil, expectedErr
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-hash/dummyhash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
-}
-
-func TestGetInternalShardBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.Header{
-		Nonce: 15,
-		Round: 15,
-	}
-
-	facade := mock.FacadeStub{
-		GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalShardBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-// ---- MiniBlock
-
-func TestGetInternalMiniBlockByHash_EmptyHashUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalMiniBlockByHash_NoEpochUrlParameterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
-			return []byte{}, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash/aaaa/epoch", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := rawMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusNotFound, resp.Code)
-}
-
-func TestGetInternalMiniBlockByHash_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedOutput := block.MiniBlock{}
-
-	facade := mock.FacadeStub{
-		GetInternalMiniBlockByHashCalled: func(_ common.ApiOutputFormat, _ string, epoch uint32) (interface{}, error) {
-			return expectedOutput, nil
-		},
-	}
-
-	blockGroup, err := groups.NewInternalBlockGroup(&facade)
-	require.NoError(t, err)
-
-	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-	req, _ := http.NewRequest("GET", "/internal/json/miniblock/by-hash/dummyhash/epoch/1", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := internalMiniBlockResponse{}
-	loadResponse(resp.Body, &response)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	assert.Equal(t, expectedOutput, response.Data.Block)
-}
-
-func TestGetInternalStartOfEpochValidatorsInfo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("no epoch param should fail", func(t *testing.T) {
+	t.Run("empty nonce should error", func(t *testing.T) {
 		t.Parallel()
 
-		facade := mock.FacadeStub{
-			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
-				return make([]*state.ShardValidatorInfo, 0), nil
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/metablock/by-nonce", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid nonce should error",
+		testInternalGroupErrorScenario("/internal/raw/metablock/by-nonce/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockNonce)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
 			},
 		}
 
-		blockGroup, err := groups.NewInternalBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/aaa", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := internalValidatorsInfoResponse{}
-		loadResponse(resp.Body, &response)
-		assert.Equal(t, http.StatusBadRequest, resp.Code)
-		assert.True(t, strings.Contains(response.Error, apiErrors.ErrGetValidatorsInfo.Error()))
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/metablock/by-nonce/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
 	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/metablock/by-nonce/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawMetaBlockByRound(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty round should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/metablock/by-round", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid round should error",
+		testInternalGroupErrorScenario("/internal/raw/metablock/by-round/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockRound)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/metablock/by-round/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/metablock/by-round/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawMetaBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/metablock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/metablock/by-hash/dummyhash",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawStartOfEpochMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/startofepoch/metablock/by-epoch/", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid epoch should error",
+		testInternalGroupErrorScenario("/internal/raw/startofepoch/metablock/by-epoch/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidEpoch)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/startofepoch/metablock/by-epoch/1",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/startofepoch/metablock/by-epoch/1",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawShardBlockByNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty nonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/shardblock/by-nonce", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid nonce should error",
+		testInternalGroupErrorScenario("/internal/raw/shardblock/by-nonce/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockNonce)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-nonce/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-nonce/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawShardBlockByRound(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty round should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/shardblock/by-round", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid round should error",
+		testInternalGroupErrorScenario("/internal/raw/shardblock/by-round/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockRound)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-round/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-round/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawShardBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/shardblock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-hash/dummyhash",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getRawMiniBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/miniblock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("empty epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/raw/miniblock/by-hash/aaa/epoch", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid epoch should error",
+		testInternalGroupErrorScenario("/internal/raw/miniblock/by-hash/aaaa/epoch/not-uint", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidEpoch)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/raw/miniblock/by-hash/aaaa/epoch/1",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
+				return expectedRawBlockOutput, nil
+			},
+		}
+
+		response := &rawMiniBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/raw/miniblock/by-hash/aaaa/epoch/1",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedRawBlockOutput, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONMetaBlockByNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty nonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/metablock/by-nonce", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid nonce should error",
+		testInternalGroupErrorScenario("/internal/json/metablock/by-nonce/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockNonce)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/metablock/by-nonce/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedMetaBlock, nil
+			},
+		}
+
+		response := &internalMetaBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/metablock/by-nonce/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedMetaBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONMetaBlockByRound(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty round should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/metablock/by-round", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid round should error",
+		testInternalGroupErrorScenario("/internal/json/metablock/by-round/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockRound)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/metablock/by-round/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedMetaBlock, nil
+			},
+		}
+
+		response := &internalMetaBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/metablock/by-round/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedMetaBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONMetaBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/metablock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/metablock/by-hash/dummyhash",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMetaBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return expectedMetaBlock, nil
+			},
+		}
+
+		response := &internalMetaBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/metablock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedMetaBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONStartOfEpochMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/startofepoch/metablock/by-epoch/", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid epoch should error",
+		testInternalGroupErrorScenario("/internal/json/startofepoch/metablock/by-epoch/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidEpoch)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/startofepoch/metablock/by-epoch/1",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalStartOfEpochMetaBlockCalled: func(_ common.ApiOutputFormat, epoch uint32) (interface{}, error) {
+				return expectedMetaBlock, nil
+			},
+		}
+
+		response := &internalMetaBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/startofepoch/metablock/by-epoch/1",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedMetaBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONShardBlockByNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty nonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/shardblock/by-nonce", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid nonce should error",
+		testInternalGroupErrorScenario("/internal/json/shardblock/by-nonce/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockNonce)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/shardblock/by-nonce/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByNonceCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedShardBlock, nil
+			},
+		}
+
+		response := &internalShardBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/shardblock/by-nonce/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedShardBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONShardBlockByRound(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty round should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/shardblock/by-round", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid round should error",
+		testInternalGroupErrorScenario("/internal/json/shardblock/by-round/invalid", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidBlockRound)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/shardblock/by-round/15",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByRoundCalled: func(_ common.ApiOutputFormat, _ uint64) (interface{}, error) {
+				return expectedShardBlock, nil
+			},
+		}
+
+		response := &internalShardBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/shardblock/by-round/15",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedShardBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONShardBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/shardblock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/shardblock/by-hash/dummyhash",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalShardBlockByHashCalled: func(_ common.ApiOutputFormat, _ string) (interface{}, error) {
+				return expectedShardBlock, nil
+			},
+		}
+
+		response := &internalShardBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/shardblock/by-hash/d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedShardBlock, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONMiniBlockByHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/miniblock/by-hash", nil, http.StatusNotFound, "")
+	})
+	t.Run("empty epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/miniblock/by-hash/aaa/epoch", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid epoch should error",
+		testInternalGroupErrorScenario("/internal/json/miniblock/by-hash/aaaa/epoch/not-uint", nil,
+			formatExpectedErr(apiErrors.ErrGetBlock, apiErrors.ErrInvalidEpoch)))
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error) {
+				return nil, expectedErr
+			},
+		}
+
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/miniblock/by-hash/aaaa/epoch/1",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetBlock, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetInternalMiniBlockByHashCalled: func(format common.ApiOutputFormat, hash string, epoch uint32) (interface{}, error) {
+				return block.MiniBlock{}, nil
+			},
+		}
+
+		response := &internalMiniBlockResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/miniblock/by-hash/aaaa/epoch/1",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, block.MiniBlock{}, response.Data.Block)
+	})
+}
+
+func TestInternalBlockGroup_getJSONStartOfEpochValidatorsInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(t, &mock.FacadeStub{}, "/internal/json/startofepoch/validators/by-epoch", nil, http.StatusNotFound, "")
+	})
+	t.Run("invalid epoch should error",
+		testInternalGroupErrorScenario("/internal/json/startofepoch/validators/by-epoch/not-uint", nil,
+			formatExpectedErr(apiErrors.ErrGetValidatorsInfo, apiErrors.ErrInvalidEpoch)))
 	t.Run("facade error should fail", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("facade error")
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
 				return nil, expectedErr
 			},
 		}
 
-		blockGroup, err := groups.NewInternalBlockGroup(&facade)
-		require.NoError(t, err)
-
-		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
-
-		req, _ := http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/1", nil)
-		resp := httptest.NewRecorder()
-		ws.ServeHTTP(resp, req)
-
-		response := internalValidatorsInfoResponse{}
-		loadResponse(resp.Body, &response)
-
-		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		testInternalGroup(
+			t,
+			facade,
+			"/internal/json/startofepoch/validators/by-epoch/1",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetValidatorsInfo, expectedErr),
+		)
 	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1566,13 +962,75 @@ func TestGetInternalStartOfEpochValidatorsInfo(t *testing.T) {
 			},
 		}
 
-		facade := mock.FacadeStub{
+		facade := &mock.FacadeStub{
 			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
 				return expectedOutput, nil
 			},
 		}
 
-		blockGroup, err := groups.NewInternalBlockGroup(&facade)
+		response := &internalValidatorsInfoResponse{}
+		loadInternalBlockGroupResponse(
+			t,
+			facade,
+			"/internal/json/startofepoch/validators/by-epoch/1",
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, expectedOutput, response.Data.ValidatorsInfo)
+	})
+}
+
+func TestInternalBlockGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	blockGroup, _ := groups.NewInternalBlockGroup(nil)
+	require.True(t, blockGroup.IsInterfaceNil())
+
+	blockGroup, _ = groups.NewInternalBlockGroup(&mock.FacadeStub{})
+	require.False(t, blockGroup.IsInterfaceNil())
+}
+
+func TestInternalBlockGroup_UpdateFacadeStub(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		blockGroup, err := groups.NewInternalBlockGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = blockGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		blockGroup, err := groups.NewInternalBlockGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = blockGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedOutput := []*state.ShardValidatorInfo{
+			{
+				PublicKey:  []byte("pubkey1"),
+				ShardId:    0,
+				Index:      1,
+				TempRating: 500,
+			},
+		}
+
+		facade := &mock.FacadeStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return expectedOutput, nil
+			},
+		}
+
+		blockGroup, err := groups.NewInternalBlockGroup(facade)
 		require.NoError(t, err)
 
 		ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
@@ -1586,8 +1044,84 @@ func TestGetInternalStartOfEpochValidatorsInfo(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.Code)
 
 		assert.Equal(t, expectedOutput, response.Data.ValidatorsInfo)
-	})
 
+		newFacade := &mock.FacadeStub{
+			GetInternalStartOfEpochValidatorsInfoCalled: func(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+				return nil, expectedErr
+			},
+		}
+		err = blockGroup.UpdateFacade(newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("GET", "/internal/json/startofepoch/validators/by-epoch/1", nil)
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response = internalValidatorsInfoResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+}
+
+func loadInternalBlockGroupResponse(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	method string,
+	body io.Reader,
+	destination interface{},
+) {
+	blockGroup, err := groups.NewInternalBlockGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(blockGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest(method, url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	loadResponse(resp.Body, destination)
+}
+
+func testInternalGroupErrorScenario(url string, body io.Reader, expectedErr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		testInternalGroup(
+			t,
+			&mock.FacadeStub{},
+			url,
+			body,
+			http.StatusBadRequest,
+			expectedErr,
+		)
+	}
+}
+
+func testInternalGroup(
+	t *testing.T,
+	facade shared.FacadeHandler,
+	url string,
+	body io.Reader,
+	expectedRespCode int,
+	expectedRespError string,
+) {
+	internalGroup, err := groups.NewInternalBlockGroup(facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(internalGroup, "internal", getInternalBlockRoutesConfig())
+
+	req, _ := http.NewRequest("GET", url, body)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := rawBlockResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, expectedRespCode, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedRespError))
 }
 
 func getInternalBlockRoutesConfig() config.ApiRoutesConfig {

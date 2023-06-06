@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -216,9 +216,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
+		log.Trace("trying to commit empty trie")
 		return nil
 	}
 	if !tr.root.isDirty() {
+		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
 		return nil
 	}
 	err := tr.root.setRootHash()
@@ -274,14 +276,9 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 		)
 	}
 
-	_, err := tsm.Get(root)
-	if err != nil {
-		return nil, err
-	}
-
 	newTr, _, err := tr.recreateFromDb(root, tsm)
 	if err != nil {
-		if errors.IsClosingError(err) {
+		if core.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
 			return nil, err
 		}
@@ -446,13 +443,13 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
 	if err != nil {
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 		return nil
 	}
 
@@ -468,14 +465,14 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			ctx,
 		)
 		if err != nil {
-			writeInChanNonBlocking(leavesChannels.ErrChan, err)
+			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
 		tr.trieStorage.ExitPruningBufferingMode()
 
 		close(leavesChannels.LeavesChan)
-		close(leavesChannels.ErrChan)
+		leavesChannels.ErrChan.Close()
 	}()
 
 	return nil

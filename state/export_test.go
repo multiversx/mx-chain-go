@@ -22,9 +22,9 @@ func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
-// LoadDataTrie -
-func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
-	return adb.loadDataTrie(accountHandler, adb.getMainTrie())
+// LoadDataTrieConcurrentSafe -
+func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler baseAccountHandler) error {
+	return adb.loadDataTrieConcurrentSafe(accountHandler, adb.getMainTrie())
 }
 
 // GetAccount -

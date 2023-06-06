@@ -2,14 +2,13 @@ module github.com/multiversx/mx-chain-go/sovereignnode
 
 go 1.17
 
-replace github.com/multiversx/mx-chain-go => /home/sebastian/go/src/github.com/multiversx/mx-chain-go
-
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230425092651-299f3345e822
-	github.com/multiversx/mx-chain-go v1.4.14-0.20230505121853-bab3be5a1bcc
+	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230510091534-e98de4e60dcc
+	github.com/multiversx/mx-chain-go v1.4.14-0.20230426120506-8743a639ce12
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230426090012-992c6b2fd273
+	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230510093700-a1d45ef7de8f
+	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli v1.22.10
 )
 
@@ -148,7 +147,6 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

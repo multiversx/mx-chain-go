@@ -115,6 +115,7 @@ type epochStartBootstrap struct {
 	checkNodesOnDisk           bool
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	nodeProcessingMode         common.NodeProcessingMode
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -179,6 +180,7 @@ type ArgsEpochStartBootstrap struct {
 	DataSyncerCreator          types.ScheduledDataSyncerCreator
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
+	NodeProcessingMode         common.NodeProcessingMode
 }
 
 type dataToSync struct {
@@ -225,6 +227,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storerScheduledSCRs:        args.ScheduledSCRsStorer,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
+		nodeProcessingMode:         args.NodeProcessingMode,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -766,6 +769,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
@@ -935,6 +939,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
+		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
@@ -1064,7 +1069,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	}
 
 	e.mutTrieStorageManagers.RLock()
-	trieStorageManager := e.trieStorageManagers[factory.UserAccountTrie]
+	trieStorageManager := e.trieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	e.mutTrieStorageManagers.RUnlock()
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
@@ -1079,7 +1084,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
 		},
@@ -1092,7 +1096,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}
@@ -1119,7 +1123,9 @@ func (e *epochStartBootstrap) createStorageService(
 			CurrentEpoch:                  startEpoch,
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+			NodeProcessingMode:            e.nodeProcessingMode,
 			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
@@ -1135,7 +1141,7 @@ func (e *epochStartBootstrap) createStorageService(
 
 func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
 	e.mutTrieStorageManagers.RLock()
-	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
+	peerTrieStorageManager := e.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	e.mutTrieStorageManagers.RUnlock()
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
@@ -1150,7 +1156,6 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
 		},
@@ -1160,7 +1165,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}

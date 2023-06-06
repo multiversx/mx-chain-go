@@ -222,12 +222,12 @@ func (n *Node) generateAndSignSingleTx(
 		Version:  minTxVersion,
 	}
 
-	marshalizedTx, err := tx.GetDataForSigning(n.coreComponents.AddressPubKeyConverter(), n.coreComponents.TxMarshalizer())
+	txSigningData, err := tx.GetDataForSigning(n.coreComponents.AddressPubKeyConverter(), n.coreComponents.TxMarshalizer(), n.coreComponents.TxSignHasher())
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.cryptoComponents.TxSingleSigner().Sign(sk, marshalizedTx)
+	sig, err := n.cryptoComponents.TxSingleSigner().Sign(sk, txSigningData)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

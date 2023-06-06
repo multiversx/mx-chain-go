@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -106,6 +107,8 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
 	return store
 }
 
@@ -215,6 +218,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		RepopulateTokensSupplies:     false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -653,7 +657,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	_ = bs.Close()
 }
@@ -748,7 +752,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.StartSyncingBlocks()
+	_ = bs.StartSyncingBlocks()
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -1738,7 +1742,8 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	args.Store = createFullStore()
 	args.Store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 	gotMbsAndHashes, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, 0, len(gotMbsAndHashes))
@@ -2061,7 +2066,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := errors.New(common.GetNodeFromDBErrorString)
+	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "")
 	blockProcessor := createBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
 		return nil, nil, errGetNodeFromDB
@@ -2131,7 +2136,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 
 	syncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 			syncCalled = true
 			return nil
 		}}

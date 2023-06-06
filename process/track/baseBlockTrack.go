@@ -808,6 +808,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsData
 	}
+	if check.IfNil(arguments.WhitelistHandler) {
+		return process.ErrNilWhiteListHandler
+	}
 
 	return nil
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -60,6 +62,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -484,8 +487,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	headersPool := managedDataComponents.Datapool().Headers()
-	sovereignWsReceiver, err := createSovereignWsReceiver(headersPool, configs.NotifierConfig)
+	sovereignWsReceiver, err := createSovereignWsReceiver(managedDataComponents.Datapool(), configs.NotifierConfig)
 	if err != nil {
 		return true, err
 	}
@@ -1648,14 +1650,13 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createSovereignWsReceiver(
-	handler notifierProcess.HeaderSubscriber,
+	dataPool dataRetriever.PoolsHolder,
 	config *sovereignConfig.NotifierConfig,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
-		MarshallerType:      config.WebSocketConfig.MarshallerType,
-		SubscribedAddresses: config.SubscribedAddresses,
-		NumOfMainShards:     config.NumOfMainShards,
-		HasherType:          config.WebSocketConfig.HasherType,
+		MarshallerType:   config.WebSocketConfig.MarshallerType,
+		SubscribedEvents: getNotifierSubscribedEvents(config.SubscribedEvents),
+		HasherType:       config.WebSocketConfig.HasherType,
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
@@ -1663,7 +1664,27 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	err = sovereignNotifier.RegisterHandler(handler)
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return nil, err
+	}
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	if err != nil {
+		return nil, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
+		HeadersPool: dataPool.Headers(),
+		TxPool:      dataPool.Transactions(),
+		Marshaller:  marshaller,
+		Hasher:      hasher,
+	}
+	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1679,4 +1700,17 @@ func createSovereignWsReceiver(
 	}
 
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+}
+
+func getNotifierSubscribedEvents(events []sovereignConfig.SubscribedEvent) []notifierCfg.SubscribedEvent {
+	ret := make([]notifierCfg.SubscribedEvent, len(events))
+
+	for idx, event := range events {
+		ret[idx] = notifierCfg.SubscribedEvent{
+			Identifier: event.Identifier,
+			Addresses:  event.Addresses,
+		}
+	}
+
+	return ret
 }

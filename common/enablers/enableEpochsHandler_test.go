@@ -91,7 +91,10 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		RuntimeCodeSizeFixEnableEpoch:                     77,
-		ConsensusModelV2EnableEpoch:                       78,
+		ConsensusModelV2EnableEpoch:                       77,
+		MultiClaimOnDelegationEnableEpoch:                 78,
+		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
+		ChangeUsernameEnableEpoch:                         80,
 	}
 }
 
@@ -130,7 +133,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(78, 0)
+		handler.EpochConfirmed(77, 0)
 
 		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
@@ -214,12 +217,16 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
+		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
+		assert.False(t, handler.IsChangeUsernameEnabled())
 		assert.True(t, handler.IsConsensusModelV2Enabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(79)
+		epoch := uint32(80)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
@@ -315,6 +322,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.True(t, handler.IsChangeUsernameEnabled())
 		assert.True(t, handler.IsConsensusModelV2Enabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
@@ -411,6 +420,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.False(t, handler.IsChangeUsernameEnabled())
 		assert.False(t, handler.IsConsensusModelV2Enabled())
 	})
 }

@@ -1010,6 +1010,17 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 	return nil
 }
 
+// IsBuiltinFuncCallWithParam checks if the given transaction data represents a builtin function call with parameters
+func IsBuiltinFuncCallWithParam(txData []byte, function string) bool {
+	expectedTxDataPrefix := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxDataPrefix)
+}
+
+// IsSetGuardianCall checks if the given transaction data represents the set guardian builtin function call
+func IsSetGuardianCall(txData []byte) bool {
+	return IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian)
+}
+
 // CheckIfIndexesAreOutOfBound checks if the given indexes are out of bound for the given mini block
 func CheckIfIndexesAreOutOfBound(
 	indexOfFirstTxToBeProcessed int32,

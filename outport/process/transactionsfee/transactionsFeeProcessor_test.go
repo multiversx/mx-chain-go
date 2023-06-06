@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -91,16 +92,16 @@ func TestPutFeeAndGasUsedTx1(t *testing.T) {
 
 	pool := &outportcore.TransactionPool{
 		Transactions: map[string]*outportcore.TxInfo{
-			string(txHash): initialTx,
+			hex.EncodeToString(txHash): initialTx,
 		},
 		SmartContractResults: map[string]*outportcore.SCRInfo{
-			string(scrHash1): {
+			hex.EncodeToString(scrHash1): {
 				SmartContractResult: scr1,
 				FeeInfo: &outportcore.FeeInfo{
 					Fee: big.NewInt(0),
 				},
 			},
-			string(scrWithRefund): {
+			hex.EncodeToString(scrWithRefund): {
 				SmartContractResult: &smartContractResult.SmartContractResult{
 					Nonce:          3,
 					SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq3dswlnnlkfd3gqrcv3dhzgnvh8ryf27g5rfsecnn2s"),
@@ -314,10 +315,10 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 
 	pool := &outportcore.TransactionPool{
 		Transactions: map[string]*outportcore.TxInfo{
-			string(txHash): initialTx,
+			hex.EncodeToString(txHash): initialTx,
 		},
 		SmartContractResults: map[string]*outportcore.SCRInfo{
-			string(scrHash1): scr1,
+			hex.EncodeToString(scrHash1): scr1,
 		},
 	}
 
@@ -469,4 +470,52 @@ func TestPutFeeAndGasUsedScrWithRefundNotForInitialSender(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), scr.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(0), scr.GetFeeInfo().GetGasUsed())
+}
+
+func TestPutFeeAndGasUsedScrWithRefund(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("e3cdb8b4936fdbee2d3b1244b4c49959df5f90ada683d650019d244e5a64afaf")
+	scrWithRefund := []byte("scrWithRefund")
+
+	initialTx := &outportcore.TxInfo{Transaction: &transaction.Transaction{
+		Nonce:    1004,
+		GasLimit: 60_000_000,
+		GasPrice: 1000000000,
+		SndAddr:  []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+	}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}
+
+	refundValueBig, _ := big.NewInt(0).SetString("96635000000000", 10)
+
+	scr := &outportcore.SCRInfo{
+		SmartContractResult: &smartContractResult.SmartContractResult{
+			Nonce:          1005,
+			SndAddr:        []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+			RcvAddr:        []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+			PrevTxHash:     txHash,
+			OriginalTxHash: txHash,
+			Value:          refundValueBig,
+			Data:           []byte("@6f6b"),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrWithRefund): scr,
+		},
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): initialTx,
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(552865000000000), initialTx.GetFeeInfo().GetFee())
+	require.Equal(t, uint64(50_336_500), initialTx.GetFeeInfo().GetGasUsed())
 }

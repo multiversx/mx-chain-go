@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -29,7 +28,7 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 		args := createMockArgOldDataCleanerProvider()
 		args.NodeTypeProvider = nil
 		odcp, err := NewOldDataCleanerProvider(args)
-		require.True(t, check.IfNil(odcp))
+		require.Nil(t, odcp)
 		require.Equal(t, storage.ErrNilNodeTypeProvider, err)
 	})
 	t.Run("nil ManagedPeersHolder should error", func(t *testing.T) {
@@ -38,7 +37,7 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 		args := createMockArgOldDataCleanerProvider()
 		args.ManagedPeersHolder = nil
 		odcp, err := NewOldDataCleanerProvider(args)
-		require.True(t, check.IfNil(odcp))
+		require.Nil(t, odcp)
 		require.Equal(t, storage.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -46,7 +45,7 @@ func TestNewOldDataCleanerProvider(t *testing.T) {
 
 		odcp, err := NewOldDataCleanerProvider(createMockArgOldDataCleanerProvider())
 		require.NoError(t, err)
-		require.False(t, check.IfNil(odcp))
+		require.NotNil(t, odcp)
 	})
 }
 
@@ -135,4 +134,15 @@ func TestOldDataCleanerProvider_ShouldClean(t *testing.T) {
 
 		require.True(t, odcp.ShouldClean())
 	})
+}
+
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var odcp *oldDataCleanerProvider
+	require.True(t, odcp.IsInterfaceNil())
+
+	args := createMockArgOldDataCleanerProvider()
+	odcp, _ = NewOldDataCleanerProvider(args)
+	require.False(t, odcp.IsInterfaceNil())
 }

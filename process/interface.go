@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -66,7 +67,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	CheckTxValidity(txHandler TxValidatorHandler) error
+	CheckTxValidity(interceptedTx InterceptedTransactionHandler) error
 	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
@@ -80,8 +81,20 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
+// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
+// receiver and sender shard getters
+type InterceptedTransactionHandler interface {
+	SenderShardId() uint32
+	ReceiverShardId() uint32
+	Nonce() uint64
+	SenderAddress() []byte
+	Fee() *big.Int
+	Transaction() data.TransactionHandler
+}
+
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
 type TxVersionCheckerHandler interface {
+	IsGuardedTransaction(tx *transaction.Transaction) bool
 	IsSignedWithHash(tx *transaction.Transaction) bool
 	CheckTxVersion(tx *transaction.Transaction) error
 	IsInterfaceNil() bool
@@ -334,7 +347,7 @@ type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
-	StartSyncingBlocks()
+	StartSyncingBlocks() error
 	IsInterfaceNil() bool
 }
 
@@ -504,7 +517,7 @@ type BlockChainHookHandler interface {
 	RevertToSnapshot(snapshot int) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
-	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	ResetCounters()
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
@@ -645,8 +658,10 @@ type feeHandler interface {
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
+	MaxGasPriceSetGuardian() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
+	ExtraGasLimitGuardedTx() uint64
 	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
@@ -1179,7 +1194,7 @@ type InterceptedChunksProcessor interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 
@@ -1212,6 +1227,36 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
 	IsMiniBlockExecuted(mbHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// ShardedPool is a perspective of the sharded data pool
+type ShardedPool interface {
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
+}
+
+// InterceptedSignedTransactionHandler provides additional handling for signed transactions
+type InterceptedSignedTransactionHandler interface {
+	InterceptedTransactionHandler
+	GetTxMessageForSignatureVerification() ([]byte, error)
+}
+
+// GuardianChecker can check an account guardian
+type GuardianChecker interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
+	IsInterfaceNil() bool
+}
+
+// GuardedAccountHandler allows setting and getting the configured account guardian
+type GuardedAccountHandler interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
+	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error
+	CleanOtherThanActive(uah vmcommon.UserAccountHandler)
+	GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
 	IsInterfaceNil() bool
 }
 
