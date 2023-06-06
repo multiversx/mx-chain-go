@@ -417,21 +417,19 @@ func createDirectCallInput(
 	return input
 }
 
-func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
+func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
-	if callInput.CallValue.Cmp(zero) > 0 {
-		logEntry := &vmcommon.LogEntry{
-			Identifier: []byte(transferValueOnly),
-			Address:    callInput.RecipientAddr,
-			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
-			Data:       []byte{},
-		}
-		host.AddLogEntry(logEntry)
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(transferValueOnly),
+		Address:    sender,
+		Topics:     [][]byte{callInput.CallValue.Bytes(), callInput.RecipientAddr},
+		Data:       vmcommon.FormatLogDataForCall(callType, callInput.Function, callInput.Arguments),
 	}
+	host.AddLogEntry(logEntry)
 
 	return nil
 }
@@ -454,7 +452,7 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	err := host.transferBeforeInternalExec(callInput, host.scAddress)
+	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
 	}
@@ -511,7 +509,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.transferBeforeInternalExec(callInput, sender)
+	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
 	if err != nil {
 		return nil, err
 	}
