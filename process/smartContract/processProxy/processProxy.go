@@ -150,6 +150,11 @@ func (proxy *scProcessorProxy) ProcessSmartContractResult(scr *smartContractResu
 	return proxy.getProcessor().ProcessSmartContractResult(scr)
 }
 
+// CheckBuiltinFunctionIsExecutable delegates to selected professor
+func (proxy *scProcessorProxy) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	return proxy.getProcessor().CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction, tx)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (proxy *scProcessorProxy) IsInterfaceNil() bool {
 	return proxy == nil

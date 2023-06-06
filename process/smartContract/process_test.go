@@ -119,8 +119,8 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
-		EnableRoundsHandler: &enableEpochsHandlerMock.EnableRoundsHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
 		WasmVMChangeLocker: &sync.RWMutex{},
@@ -4539,7 +4539,7 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 	t.Run("empty builtInFunctions should return empty map", func(t *testing.T) {
 		arguments := createMockSmartContractProcessorArguments()
 		builtinFuncs := arguments.BuiltInFunctions
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 0, len(executableCheckersMap))
 	})
@@ -4547,7 +4547,7 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 		arguments := createMockSmartContractProcessorArguments()
 		builtinFuncs := arguments.BuiltInFunctions
 		_ = builtinFuncs.Add("SetGuardian", &mock.BuiltInFunctionStub{})
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 0, len(executableCheckersMap))
 	})
@@ -4557,7 +4557,7 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 		builtinFuncs := arguments.BuiltInFunctions
 		_ = builtinFuncs.Add("SetGuardian", expectedExecutableChecker)
 		_ = builtinFuncs.Add("SetGuardian2", &mock.BuiltInFunctionStub{})
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 1, len(executableCheckersMap))
 		require.Equal(t, expectedExecutableChecker, executableCheckersMap["SetGuardian"])
@@ -4572,7 +4572,7 @@ func TestScProcessor_DisableAsyncCalls(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 		IsDisableAsyncCallV1EnabledCalled: func() bool {
 			return false

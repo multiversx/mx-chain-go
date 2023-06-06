@@ -182,10 +182,10 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	newScCode string,
 ) {
 
-	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
+	shardCoordinatorForShard1, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShard1, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
@@ -314,10 +314,10 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	pathToSecondSC string,
 ) {
-	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
+	shardCoordinatorForShard1, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	testContextShard1, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
@@ -367,7 +367,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 
 	scAddressSecond, secondOwner := utils.DoDeployWithCustomParams(
 		t,
-		testContextShard0,
+		testContextShard1,
 		pathToSecondSC,
 		big.NewInt(100000000000),
 		10000000,

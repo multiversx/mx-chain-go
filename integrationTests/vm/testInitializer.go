@@ -113,22 +113,22 @@ type VMTestAccount struct {
 
 // VMTestContext -
 type VMTestContext struct {
-	ChainHandler        *testscommon.ChainHandlerStub
-	TxProcessor         process.TransactionProcessor
-	ScProcessor         scrCommon.TestSmartContractProcessor
-	Accounts            state.AccountsAdapter
-	BlockchainHook      vmcommon.BlockchainHook
-	VMContainer         process.VirtualMachinesContainer
-	TxFeeHandler        process.TransactionFeeHandler
-	ShardCoordinator    sharding.Coordinator
-	ScForwarder         process.IntermediateTransactionHandler
-	EconomicsData       process.EconomicsDataHandler
-	Marshalizer         marshal.Marshalizer
-	GasSchedule         core.GasScheduleNotifier
-	VMConfiguration     *config.VirtualMachineConfig
-	EpochNotifier       process.EpochNotifier
-	EnableEpochsHandler common.EnableEpochsHandler
-	SCQueryService      *smartContract.SCQueryService
+	ChainHandler           *testscommon.ChainHandlerStub
+	TxProcessor            process.TransactionProcessor
+	ScProcessor            scrCommon.TestSmartContractProcessor
+	Accounts               state.AccountsAdapter
+	BlockchainHook         vmcommon.BlockchainHook
+	VMContainer            process.VirtualMachinesContainer
+	TxFeeHandler           process.TransactionFeeHandler
+	ShardCoordinator       sharding.Coordinator
+	ScForwarder            process.IntermediateTransactionHandler
+	EconomicsData          process.EconomicsDataHandler
+	Marshalizer            marshal.Marshalizer
+	GasSchedule            core.GasScheduleNotifier
+	VMConfiguration        *config.VirtualMachineConfig
+	EpochNotifier          process.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
+	SCQueryService         *smartContract.SCQueryService
 	GuardedAccountsHandler process.GuardedAccountHandler
 
 	Alice         VMTestAccount
@@ -1202,11 +1202,11 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	vmConfig *config.VirtualMachineConfig,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := integrationtests.CreateAccountsDB(db)
-	wasmVMChangeLocker := &sync.RWMutex{}
-
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
+	wasmVMChangeLocker := &sync.RWMutex{}
+
 	roundNotifierInstance := forking.NewGenericRoundNotifier()
 	chainHandler := &testscommon.ChainHandlerStub{}
 

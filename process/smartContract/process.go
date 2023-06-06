@@ -51,11 +51,6 @@ const (
 
 var zero = big.NewInt(0)
 
-// ExecutableChecker is an interface for checking if a builtin function is executable
-type ExecutableChecker interface {
-	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
-}
-
 type scProcessor struct {
 	accounts           state.AccountsAdapter
 	blockChainHook     process.BlockChainHookHandler
@@ -86,7 +81,7 @@ type scProcessor struct {
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
 
-	executableCheckers    map[string]ExecutableChecker
+	executableCheckers    map[string]scrCommon.ExecutableChecker
 	mutExecutableCheckers sync.RWMutex
 }
 
@@ -208,7 +203,7 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
-		executableCheckers:  createExecutableCheckersMap(args.BuiltInFunctions),
+		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
 	var err error
@@ -2886,24 +2881,6 @@ func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction 
 		gasProvided,
 		arguments,
 	)
-}
-
-func createExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContainer) map[string]ExecutableChecker {
-	executableCheckers := make(map[string]ExecutableChecker)
-
-	for key := range builtinFunctions.Keys() {
-		builtinFunc, err := builtinFunctions.Get(key)
-		if err != nil {
-			continue
-		}
-		executableCheckerFunc, ok := builtinFunc.(ExecutableChecker)
-		if !ok {
-			continue
-		}
-		executableCheckers[key] = executableCheckerFunc
-	}
-
-	return executableCheckers
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {

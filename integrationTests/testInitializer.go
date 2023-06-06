@@ -1022,8 +1022,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: &enableEpochsHandlerMock.EnableRoundsHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
@@ -1728,7 +1728,7 @@ func CreateAndSendTransaction(
 		additionalGasLimit)
 }
 
-// CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
+// CreateAndSendTransactionWithSenderAccount will generate a transaction with provided parameters, sign it with the provided
 // node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
 func CreateAndSendTransactionWithSenderAccount(
 	node *TestProcessorNode,
