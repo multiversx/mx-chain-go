@@ -189,6 +189,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
 			EpochNotifierWithConfirm:     &updateMocks.EpochStartNotifierStub{},
 			RoundHandlerField:            &testscommon.RoundHandlerMock{},
+			RoundChangeNotifier:          &epochNotifier.RoundNotifierStub{},
 			ChanStopProcess:              make(chan endProcess.ArgEndProcess, 1),
 			TxSignHasherField:            keccak.NewKeccak(),
 			HardforkTriggerPubKeyField:   []byte("hardfork pub key"),

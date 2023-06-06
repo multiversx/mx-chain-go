@@ -1,6 +1,9 @@
 package wasmvm
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"math/big"
 	"strings"
 	"testing"
@@ -36,7 +39,7 @@ func InitializeMockContracts(
 func InitializeMockContractsWithVMContainer(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
-	vmContainer process.VirtualMachinesContainer,
+	_ process.VirtualMachinesContainer,
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
 	InitializeMockContractsWithVMContainerAndVMTypes(t, net, nil, [][]byte{factory.WasmVirtualMachine}, mockSCs...)
@@ -86,7 +89,12 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	require.Nil(t, err)
 
 	address := net.NewAddressWithVM(wallet, vmType)
-	account, _ := state.NewUserAccount(address)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	account, _ := state.NewUserAccount(address, argsAccCreation)
 	account.Balance = MockInitialBalance
 	account.SetCode(address)
 	account.SetCodeHash(address)
@@ -131,7 +139,7 @@ func MakeTestWalletAddress(identifier string) []byte {
 	return makeTestAddress(WalletAddressPrefix, identifier)
 }
 
-func makeTestAddress(prefix []byte, identifier string) []byte {
+func makeTestAddress(_ []byte, identifier string) []byte {
 	numberOfTrailingDots := vmhost.AddressSize - len(vmhost.SCAddressPrefix) - len(identifier)
 	leftBytes := vmhost.SCAddressPrefix
 	rightBytes := []byte(identifier + strings.Repeat(".", numberOfTrailingDots))
