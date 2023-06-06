@@ -1046,7 +1046,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderBalance *big.Int,
 	enableEpochsConfig config.EnableEpochs,
 ) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
+	return CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
@@ -1055,7 +1055,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 }
 
 // CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig -
-func CreatePreparedTxProcessorAndAccountsWithVMsWothRoundsConfig(
+func CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
@@ -1152,11 +1152,6 @@ func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 	)
 }
 
-// CreatePreparedTxProcessorWithVMsAndRoundConfig -
-func CreatePreparedTxProcessorWithVMsAndRoundConfig(enableEpochs config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochs, roundsConfig, mock.NewMultiShardsCoordinatorMock(2))
-}
-
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, integrationTests.GetDefaultRoundsConfig(), shardCoordinator)
@@ -1170,6 +1165,24 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEp
 		integrationtests.CreateMemUnit(),
 		CreateMockGasScheduleNotifier(),
 		roundsConfig,
+	)
+}
+
+// CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas -
+func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	enableEpochsConfig config.EnableEpochs,
+	shardCoordinator sharding.Coordinator,
+	db storage.Storer,
+	gasScheduleNotifier core.GasScheduleNotifier,
+) (*VMTestContext, error) {
+	vmConfig := createDefaultVMConfig()
+	return CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+		enableEpochsConfig,
+		shardCoordinator,
+		db,
+		gasScheduleNotifier,
+		config.RoundConfig{},
+		vmConfig,
 	)
 }
 
@@ -1370,7 +1383,7 @@ func CreateTxProcessorWasmVMWithVMConfig(
 	)
 }
 
-// CreateTxProcessorArwenWithVMConfig -
+// CreateTxProcessorArwenWithVMConfigAndRoundConfig -
 func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
@@ -1764,7 +1777,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, integrationTests.GetDefaultRoundsConfig())
 }
 
-// CreatePreparedTxProcessorWithVMsMultiShard -
+// CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig -
 func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32, enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
