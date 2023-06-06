@@ -26,7 +26,7 @@ require (
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.3.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
