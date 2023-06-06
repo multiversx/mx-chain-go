@@ -2,10 +2,10 @@ package preprocess
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-core-go/core"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"

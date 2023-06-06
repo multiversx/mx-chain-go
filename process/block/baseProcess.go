@@ -255,12 +255,12 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
+	userAccountsRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Trace("get account.RootHash", "error", err.Error())
 	}
 
-	return rootHash
+	return userAccountsRootHash
 }
 
 func (bp *baseProcessor) requestHeadersIfMissing(
@@ -2231,4 +2231,13 @@ func makeCommonHeaderHandlerHashMap(hdrMap map[string]data.HeaderHandler) map[st
 		commonHdrMap[key] = val
 	}
 	return commonHdrMap
+}
+
+func waitForHeaderHashes(waitTime time.Duration, chanRcvHeaderHashes chan bool) error {
+	select {
+	case <-chanRcvHeaderHashes:
+		return nil
+	case <-time.After(waitTime):
+		return process.ErrTimeIsOut
+	}
 }

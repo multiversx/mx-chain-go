@@ -225,7 +225,10 @@ func (txc *transactionCounter) displayExtendedShardHeaderHashesIncluded(
 				logger.DisplayByteSlice(extendedShardHeaderHashes[i])}))
 
 			part = ""
-		} else if i == 1 {
+			continue
+		}
+
+		if i == 1 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
 				"...",
@@ -346,6 +349,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 	return lines
 }
 
+// TODO: Could move this in mx-chain-core-go
 func getShardName(shardID uint32) string {
 	var shardStr string
 

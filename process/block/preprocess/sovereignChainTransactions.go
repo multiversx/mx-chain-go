@@ -242,7 +242,9 @@ func (sct *sovereignChainTransactions) RequestBlockTransactions(body *block.Body
 	numTxsRequested := 0
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != core.MainChainShardId {
-			numTxsRequested += sct.computeExistingAndRequestMissingTxsForShards(&block.Body{MiniBlocks: []*block.MiniBlock{mb}})
+			numTxsRequested += sct.computeExistingAndRequestMissingTxsForShards(&block.Body{
+				MiniBlocks: []*block.MiniBlock{mb},
+			})
 		}
 	}
 

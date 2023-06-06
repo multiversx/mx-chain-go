@@ -317,7 +317,7 @@ func (mp *metaProcessor) ProcessBlock(
 			)
 		}
 
-		err = mp.waitForBlockHeaders(haveTime())
+		err = waitForHeaderHashes(haveTime(), mp.chRcvAllHdrs)
 
 		mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 		missingShardHdrs := mp.hdrsForCurrBlock.missingHdrs
@@ -2262,15 +2262,6 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 	}
 
 	return nil
-}
-
-func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
-	select {
-	case <-mp.chRcvAllHdrs:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
 }
 
 // CreateNewHeader creates a new header
