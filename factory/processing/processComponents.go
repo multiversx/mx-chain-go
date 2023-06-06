@@ -895,7 +895,7 @@ func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator b
 	case common.ChainRunTypeSovereign:
 		return block.NewSovereignChainHeaderValidator(headerValidator)
 	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 }
 

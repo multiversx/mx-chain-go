@@ -79,7 +79,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		require.NoError(t, err)
 
 		bp, err := pcf.NewBlockProcessor(
-			&testscommon.RequestHandlerStub{},
+			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			&mock.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
