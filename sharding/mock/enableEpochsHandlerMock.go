@@ -571,6 +571,11 @@ func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false
 }
 
+// IsRelayedNonceFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
+	return false
+}
+
 // IsKeepExecOrderOnCreatedSCRsEnabled -
 func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
 	return false
