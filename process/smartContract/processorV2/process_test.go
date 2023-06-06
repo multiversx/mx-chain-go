@@ -73,7 +73,7 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 	_ = acntSrc.AddToBalance(tx.GetValue())
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GetGasLimit())), big.NewInt(int64(tx.GetGasPrice())))
-	_ = acntSrc.AddToBalance(tx.GetValue())
+	_ = acntSrc.AddToBalance(totalFee)
 
 	acntDst := createAccount(tx.GetRcvAddr())
 
