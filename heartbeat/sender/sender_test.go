@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ import (
 func createMockSenderArgs() ArgSender {
 	return ArgSender{
 		Messenger:                          &p2pmocks.MessengerStub{},
-		Marshaller:                         &testscommon.MarshalizerMock{},
+		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		PeerAuthenticationTopic:            "pa-topic",
 		HeartbeatTopic:                     "hb-topic",
 		PeerAuthenticationTimeBetweenSends: time.Second,

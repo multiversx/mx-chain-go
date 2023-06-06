@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -26,4 +27,5 @@ type FactoryArgs struct {
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
 	SnapshotsEnabled         bool
+	EnableEpochsHandler      common.EnableEpochsHandler
 }

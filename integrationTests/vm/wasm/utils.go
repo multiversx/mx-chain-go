@@ -251,6 +251,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasSchedule,
 		MapDNSAddresses:           DNSAddresses,
+		MapDNSV2Addresses:         DNSAddresses,
 		Marshalizer:               marshalizer,
 		Accounts:                  context.Accounts,
 		ShardCoordinator:          oneShardCoordinator,
@@ -296,8 +297,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
-		GasSchedule: gasSchedule,
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              gasSchedule,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

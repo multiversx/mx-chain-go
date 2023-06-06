@@ -133,6 +133,11 @@ func (proxy *scProcessorTestProxy) ProcessSmartContractResult(scr *smartContract
 	return proxy.getProcessor().ProcessSmartContractResult(scr)
 }
 
+// CheckBuiltinFunctionIsExecutable -
+func (proxy *scProcessorTestProxy) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	return proxy.getProcessor().CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction, tx)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (proxy *scProcessorTestProxy) IsInterfaceNil() bool {
 	return proxy == nil

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -34,6 +35,7 @@ type StateUserAccountHandlerStub struct {
 	SetUserNameCalled           func(userName []byte)
 	GetUserNameCalled           func() []byte
 	IsGuardedCalled             func() bool
+	GetAllLeavesCalled          func(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
 }
 
 // AddressBytes -
@@ -234,6 +236,15 @@ func (aas *StateUserAccountHandlerStub) IsGuarded() bool {
 		return aas.IsGuardedCalled()
 	}
 	return false
+}
+
+// GetAllLeaves -
+func (aas *StateUserAccountHandlerStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error {
+	if aas.GetAllLeavesCalled != nil {
+		return aas.GetAllLeavesCalled(leavesChannels, ctx)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

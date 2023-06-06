@@ -162,8 +162,7 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
-	strAdr := string(addr)
-	outAcc, exists := host.outputAccounts[strAdr]
+	outAcc, exists := host.outputAccounts[string(addr)]
 	if exists {
 		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
 		return actualBalance

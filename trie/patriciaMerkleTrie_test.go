@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -18,14 +19,15 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	errorsCommon "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,33 +40,19 @@ func emptyTrie() common.Trie {
 	return tr
 }
 
-func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
+func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) common.Trie {
+	storage, marshaller, hasher, _, maxTrieLevelInMem := getDefaultTrieParameters()
 
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	tr, _ := trie.NewTrie(storage, marshaller, hasher, handler, maxTrieLevelInMem)
+	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
-	args := getDefaultTrieStorageManagerParameters()
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, maxTrieLevelInMemory
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -83,18 +71,22 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 
 func initTrie() common.Trie {
 	tr := emptyTrie()
+	addDefaultDataToTrie(tr)
+
+	return tr
+}
+
+func addDefaultDataToTrie(tr common.Trie) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-
-	return tr
 }
 
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, maxTrieLevelInMemory)
+	_, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -103,8 +95,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, maxTrieLevelInMemory)
+	trieStorage, _, hasher, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -113,18 +105,28 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, maxTrieLevelInMemory := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, maxTrieLevelInMemory)
+	trieStorage, marshalizer, _, enableEpochsHandler, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
+func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	trieStorage, marshalizer, hasher, _, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxTrieLevelInMemory)
+
+	assert.Nil(t, tr)
+	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 0)
+	trieStorage, marshalizer, hasher, enableEpochsHandler, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, 0)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrInvalidLevelValue, err)
@@ -371,6 +373,18 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	assert.Equal(t, root2, root1)
 }
 
+func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	err := tr.Commit()
+	assert.Nil(t, err)
+
+	err = tr.Delete([]byte("adog"))
+	assert.Nil(t, err)
+}
+
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
@@ -559,7 +573,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		t.Parallel()
 
 		tr := emptyTrie()
-		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(nil, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorChannels, err)
 	})
 
@@ -572,7 +586,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: nil,
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
-		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
 	})
 
@@ -585,8 +599,34 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    nil,
 		}
-		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		assert.Equal(t, trie.ErrNilTrieIteratorErrChannel, err)
+	})
+
+	t.Run("nil keyBuilder", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, nil, parsers.NewMainTrieLeafParser())
+		assert.Equal(t, trie.ErrNilKeyBuilder, err)
+	})
+
+	t.Run("nil  trieLeafParser", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), nil)
+		assert.Equal(t, trie.ErrNilTrieLeafParser, err)
 	})
 
 	t.Run("empty trie", func(t *testing.T) {
@@ -598,7 +638,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -630,7 +670,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			return keyBuilderStub
 		}
 
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub, parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -672,7 +712,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			return keyBuilderStub
 		}
 
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub)
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilderStub, parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -705,7 +745,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
-		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder(), parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.NotNil(t, leavesChannel)
 
@@ -910,14 +950,11 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
-	assert.Equal(t, rootHash, stats.RootHash)
-	assert.Equal(t, address, stats.Address)
-
-	assert.Equal(t, uint64(2), stats.NumBranchNodes)
-	assert.Equal(t, uint64(1), stats.NumExtensionNodes)
-	assert.Equal(t, uint64(3), stats.NumLeafNodes)
-	assert.Equal(t, uint64(6), stats.TotalNumNodes)
-	assert.Equal(t, uint32(3), stats.MaxTrieDepth)
+	assert.Equal(t, uint64(2), stats.GetNumBranchNodes())
+	assert.Equal(t, uint64(1), stats.GetNumExtensionNodes())
+	assert.Equal(t, uint64(3), stats.GetNumLeafNodes())
+	assert.Equal(t, uint64(6), stats.GetTotalNumNodes())
+	assert.Equal(t, uint32(3), stats.GetMaxTrieDepth())
 }
 
 func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
@@ -1017,6 +1054,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					context.Background(),
 					initialRootHash,
 					keyBuilder.NewKeyBuilder(),
+					parsers.NewMainTrieLeafParser(),
 				)
 				assert.Nil(t, err)
 			case 13:
@@ -1050,7 +1088,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	t.Parallel()
 
-	args := getDefaultTrieStorageManagerParameters()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	args.MainStorer = &storage.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			// gets take a long time
@@ -1060,7 +1098,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, 5)
+	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	numGoRoutines := 1000
 	wgStart := sync.WaitGroup{}
 	wgStart.Add(numGoRoutines)
@@ -1108,6 +1146,406 @@ func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	case <-time.After(timeout):
 		assert.Fail(t, "timeout waiting for trie to be closed")
 	}
+}
+
+type dataTrie interface {
+	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
+}
+
+func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil root", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				assert.Fail(t, "should not have called this function")
+				return false
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := tr.(dataTrie).CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+	})
+
+	t.Run("nil trie migrator", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie().(dataTrie)
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: nil,
+		}
+		err := tr.CollectLeavesForMigration(args)
+		assert.Equal(t, errorsCommon.ErrNilTrieMigrator, err)
+	})
+
+	t.Run("data trie already migrated", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numLoadsCalled)
+	})
+
+	t.Run("trie partially migrated", func(t *testing.T) {
+		t.Parallel()
+
+		addLeafToMigrationQueueCalled := 0
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
+		key := []byte("dog")
+		value := []byte("reindeer")
+		_ = dtr.UpdateWithVersion(key, value, core.NotSpecified)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+
+		dtm := &trieMock.DataTrieMigratorStub{
+			AddLeafToMigrationQueueCalled: func(leafData core.TrieData, newLeafVersion core.TrieNodeVersion) (bool, error) {
+				assert.Equal(t, core.AutoBalanceEnabled, newLeafVersion)
+				assert.Equal(t, key, leafData.Key)
+				assert.Equal(t, value, leafData.Value)
+				assert.Equal(t, core.NotSpecified, leafData.Version)
+				addLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, addLeafToMigrationQueueCalled)
+	})
+
+	t.Run("not enough gas to load the whole trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
+
+		dtr := tr.(dataTrie)
+		numLoads := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				if numLoads < 2 {
+					numLoads++
+					return true
+				}
+
+				numLoads++
+				return false
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 3, numLoads)
+		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("not enough gas to migrate the whole trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
+		dtr := tr.(dataTrie)
+		numLoads := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoads++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				if numAddLeafToMigrationQueueCalled < 1 {
+					numAddLeafToMigrationQueueCalled++
+					return true, nil
+				}
+
+				numAddLeafToMigrationQueueCalled++
+				return false, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 5, numLoads)
+		assert.Equal(t, 2, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate to non existent version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := initTrie().(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.TrieNodeVersion(100),
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
+		assert.Equal(t, 0, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate from non existent version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		dtr := initTrie().(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.TrieNodeVersion(100),
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.True(t, strings.Contains(err.Error(), errorsCommon.ErrInvalidTrieNodeVersion.Error()))
+		assert.Equal(t, 0, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate collapsed trie", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		addDefaultDataToTrie(tr)
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+		collapsedTrie, _ := tr.Recreate(rootHash)
+		dtr := collapsedTrie.(dataTrie)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 6, numLoadsCalled)
+		assert.Equal(t, 3, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate all non migrated leaves", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, numLoadsCalled)
+		assert.Equal(t, 1, numAddLeafToMigrationQueueCalled)
+	})
+
+	t.Run("migrate to same version", func(t *testing.T) {
+		t.Parallel()
+
+		numLoadsCalled := 0
+		numAddLeafToMigrationQueueCalled := 0
+		tr := emptyTrieWithCustomEnableEpochsHandler(
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsAutoBalanceDataTriesEnabledField: true,
+			},
+		)
+		dtr := tr.(dataTrie)
+		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
+		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		dtm := &trieMock.DataTrieMigratorStub{
+			ConsumeStorageLoadGasCalled: func() bool {
+				numLoadsCalled++
+				return true
+			},
+			AddLeafToMigrationQueueCalled: func(_ core.TrieData, _ core.TrieNodeVersion) (bool, error) {
+				numAddLeafToMigrationQueueCalled++
+				return true, nil
+			},
+		}
+
+		args := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: dtm,
+		}
+		err := dtr.CollectLeavesForMigration(args)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numLoadsCalled)
+		assert.Equal(t, 0, numAddLeafToMigrationQueueCalled)
+	})
+}
+
+func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil root", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		isMigrated, err := tr.IsMigratedToLatestVersion()
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("not migrated", func(t *testing.T) {
+		t.Parallel()
+
+		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+
+		_ = tr.Update([]byte("dog"), []byte("reindeer"))
+		isMigrated, err := tr.IsMigratedToLatestVersion()
+		assert.False(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("migrated", func(t *testing.T) {
+		t.Parallel()
+
+		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
+		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
+
+		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
+		isMigrated, err := tr.IsMigratedToLatestVersion()
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

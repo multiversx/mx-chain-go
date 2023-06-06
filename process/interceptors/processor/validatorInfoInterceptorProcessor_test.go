@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func createMockValidatorInfo() state.ValidatorInfo {
 
 func createMockInterceptedValidatorInfo() process.InterceptedData {
 	args := peer.ArgInterceptedValidatorInfo{
-		Marshalizer: testscommon.MarshalizerMock{},
+		Marshalizer: marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
@@ -102,7 +103,7 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := createMockInterceptedValidatorInfo()
 		wasHasOrAddCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		providedBuff, _ := testscommon.MarshalizerMock{}.Marshal(createMockValidatorInfo())
+		providedBuff, _ := marshallerMock.MarshalizerMock{}.Marshal(createMockValidatorInfo())
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 

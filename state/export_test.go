@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -76,4 +77,29 @@ func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo)
 // EmptyErrChanReturningHadContained -
 func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
+}
+
+// DirtyData -
+type DirtyData struct {
+	Value      []byte
+	NewVersion core.TrieNodeVersion
+}
+
+// DirtyData -
+func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
+	dd := make(map[string]DirtyData, len(tdaw.dirtyData))
+
+	for key, value := range tdaw.dirtyData {
+		dd[key] = DirtyData{
+			Value:      value.value,
+			NewVersion: value.newVersion,
+		}
+	}
+
+	return dd
+}
+
+// SaveDirtyData -
+func (a *userAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
+	return a.dataTrieTracker.SaveDirtyData(trie)
 }
