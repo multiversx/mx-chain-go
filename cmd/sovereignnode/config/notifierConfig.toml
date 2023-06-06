@@ -14,5 +14,5 @@ SubscribedEvents = [
     HasherType = "blake2b"
     # This flag describes the mode to start the WebSocket connector. Can be "client" or "server"
     Mode = "client"
-    # This flag specifies if we should send an acknowledge signal upon recieving data
+    # This flag specifies if we should send an acknowledge signal upon receiving data
     WithAcknowledge = true
