@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +36,7 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 			StartHeaders:     createGenesisBlocks(&testscommon.ShardsCoordinatorMock{NoShards: 1}),
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: &testscommon.WhiteListHandlerStub{},
-			FeeHandler:       &mock.FeeHandlerStub{},
+			FeeHandler:       &economicsmocks.EconomicsHandlerStub{},
 		},
 	}
 
