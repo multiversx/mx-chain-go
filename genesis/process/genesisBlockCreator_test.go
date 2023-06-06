@@ -396,16 +396,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.True(t, errors.Is(err, process.ErrNilGasSchedule))
 		require.Nil(t, gbc)
 	})
-	t.Run("nil GasSchedule should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.GasSchedule = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilGasSchedule))
-		require.Nil(t, gbc)
-	})
 	t.Run("nil SmartContractParser should error", func(t *testing.T) {
 		t.Parallel()
 
