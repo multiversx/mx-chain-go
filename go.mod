@@ -14,7 +14,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-core-go v1.1.33
-	github.com/multiversx/mx-chain-crypto-go v1.2.5
+	github.com/multiversx/mx-chain-crypto-go v1.2.7
 	github.com/multiversx/mx-chain-es-indexer-go v1.3.17
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-p2p-go v1.0.10
@@ -68,7 +68,7 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/herumi/bls-go-binary v1.0.0 // indirect
+	github.com/herumi/bls-go-binary v1.28.2 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect
 	github.com/ipfs/go-datastore v0.5.1 // indirect
