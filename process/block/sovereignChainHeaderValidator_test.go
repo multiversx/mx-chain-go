@@ -48,7 +48,7 @@ func TestGetHeaderHash_ShouldWork(t *testing.T) {
 		schv, _ := block.NewSovereignChainHeaderValidator(hv)
 
 		shardHeaderExtended := &block2.ShardHeaderExtended{}
-		hash, err := schv.GetHeaderHash(shardHeaderExtended)
+		hash, err := schv.CalculateHeaderHash(shardHeaderExtended)
 		assert.Nil(t, hash)
 		assert.Equal(t, process.ErrNilHeaderHandler, err)
 	})
@@ -70,7 +70,7 @@ func TestGetHeaderHash_ShouldWork(t *testing.T) {
 		}
 
 		expectedHash, _ := core.CalculateHash(argsHeaderValidator.Marshalizer, argsHeaderValidator.Hasher, shardHeaderExtended.Header)
-		hash, err := schv.GetHeaderHash(shardHeaderExtended)
+		hash, err := schv.CalculateHeaderHash(shardHeaderExtended)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedHash, hash)
 	})
@@ -88,7 +88,7 @@ func TestGetHeaderHash_ShouldWork(t *testing.T) {
 		header := &block2.Header{}
 
 		expectedHash, _ := core.CalculateHash(argsHeaderValidator.Marshalizer, argsHeaderValidator.Hasher, header)
-		hash, err := schv.GetHeaderHash(header)
+		hash, err := schv.CalculateHeaderHash(header)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedHash, hash)
 	})

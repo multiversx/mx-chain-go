@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -52,7 +53,7 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 	shardHeaderExtendedHanlder, isShardHeaderExtendedHandler := hdr.(data.ShardHeaderExtendedHandler)
 	if !isShardHeaderExtendedHandler {
 		log.Warn("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: wrong type assertion from data.HeaderHandler to data.ShardHeaderExtendedHandler")
-		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, fmt.Errorf("%w from data.HeaderHandler to data.ShardHeaderExtendedHandler", errorsMx.ErrWrongTypeAssertion)
 	}
 
 	shouldSkipShard := make(map[uint32]bool)
@@ -60,14 +61,9 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 	defer func() {
 		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 			"header round", hdr.GetRound(),
-			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(shardHeaderExtendedHanlder.GetIncomingMiniBlockHandlers()),
 			"num already mini blocks processed", createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed,
-			"num new mini blocks processed", createMBDestMeExecutionInfo.numNewMiniBlocksProcessed,
-			"total gas provided", sctc.gasHandler.TotalGasProvided(),
-			"total gas provided as scheduled", sctc.gasHandler.TotalGasProvidedAsScheduled(),
-			"total gas refunded", sctc.gasHandler.TotalGasRefunded(),
-			"total gas penalized", sctc.gasHandler.TotalGasPenalized())
+			"num new mini blocks processed", createMBDestMeExecutionInfo.numNewMiniBlocksProcessed)
 	}()
 
 	for _, mbh := range shardHeaderExtendedHanlder.GetIncomingMiniBlockHandlers() {
@@ -139,28 +135,8 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 
 		errProc := sctc.processCompleteMiniBlock(preproc, miniBlock, miniBlockHash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
 		sctc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
-		if errProc != nil {
-			shouldSkipShard[miniBlock.SenderShardID] = true
-			log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
-				"scheduled mode", scheduledMode,
-				"sender shard", miniBlock.SenderShardID,
-				"hash", miniBlockHash,
-				"type", miniBlock.Type,
-				"round", hdr.GetRound(),
-				"num txs", len(miniBlock.TxHashes),
-				"num all txs processed", processedMbInfo.IndexOfLastTxProcessed+1,
-				"num current txs processed", processedMbInfo.IndexOfLastTxProcessed-oldIndexOfLastTxProcessed,
-				"fully processed", processedMbInfo.FullyProcessed,
-				"total gas provided", sctc.gasHandler.TotalGasProvided(),
-				"total gas provided as scheduled", sctc.gasHandler.TotalGasProvidedAsScheduled(),
-				"total gas refunded", sctc.gasHandler.TotalGasRefunded(),
-				"total gas penalized", sctc.gasHandler.TotalGasPenalized(),
-				"error", errProc,
-			)
-			continue
-		}
 
-		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block succeeded",
+		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processing",
 			"scheduled mode", scheduledMode,
 			"sender shard", miniBlock.SenderShardID,
 			"hash", miniBlockHash,
@@ -175,6 +151,16 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 			"total gas refunded", sctc.gasHandler.TotalGasRefunded(),
 			"total gas penalized", sctc.gasHandler.TotalGasPenalized(),
 		)
+
+		if errProc != nil {
+			shouldSkipShard[miniBlock.SenderShardID] = true
+			log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+				"error", errProc,
+			)
+			continue
+		}
+
+		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block succeeded")
 	}
 
 	numTotalMiniBlocksProcessed := createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed + createMBDestMeExecutionInfo.numNewMiniBlocksProcessed

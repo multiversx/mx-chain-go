@@ -20,9 +20,9 @@ type ArgsHeaderValidator struct {
 }
 
 type headerValidator struct {
-	hasher            hashing.Hasher
-	marshalizer       marshal.Marshalizer
-	getHeaderHashFunc func(headerHandler data.HeaderHandler) ([]byte, error)
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	calculateHeaderHashFunc func(headerHandler data.HeaderHandler) ([]byte, error)
 }
 
 // NewHeaderValidator returns a new header validator
@@ -39,7 +39,7 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 		marshalizer: args.Marshalizer,
 	}
 
-	hv.getHeaderHashFunc = hv.getHeaderHash
+	hv.calculateHeaderHashFunc = hv.calculateHeaderHash
 	return hv, nil
 }
 
@@ -68,7 +68,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := h.getHeaderHashFunc(prevHeader)
+	prevHeaderHash, err := h.calculateHeaderHashFunc(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	return nil
 }
 
-func (h *headerValidator) getHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+func (h *headerValidator) calculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
 	return core.CalculateHash(h.marshalizer, h.hasher, headerHandler)
 }
 

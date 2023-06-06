@@ -557,7 +557,7 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
 }
 
-// GetHeaderHash -
-func (schv *sovereignChainHeaderValidator) GetHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
-	return schv.getHeaderHashFunc(headerHandler)
+// CalculateHeaderHash -
+func (schv *sovereignChainHeaderValidator) CalculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	return schv.calculateHeaderHashFunc(headerHandler)
 }

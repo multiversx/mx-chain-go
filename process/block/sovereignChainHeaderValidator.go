@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,14 +24,14 @@ func NewSovereignChainHeaderValidator(
 		headerValidator: headerValidator,
 	}
 
-	schv.getHeaderHashFunc = schv.getHeaderHash
+	schv.calculateHeaderHashFunc = schv.calculateHeaderHash
 	return schv, nil
 }
 
-func (schv *sovereignChainHeaderValidator) getHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+func (schv *sovereignChainHeaderValidator) calculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
 	shardHeaderExtended, isShardHeaderExtended := headerHandler.(*block.ShardHeaderExtended)
 	if isShardHeaderExtended {
-		if shardHeaderExtended.Header == nil {
+		if check.IfNil(shardHeaderExtended.Header) {
 			return nil, process.ErrNilHeaderHandler
 		}
 

@@ -134,8 +134,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 
 	if !haveTime() {
 		log.Debug("sovereignChainBlockProcessor.CreateBlock", "error", process.ErrTimeIsOut)
-
-		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 		return nil, nil, process.ErrTimeIsOut
 	}
 
@@ -144,18 +142,16 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {
-		log.Debug("createIncomingMiniBlocksDestMe", "error", err.Error())
+		return nil, nil, err
 	}
-	if createIncomingMiniBlocksDestMeInfo != nil {
-		//processedMiniBlocksDestMeInfo = createIncomingMiniBlocksDestMeInfo.allProcessedMiniBlocksInfo
-		if len(createIncomingMiniBlocksDestMeInfo.miniBlocks) > 0 {
-			miniBlocks = append(miniBlocks, createIncomingMiniBlocksDestMeInfo.miniBlocks...)
 
-			log.Debug("created mini blocks and txs with destination in self shard",
-				"num mini blocks", len(createIncomingMiniBlocksDestMeInfo.miniBlocks),
-				"num txs", createIncomingMiniBlocksDestMeInfo.numTxsAdded,
-				"num extended shard headers", createIncomingMiniBlocksDestMeInfo.numHdrsAdded)
-		}
+	if len(createIncomingMiniBlocksDestMeInfo.miniBlocks) > 0 {
+		miniBlocks = append(miniBlocks, createIncomingMiniBlocksDestMeInfo.miniBlocks...)
+
+		log.Debug("created mini blocks and txs with destination in self shard",
+			"num mini blocks", len(createIncomingMiniBlocksDestMeInfo.miniBlocks),
+			"num txs", createIncomingMiniBlocksDestMeInfo.numTxsAdded,
+			"num extended shard headers", createIncomingMiniBlocksDestMeInfo.numHdrsAdded)
 	}
 
 	startTime = time.Now()
@@ -551,27 +547,9 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	haveMissingExtendedShardHeaders := requestedExtendedShardHdrs > 0
-	if haveMissingExtendedShardHeaders {
-		log.Debug("requested missing extended shard headers",
-			"num headers", requestedExtendedShardHdrs,
-		)
-
-		err = scbp.waitForExtendedShardHdrsHashes(haveTime())
-
-		scbp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-		missingExtendedShardHdrs := scbp.hdrsForCurrBlock.missingHdrs
-		scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-		scbp.hdrsForCurrBlock.resetMissingHdrs()
-
-		log.Debug("received missing extended shard headers",
-			"num headers", requestedExtendedShardHdrs-missingExtendedShardHdrs,
-		)
-
-		if err != nil {
-			return nil, nil, err
-		}
+	err = scbp.waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs, haveTime)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	for _, accounts := range scbp.accountsDB {
@@ -596,69 +574,12 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		}
 	}()
 
-	startTime := time.Now()
-	miniblocks, err := scbp.txCoordinator.ProcessBlockTransaction(headerHandler, body, haveTime)
-	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to process block transaction",
-		"time [s]", elapsedTime,
-	)
+	newBody, err := scbp.processSovereignBlockTransactions(headerHandler, body, haveTime)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	postProcessMBs := scbp.txCoordinator.CreatePostProcessMiniBlocks()
-
-	receiptsHash, err := scbp.txCoordinator.CreateReceiptsHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = headerHandler.SetReceiptsHash(receiptsHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
-	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
-	newBody, err := scbp.applyBodyToHeader(headerHandler, createdBlockBody)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//TODO: This check could be removed in sovereign implementation
-	err = scbp.txCoordinator.VerifyCreatedBlockTransactions(headerHandler, newBody)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//TODO: This check could be removed in sovereign implementation
-	err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = scbp.verifyCrossShardMiniBlockDstMe(sovereignChainHeader)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = scbp.verifyFees(headerHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if !scbp.verifyStateRoot(headerHandler.GetRootHash()) {
-		err = process.ErrRootStateDoesNotMatch
-		return nil, nil, err
-	}
-
-	err = scbp.verifyValidatorStatisticsRootHash(headerHandler)
+	err = scbp.verifySovereignPostProcessBlock(headerHandler, newBody, sovereignChainHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -822,6 +743,111 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeader(
 		return nil, err
 	}
 	return newBody, nil
+}
+
+func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
+	headerHandler data.HeaderHandler,
+	body *block.Body,
+	haveTime func() time.Duration,
+) (*block.Body, error) {
+	startTime := time.Now()
+	miniblocks, err := scbp.txCoordinator.ProcessBlockTransaction(headerHandler, body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to process block transaction",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	postProcessMBs := scbp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	receiptsHash, err := scbp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, err
+	}
+
+	err = headerHandler.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return nil, err
+	}
+
+	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
+	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(headerHandler, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
+	if err != nil {
+		return nil, err
+	}
+
+	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
+	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
+	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
+}
+
+func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {
+	haveMissingExtendedShardHeaders := requestedExtendedShardHdrs > 0
+	if haveMissingExtendedShardHeaders {
+		log.Debug("requested missing extended shard headers",
+			"num headers", requestedExtendedShardHdrs,
+		)
+
+		err := scbp.waitForExtendedShardHdrsHashes(haveTime())
+
+		scbp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+		missingExtendedShardHdrs := scbp.hdrsForCurrBlock.missingHdrs
+		scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+		scbp.hdrsForCurrBlock.resetMissingHdrs()
+
+		log.Debug("received missing extended shard headers",
+			"num headers", requestedExtendedShardHdrs-missingExtendedShardHdrs,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) verifySovereignPostProcessBlock(
+	headerHandler data.HeaderHandler,
+	newBody *block.Body,
+	sovereignChainHeader data.SovereignChainHeaderHandler,
+) error {
+	//TODO: This check could be removed in sovereign implementation
+	err := scbp.txCoordinator.VerifyCreatedBlockTransactions(headerHandler, newBody)
+	if err != nil {
+		return err
+	}
+
+	//TODO: This check could be removed in sovereign implementation
+	err = scbp.checkHeaderBodyCorrelation(headerHandler.GetMiniBlockHeaderHandlers(), newBody)
+	if err != nil {
+		return err
+	}
+
+	err = scbp.verifyCrossShardMiniBlockDstMe(sovereignChainHeader)
+	if err != nil {
+		return err
+	}
+
+	err = scbp.verifyFees(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	if !scbp.verifyStateRoot(headerHandler.GetRootHash()) {
+		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = scbp.verifyValidatorStatisticsRootHash(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // TODO: verify if block created from processblock is the same one as received from leader - without signature - no need for another set of checks
