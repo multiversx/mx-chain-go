@@ -140,7 +140,6 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 		},
 		Marshalizer: &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
-				// require.Equal(t, buffExpected, buffActual)
 				log, _ := obj.(*transaction.Log)
 				require.Equal(t, expectedLogData[0], log.Events[0].Data)
 				require.Equal(t, expectedLogData, log.Events[0].AdditionalData)
