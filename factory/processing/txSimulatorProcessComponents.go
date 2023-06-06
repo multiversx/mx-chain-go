@@ -163,6 +163,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		GasSchedule:         pcf.gasSchedule,
 		TxLogsProcessor:     txLogsProcessor,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		BadTxForwarder:      badTxInterim,
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
@@ -333,6 +334,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		GasSchedule:         pcf.gasSchedule,
 		TxLogsProcessor:     txLogsProcessor,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		BadTxForwarder:      badTxInterim,
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
@@ -360,6 +362,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
