@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -23,27 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
-	t.Run("operations not allowed to bypass", func(t *testing.T) {
-		txData := []byte("#@!")
-		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
-		txData = []byte(nil)
-		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
-		txData = []byte("SomeOtherFunction@")
-		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
-	})
-	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
-		txData := []byte("setGuardian")
-		require.True(t, errors.Is(checkOperationAllowedToBypassGuardian(txData), process.ErrTransactionNotExecutable))
-	})
-	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
-		require.Nil(t, checkOperationAllowedToBypassGuardian(txData))
-	})
-}
-
-func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
-
+func createMockBaseTxProcessor() *baseTxProcessor {
 	baseProc := baseTxProcessor{
 		accounts:         &stateMock.AccountsStub{},
 		shardCoordinator: mock.NewOneShardCoordinatorMock(),
@@ -66,28 +47,138 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
-	account := &stateMock.UserAccountStub{}
+	return &baseProc
+}
 
-	t.Run("nil txData", func(t *testing.T) {
-		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(nil, account), process.ErrTransactionNotExecutable))
-	})
-	t.Run("empty txData", func(t *testing.T) {
-		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission([]byte(""), account), process.ErrTransactionNotExecutable))
-	})
-	t.Run("nil account", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
-		require.Nil(t, baseProc.checkGuardedAccountUnguardedTxPermission(txData, nil))
+func Test_checkOperationAllowedToBypassGuardian(t *testing.T) {
+	tx := &transaction.Transaction{}
+
+	t.Run("operations not allowed to bypass", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+
+		txCopy.Data = []byte("#@!")
+		require.True(t, errors.Is(baseProc.checkOperationAllowedToBypassGuardian(&txCopy), process.ErrTransactionNotExecutable))
+		txCopy.Data = []byte(nil)
+		require.True(t, errors.Is(baseProc.checkOperationAllowedToBypassGuardian(&txCopy), process.ErrTransactionNotExecutable))
+		txCopy.Data = []byte("SomeOtherFunction@")
+		require.True(t, errors.Is(baseProc.checkOperationAllowedToBypassGuardian(&txCopy), process.ErrTransactionNotExecutable))
 	})
 	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
-		txData := []byte("setGuardian")
-		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(txData, account), process.ErrTransactionNotExecutable))
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("setGuardian")
+		require.True(t, errors.Is(baseProc.checkOperationAllowedToBypassGuardian(&txCopy), process.ErrTransactionNotExecutable))
+
+	})
+	t.Run("set guardian builtin call not allowed to bypass if not executable check fails", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		expectedError := fmt.Errorf("expected error")
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return expectedError
+			},
+		}
+
+		txCopy.Data = []byte("SetGuardian@")
+		err := baseProc.checkOperationAllowedToBypassGuardian(&txCopy)
+		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		require.True(t, strings.Contains(err.Error(), expectedError.Error()))
+	})
+	t.Run("set guardian builtin call not allowed to bypass if transaction has sender username", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("SetGuardian@")
+		txCopy.SndUserName = []byte("someUsername")
+		err := baseProc.checkOperationAllowedToBypassGuardian(&txCopy)
+		require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+		require.True(t, strings.Contains(err.Error(), "username"))
+	})
+	t.Run("set guardian builtin call not allowed to bypass if transaction has receiver username address", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("SetGuardian@")
+		txCopy.RcvUserName = []byte("someUsername")
+		err := baseProc.checkOperationAllowedToBypassGuardian(&txCopy)
+		require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+		require.True(t, strings.Contains(err.Error(), "username"))
+	})
+	t.Run("set guardian builtin call ok", func(t *testing.T) {
+		txCopy := *tx
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		txCopy.Data = []byte("SetGuardian@")
+		require.Nil(t, baseProc.checkOperationAllowedToBypassGuardian(&txCopy))
+	})
+}
+
+func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
+	account := &stateMock.UserAccountStub{}
+	baseProc := createMockBaseTxProcessor()
+
+	t.Run("nil txData", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			Data: nil,
+		}
+
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(tx, account), process.ErrTransactionNotExecutable))
+	})
+	t.Run("empty txData", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			Data: []byte(""),
+		}
+
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(tx, account), process.ErrTransactionNotExecutable))
+	})
+	t.Run("nil account", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			Data: []byte("SetGuardian@"),
+		}
+		require.Nil(t, baseProc.checkGuardedAccountUnguardedTxPermission(tx, nil))
+	})
+	t.Run("setGuardian data field (non builtin call) not allowed", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			Data: []byte("setGuardian"),
+		}
+
+		require.True(t, errors.Is(baseProc.checkGuardedAccountUnguardedTxPermission(tx, account), process.ErrTransactionNotExecutable))
 	})
 	t.Run("set guardian builtin call allowed to bypass", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
-		require.Nil(t, baseProc.checkGuardedAccountUnguardedTxPermission(txData, account))
+		tx := &transaction.Transaction{
+			Data: []byte("SetGuardian@"),
+		}
+		require.Nil(t, baseProc.checkGuardedAccountUnguardedTxPermission(tx, account))
 	})
 	t.Run("set guardian builtin call with pending guardian not allowed", func(t *testing.T) {
-		txData := []byte("SetGuardian@")
+		tx := &transaction.Transaction{
+			Data: []byte("SetGuardian@"),
+		}
+
 		baseProcLocal := baseProc
 		baseProcLocal.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
 			HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
@@ -95,7 +186,7 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 			},
 		}
 
-		err := baseProcLocal.checkGuardedAccountUnguardedTxPermission(txData, account)
+		err := baseProcLocal.checkGuardedAccountUnguardedTxPermission(tx, account)
 		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
 		require.True(t, strings.Contains(err.Error(), process.ErrCannotReplaceGuardedAccountPendingGuardian.Error()))
 	})
@@ -240,5 +331,38 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 
 		err := localBaseProc.verifyGuardian(tx, guardedAccount)
 		assert.Nil(t, err)
+	})
+}
+
+func Test_CheckSetGuardianExecutable(t *testing.T) {
+	t.Run("sc processor CheckBuiltinFunctionIsExecutable with error should error with ErrTransactionNotExecutable", func(t *testing.T) {
+		t.Parallel()
+
+		baseProc := createMockBaseTxProcessor()
+		expectedErr := errors.New("expected error")
+
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return expectedErr
+			},
+		}
+		tx := &transaction.Transaction{}
+		err := baseProc.CheckSetGuardianExecutable(tx)
+		require.NotNil(t, err)
+		require.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		require.True(t, strings.Contains(err.Error(), expectedErr.Error()))
+	})
+	t.Run("sc processor CheckBuiltinFunctionIsExecutable with no error OK", func(t *testing.T) {
+		t.Parallel()
+
+		baseProc := createMockBaseTxProcessor()
+		baseProc.scProcessor = &testscommon.SCProcessorMock{
+			CheckBuiltinFunctionIsExecutableCalled: func(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+				return nil
+			},
+		}
+		tx := &transaction.Transaction{}
+		err := baseProc.CheckSetGuardianExecutable(tx)
+		require.Nil(t, err)
 	})
 }
