@@ -101,6 +101,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MultiClaimOnDelegationEnableEpoch:                 84,
 		ChangeUsernameEnableEpoch:                         85,
 		ConsistentTokensValuesLengthCheckEnableEpoch:      86,
+		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 	}
 }
 
@@ -241,9 +242,9 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckTransferFlagEnabled())
 		assert.True(t, handler.IsTransferToMetaFlagEnabled())
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
-
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
-	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
+	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
 
 		epoch := uint32(math.MaxUint32)
@@ -358,6 +359,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsCheckTransferFlagEnabled())
 		assert.True(t, handler.IsTransferToMetaFlagEnabled())
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -469,6 +471,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsCheckTransferFlagEnabled())
 		assert.False(t, handler.IsTransferToMetaFlagEnabled())
 		assert.False(t, handler.IsESDTNFTImprovementV1FlagEnabled())
+		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 	})
 }
 

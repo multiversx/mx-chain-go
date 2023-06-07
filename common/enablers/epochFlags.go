@@ -97,6 +97,7 @@ type epochFlagsHolder struct {
 	changeUsernameFlag                          *atomic.Flag
 	consistentTokensValuesCheckFlag             *atomic.Flag
 	autoBalanceDataTriesFlag                    *atomic.Flag
+	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -193,6 +194,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 		changeUsernameFlag:                          &atomic.Flag{},
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
+		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 	}
 }
 
@@ -707,4 +709,9 @@ func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
 // IsAutoBalanceDataTriesEnabled returns true if autoBalanceDataTriesFlag is enabled
 func (holder *epochFlagsHolder) IsAutoBalanceDataTriesEnabled() bool {
 	return holder.autoBalanceDataTriesFlag.IsSet()
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled returns true if the fix for the delegation change owner on account is enabled
+func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return holder.fixDelegationChangeOwnerOnAccountFlag.IsSet()
 }

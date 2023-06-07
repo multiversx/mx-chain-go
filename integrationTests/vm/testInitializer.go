@@ -614,9 +614,10 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 // CreateVMAndBlockchainHookMeta -
 func CreateVMAndBlockchainHookMeta(
-	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	gasSchedule core.GasScheduleNotifier,
 	shardCoordinator sharding.Coordinator,
+	userAccounts state.AccountsAdapter,
 	enableEpochsConfig config.EnableEpochs,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
@@ -638,7 +639,7 @@ func CreateVMAndBlockchainHookMeta(
 			string(dnsV2Decoded): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
-		Accounts:                  accnts,
+		Accounts:                  validatorAccounts,
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             globalEpochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
@@ -650,7 +651,7 @@ func CreateVMAndBlockchainHookMeta(
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:                 accnts,
+		Accounts:                 validatorAccounts,
 		PubkeyConv:               pubkeyConv,
 		StorageService:           &storageStubs.ChainStorerStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
@@ -686,7 +687,8 @@ func CreateVMAndBlockchainHookMeta(
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
-		ValidatorAccountsDB: accnts,
+		ValidatorAccountsDB: validatorAccounts,
+		UserAccountsDB:      userAccounts,
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
@@ -1642,7 +1644,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	}
 
 	if selfShardID == core.MetachainShardId {
-		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, accounts, enableEpochsConfig)
 	} else {
 		vmConfig := createDefaultVMConfig()
 		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(
