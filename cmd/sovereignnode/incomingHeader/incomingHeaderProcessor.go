@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -24,10 +23,8 @@ type ArgsIncomingHeaderProcessor struct {
 }
 
 type incomingHeaderProcessor struct {
-	headersPool HeadersPool
-	marshaller  marshal.Marshalizer
-	hasher      hashing.Hasher
-	scrProc     *scrProcessor
+	scrProc            *scrProcessor
+	extendedHeaderProc *extendedHeaderProcessor
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
@@ -53,11 +50,15 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		hasher:     args.Hasher,
 	}
 
-	return &incomingHeaderProcessor{
+	extendedHearProc := &extendedHeaderProcessor{
 		headersPool: args.HeadersPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
-		scrProc:     scrProc,
+	}
+
+	return &incomingHeaderProcessor{
+		scrProc:            scrProc,
+		extendedHeaderProc: extendedHearProc,
 	}, nil
 }
 
@@ -75,33 +76,13 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	incomingMB := createIncomingMb(incomingSCRs)
-	extendedHeader := &block.ShardHeaderExtended{
-		Header:             headerV2,
-		IncomingMiniBlocks: []*block.MiniBlock{incomingMB},
-	}
-
-	err = ihp.addExtendedHeaderToPool(extendedHeader)
+	extendedHeader := createExtendedHeader(headerV2, incomingSCRs)
+	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
 	}
 
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
-	return nil
-}
-
-// TODO: Implement this in task MX-14129
-func createIncomingMb(_ []*scrInfo) *block.MiniBlock {
-	return &block.MiniBlock{}
-}
-
-func (ihp *incomingHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
-	extendedHeaderHash, err := core.CalculateHash(ihp.marshaller, ihp.hasher, extendedHeader)
-	if err != nil {
-		return err
-	}
-
-	ihp.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
 	return nil
 }
 
