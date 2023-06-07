@@ -330,3 +330,35 @@ func TestShardAssignment(t *testing.T) {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
 }
+
+func TestProcessDestinationShardAsObserver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty shard should error", testProcessDestinationShardAsObserver("", 0, "option DestinationShardAsObserver is not set in prefs.toml"))
+	t.Run("disabled shard should return disabled",
+		testProcessDestinationShardAsObserver(common.NotSetDestinationShardID, common.DisabledShardIDAsObserver, ""))
+	t.Run("metachain should return metachain",
+		testProcessDestinationShardAsObserver("metachain", common.MetachainShardId, ""))
+	t.Run("MeTaChAiN should return metachain",
+		testProcessDestinationShardAsObserver("MeTaChAiN", common.MetachainShardId, ""))
+	t.Run("METACHAIN should return metachain",
+		testProcessDestinationShardAsObserver("METACHAIN", common.MetachainShardId, ""))
+	t.Run("invalid uint should error",
+		testProcessDestinationShardAsObserver("not uint", 0, "error parsing DestinationShardAsObserver"))
+	t.Run("should work",
+		testProcessDestinationShardAsObserver("1", 1, ""))
+}
+
+func testProcessDestinationShardAsObserver(providedShard string, expectedShard uint32, expectedError string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		shard, err := common.ProcessDestinationShardAsObserver(providedShard)
+		if len(expectedError) == 0 {
+			require.NoError(t, err)
+		} else {
+			require.True(t, strings.Contains(err.Error(), expectedError))
+		}
+		require.Equal(t, expectedShard, shard)
+	}
+}
