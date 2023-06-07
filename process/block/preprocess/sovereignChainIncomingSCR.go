@@ -13,9 +13,10 @@ type sovereignChainIncomingSCR struct {
 }
 
 func onRequestIncomingSCR(_ uint32, txHashes [][]byte) {
-	log.Warn("sovereignChainIncomingSCR.onRequestIncomingSCR was called; not implemented", "missing scrs hashes", txHashes)
+	log.Error("sovereignChainIncomingSCR.onRequestIncomingSCR was called; not implemented", "missing scrs hashes", txHashes)
 }
 
+// NewSovereignChainIncomingSCR creates a sovereign scr pre-processor
 func NewSovereignChainIncomingSCR(scr *smartContractResults) (*sovereignChainIncomingSCR, error) {
 	if scr == nil {
 		return nil, process.ErrNilPreProcessor
@@ -87,9 +88,12 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 				return nil, process.ErrWrongTypeAssertion
 			}
 
-			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			if err != nil {
+				return nil, err
+			}
 
-			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
+			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return nil, err
 			}
@@ -102,6 +106,7 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 	return createdMBs, nil
 }
 
+// ProcessMiniBlock initializes all the smart contract results from the given miniblock and saves them in a local cache
 func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
@@ -150,15 +155,12 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 			break
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
-
-		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
-		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
+		err = scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
 		if err != nil {
-			scr.handleProcessSovereignSCRError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
-			break
+			return nil, indexOfLastTxProcessed, false, err
 		}
 
+		_ = scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[txIndex])
 		numSCRsProcessed++
 	}
@@ -179,13 +181,4 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
 	return nil, txIndex - 1, false, err
-}
-
-func (scr *sovereignChainIncomingSCR) handleProcessSovereignSCRError(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, snapshot int, txHash []byte) {
-	errRevert := scr.accounts.RevertToSnapshot(snapshot)
-	if errRevert != nil {
-		log.Debug("scr.sovereignChainIncomingSCR: RevertToSnapshot", "error", errRevert.Error())
-	}
-
-	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
 }
