@@ -550,7 +550,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	scProcessor, err := smartContract.CreateSCRProcessor(arg.ChainRunType, argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
