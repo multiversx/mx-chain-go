@@ -67,9 +67,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
@@ -334,7 +332,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating state components")
 	managedStateComponents, err := snr.CreateManagedStateComponents(
 		managedCoreComponents,
-		managedBootstrapComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
 	)
@@ -396,7 +393,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
-		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
@@ -451,7 +447,11 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	if err != nil {
+		return true, err
+	}
+
 	err = managedStatusComponents.StartPolling()
 	if err != nil {
 		return true, err
@@ -542,10 +542,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
 
-	go func() {
-		sovereignWsReceiver.Start()
-	}()
-
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -601,7 +597,7 @@ func getUserAccountSyncer(
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
-	userTrie := stateComponents.TriesContainer().Get([]byte(trieFactory.UserAccountTrie))
+	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storageManager := userTrie.GetStorageManager()
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(int32(config.TrieSync.NumConcurrentTrieSyncers))
@@ -644,7 +640,6 @@ func getBaseAccountSyncerArgs(
 		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
-		StorageMarker:                     storageMarker.NewDisabledStorageMarker(),
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
@@ -1010,7 +1005,6 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 	managedCoreComponents mainFactory.CoreComponentsHolder,
 	managedNetworkComponents mainFactory.NetworkComponentsHolder,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHolder,
-	managedDataComponents mainFactory.DataComponentsHolder,
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
@@ -1023,7 +1017,6 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:       managedCoreComponents,
-		DataComponents:       managedDataComponents,
 		NetworkComponents:    managedNetworkComponents,
 		StateComponents:      managedStateComponents,
 		IsInImportMode:       isInImportMode,
@@ -1171,7 +1164,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                 *configs.GeneralConfig,
 		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		PrefConfigs:            *configs.PreferencesConfig,
 		ImportDBConfig:         *configs.ImportDbConfig,
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,
@@ -1190,11 +1183,9 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		MaxRating:              configs.RatingsConfig.General.MaxRating,
 		SystemSCConfig:         configs.SystemSCConfig,
-		Version:                configs.FlagsConfig.Version,
 		ImportStartHandler:     importStartHandler,
-		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		SnapshotsEnabled:       configs.FlagsConfig.SnapshotsEnabled,
+		FlagsConfig:            *configs.FlagsConfig,
 		ChainRunType:           common.ChainRunTypeSovereign,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
@@ -1239,7 +1230,6 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
-		SnapshotsEnabled:              configs.FlagsConfig.SnapshotsEnabled,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1272,7 +1262,6 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 // CreateManagedStateComponents is the managed state components factory
 func (snr *sovereignNodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
-	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
@@ -1282,7 +1271,6 @@ func (snr *sovereignNodeRunner) CreateManagedStateComponents(
 	}
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *snr.configs.GeneralConfig,
-		ShardCoordinator:         bootstrapComponents.ShardCoordinator(),
 		Core:                     coreComponents,
 		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),
@@ -1673,7 +1661,7 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderHandler{
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
 		HeadersPool: dataPool.Headers(),
 		TxPool:      dataPool.Transactions(),
 		Marshaller:  marshaller,
@@ -1693,7 +1681,9 @@ func createSovereignWsReceiver(
 		WebSocketConfig: notifierCfg.WebSocketConfig{
 			Url:                config.WebSocketConfig.Url,
 			MarshallerType:     config.WebSocketConfig.MarshallerType,
+			Mode:               config.WebSocketConfig.Mode,
 			RetryDuration:      config.WebSocketConfig.RetryDuration,
+			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
 		},
 		SovereignNotifier: sovereignNotifier,

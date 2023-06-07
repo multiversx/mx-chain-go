@@ -24,9 +24,11 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
+	"github.com/multiversx/mx-chain-go/process/sync/trieIterators"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -124,6 +126,9 @@ type baseBootstrap struct {
 	isInImportMode                      bool
 	scheduledTxsExecutionHandler        process.ScheduledTxsExecutionHandler
 	processWaitTime                     time.Duration
+
+	repopulateTokensSupplies bool
+
 	processAndCommitFunc                func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	handleScheduledRollBackToHeaderFunc func(header data.HeaderHandler, headerHash []byte) []byte
 	getRootHashFromBlockFunc            func(header data.HeaderHandler, headerHash []byte) []byte
@@ -703,14 +708,9 @@ func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 	}
 }
 
-func (boot *baseBootstrap) syncUserAccountsState() error {
-	rootHash, err := boot.accounts.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	log.Warn("base sync: started syncUserAccountsState")
-	return boot.accountsDBSyncer.SyncAccounts(rootHash)
+	return boot.accountsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -1195,6 +1195,42 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	}
 
 	return common.NsNotSynchronized
+}
+
+func (boot *baseBootstrap) handleAccountsTrieIteration() error {
+	if boot.repopulateTokensSupplies {
+		return boot.handleTokensSuppliesRepopulation()
+	}
+
+	// add more flags and trie iterators here
+	return nil
+}
+
+func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
+	argsTrieAccountsIteratorProc := trieIterators.ArgsTrieAccountsIterator{
+		Marshaller: boot.marshalizer,
+		Accounts:   boot.accounts,
+	}
+	trieAccountsIteratorProc, err := trieIterators.NewTrieAccountsIterator(argsTrieAccountsIteratorProc)
+	if err != nil {
+		return err
+	}
+
+	argsTokensSuppliesProc := trieIterators.ArgsTokensSuppliesProcessor{
+		StorageService: boot.store,
+		Marshaller:     boot.marshalizer,
+	}
+	tokensSuppliesProc, err := trieIterators.NewTokensSuppliesProcessor(argsTokensSuppliesProc)
+	if err != nil {
+		return err
+	}
+
+	err = trieAccountsIteratorProc.Process(tokensSuppliesProc.HandleTrieAccountIteration)
+	if err != nil {
+		return err
+	}
+
+	return tokensSuppliesProc.SaveSupplies()
 }
 
 // Close will close the endless running go routine

@@ -14,10 +14,10 @@ import (
 // CryptoComponentsStub -
 type CryptoComponentsStub struct {
 	PubKey                  crypto.PublicKey
+	PublicKeyCalled         func() crypto.PublicKey
 	PrivKey                 crypto.PrivateKey
 	P2pPubKey               crypto.PublicKey
 	P2pPrivKey              crypto.PrivateKey
-	PrivKeyBytes            []byte
 	PubKeyBytes             []byte
 	PubKeyString            string
 	BlockSig                crypto.SingleSigner
@@ -31,6 +31,7 @@ type CryptoComponentsStub struct {
 	MsgSigVerifier          vm.MessageSignVerifier
 	ManagedPeersHolderField common.ManagedPeersHolder
 	KeysHandlerField        consensus.KeysHandler
+	KeysHandlerCalled       func() consensus.KeysHandler
 	SigHandler              consensus.SigningHandler
 	mutMultiSig             sync.RWMutex
 }
@@ -52,6 +53,9 @@ func (ccs *CryptoComponentsStub) CheckSubcomponents() error {
 
 // PublicKey -
 func (ccs *CryptoComponentsStub) PublicKey() crypto.PublicKey {
+	if ccs.PublicKeyCalled != nil {
+		return ccs.PublicKeyCalled()
+	}
 	return ccs.PubKey
 }
 
@@ -78,11 +82,6 @@ func (ccs *CryptoComponentsStub) PublicKeyString() string {
 // PublicKeyBytes -
 func (ccs *CryptoComponentsStub) PublicKeyBytes() []byte {
 	return ccs.PubKeyBytes
-}
-
-// PrivateKeyBytes -
-func (ccs *CryptoComponentsStub) PrivateKeyBytes() []byte {
-	return ccs.PrivKeyBytes
 }
 
 // BlockSigner -
@@ -169,6 +168,9 @@ func (ccs *CryptoComponentsStub) ManagedPeersHolder() common.ManagedPeersHolder 
 
 // KeysHandler -
 func (ccs *CryptoComponentsStub) KeysHandler() consensus.KeysHandler {
+	if ccs.KeysHandlerCalled != nil {
+		return ccs.KeysHandlerCalled()
+	}
 	return ccs.KeysHandlerField
 }
 
@@ -180,7 +182,6 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 		PrivKey:                 ccs.PrivKey,
 		P2pPrivKey:              ccs.P2pPrivKey,
 		PubKeyString:            ccs.PubKeyString,
-		PrivKeyBytes:            ccs.PrivKeyBytes,
 		PubKeyBytes:             ccs.PubKeyBytes,
 		BlockSig:                ccs.BlockSig,
 		TxSig:                   ccs.TxSig,

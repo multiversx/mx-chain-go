@@ -50,7 +50,7 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +117,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 	}
 
 	sp := shardProcessor{
@@ -342,6 +343,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return nil, nil, err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -1099,6 +1105,8 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	}
 
 	sp.cleanupPools(header)
+
+	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

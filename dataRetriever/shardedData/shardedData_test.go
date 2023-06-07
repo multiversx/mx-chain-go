@@ -78,7 +78,7 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 	}
 
 	assert.Less(t, sd.ShardDataStore("1").Len(), int(defaultTestConfig.Capacity),
-		"Transaction pool entries excedes the maximum configured number")
+		"Transaction pool entries exceeds the maximum configured number")
 }
 
 func TestShardedData_NoDuplicates(t *testing.T) {
@@ -124,6 +124,8 @@ func TestShardedData_RemoveData(t *testing.T) {
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
+	sd.RemoveData([]byte{}, "missing_cache_id") // coverage
+
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
 		"AddData failed, length should be 1")
@@ -146,10 +148,12 @@ func TestShardedData_RemoveData(t *testing.T) {
 		"FindAndRemoveData failed, length should be 1 in shard 2")
 }
 
-func TestShardedData_Clear(t *testing.T) {
+func TestShardedData_ClearShardStore(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := NewShardedData("", defaultTestConfig)
+
+	sd.ClearShardStore("missing_cache_id") // coverage
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 0, "2")
@@ -224,7 +228,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 	}
 }
 
-func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
+func TestShardedData_RegisterAddedDataHandlerReallyAddsHandler(t *testing.T) {
 	t.Parallel()
 
 	f := func(key []byte, value interface{}) {
@@ -307,4 +311,49 @@ func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	assert.True(t, ok)
 }
 
-// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.
+func TestShardedData_RemoveSetOfDataFromPool(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	sd.RemoveSetOfDataFromPool([][]byte{}, "missing_cache_id") // coverage
+
+	sd.AddData([]byte("aaa"), "a1", 2, "0")
+	_, ok := sd.SearchFirstData([]byte("aaa"))
+	assert.True(t, ok)
+	sd.RemoveSetOfDataFromPool([][]byte{[]byte("aaa")}, "0")
+	_, ok = sd.SearchFirstData([]byte("aaa"))
+	assert.False(t, ok)
+}
+
+func TestShardedData_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0")
+}
+
+func TestShardedData_GetCounts(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	sd.RemoveSetOfDataFromPool([][]byte{}, "missing_cache_id") // coverage
+
+	sd.AddData([]byte("aaa"), "a1", 2, "0")
+	sd.AddData([]byte("bbb"), "b1", 2, "0")
+	counts := sd.GetCounts()
+	assert.Equal(t, int64(2), counts.GetTotal())
+}
+
+func TestShardedData_Diagnose(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	sd.RemoveSetOfDataFromPool([][]byte{}, "missing_cache_id") // coverage
+
+	sd.AddData([]byte("aaa"), "a1", 2, "0")
+	sd.AddData([]byte("bbb"), "b1", 2, "0")
+	sd.Diagnose(true)
+}

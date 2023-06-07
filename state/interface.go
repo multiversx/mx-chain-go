@@ -85,6 +85,7 @@ type UserAccountHandler interface {
 	GetOwnerAddress() []byte
 	SetUserName(userName []byte)
 	GetUserName() []byte
+	IsGuarded() bool
 	vmcommon.AccountHandler
 }
 
@@ -131,7 +132,7 @@ type AccountsAdapter interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -330,7 +331,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
 
-	signingHandler := &mock.SigningHandlerStub{
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 			return nil, crypto.ErrNilHasher
 		},
@@ -544,7 +545,7 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 
 	expectedSignature := []byte("signature")
 	container := mock.InitConsensusCore()
-	signingHandler := &mock.SigningHandlerStub{
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		CreateSignatureForPublicKeyCalled: func(publicKeyBytes []byte, msg []byte) ([]byte, error) {
 			var receivedHdr block.Header
 			_ = container.Marshalizer().Unmarshal(&receivedHdr, msg)
@@ -958,7 +959,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -980,7 +981,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1006,7 +1007,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1051,7 +1052,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1072,7 +1073,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SetAggregatedSigCalled: func(_ []byte) error {
 				return expectedErr
 			},
@@ -1111,7 +1112,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1158,7 +1159,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
@@ -1421,7 +1422,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		}
 
 		wasCalled := false
-		signingHandler := &mock.SigningHandlerStub{
+		signingHandler := &consensusMocks.SigningHandlerStub{
 			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
 				wasCalled = true
 				return errors.New("expected err")

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -36,7 +37,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ScProcessor:                  &testscommon.SCProcessorMock{},
 		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &mock.FeeHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
 		GasHandler:                   &testscommon.GasHandlerStub{},
 		BlockTracker:                 &mock.BlockTrackerMock{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},

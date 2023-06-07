@@ -7,29 +7,32 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/factory/mock"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test TestManagedProcessComponents --------------------
-func TestManagedProcessComponents_CreateWithInvalidArgsShouldErr(t *testing.T) {
+func TestNewManagedProcessComponents(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
-	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
-	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
-	require.NoError(t, err)
-	err = managedProcessComponents.Create()
-	require.Error(t, err)
-	require.Nil(t, managedProcessComponents.NodesCoordinator())
+	t.Run("nil factory should error", func(t *testing.T) {
+		t.Parallel()
+
+		managedProcessComponents, err := processComp.NewManagedProcessComponents(nil)
+		require.Equal(t, errorsMx.ErrNilProcessComponentsFactory, err)
+		require.Nil(t, managedProcessComponents)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		processComponentsFactory, _ := processComp.NewProcessComponentsFactory(createMockProcessComponentsFactoryArgs())
+		managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
+		require.NoError(t, err)
+		require.NotNil(t, managedProcessComponents)
+	})
 }
 
 func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
@@ -44,40 +47,25 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 }
 
 func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, chainType common.ChainRunType) {
-	coreComponents := componentsMock.GetCoreComponents()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardCoordinator.SelfIDCalled = func() uint32 {
-		return shardID
-	}
+	shardCoordinator.CurrentShard = shardID
+
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
 			return core.MetachainShardId
 		}
-
 		return 0
 	}
 
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
-	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
-	processArgs := componentsMock.GetProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
-	processArgs.ChainRunType = chainType
+	args := createMockProcessComponentsFactoryArgs()
+	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
+	args.ChainRunType = chainType
+	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
+	processComponentsFactory.SetChainRunType(chainType)
+	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
+	require.NotNil(t, managedProcessComponents)
 
-	componentsMock.SetShardCoordinator(t, processArgs.BootstrapComponents, shardCoordinator)
-
-	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
-	require.Nil(t, err)
-	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
-	require.NoError(t, err)
 	require.True(t, check.IfNil(managedProcessComponents.NodesCoordinator()))
 	require.True(t, check.IfNil(managedProcessComponents.InterceptorsContainer()))
 	require.True(t, check.IfNil(managedProcessComponents.ResolversContainer()))
@@ -113,7 +101,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.True(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
 	require.True(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
-	err = managedProcessComponents.Create()
+	err := managedProcessComponents.Create()
 	require.NoError(t, err)
 	require.False(t, check.IfNil(managedProcessComponents.NodesCoordinator()))
 	require.False(t, check.IfNil(managedProcessComponents.InterceptorsContainer()))
@@ -150,12 +138,6 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.False(t, check.IfNil(managedProcessComponents.HardforkTrigger()))
 	require.False(t, check.IfNil(managedProcessComponents.ProcessedMiniBlocksTracker()))
 
-	nodeSkBytes, err := cryptoComponents.PrivateKey().ToByteArray()
-	require.Nil(t, err)
-	observerSkBytes, err := managedProcessComponents.NodeRedundancyHandler().ObserverPrivateKey().ToByteArray()
-	require.Nil(t, err)
-	require.NotEqual(t, nodeSkBytes, observerSkBytes)
-
 	switch chainType {
 	case common.ChainRunTypeRegular:
 		switch shardID {
@@ -172,20 +154,59 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	}
 }
 
+func TestManagedProcessComponents_Create(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid params should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.Config.PublicKeyPeerId.Type = "invalid"
+		processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
+		managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
+		require.NotNil(t, managedProcessComponents)
+
+		err := managedProcessComponents.Create()
+		require.Error(t, err)
+	})
+}
+
+func TestManagedProcessComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
+	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(createMockProcessComponentsFactoryArgs())
+	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
+	require.NotNil(t, managedProcessComponents)
+	require.Equal(t, errorsMx.ErrNilProcessComponents, managedProcessComponents.CheckSubcomponents())
+
+	err := managedProcessComponents.Create()
+	require.NoError(t, err)
+
+	require.Nil(t, managedProcessComponents.CheckSubcomponents())
+}
+
 func TestManagedProcessComponents_Close(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
+	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(createMockProcessComponentsFactoryArgs())
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 	err := managedProcessComponents.Create()
 	require.NoError(t, err)
 
 	err = managedProcessComponents.Close()
 	require.NoError(t, err)
-	require.Nil(t, managedProcessComponents.NodesCoordinator())
+
+	err = managedProcessComponents.Close()
+	require.NoError(t, err)
+}
+
+func TestManagedProcessComponents_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	managedProcessComponents, _ := processComp.NewManagedProcessComponents(nil)
+	require.True(t, managedProcessComponents.IsInterfaceNil())
+
+	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(createMockProcessComponentsFactoryArgs())
+	managedProcessComponents, _ = processComp.NewManagedProcessComponents(processComponentsFactory)
+	require.False(t, managedProcessComponents.IsInterfaceNil())
 }

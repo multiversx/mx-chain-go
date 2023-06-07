@@ -1,6 +1,8 @@
 package transactionsfee
 
 import (
+	"encoding/hex"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 )
@@ -57,7 +59,7 @@ func prepareTransactionsAndScrs(txPool *outportcore.TransactionPool) *transactio
 	for scrHash, scrHandler := range txPool.SmartContractResults {
 		scr := scrHandler.SmartContractResult
 
-		txWithResults, ok := transactionsAndScrs.txsWithResults[string(scr.OriginalTxHash)]
+		txWithResults, ok := transactionsAndScrs.txsWithResults[hex.EncodeToString(scr.OriginalTxHash)]
 		if !ok {
 			transactionsAndScrs.scrsNoTx[scrHash] = scrHandler
 			continue

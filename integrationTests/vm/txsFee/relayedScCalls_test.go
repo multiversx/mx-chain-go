@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -27,7 +28,6 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -35,7 +35,7 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -70,7 +70,6 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -78,7 +77,7 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddrBytes, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -110,7 +109,6 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -118,7 +116,7 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("invalidMethod"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -150,7 +148,6 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(5)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -158,7 +155,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -189,7 +186,6 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -197,7 +193,7 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 

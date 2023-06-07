@@ -178,6 +178,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMetaConsensusGroupSize, 25)
 	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
 	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
+	sm.SetUInt64Value(common.MetricExtraGasLimitGuardedTx, 50000)
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")
@@ -200,6 +201,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_latest_tag_software_version":   "version1.0",
 		"erd_meta_consensus_group_size":     uint64(25),
 		"erd_min_gas_limit":                 uint64(50000),
+		"erd_extra_gas_limit_guarded_tx":    uint64(50000),
 		"erd_min_gas_price":                 uint64(1000),
 		"erd_min_transaction_version":       uint64(2),
 		"erd_num_metachain_nodes":           uint64(50),
@@ -314,6 +316,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -363,6 +366,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
 		common.MetricWaitingListFixEnableEpoch:                   uint64(1),
+		common.MetricSetGuardianEnableEpoch:                      uint64(3),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{

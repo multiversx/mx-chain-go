@@ -131,7 +131,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,
-			IsImportDB:             odp.isImportDBMode,
 			SignersIndexes:         signersIndexes,
 
 			HighestFinalBlockNonce: arg.HighestFinalBlockNonce,

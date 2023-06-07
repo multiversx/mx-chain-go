@@ -30,7 +30,6 @@ func TestESDTTransferShouldWork(t *testing.T) {
 	token := []byte("miiutoken")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(40)
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), gasPrice, gasLimit)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -67,7 +66,6 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 	token := []byte("miiutoken")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), gasPrice, gasLimit)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -104,7 +102,6 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 	token := []byte("miiutoken")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100000000+1), gasPrice, gasLimit)
 

@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -448,11 +449,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		ScProcessor:        &testscommon.SCProcessorMock{},
 		ScResultProcessor:  &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor: &testscommon.RewardTxProcessorMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -672,11 +673,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		ScProcessor:        &testscommon.SCProcessorMock{},
 		ScResultProcessor:  &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor: &testscommon.RewardTxProcessorMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -2594,7 +2595,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		ScProcessor:                  &testscommon.SCProcessorMock{},
 		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &mock.FeeHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
 		GasHandler:                   &testscommon.GasHandlerStub{},
 		BlockTracker:                 &mock.BlockTrackerMock{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
@@ -2704,7 +2705,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		ScProcessor:                  &testscommon.SCProcessorMock{},
 		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &mock.FeeHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
 		GasHandler:                   &testscommon.GasHandlerStub{},
 		BlockTracker:                 &mock.BlockTrackerMock{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
@@ -3078,11 +3079,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		ScProcessor:        &testscommon.SCProcessorMock{},
 		ScResultProcessor:  &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor: &testscommon.RewardTxProcessorMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -3282,7 +3283,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		ScProcessor:                  &testscommon.SCProcessorMock{},
 		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
 		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &mock.FeeHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
 		GasHandler:                   &testscommon.GasHandlerStub{},
 		BlockTracker:                 &mock.BlockTrackerMock{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},

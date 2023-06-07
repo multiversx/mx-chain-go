@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -36,12 +37,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
 	"github.com/stretchr/testify/require"
@@ -135,7 +134,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -148,7 +147,6 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	statusComponents := GetStatusComponents(
 		coreComponents,
 		networkComponents,
-		dataComponents,
 		stateComponents,
 		shardCoordinator,
 		processComponents.NodesCoordinator(),
@@ -163,6 +161,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
+		FlagsConfig:          config.ContextFlagsConfig{},
 		BootstrapRoundIndex:  0,
 		CoreComponents:       coreComponents,
 		NetworkComponents:    networkComponents,
@@ -221,7 +220,8 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		Crypto:                        GetCryptoComponents(coreComponents),
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
-		SnapshotsEnabled:              false,
+		NodeProcessingMode:            common.Normal,
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 }
 
@@ -321,43 +321,30 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	}
 }
 
-func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &hashingMocks.HasherMock{},
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
 // GetStateFactoryArgs -
-func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) stateComp.StateComponentsFactoryArgs {
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
+	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
-	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	triesHolder := state.NewDataTriesHolder()
 	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
 	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
-	triesHolder.Put([]byte(trieFactory.UserAccountTrie), trieUsers)
-	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
-		Config:           GetGeneralConfig(),
-		ShardCoordinator: shardCoordinator,
-		Core:             coreComponents,
-		StatusCore:       GetStatusCoreComponents(),
-		StorageService:   disabled.NewChainStorer(),
-		ProcessingMode:   common.Normal,
-		ChainHandler:     &testscommon.ChainHandlerStub{},
+		Config:         GetGeneralConfig(),
+		Core:           coreComponents,
+		StatusCore:     GetStatusCoreComponents(),
+		StorageService: disabled.NewChainStorer(),
+		ProcessingMode: common.Normal,
+		ChainHandler:   &testscommon.ChainHandlerStub{},
 	}
 
 	return stateComponentsFactoryArgs
@@ -369,7 +356,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
 		coreComponents,
@@ -437,7 +424,6 @@ func GetProcessArgs(
 	statusComponents := GetStatusComponents(
 		coreComponents,
 		networkComponents,
-		dataComponents,
 		stateComponents,
 		shardCoordinator,
 		nc,
@@ -541,11 +527,12 @@ func GetProcessArgs(
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+					LostProposalFee:  "1",
 				},
-				FirstWhitelistedAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -570,9 +557,10 @@ func GetProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:          "v1.0.0",
-		HistoryRepo:      &dblookupext.HistoryRepositoryStub{},
-		SnapshotsEnabled: false,
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
+		FlagsConfig: config.ContextFlagsConfig{
+			Version: "v1.0.0",
+		},
 		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
@@ -581,7 +569,6 @@ func GetProcessArgs(
 func GetStatusComponents(
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
@@ -610,7 +597,6 @@ func GetStatusComponents(
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   coreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
@@ -637,7 +623,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := GetStateComponents(coreComponents)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
 		coreComponents,
@@ -667,13 +653,18 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
+			HostDriverConfig: config.HostDriverConfig{
+				MarshallerType:     "json",
+				Mode:               "client",
+				URL:                "localhost:12345",
+				RetryDurationInSec: 1,
+			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
 		StateComponents:      stateComponents,
 		StatusCoreComponents: statusCoreComponents,
@@ -721,8 +712,8 @@ func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 }
 
 // GetStateComponents -
-func GetStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents, shardCoordinator)
+func GetStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(coreComponents)
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
 	if err != nil {
 		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
@@ -828,6 +819,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
 	gasMap["ValidatorToDelegation"] = value
+	gasMap["GetActiveFund"] = value
 	gasMap["FixWaitingListSize"] = value
 
 	return gasMap

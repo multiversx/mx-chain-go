@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	chainErr "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -585,7 +584,10 @@ func (txs *transactions) processTxsToMe(header data.HeaderHandler, body *block.B
 			txs.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 		}
 
-		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+		err = txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+		if err != nil {
+			return nil, err
+		}
 
 		if scheduledMode {
 			txs.scheduledTxsExecutionHandler.AddScheduledTx(txHash, tx)
@@ -726,7 +728,7 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsValidator(
 
 	txs.sortTransactionsBySenderAndNonce(scheduledTxsFromMe, randomness)
 
-	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
 		isShardStuck,
@@ -734,6 +736,9 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsValidator(
 		scheduledTxsFromMe,
 		mapSCTxs,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	if !haveTime() && !haveAdditionalTime() {
 		return nil, process.ErrTimeIsOut
@@ -888,7 +893,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 
 	_, err := txs.txProcessor.ProcessTransaction(tx)
-	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)
+	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(txHash, strCache)
@@ -1136,7 +1141,7 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 	}
 
 	startTime := time.Now()
-	scheduledMiniBlocks := txs.createScheduledMiniBlocks(
+	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
@@ -1148,6 +1153,9 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 	log.Debug("elapsed time to createScheduledMiniBlocks",
 		"time [s]", elapsedTime,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return scheduledMiniBlocks, nil
 }
@@ -1208,6 +1216,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 
 		err = txs.processMiniBlockBuilderTx(mbBuilder, wtx, tx)
 		if err != nil {
+			if core.IsGetNodeFromDBError(err) {
+				return nil, nil, err
+			}
 			continue
 		}
 
@@ -1297,7 +1308,7 @@ func (txs *transactions) handleBadTransaction(
 ) {
 	log.Trace("bad tx", "error", err.Error(), "hash", wtx.TxHash)
 	errRevert := txs.accounts.RevertToSnapshot(snapshot)
-	if errRevert != nil && !chainErr.IsClosingError(errRevert) {
+	if errRevert != nil && !core.IsClosingError(errRevert) {
 		log.Warn("revert to snapshot", "error", err.Error())
 	}
 
@@ -1562,7 +1573,10 @@ func (txs *transactions) ProcessMiniBlock(
 			}
 		}
 
-		txs.saveAccountBalanceForAddress(miniBlockTxs[txIndex].GetRcvAddr())
+		err = txs.saveAccountBalanceForAddress(miniBlockTxs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		if !scheduledMode {
 			err = txs.processInNormalMode(

@@ -12,11 +12,15 @@ type ArgsNewFeeComputer struct {
 	BuiltInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	EconomicsConfig             config.EconomicsConfig
 	EnableEpochsConfig          config.EnableEpochs
+	TxVersionChecker            process.TxVersionCheckerHandler
 }
 
 func (args *ArgsNewFeeComputer) check() error {
 	if check.IfNil(args.BuiltInFunctionsCostHandler) {
 		return process.ErrNilBuiltInFunctionsCostHandler
+	}
+	if check.IfNil(args.TxVersionChecker) {
+		return process.ErrNilTransactionVersionChecker
 	}
 
 	return nil
