@@ -269,6 +269,7 @@ func createNode(
 		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       p2pSingleSigner,
 		P2pKeyGenerator:       p2pKeyGen,
+		Logger:                logger.GetOrCreate("seed/p2p"),
 	}
 
 	return p2pFactory.NewNetworkMessenger(arg)

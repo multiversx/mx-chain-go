@@ -126,8 +126,9 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
 		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
 	} else {
-		// TODO: select preferred peers of type full history as well.
-		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
+		// TODO[Sorin]: select preferred peers of type full history as well.
+		// TODO[Sorin]: replace the following line with the proper functionality from the full archive messenger
+		// fullHistoryPeers = trs.peerListCreator.FullHistoryList()
 		numSentIntra = trs.sendOnTopic(fullHistoryPeers, "", topicToSendRequest, buff, trs.numFullHistoryPeers, core.FullHistoryPeer.String())
 	}
 

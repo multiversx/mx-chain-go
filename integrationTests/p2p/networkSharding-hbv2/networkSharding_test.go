@@ -40,9 +40,6 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
-			MaxFullHistoryObservers: 1,
-		},
 	}
 
 	testConnectionsInNetworkSharding(t, p2pCfg)

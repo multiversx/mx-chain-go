@@ -569,7 +569,8 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *p2pConfig.P2PConfig
+	MainP2pConfig            *p2pConfig.P2PConfig
+	FullArchiveP2pConfig     *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -587,6 +588,7 @@ type ConfigurationPathsHolder struct {
 	Preferences              string
 	External                 string
 	P2p                      string
+	FullArchiveP2p           string
 	GasScheduleDirectoryName string
 	Nodes                    string
 	Genesis                  string

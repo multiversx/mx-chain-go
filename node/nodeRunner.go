@@ -1104,6 +1104,7 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.SmartContracts,
 			configurationPaths.Nodes,
 			configurationPaths.P2p,
+			configurationPaths.FullArchiveP2p,
 			configurationPaths.Preferences,
 			configurationPaths.Ratings,
 			configurationPaths.SystemSC,
@@ -1384,7 +1385,8 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:             *nr.configs.P2pConfig,
+		MainP2pConfig:         *nr.configs.MainP2pConfig,
+		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),

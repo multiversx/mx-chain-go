@@ -9,7 +9,6 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedFullHistoryPeersOnTopicCalled  func(topic string) []core.PeerID
 	IDCalled                                func() core.PeerID
 	CloseCalled                             func() error
 	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
@@ -45,15 +44,6 @@ type MessengerStub struct {
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
-}
-
-// ConnectedFullHistoryPeersOnTopic -
-func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
-	if ms.ConnectedFullHistoryPeersOnTopicCalled != nil {
-		return ms.ConnectedFullHistoryPeersOnTopicCalled(topic)
-	}
-
-	return make([]core.PeerID, 0)
 }
 
 // ID -

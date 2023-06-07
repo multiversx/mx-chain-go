@@ -442,6 +442,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 			p2pFactory.ArgPeersRatingHandler{
 				TopRatedCache: topRatedCache,
 				BadRatedCache: badRatedCache,
+				Logger:        &testscommon.LoggerStub{},
 			})
 	}
 

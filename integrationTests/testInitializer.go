@@ -167,6 +167,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -189,11 +190,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -210,17 +207,13 @@ func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConf
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
+		NodeOperationMode:     p2p.NormalOperation,
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)

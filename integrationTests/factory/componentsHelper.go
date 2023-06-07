@@ -35,6 +35,7 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	economicsConfig, _ := common.LoadEconomicsConfig(configPathsHolder.Economics)
 	prefsConfig, _ := common.LoadPreferencesConfig(configPathsHolder.Preferences)
 	p2pConfig, _ := common.LoadP2PConfig(configPathsHolder.P2p)
+	fullArchiveP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.FullArchiveP2p)
 	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
@@ -50,7 +51,8 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.EconomicsConfig = economicsConfig
 	configs.SystemSCConfig = systemSCConfig
 	configs.PreferencesConfig = prefsConfig
-	configs.P2pConfig = p2pConfig
+	configs.MainP2pConfig = p2pConfig
+	configs.FullArchiveP2pConfig = fullArchiveP2PConfig
 	configs.ExternalConfig = externalConfig
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
@@ -80,6 +82,7 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		Preferences:              concatPath(PrefsPath),
 		External:                 concatPath(ExternalPath),
 		P2p:                      concatPath(P2pPath),
+		FullArchiveP2p:           concatPath(FullArchiveP2pPath),
 		Epoch:                    concatPath(EpochPath),
 		SystemSC:                 concatPath(SystemSCConfigPath),
 		GasScheduleDirectoryName: concatPath(GasSchedule),
