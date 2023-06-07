@@ -7,9 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
@@ -95,7 +95,7 @@ type InitialSmartContractParser interface {
 // TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
-	GetAccount(address []byte) (state.UserAccountHandler, bool)
+	GetAccount(address []byte) (common.UserAccountHandler, bool)
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error

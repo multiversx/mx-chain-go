@@ -8,9 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
@@ -218,7 +218,7 @@ func getNodeWithinSameShardAsPlayer(
 func GetUserAccount(
 	nodes []*integrationTests.TestProcessorNode,
 	address []byte,
-) state.UserAccountHandler {
+) common.UserAccountHandler {
 	shardID := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == shardID {
@@ -226,7 +226,7 @@ func GetUserAccount(
 			if check.IfNil(acc) {
 				return nil
 			}
-			userAcc := acc.(state.UserAccountHandler)
+			userAcc := acc.(common.UserAccountHandler)
 			return userAcc
 		}
 	}

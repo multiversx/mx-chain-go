@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDefaultArgs() state.ArgsAccountCreation {
-	return state.ArgsAccountCreation{
+func getDefaultArgs() factory.ArgsAccountCreator {
+	return factory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -151,7 +152,7 @@ func DoColdDeploy(
 	account, err := testContext.Accounts.LoadAccount(scAddr)
 	require.Nil(tb, err)
 
-	userAccount := account.(state.UserAccountHandler)
+	userAccount := account.(common.UserAccountHandler)
 	userAccount.SetOwnerAddress(owner)
 	userAccount.SetCodeMetadata(codeMetadataBytes)
 	userAccount.SetCode(scCodeBytes)
@@ -259,7 +260,7 @@ func CheckOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, 
 	acc, err := testContext.Accounts.GetExistingAccount(scAddr)
 	require.Nil(t, err)
 
-	userAcc, ok := acc.(state.UserAccountHandler)
+	userAcc, ok := acc.(common.UserAccountHandler)
 	require.True(t, ok)
 
 	currentOwner := userAcc.GetOwnerAddress()
@@ -281,7 +282,7 @@ func TestAccount(
 		return big.NewInt(0)
 	}
 
-	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
+	senderRecovShardAccount := senderRecovAccount.(common.UserAccountHandler)
 
 	require.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	require.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
@@ -394,7 +395,7 @@ func OverwriteAccountStorageWithHexFileContent(tb testing.TB, testContext *vm.VM
 	account, err := testContext.Accounts.GetExistingAccount(address)
 	require.Nil(tb, err)
 
-	userAccount := account.(state.UserAccountHandler)
+	userAccount := account.(common.UserAccountHandler)
 	userAccount.SetRootHash(nil)
 	err = testContext.Accounts.SaveAccount(account)
 	require.Nil(tb, err)

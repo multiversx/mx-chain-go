@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -164,12 +164,12 @@ func doMergeValidatorToDelegationWithWhitelist(
 	return round, nonce
 }
 
-func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
+func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) common.UserAccountHandler {
 	shardIDForAddress := nodes[0].ShardCoordinator.ComputeId(address)
 	nodeInShard := getNodeWithShardID(nodes, shardIDForAddress)
 
 	acc, _ := nodeInShard.AccntState.GetExistingAccount(address)
-	userAcc, _ := acc.(state.UserAccountHandler)
+	userAcc, _ := acc.(common.UserAccountHandler)
 	return userAcc
 }
 
@@ -180,7 +180,7 @@ func getNodesBalances(nodes []*integrationTests.TestProcessorNode) []*big.Int {
 		nodeInShard := getNodeWithShardID(nodes, shardIDForAddress)
 
 		acc, _ := nodeInShard.AccntState.GetExistingAccount(node.OwnAccount.Address)
-		userAcc, _ := acc.(state.UserAccountHandler)
+		userAcc, _ := acc.(common.UserAccountHandler)
 		balances = append(balances, userAcc.GetBalance())
 	}
 	return balances

@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -232,7 +231,7 @@ func generateDataTrie(
 func initDataTrie(
 	t *testing.T,
 	testContext *vm.VMTestContext,
-	acc state.UserAccountHandler,
+	acc common.UserAccountHandler,
 ) []byte {
 	key := []byte("initDataTrieKey")
 	err := acc.SaveKeyValue(key, key)
@@ -247,7 +246,7 @@ func saveAccount(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	dataTr common.Trie,
-	acc state.UserAccountHandler,
+	acc common.UserAccountHandler,
 ) []byte {
 	rootHash, _ := dataTr.RootHash()
 	acc.SetRootHash(rootHash)

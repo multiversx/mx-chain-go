@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -41,7 +42,7 @@ func GetCode(account baseAccountHandler) []byte {
 }
 
 // GetCodeEntry -
-func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*accounts.CodeEntry, error) {
 	return getCodeEntry(codeHash, trie, marshalizer)
 }
 

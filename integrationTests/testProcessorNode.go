@@ -2006,13 +2006,13 @@ func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutpu
 	return nil
 }
 
-func (tpn *TestProcessorNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+func (tpn *TestProcessorNode) getUserAccount(address []byte) (common.UserAccountHandler, error) {
 	acnt, err := tpn.AccntState.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	stAcc, ok := acnt.(state.UserAccountHandler)
+	stAcc, ok := acnt.(common.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -2832,7 +2832,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 // SetAccountNonce sets the account nonce with journal
 func (tpn *TestProcessorNode) SetAccountNonce(nonce uint64) error {
 	nodeAccount, _ := tpn.AccntState.LoadAccount(tpn.OwnAccount.Address)
-	nodeAccount.(state.UserAccountHandler).IncreaseNonce(nonce)
+	nodeAccount.(common.UserAccountHandler).IncreaseNonce(nonce)
 
 	err := tpn.AccntState.SaveAccount(nodeAccount)
 	if err != nil {
@@ -3286,7 +3286,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		}
 
 		acc, _ := n.AccntState.LoadAccount(vm.ESDTSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
+		userAcc, _ := acc.(common.UserAccountHandler)
 
 		chLeaves := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),

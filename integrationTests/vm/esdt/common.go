@@ -9,13 +9,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	testVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -49,7 +49,7 @@ func GetUserAccountWithAddress(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-) state.UserAccountHandler {
+) common.UserAccountHandler {
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(address)
 
@@ -57,7 +57,7 @@ func GetUserAccountWithAddress(
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				acc, err := helperNode.AccntState.LoadAccount(address)
 				require.Nil(t, err)
-				return acc.(state.UserAccountHandler)
+				return acc.(common.UserAccountHandler)
 			}
 		}
 	}

@@ -8,11 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -194,7 +194,7 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 				expectedBalance := big.NewInt(0).Set(initialBalance)
 				expectedBalance.Add(expectedBalance, added)
 
-				if expectedBalance.Cmp(account.(state.UserAccountHandler).GetBalance()) == 0 {
+				if expectedBalance.Cmp(account.(common.UserAccountHandler).GetBalance()) == 0 {
 					return nil
 				}
 

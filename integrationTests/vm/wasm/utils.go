@@ -469,7 +469,7 @@ func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticip
 func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
 	account, err := context.Accounts.GetExistingAccount(participant.Address)
 	require.Nil(context.T, err)
-	accountAsUser := account.(state.UserAccountHandler)
+	accountAsUser := account.(common.UserAccountHandler)
 	return accountAsUser.GetBalance()
 }
 
@@ -477,7 +477,7 @@ func (context *TestContext) GetAccountBalance(participant *testParticipant) *big
 func (context *TestContext) GetAccountBalanceDelta(participant *testParticipant) *big.Int {
 	account, err := context.Accounts.GetExistingAccount(participant.Address)
 	require.Nil(context.T, err)
-	accountAsUser := account.(state.UserAccountHandler)
+	accountAsUser := account.(common.UserAccountHandler)
 	currentBalance := accountAsUser.GetBalance()
 	delta := currentBalance.Sub(currentBalance, participant.BalanceSnapshot)
 	return delta

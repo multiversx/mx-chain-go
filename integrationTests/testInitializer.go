@@ -47,7 +47,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -59,6 +61,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -474,7 +477,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
 	switch accountType {
 	case UserAccount:
-		argsAccCreator := state.ArgsAccountCreation{
+		argsAccCreator := factory.ArgsAccountCreator{
 			Hasher:              TestHasher,
 			Marshaller:          TestMarshalizer,
 			EnableEpochsHandler: enableEpochsHandler,
@@ -863,7 +866,7 @@ func CreateRandomAddress() []byte {
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
 	accnt, _ := accnts.LoadAccount(addressBytes)
-	_ = accnt.(state.UserAccountHandler).AddToBalance(value)
+	_ = accnt.(common.UserAccountHandler).AddToBalance(value)
 	_ = accnts.SaveAccount(accnt)
 	_, _ = accnts.Commit()
 }
@@ -872,8 +875,8 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) []byte {
 	address := CreateRandomBytes(32)
 	account, _ := accnts.LoadAccount(address)
-	account.(state.UserAccountHandler).IncreaseNonce(nonce)
-	_ = account.(state.UserAccountHandler).AddToBalance(balance)
+	account.(common.UserAccountHandler).IncreaseNonce(nonce)
+	_ = account.(common.UserAccountHandler).AddToBalance(balance)
 	_ = accnts.SaveAccount(account)
 
 	return address
@@ -904,7 +907,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 }
 
 // PrintShardAccount outputs on console a shard account data contained
-func PrintShardAccount(accnt state.UserAccountHandler, tag string) {
+func PrintShardAccount(accnt common.UserAccountHandler, tag string) {
 	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressBytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.GetNonce())
 	str += fmt.Sprintf("  Balance: %d\n", accnt.GetBalance().Uint64())
@@ -923,23 +926,22 @@ func CreateRandomBytes(chars int) []byte {
 }
 
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
-func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
+func GenerateAddressJournalAccountAccountsDB() ([]byte, common.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              TestHasher,
-		Marshaller:          TestMarshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	account, _ := state.NewUserAccount(adr, argsAccCreation)
+
+	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := state.NewTrackableDataTrie(adr, nil, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+
+	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 
 	return adr, account, adb
 }
 
 // AdbEmulateBalanceTxSafeExecution emulates a tx execution by altering the accounts
 // balance and nonce, and printing any encountered error
-func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler, accounts state.AccountsAdapter, value *big.Int) {
+func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest common.UserAccountHandler, accounts state.AccountsAdapter, value *big.Int) {
 
 	snapshot := accounts.JournalLen()
 	err := AdbEmulateBalanceTxExecution(accounts, acntSrc, acntDest, value)
@@ -956,7 +958,7 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler
 
 // AdbEmulateBalanceTxExecution emulates a tx execution by altering the accounts
 // balance and nonce, and printing any encountered error
-func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntDest state.UserAccountHandler, value *big.Int) error {
+func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntDest common.UserAccountHandler, value *big.Int) error {
 
 	srcVal := acntSrc.GetBalance()
 	if srcVal.Cmp(value) < 0 {
@@ -1818,14 +1820,14 @@ func skToPk(sk crypto.PrivateKey) []byte {
 func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
 	pkBuff, _ := pk.ToByteArray()
 	account, _ := n.AccntState.GetExistingAccount(pkBuff)
-	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
+	assert.Equal(t, expectedBalance, account.(common.UserAccountHandler).GetBalance())
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
 func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.PrivateKey, expectedBalance *big.Int) {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	account, _ := n.AccntState.GetExistingAccount(pkBuff)
-	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
+	assert.Equal(t, expectedBalance, account.(common.UserAccountHandler).GetBalance())
 }
 
 // GetMiniBlocksHashesFromShardIds returns miniblock hashes from body
@@ -1979,7 +1981,7 @@ func CreateMintingForSenders(
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
 			account, _ := n.AccntState.LoadAccount(pkBuff)
-			_ = account.(state.UserAccountHandler).AddToBalance(value)
+			_ = account.(common.UserAccountHandler).AddToBalance(value)
 			_ = n.AccntState.SaveAccount(account)
 		}
 
@@ -2583,7 +2585,7 @@ func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
 		}
 
 		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
+		userAcc, _ := acc.(common.UserAccountHandler)
 
 		managementData := &systemSmartContracts.DelegationManagement{
 			MinDeposit:          big.NewInt(100),
@@ -2605,7 +2607,7 @@ func SaveDelegationContractsList(nodes []*TestProcessorNode) {
 		}
 
 		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
+		userAcc, _ := acc.(common.UserAccountHandler)
 
 		managementData := &systemSmartContracts.DelegationContractList{
 			Addresses: [][]byte{[]byte("addr")},

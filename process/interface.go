@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -172,10 +173,10 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error)
+	DeploySmartContract(tx data.TransactionHandler, acntSrc common.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ProcessIfError(acntSnd common.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
 	CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error
 	IsInterfaceNil() bool
@@ -281,7 +282,7 @@ type ValidatorStatisticsProcessor interface {
 	DisplayRatings(epoch uint32)
 	SetLastFinalizedRootHash([]byte)
 	LastFinalizedRootHash() []byte
-	PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo
 	SaveNodesCoordinatorUpdates(epoch uint32) (bool, error)
 }
 
@@ -304,7 +305,7 @@ type TransactionLogProcessorDatabase interface {
 
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
-	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	GetLatestValidators() map[string]*accounts.ValidatorApiResponse
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -1110,7 +1111,7 @@ type ESDTPauseHandler interface {
 
 // ESDTRoleHandler provides IsAllowedToExecute function for an ESDT
 type ESDTRoleHandler interface {
-	CheckAllowedToExecute(account state.UserAccountHandler, tokenID []byte, action []byte) error
+	CheckAllowedToExecute(account common.UserAccountHandler, tokenID []byte, action []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -1245,19 +1246,19 @@ type InterceptedSignedTransactionHandler interface {
 // GuardianChecker can check an account guardian
 type GuardianChecker interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
-	HasActiveGuardian(uah state.UserAccountHandler) bool
-	HasPendingGuardian(uah state.UserAccountHandler) bool
+	HasActiveGuardian(uah common.UserAccountHandler) bool
+	HasPendingGuardian(uah common.UserAccountHandler) bool
 	IsInterfaceNil() bool
 }
 
 // GuardedAccountHandler allows setting and getting the configured account guardian
 type GuardedAccountHandler interface {
 	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
-	HasActiveGuardian(uah state.UserAccountHandler) bool
-	HasPendingGuardian(uah state.UserAccountHandler) bool
+	HasActiveGuardian(uah common.UserAccountHandler) bool
+	HasPendingGuardian(uah common.UserAccountHandler) bool
 	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error
 	CleanOtherThanActive(uah vmcommon.UserAccountHandler)
-	GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
+	GetConfiguredGuardians(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
 	IsInterfaceNil() bool
 }
 

@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ func TestExportUserAccountState(t *testing.T) {
 	account, err := accounts.LoadAccount(address)
 	require.Nil(t, err)
 
-	userAccount := account.(state.UserAccountHandler)
+	userAccount := account.(common.UserAccountHandler)
 	err = userAccount.AddToBalance(big.NewInt(1))
 	require.Nil(t, err)
 

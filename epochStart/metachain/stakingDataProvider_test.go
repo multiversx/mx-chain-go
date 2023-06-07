@@ -448,7 +448,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 		}
 		require.Nil(t, errLoad)
 
-		userAccount, _ := account.(state.UserAccountHandler)
+		userAccount, _ := account.(common.UserAccountHandler)
 		for _, storeUpdate := range outputAccount.StorageUpdates {
 			_ = userAccount.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}

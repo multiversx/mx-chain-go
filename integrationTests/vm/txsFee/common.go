@@ -5,14 +5,13 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/require"
 )
 
-func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
+func getAccount(tb testing.TB, testContext *vm.VMTestContext, scAddress []byte) common.UserAccountHandler {
 	scAcc, err := testContext.Accounts.LoadAccount(scAddress)
 	require.Nil(tb, err)
-	acc, ok := scAcc.(state.UserAccountHandler)
+	acc, ok := scAcc.(common.UserAccountHandler)
 	require.True(tb, ok)
 
 	return acc

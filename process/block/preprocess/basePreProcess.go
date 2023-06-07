@@ -429,7 +429,7 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 		return nil, err
 	}
 
-	account, ok := accountHandler.(state.UserAccountHandler)
+	account, ok := accountHandler.(common.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}

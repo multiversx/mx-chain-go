@@ -18,13 +18,12 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -828,20 +827,15 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	require.False(t, isDelegationSCAddress)
 
 	// peer account
-	peerAccount, err := state.NewPeerAccount([]byte("addressPeer"))
+	peerAccount, err := accounts.NewPeerAccount([]byte("addressPeer"))
 	require.Nil(t, err)
 	err = rwd.userAccountsDB.SaveAccount(peerAccount)
 	require.Nil(t, err)
 	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccount.AddressBytes())
 	require.False(t, isDelegationSCAddress)
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"), argsAccCreation)
+	userAccount, err := accounts.NewUserAccount([]byte("userAddress"), &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	require.Nil(t, err)
 
 	userAccount.SetDataTrie(&trieMock.TrieStub{
@@ -1148,7 +1142,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	storageManagerArgs.Hasher = hasher
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

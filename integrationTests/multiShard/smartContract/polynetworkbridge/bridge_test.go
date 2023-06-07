@@ -7,11 +7,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
@@ -153,7 +153,7 @@ func getUserAccountWithAddress(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-) state.UserAccountHandler {
+) common.UserAccountHandler {
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(address)
 
@@ -161,7 +161,7 @@ func getUserAccountWithAddress(
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				acc, err := helperNode.AccntState.LoadAccount(address)
 				require.Nil(t, err)
-				return acc.(state.UserAccountHandler)
+				return acc.(common.UserAccountHandler)
 			}
 		}
 	}

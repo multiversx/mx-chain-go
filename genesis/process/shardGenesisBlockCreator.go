@@ -31,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/process/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
@@ -369,7 +368,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 		return err
 	}
 
-	account, ok := accWrp.(state.UserAccountHandler)
+	account, ok := accWrp.(common.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

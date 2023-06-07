@@ -3,7 +3,8 @@ package peer
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // CheckForMissedBlocks -
@@ -18,7 +19,7 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 }
 
 // LoadPeerAccount -
-func (vs *validatorStatistics) LoadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vs *validatorStatistics) LoadPeerAccount(address []byte) (common.PeerAccountHandler, error) {
 	return vs.loadPeerAccount(address)
 }
 
@@ -48,7 +49,7 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 }
 
 // GetCache -
-func (vp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) GetCache() map[string]*accounts.ValidatorApiResponse {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 	return vp.cache
@@ -63,6 +64,6 @@ func (vs *validatorStatistics) UpdateShardDataPeerState(
 }
 
 // GetActualList -
-func GetActualList(peerAccount state.PeerAccountHandler) string {
+func GetActualList(peerAccount common.PeerAccountHandler) string {
 	return getActualList(peerAccount)
 }

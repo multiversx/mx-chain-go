@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -460,7 +461,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func getActualList(peerAccount state.PeerAccountHandler) string {
+func getActualList(peerAccount common.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
 		if savedList == string(common.InactiveList) {
@@ -476,7 +477,7 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 }
 
 // PeerAccountToValidatorInfo creates a validator info from the given peer account
-func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
 	chance := vs.rater.GetChance(peerAccount.GetRating())
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
 	ratingModifier := float32(chance) / float32(startRatingChance)
@@ -497,15 +498,15 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
 		RewardAddress:                   peerAccount.GetRewardAddress(),
-		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().NumFailure,
+		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().GetNumSuccess(),
+		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().GetNumFailure(),
+		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().GetNumSuccess(),
+		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().GetNumFailure(),
 		ValidatorIgnoredSignatures:      peerAccount.GetValidatorIgnoredSignaturesRate(),
-		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().GetNumSuccess(),
+		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().GetNumFailure(),
+		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().GetNumSuccess(),
+		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().GetNumFailure(),
 		TotalValidatorIgnoredSignatures: peerAccount.GetTotalValidatorIgnoredSignaturesRate(),
 		NumSelectedInSuccessBlocks:      peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:                 big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
@@ -519,7 +520,7 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	validatorAccount, ok := acc.(common.PeerAccountHandler)
 	if !ok {
 		return false
 	}
@@ -527,12 +528,12 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 	return vs.isValidatorWithLowRating(validatorAccount)
 }
 
-func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.PeerAccountHandler) bool {
+func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount common.PeerAccountHandler) bool {
 	minChance := vs.rater.GetChance(0)
 	return vs.rater.GetChance(validatorAccount.GetTempRating()) < minChance
 }
 
-func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
+func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount common.PeerAccountHandler) {
 	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
 		return
 	}
@@ -547,8 +548,8 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
 }
 
-func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
-	peerAccount := state.NewEmptyPeerAccount()
+func (vs *validatorStatistics) unmarshalPeer(pa []byte) (common.PeerAccountHandler, error) {
+	peerAccount := accounts.NewEmptyPeerAccount()
 	err := vs.marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
 		return nil, err
@@ -684,7 +685,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return err
 			}
 
-			peerAccount, ok := account.(state.PeerAccountHandler)
+			peerAccount, ok := account.(common.PeerAccountHandler)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -702,7 +703,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 }
 
 func (vs *validatorStatistics) setToJailedIfNeeded(
-	peerAccount state.PeerAccountHandler,
+	peerAccount common.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
 	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
@@ -961,7 +962,7 @@ func (vs *validatorStatistics) initializeNode(
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
-	peerAccount state.PeerAccountHandler,
+	peerAccount common.PeerAccountHandler,
 	node nodesCoordinator.GenesisNodeInfoHandler,
 	startRating uint32,
 	shardID uint32,
@@ -1044,13 +1045,13 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	return nil
 }
 
-func (vs *validatorStatistics) loadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vs *validatorStatistics) loadPeerAccount(address []byte) (common.PeerAccountHandler, error) {
 	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAccount, ok := account.(state.PeerAccountHandler)
+	peerAccount, ok := account.(common.PeerAccountHandler)
 	if !ok {
 		return nil, process.ErrInvalidPeerAccount
 	}
@@ -1143,11 +1144,11 @@ func (vs *validatorStatistics) display(validatorKey string) {
 
 	log.Trace("validator statistics",
 		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.AddressBytes())),
-		"leader fail", peerAcc.GetLeaderSuccessRate().NumFailure,
-		"leader success", peerAcc.GetLeaderSuccessRate().NumSuccess,
-		"val success", peerAcc.GetValidatorSuccessRate().NumSuccess,
+		"leader fail", peerAcc.GetLeaderSuccessRate().GetNumFailure(),
+		"leader success", peerAcc.GetLeaderSuccessRate().GetNumSuccess(),
+		"val success", peerAcc.GetValidatorSuccessRate().GetNumSuccess(),
 		"val ignored sigs", peerAcc.GetValidatorIgnoredSignaturesRate(),
-		"val fail", peerAcc.GetValidatorSuccessRate().NumFailure,
+		"val fail", peerAcc.GetValidatorSuccessRate().GetNumFailure(),
 		"temp rating", peerAcc.GetTempRating(),
 		"rating", peerAcc.GetRating(),
 	)

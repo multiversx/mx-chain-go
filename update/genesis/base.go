@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/update"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -101,14 +103,19 @@ func NewEmptyAccount(
 ) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		argsAccCreation := state.ArgsAccountCreation{
-			Hasher:              hasher,
-			Marshaller:          marshaller,
-			EnableEpochsHandler: enableEpochsHandler,
+		dtt, err := state.NewTrackableDataTrie(address, nil, hasher, marshaller, enableEpochsHandler)
+		if err != nil {
+			return nil, err
 		}
-		return state.NewUserAccount(address, argsAccCreation)
+
+		dtlp, err := parsers.NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
+		if err != nil {
+			return nil, err
+		}
+
+		return accounts.NewUserAccount(address, dtt, dtlp)
 	case ValidatorAccount:
-		return state.NewPeerAccount(address)
+		return accounts.NewPeerAccount(address)
 	case DataTrie:
 		return nil, nil
 	}

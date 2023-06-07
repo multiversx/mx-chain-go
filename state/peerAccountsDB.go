@@ -118,7 +118,7 @@ func (adb *PeerAccountsDB) IsInterfaceNil() bool {
 }
 
 // GetPeerAccountAndReturnIfNew returns the peer account and a flag indicating if the account is new
-func GetPeerAccountAndReturnIfNew(adb AccountsAdapter, address []byte) (PeerAccountHandler, bool, error) {
+func GetPeerAccountAndReturnIfNew(adb AccountsAdapter, address []byte) (common.PeerAccountHandler, bool, error) {
 	var err error
 
 	newAccount := false
@@ -131,7 +131,7 @@ func GetPeerAccountAndReturnIfNew(adb AccountsAdapter, address []byte) (PeerAcco
 		}
 	}
 
-	peerAcc, ok := account.(PeerAccountHandler)
+	peerAcc, ok := account.(common.PeerAccountHandler)
 	if !ok {
 		return nil, false, ErrWrongTypeAssertion
 	}

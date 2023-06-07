@@ -9,9 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -194,7 +194,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 	log.Info("account",
 		"address", node.OwnAccount.Address,
 		"nonce", accnt.GetNonce(),
-		"balance", accnt.(state.UserAccountHandler).GetBalance(),
+		"balance", accnt.(common.UserAccountHandler).GetBalance(),
 	)
 }
 

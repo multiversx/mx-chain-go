@@ -30,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	mxState "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
@@ -1006,7 +1005,7 @@ func fundGenesisWallets(t *testing.T, args processComp.ProcessComponentsFactoryA
 		account, err := accounts.LoadAccount(node.AddressBytes())
 		require.NoError(t, err)
 
-		userAccount := account.(mxState.UserAccountHandler)
+		userAccount := account.(common.UserAccountHandler)
 		err = userAccount.AddToBalance(nodePrice)
 		require.NoError(t, err)
 

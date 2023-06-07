@@ -36,7 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -365,7 +365,7 @@ func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) 
 }
 
 func (n *Node) getPendingAndActiveGuardians(
-	userAccount state.UserAccountHandler,
+	userAccount common.UserAccountHandler,
 ) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
 	var active, pending *guardians.Guardian
 	gah := n.bootstrapComponents.GuardedAccountHandler()
@@ -672,13 +672,13 @@ func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
 	return pubKey, nil
 }
 
-func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, error) {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (common.UserAccountHandler, error) {
 	if check.IfNil(ah) {
 		log.Error("node.castAccountToUserAccount(): unexpected nil account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	account, ok := ah.(state.UserAccountHandler)
+	account, ok := ah.(common.UserAccountHandler)
 	if !ok {
 		log.Error("node.castAccountToUserAccount(): unexpected type of account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
@@ -994,7 +994,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
@@ -1404,7 +1404,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, err
 	}
 
-	userAccount, ok := account.(state.UserAccountHandler)
+	userAccount, ok := account.(common.UserAccountHandler)
 	if !ok {
 		return nil, nil, fmt.Errorf("the address does not belong to a user account")
 	}

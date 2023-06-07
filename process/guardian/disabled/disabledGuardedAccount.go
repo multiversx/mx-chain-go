@@ -2,7 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -19,12 +19,12 @@ func (dga *disabledGuardedAccount) GetActiveGuardian(_ vmcommon.UserAccountHandl
 }
 
 // HasActiveGuardian returns false as this is a disabled implementation
-func (dga *disabledGuardedAccount) HasActiveGuardian(_ state.UserAccountHandler) bool {
+func (dga *disabledGuardedAccount) HasActiveGuardian(_ common.UserAccountHandler) bool {
 	return false
 }
 
 // HasPendingGuardian returns false as this is a disabled implementation
-func (dga *disabledGuardedAccount) HasPendingGuardian(_ state.UserAccountHandler) bool {
+func (dga *disabledGuardedAccount) HasPendingGuardian(_ common.UserAccountHandler) bool {
 	return false
 }
 
@@ -37,7 +37,7 @@ func (dga *disabledGuardedAccount) SetGuardian(_ vmcommon.UserAccountHandler, _ 
 func (dga *disabledGuardedAccount) CleanOtherThanActive(_ vmcommon.UserAccountHandler) {}
 
 // GetConfiguredGuardians returns nil, nil, nil as this is a disabled component
-func (dga *disabledGuardedAccount) GetConfiguredGuardians(_ state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+func (dga *disabledGuardedAccount) GetConfiguredGuardians(_ common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 	return nil, nil, nil
 }
 

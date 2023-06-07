@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -273,7 +274,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	var codeEntry CodeEntry
+	var codeEntry accounts.CodeEntry
 
 	startTime := time.Now()
 	defer func() {
@@ -384,12 +385,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		oldCodeHash = oldAcc.GetCodeHash()
 	}
 
-	userAcc, ok := newAcc.(*userAccount)
-	if !ok {
-		return ErrWrongTypeAssertion
-	}
-
-	newCode := userAcc.code
+	newCode := newAcc.GetCode()
 	var newCodeHash []byte
 	if len(newCode) != 0 {
 		newCodeHash = adb.hasher.Compute(string(newCode))
@@ -420,7 +416,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*accounts.CodeEntry, error) {
 	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
@@ -430,7 +426,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, nil
 	}
 
-	unmodifiedOldCodeEntry := &CodeEntry{
+	unmodifiedOldCodeEntry := &accounts.CodeEntry{
 		Code:          oldCodeEntry.Code,
 		NumReferences: oldCodeEntry.NumReferences,
 	}
@@ -464,7 +460,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 
 	if newCodeEntry == nil {
-		newCodeEntry = &CodeEntry{
+		newCodeEntry = &accounts.CodeEntry{
 			Code: newCode,
 		}
 	}
@@ -478,7 +474,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	return nil
 }
 
-func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*accounts.CodeEntry, error) {
 	val, _, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
@@ -488,7 +484,7 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 		return nil, nil
 	}
 
-	var codeEntry CodeEntry
+	var codeEntry accounts.CodeEntry
 	err = marshalizer.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil, err
@@ -497,7 +493,7 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 	return &codeEntry, nil
 }
 
-func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+func saveCodeEntry(codeHash []byte, entry *accounts.CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
 	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
 		return err
@@ -811,7 +807,7 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return err
 	}
 
-	var codeEntry CodeEntry
+	var codeEntry accounts.CodeEntry
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return err
@@ -1064,7 +1060,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	}
 
 	for leaf := range leavesChannels.LeavesChan {
-		account := &userAccount{}
+		account := &accounts.UserAccountData{}
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
@@ -1345,7 +1341,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	epoch uint32,
 ) {
 	for leaf := range iteratorChannels.LeavesChan {
-		account := &userAccount{}
+		account := &accounts.UserAccountData{}
 		err := adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
@@ -1467,7 +1463,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	}
 
 	for leaf := range iteratorChannels.LeavesChan {
-		account := &userAccount{}
+		account := &accounts.UserAccountData{}
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)

@@ -5,11 +5,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TxValidator = (*txValidator)(nil)
@@ -102,9 +103,9 @@ func (txv *txValidator) checkAccount(
 func (txv *txValidator) getSenderUserAccount(
 	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
-) (state.UserAccountHandler, error) {
+) (common.UserAccountHandler, error) {
 	senderAddress := interceptedTx.SenderAddress()
-	account, ok := accountHandler.(state.UserAccountHandler)
+	account, ok := accountHandler.(common.UserAccountHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
@@ -114,7 +115,7 @@ func (txv *txValidator) getSenderUserAccount(
 	return account, nil
 }
 
-func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
+func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account common.UserAccountHandler) error {
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {

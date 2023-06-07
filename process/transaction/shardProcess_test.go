@@ -13,13 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	txproc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -52,7 +52,7 @@ func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
 }
 
 func createAccountStub(sndAddr, rcvAddr []byte,
-	acntSrc, acntDst state.UserAccountHandler,
+	acntSrc, acntDst common.UserAccountHandler,
 ) *stateMock.AccountsStub {
 	adb := stateMock.AccountsStub{}
 
@@ -815,7 +815,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *
 
 	expectedError := errors.New("expected")
 	scProcessor := &testscommon.SCProcessorMock{
-		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+		ProcessIfErrorCalled: func(acntSnd common.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
 			return expectedError
 		},
 	}
@@ -1041,7 +1041,7 @@ func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
 	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.DeploySmartContractCalled = func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	scProcessorMock.DeploySmartContractCalled = func(tx data.TransactionHandler, acntSrc common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
 		return vmcommon.Ok, nil
 	}
@@ -1089,7 +1089,7 @@ func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.
 	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
 		return vmcommon.Ok, nil
 	}
@@ -1137,7 +1137,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
 		return 0, nil
 	}
@@ -1183,7 +1183,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
 		return vmcommon.UserError, process.ErrNoVM
 	}
@@ -1237,7 +1237,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
 		return vmcommon.UserError, process.ErrNoVM
 	}
@@ -1498,7 +1498,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &testscommon.SCProcessorMock{
-		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+		ProcessIfErrorCalled: func(acntSnd common.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
 			return acntSnd.AddToBalance(tx.GetValue())
 		},
 	}
@@ -3081,7 +3081,7 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 		}}
 
 	args.ScProcessor = &testscommon.SCProcessorMock{
-		ExecuteBuiltInFunctionCalled: func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+		ExecuteBuiltInFunctionCalled: func(tx data.TransactionHandler, acntSrc, acntDst common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 			return vmcommon.UserError, process.ErrFailedTransaction
 		},
 	}

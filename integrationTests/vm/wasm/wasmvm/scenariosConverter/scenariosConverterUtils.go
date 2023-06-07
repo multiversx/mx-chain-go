@@ -3,15 +3,15 @@ package scenariosConverter
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/config"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
-
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
+	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAcco
 	for _, scenariosAcc := range scenariosAccounts {
 		accHandler, err := accAdapter.LoadAccount(scenariosAcc.GetAddress())
 		require.Nil(t, err)
-		account := accHandler.(state.UserAccountHandler)
+		account := accHandler.(common.UserAccountHandler)
 
 		require.Equal(t, scenariosAcc.GetBalance(), account.GetBalance())
 		require.Equal(t, scenariosAcc.GetNonce(), account.GetNonce())
@@ -44,7 +44,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAcco
 }
 
 // CheckStorage checks if the dataTrie of an account equals with the storage of the corresponding scenariosAccount
-func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, scenariosAccStorage map[string][]byte) {
+func CheckStorage(t *testing.T, dataTrie common.UserAccountHandler, scenariosAccStorage map[string][]byte) {
 	for key := range scenariosAccStorage {
 		dataTrieValue, _, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)
@@ -157,7 +157,7 @@ func ProcessAllTransactions(testContext *vm.VMTestContext, transactions []*trans
 		if err != nil {
 			return err
 		}
-		sndrAcc := sndrAccHandler.(state.UserAccountHandler)
+		sndrAcc := sndrAccHandler.(common.UserAccountHandler)
 		tx.Nonce = sndrAcc.GetNonce()
 		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		if err != nil {

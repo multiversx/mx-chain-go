@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 type tokensSuppliesProcessor struct {
@@ -48,7 +47,7 @@ func NewTokensSuppliesProcessor(args ArgsTokensSuppliesProcessor) (*tokensSuppli
 
 // HandleTrieAccountIteration is the handler for the trie account iteration
 // note that this function is not concurrent safe
-func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.UserAccountHandler) error {
+func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount common.UserAccountHandler) error {
 	if check.IfNil(userAccount) {
 		return errNilUserAccount
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // TODO: create a structure or use this function also in process/peer/process.go
@@ -42,8 +43,8 @@ func getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
-	peerAccount := state.NewEmptyPeerAccount()
+func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (common.PeerAccountHandler, error) {
+	peerAccount := accounts.NewEmptyPeerAccount()
 	err := marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccoun
 	return peerAccount, nil
 }
 
-func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+func peerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.AddressBytes(),
 		ShardId:                    peerAccount.GetShardId(),
@@ -60,20 +61,20 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
-		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NumFailure,
-		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().GetNumSuccess(),
+		LeaderFailure:              peerAccount.GetLeaderSuccessRate().GetNumFailure(),
+		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().GetNumSuccess(),
+		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().GetNumFailure(),
+		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().GetNumSuccess(),
+		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().GetNumFailure(),
+		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().GetNumSuccess(),
+		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().GetNumFailure(),
 		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
 }
 
-func getActualList(peerAccount state.PeerAccountHandler) string {
+func getActualList(peerAccount common.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
 		if savedList == string(common.InactiveList) {

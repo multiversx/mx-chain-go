@@ -10,9 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +81,7 @@ func TestScDeploy(t *testing.T) {
 	integrationTests.CreateMintingForSenders(nodes, 0, []crypto.PrivateKey{shardNode.OwnAccount.SkTxSign}, big.NewInt(1000000000))
 
 	accnt, _ := shardNode.AccntState.GetExistingAccount(shardNode.OwnAccount.Address)
-	userAccnt := accnt.(state.UserAccountHandler)
+	userAccnt := accnt.(common.UserAccountHandler)
 	balance := userAccnt.GetBalance()
 	log.Info("balance", "value", balance.String())
 

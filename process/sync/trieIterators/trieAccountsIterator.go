@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -16,7 +17,7 @@ import (
 var log = logger.GetOrCreate("trieIterators")
 
 // TrieAccountIteratorHandler represents a type that maps a handler for the trie's accounts iterator
-type TrieAccountIteratorHandler func(account state.UserAccountHandler) error
+type TrieAccountIteratorHandler func(account common.UserAccountHandler) error
 
 type trieAccountsIterator struct {
 	marshaller marshal.Marshalizer
@@ -80,7 +81,7 @@ func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.Trie
 			return err
 		}
 
-		userAccount, ok := acc.(state.UserAccountHandler)
+		userAccount, ok := acc.(common.UserAccountHandler)
 		if !ok {
 			continue
 		}
@@ -97,7 +98,7 @@ func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.Trie
 }
 
 func (t *trieAccountsIterator) getAddress(kv core.KeyValueHolder) ([]byte, bool) {
-	userAccount := &state.UserAccountData{}
+	userAccount := &accounts.UserAccountData{}
 	errUnmarshal := t.marshaller.Unmarshal(userAccount, kv.Value())
 	if errUnmarshal != nil {
 		// probably a code node

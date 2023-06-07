@@ -229,7 +229,7 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 		return 0, process.ErrInsufficientFee
 	}
 
-	accountSender, ok := accountHandler.(state.UserAccountHandler)
+	accountSender, ok := accountHandler.(common.UserAccountHandler)
 	if !ok {
 		return 0, process.ErrInsufficientFee
 	}

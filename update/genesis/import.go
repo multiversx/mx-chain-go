@@ -286,7 +286,7 @@ func newAccountCreator(
 ) (state.AccountFactory, error) {
 	switch accType {
 	case UserAccount:
-		args := state.ArgsAccountCreation{
+		args := factory.ArgsAccountCreator{
 			Hasher:              hasher,
 			Marshaller:          marshaller,
 			EnableEpochsHandler: handler,

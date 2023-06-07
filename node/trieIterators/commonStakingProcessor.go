@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -50,13 +50,13 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 	return info, nil
 }
 
-func (csp *commonStakingProcessor) getAccount(scAddress []byte) (state.UserAccountHandler, error) {
+func (csp *commonStakingProcessor) getAccount(scAddress []byte) (common.UserAccountHandler, error) {
 	accountHandler, err := csp.accounts.GetExistingAccount(scAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	account, ok := accountHandler.(state.UserAccountHandler)
+	account, ok := accountHandler.(common.UserAccountHandler)
 	if !ok {
 		return nil, ErrCannotCastAccountHandlerToUserAccount
 	}

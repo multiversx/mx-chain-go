@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -9,14 +10,14 @@ import (
 type ValidatorStatisticsProcessorStub struct {
 	UpdatePeerStateCalled                    func(header data.MetaHeaderHandler) ([]byte, error)
 	RevertPeerStateCalled                    func(header data.MetaHeaderHandler) error
-	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
+	GetPeerAccountCalled                     func(address []byte) (common.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
-	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	PeerAccountToValidatorInfoCalled         func(peerAccount common.PeerAccountHandler) *state.ValidatorInfo
 	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
 }
 
@@ -29,7 +30,7 @@ func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch u
 }
 
 // PeerAccountToValidatorInfo -
-func (vsp *ValidatorStatisticsProcessorStub) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+func (vsp *ValidatorStatisticsProcessorStub) PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
 	if vsp.PeerAccountToValidatorInfoCalled != nil {
 		return vsp.PeerAccountToValidatorInfoCalled(peerAccount)
 	}
@@ -103,7 +104,7 @@ func (vsp *ValidatorStatisticsProcessorStub) RootHash() ([]byte, error) {
 }
 
 // GetExistingPeerAccount -
-func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (common.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}

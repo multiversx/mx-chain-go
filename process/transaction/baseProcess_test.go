@@ -9,9 +9,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -181,7 +181,7 @@ func Test_checkGuardedAccountUnguardedTxPermission(t *testing.T) {
 
 		baseProcLocal := baseProc
 		baseProcLocal.guardianChecker = &guardianMocks.GuardedAccountHandlerStub{
-			HasPendingGuardianCalled: func(uah state.UserAccountHandler) bool {
+			HasPendingGuardianCalled: func(uah common.UserAccountHandler) bool {
 				return true
 			},
 		}

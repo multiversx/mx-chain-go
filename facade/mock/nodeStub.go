@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // NodeStub -
@@ -31,7 +31,7 @@ type NodeStub struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
-	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsApiCalled                   func() (map[string]*accounts.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
@@ -183,7 +183,7 @@ func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi -
-func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return ns.ValidatorStatisticsApiCalled()
 }
 

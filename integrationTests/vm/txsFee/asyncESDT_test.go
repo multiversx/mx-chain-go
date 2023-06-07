@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -531,7 +530,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	// try to recreate the data trie
 	scAccount, err := testContext.Accounts.LoadAccount(scAddress)
 	require.Nil(t, err)
-	userScAccount := scAccount.(state.UserAccountHandler)
+	userScAccount := scAccount.(common.UserAccountHandler)
 	roothash := userScAccount.GetRootHash()
 	log.Info("recreating data trie", "roothash", roothash)
 

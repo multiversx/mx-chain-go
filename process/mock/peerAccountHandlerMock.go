@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // PeerAccountHandlerMock -
@@ -29,6 +28,23 @@ type PeerAccountHandlerMock struct {
 	SetListAndIndexCalled                        func(shardID uint32, list string, index uint32)
 	GetListCalled                                func() string
 	GetUnStakedEpochCalled                       func() uint32
+}
+
+// SignRate -
+type SignRate struct {
+	NumSuccess uint32
+	NumFailure uint32
+}
+
+// GetNumSuccess -
+func (s *SignRate) GetNumSuccess() uint32 {
+	return s.NumSuccess
+
+}
+
+// GetNumFailure -
+func (s *SignRate) GetNumFailure() uint32 {
+	return s.NumFailure
 }
 
 // GetUnStakedEpoch -
@@ -157,13 +173,13 @@ func (p *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() {
 }
 
 // GetLeaderSuccessRate -
-func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() state.SignRate {
-	return state.SignRate{}
+func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() common.SignRate {
+	return &SignRate{}
 }
 
 // GetValidatorSuccessRate -
-func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
-	return state.SignRate{}
+func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() common.SignRate {
+	return &SignRate{}
 }
 
 // GetValidatorIgnoredSignaturesRate -
@@ -172,13 +188,13 @@ func (p *PeerAccountHandlerMock) GetValidatorIgnoredSignaturesRate() uint32 {
 }
 
 // GetTotalLeaderSuccessRate -
-func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
-	return state.SignRate{}
+func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() common.SignRate {
+	return &SignRate{}
 }
 
 // GetTotalValidatorSuccessRate -
-func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
-	return state.SignRate{}
+func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() common.SignRate {
+	return &SignRate{}
 }
 
 // GetTotalValidatorIgnoredSignaturesRate -

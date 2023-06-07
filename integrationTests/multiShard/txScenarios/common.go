@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 func createGeneralTestnetForTxTest(
@@ -118,12 +118,12 @@ func createUserTx(
 func getUserAccount(
 	nodes []*integrationTests.TestProcessorNode,
 	address []byte,
-) state.UserAccountHandler {
+) common.UserAccountHandler {
 	shardID := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == shardID {
 			acc, _ := node.AccntState.GetExistingAccount(address)
-			userAcc := acc.(state.UserAccountHandler)
+			userAcc := acc.(common.UserAccountHandler)
 			return userAcc
 		}
 	}

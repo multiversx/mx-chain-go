@@ -7,10 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -161,7 +161,7 @@ func addTokenInMeta(t *testing.T, metaContext *vm.VMTestContext, tokenID []byte,
 	esdtAccnt, err := metaContext.Accounts.LoadAccount(core.ESDTSCAddress)
 	require.NoError(t, err)
 
-	esdtAccntUser, ok := esdtAccnt.(state.UserAccountHandler)
+	esdtAccntUser, ok := esdtAccnt.(common.UserAccountHandler)
 	require.True(t, ok)
 
 	err = esdtAccntUser.SaveKeyValue(tokenID, marshaledData)
@@ -177,7 +177,7 @@ func checkEsdtBalanceInAccountStorage(t *testing.T, context *vm.VMTestContext, a
 	res, err := context.Accounts.LoadAccount(address)
 	require.NoError(t, err)
 
-	userAcc, ok := res.(state.UserAccountHandler)
+	userAcc, ok := res.(common.UserAccountHandler)
 	require.True(t, ok)
 
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))

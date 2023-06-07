@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
@@ -358,10 +359,10 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	require.True(t, account.GetBalance().Cmp(oldOwnerBalance) == 1)
 }
 
-func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) common.UserAccountHandler {
 	sndrAcc, _ := accState.GetExistingAccount(address)
 
-	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
+	sndAccSt, _ := sndrAcc.(common.UserAccountHandler)
 
 	return sndAccSt
 }

@@ -254,7 +254,7 @@ func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
@@ -278,7 +278,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 func (sc *scProcessor) prepareExecution(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 	builtInFuncCall bool,
 ) (vmcommon.ReturnCode, *vmcommon.ContractCallInput, []byte, error) {
 	err := sc.processSCPayment(tx, acntSnd)
@@ -321,7 +321,7 @@ func (sc *scProcessor) prepareExecution(
 
 func (sc *scProcessor) doExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	returnCode, vmInput, txHash, err := sc.prepareExecution(tx, acntSnd, acntDst, false)
 	if err != nil || returnCode != vmcommon.Ok {
@@ -362,7 +362,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	tx data.TransactionHandler,
 	txHash []byte,
 	snapshot int,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 	prevVmOutput *vmcommon.VMOutput,
 ) (*vmcommon.VMOutput, error) {
 	if check.IfNil(acntDst) {
@@ -831,7 +831,7 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 }
 
 func (sc *scProcessor) resolveFailedTransaction(
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	tx data.TransactionHandler,
 	txHash []byte,
 	errorMessage string,
@@ -879,7 +879,7 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 // ExecuteBuiltInFunction  processes the transaction, executes the built in function call and subsequent results
 func (sc *scProcessor) ExecuteBuiltInFunction(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sw := core.NewStopWatch()
 	sw.Start("executeBuiltIn")
@@ -899,7 +899,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 
 func (sc *scProcessor) doExecuteBuiltInFunction(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, acntDst common.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
 	defer sc.printBlockchainHookCounters(tx)
@@ -1108,7 +1108,7 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	snapshot int,
 ) (bool, *vmcommon.VMOutput, *vmcommon.ContractCallInput, error) {
 	isSCCall, newVMInput, err := sc.isSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
@@ -1355,7 +1355,7 @@ func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
 func (sc *scProcessor) ProcessIfError(
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -1367,7 +1367,7 @@ func (sc *scProcessor) ProcessIfError(
 }
 
 func (sc *scProcessor) processIfErrorWithAddedLogs(
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -1460,7 +1460,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 	return nil
 }
 
-func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
+func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account common.UserAccountHandler) {
 	if !sc.enableEpochsHandler.IsBackwardCompSaveKeyValueFlagEnabled() {
 		return
 	}
@@ -1610,7 +1610,7 @@ func isRelayedTx(tx data.TransactionHandler) (*smartContractResult.SmartContract
 // refunds the transaction values minus the relayed value to the sender account
 // in case of failed smart contract execution - gas is consumed, value is sent back
 func (sc *scProcessor) addBackTxValues(
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	scrIfError *smartContractResult.SmartContractResult,
 	originalTx data.TransactionHandler,
 ) error {
@@ -1659,7 +1659,7 @@ func (sc *scProcessor) addBackTxValues(
 }
 
 // DeploySmartContract processes the transaction, then deploy the smart contract into VM, final code is saved in account
-func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd common.UserAccountHandler) (vmcommon.ReturnCode, error) {
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -1684,7 +1684,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 func (sc *scProcessor) doDeploySmartContract(
 	tx data.TransactionHandler,
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	sc.blockChainHook.ResetCounters()
 	defer sc.printBlockchainHookCounters(tx)
@@ -1840,7 +1840,7 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
+func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd common.UserAccountHandler) error {
 	if check.IfNil(acntSnd) {
 		// transaction was already processed at sender shard
 		return nil
@@ -2036,7 +2036,7 @@ func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
 }
 
 func (sc *scProcessor) createSCRsWhenError(
-	acntSnd state.UserAccountHandler,
+	acntSnd common.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -2124,7 +2124,7 @@ func setOriginalTxHash(
 // reloadLocalAccount will reload from current account state the sender account
 // this requirement is needed because in the case of refunding the exact account that was previously
 // modified in saveSCOutputToCurrentState, the modifications done there should be visible here
-func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
+func (sc *scProcessor) reloadLocalAccount(acntSnd common.UserAccountHandler) (common.UserAccountHandler, error) {
 	if check.IfNil(acntSnd) {
 		return acntSnd, nil
 	}
@@ -2597,7 +2597,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 // 	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
 	vmOutput *vmcommon.VMOutput,
-	stateAccount state.UserAccountHandler,
+	stateAccount common.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 ) error {
 	if len(outputAccount.Code) == 0 {
@@ -2689,7 +2689,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	return nil
 }
 
-func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
+func (sc *scProcessor) getAccountFromAddress(address []byte) (common.UserAccountHandler, error) {
 	shardForCurrentNode := sc.shardCoordinator.SelfId()
 	shardForSrc := sc.shardCoordinator.ComputeId(address)
 	if shardForCurrentNode != shardForSrc {
@@ -2701,7 +2701,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountH
 		return nil, err
 	}
 
-	stAcc, ok := acnt.(state.UserAccountHandler)
+	stAcc, ok := acnt.(common.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -2793,7 +2793,7 @@ func (sc *scProcessor) getGasLockedFromSCR(scr *smartContractResult.SmartContrac
 func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
 	txHash []byte,
-	dstAcc state.UserAccountHandler,
+	dstAcc common.UserAccountHandler,
 ) error {
 	if scResult.Value.Cmp(zero) <= 0 {
 		return nil
@@ -2883,7 +2883,7 @@ func createExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContai
 	return executableCheckers
 }
 
-func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
+func (sc *scProcessor) checkUpgradePermission(contract common.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
 	isUpgradeCalled := vmInput.Function == upgradeFunctionName
 	if !isUpgradeCalled {
 		return nil

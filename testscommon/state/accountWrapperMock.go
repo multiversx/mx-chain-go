@@ -15,7 +15,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
+var _ common.UserAccountHandler = (*AccountWrapMock)(nil)
 
 // AccountWrapMock -
 type AccountWrapMock struct {
@@ -28,7 +28,7 @@ type AccountWrapMock struct {
 	address           []byte
 	Balance           *big.Int
 	guarded           bool
-	trackableDataTrie state.DataTrieTracker
+	trackableDataTrie common.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
@@ -56,7 +56,7 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 }
 
 // SetTrackableDataTrie -
-func (awm *AccountWrapMock) SetTrackableDataTrie(tdt state.DataTrieTracker) {
+func (awm *AccountWrapMock) SetTrackableDataTrie(tdt common.DataTrieTracker) {
 	awm.trackableDataTrie = tdt
 }
 
@@ -142,6 +142,11 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 // SetCode -
 func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
+}
+
+// GetCode -
+func (awm *AccountWrapMock) GetCode() []byte {
+	return awm.code
 }
 
 // RetrieveValue -

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -11,14 +12,14 @@ type ValidatorStatisticsProcessorMock struct {
 	RevertPeerStateCalled func(header data.MetaHeaderHandler) error
 	IsInterfaceNilCalled  func() bool
 
-	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
+	GetPeerAccountCalled                     func(address []byte) (common.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
-	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	PeerAccountToValidatorInfoCalled         func(peerAccount common.PeerAccountHandler) *state.ValidatorInfo
 	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
 }
 
@@ -31,7 +32,7 @@ func (vsp *ValidatorStatisticsProcessorMock) SaveNodesCoordinatorUpdates(epoch u
 }
 
 // PeerAccountToValidatorInfo -
-func (vsp *ValidatorStatisticsProcessorMock) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+func (vsp *ValidatorStatisticsProcessorMock) PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
 	if vsp.PeerAccountToValidatorInfoCalled != nil {
 		return vsp.PeerAccountToValidatorInfoCalled(peerAccount)
 	}
@@ -106,7 +107,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
 }
 
 // GetExistingPeerAccount -
-func (vsp *ValidatorStatisticsProcessorMock) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorMock) GetExistingPeerAccount(address []byte) (common.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}

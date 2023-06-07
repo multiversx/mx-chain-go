@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
@@ -258,7 +258,7 @@ func generateAndMintAccounts(node *integrationTests.TestProcessorNode, initialBa
 			return nil, err
 		}
 
-		userAccount := account.(state.UserAccountHandler)
+		userAccount := account.(common.UserAccountHandler)
 		err = userAccount.AddToBalance(initialBalance)
 		if err != nil {
 			return nil, err

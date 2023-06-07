@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
@@ -24,7 +24,7 @@ func CreateAccountsFromScenariosAccs(tc *vm.VMTestContext, scenariosUserAccounts
 		if err != nil {
 			return err
 		}
-		account := acc.(state.UserAccountHandler)
+		account := acc.(common.UserAccountHandler)
 		account.IncreaseNonce(scenariosAcc.GetNonce())
 		err = account.AddToBalance(scenariosAcc.GetBalance())
 		if err != nil {

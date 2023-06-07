@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -330,14 +330,14 @@ func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
 	return address
 }
 
-// GetAccountHandler retrieves the `state.UserAccountHandler` instance for the
+// GetAccountHandler retrieves the `common.UserAccountHandler` instance for the
 // specified address by querying a node belonging to the shard of the address.
-func (net *TestNetwork) GetAccountHandler(address Address) state.UserAccountHandler {
+func (net *TestNetwork) GetAccountHandler(address Address) common.UserAccountHandler {
 	node := net.firstNodeInShardOfAddress(address)
 	account, err := node.AccntState.GetExistingAccount(address)
 	net.handleOrBypassError(err)
 
-	accountHandler := account.(state.UserAccountHandler)
+	accountHandler := account.(common.UserAccountHandler)
 	require.NotNil(net.T, accountHandler)
 
 	return accountHandler

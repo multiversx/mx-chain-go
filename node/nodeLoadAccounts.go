@@ -27,7 +27,7 @@ func (n *Node) loadSystemAccountWithOptions(options api.AccountQueryOptions) (vm
 	return userAccountVmCommon, blockInfo, nil
 }
 
-func (n *Node) loadUserAccountHandlerByAddress(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
+func (n *Node) loadUserAccountHandlerByAddress(address string, options api.AccountQueryOptions) (common.UserAccountHandler, api.BlockInfo, error) {
 	pubKey, err := n.decodeAddressToPubKey(address)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
@@ -36,7 +36,7 @@ func (n *Node) loadUserAccountHandlerByAddress(address string, options api.Accou
 	return n.loadUserAccountHandlerByPubKey(pubKey, options)
 }
 
-func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
+func (n *Node) loadUserAccountHandlerByPubKey(pubKey []byte, options api.AccountQueryOptions) (common.UserAccountHandler, api.BlockInfo, error) {
 	options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err

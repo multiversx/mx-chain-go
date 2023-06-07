@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -208,7 +209,7 @@ func getCodeMetadata(tb testing.TB, accounts state.AccountsAdapter, address []by
 	account, err := accounts.LoadAccount(address)
 	require.Nil(tb, err)
 
-	userAccount := account.(state.UserAccountHandler)
+	userAccount := account.(common.UserAccountHandler)
 	return userAccount.GetCodeMetadata()
 }
 

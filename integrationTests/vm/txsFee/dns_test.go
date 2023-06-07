@@ -15,11 +15,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -91,12 +91,12 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, rcvAddr, dnsUserNameAddr)
 
 	acc, _ := testContext.Accounts.GetExistingAccount(sndAddr)
-	account, _ := acc.(state.UserAccountHandler)
+	account, _ := acc.(common.UserAccountHandler)
 	un := account.GetUserName()
 	require.Equal(t, userName, un)
 
 	acc, _ = testContext.Accounts.GetExistingAccount(rcvAddr)
-	account, _ = acc.(state.UserAccountHandler)
+	account, _ = acc.(common.UserAccountHandler)
 	un = account.GetUserName()
 	require.Equal(t, rcvUserName, un)
 
@@ -158,7 +158,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 
 	// check username
 	acc, _ := testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
-	account, _ := acc.(state.UserAccountHandler)
+	account, _ := acc.(common.UserAccountHandler)
 	require.Equal(t, firstUsername, account.GetUserName())
 	checkBalances(t, args, expectedTotalBalance)
 
@@ -171,7 +171,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 
 	// check username hasn't changed
 	acc, _ = testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
-	account, _ = acc.(state.UserAccountHandler)
+	account, _ = acc.(common.UserAccountHandler)
 	require.Equal(t, firstUsername, account.GetUserName())
 	checkBalances(t, args, expectedTotalBalance)
 }
@@ -215,7 +215,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 
 	// check username
 	acc, _ := testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
-	account, _ := acc.(state.UserAccountHandler)
+	account, _ := acc.(common.UserAccountHandler)
 	require.Equal(t, firstUsername, account.GetUserName())
 	checkBalances(t, args, initialBalance)
 
@@ -228,7 +228,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 
 	// check username has changed
 	acc, _ = testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)
-	account, _ = acc.(state.UserAccountHandler)
+	account, _ = acc.(common.UserAccountHandler)
 	require.Equal(t, secondUsername, account.GetUserName())
 	checkBalances(t, args, initialBalance)
 }
