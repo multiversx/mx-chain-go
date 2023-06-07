@@ -136,5 +136,8 @@ var ErrTrieOperationsTimeout = errors.New("trie operations timeout")
 // ErrNilStatusHandler signals that a nil status handler was provided
 var ErrNilStatusHandler = errors.New("nil status handler")
 
+// ErrNilCreateTransactionArgs signals that create transaction args is nil
+var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
+
 // ErrNilNodeRunner signals that a nil node runner was provided
 var ErrNilNodeRunner = errors.New("nil node runner")

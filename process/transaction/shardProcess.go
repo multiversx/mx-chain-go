@@ -64,6 +64,8 @@ type ArgsNewTxProcessor struct {
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -113,6 +115,12 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -123,6 +131,8 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 
 	txProc := &txProcessor{
@@ -217,6 +227,10 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
 	txError error,
 ) error {
+	if core.IsGetNodeFromDBError(txError) {
+		return txError
+	}
+
 	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
 	if err != nil {
 		return err

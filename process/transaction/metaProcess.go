@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -33,6 +35,8 @@ type ArgsNewMetaTxProcessor struct {
 	TxTypeHandler       process.TxTypeHandler
 	EconomicsFee        process.FeeHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -59,6 +63,12 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -69,6 +79,8 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 	// backwards compatibility
 	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
@@ -108,6 +120,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return 0, errProcessIfErr
+			}
+			return vmcommon.UserError, nil
+		}
 		return 0, err
 	}
 
