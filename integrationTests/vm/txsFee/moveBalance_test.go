@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const gasPrice = uint64(10)
+
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -25,7 +27,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -61,7 +62,6 @@ func TestMoveBalanceAllFlagsEnabledLessBalanceThanGasLimitMulGasPrice(t *testing
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(10000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -80,7 +80,6 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -120,10 +119,10 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	rcvAddr := []byte("12345678901234567890123456789022")
 	senderBalance := big.NewInt(100)
-	gasPrice := uint64(1)
+	gasPriceLocal := uint64(1)
 	gasLimit := uint64(20)
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
-	tx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
+	tx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPriceLocal, gasLimit, []byte("aaaa"))
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrFailedTransaction, err)
@@ -150,11 +149,11 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	senderBalance := big.NewInt(100)
-	gasPrice := uint64(1)
+	gasPriceLocal := uint64(1)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
-	tx := vm.CreateTransaction(1, big.NewInt(500), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
+	tx := vm.CreateTransaction(1, big.NewInt(500), sndAddr, rcvAddr, gasPriceLocal, gasLimit, []byte("aaaa"))
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrHigherNonceInTransaction, err)
@@ -180,11 +179,11 @@ func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	senderBalance := big.NewInt(0).SetUint64(math.MaxUint64)
-	gasPrice := uint64(1)
+	gasPriceLocal := uint64(1)
 	gasLimit := uint64(math.MaxUint64)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
-	tx := vm.CreateTransaction(0, big.NewInt(500), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
+	tx := vm.CreateTransaction(0, big.NewInt(500), sndAddr, rcvAddr, gasPriceLocal, gasLimit, []byte("aaaa"))
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
@@ -211,7 +210,6 @@ func TestMoveBalanceInvalidUserNames(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)

@@ -55,3 +55,8 @@ func (fhtps *fullHistoryTriePruningStorer) PutInEpoch(key []byte, data []byte, e
 func (fhtps *fullHistoryTriePruningStorer) Close() error {
 	return fhtps.storerWithEpochOperations.Close()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fhtps *fullHistoryTriePruningStorer) IsInterfaceNil() bool {
+	return fhtps == nil
+}

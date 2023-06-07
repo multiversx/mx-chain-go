@@ -27,4 +27,6 @@ type WebSocketConfig struct {
 	RetryDuration      uint32 `toml:"RetryDuration"`
 	BlockingAckOnError bool   `toml:"BlockingAckOnError"`
 	HasherType         string `toml:"HasherType"`
+	Mode               string `toml:"Mode"`
+	WithAcknowledge    bool   `toml:"WithAcknowledge"`
 }

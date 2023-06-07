@@ -16,13 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/stretchr/testify/assert"
@@ -37,29 +35,8 @@ func emptyTrie() common.Trie {
 	return tr
 }
 
-func getDefaultTrieStorageManagerParameters() trie.NewTrieStorageManagerArgs {
-	marshalizer := &testscommon.ProtobufMarshalizerMock{}
-	hasher := &testscommon.KeccakMock{}
-
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-
-	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
-}
-
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
-	args := getDefaultTrieStorageManagerParameters()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(1)
 
@@ -482,7 +459,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
 	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	storageManager.SetCheckpoint(rootHash, make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
 	trie.WaitForOperationToComplete(storageManager)
@@ -569,7 +546,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		iteratorChannels := &common.TrieIteratorChannels{
 			LeavesChan: nil,
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(iteratorChannels, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 		assert.Equal(t, trie.ErrNilTrieIteratorLeavesChannel, err)
@@ -595,7 +572,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), []byte{}, keyBuilder.NewDisabledKeyBuilder())
 		assert.Nil(t, err)
@@ -604,7 +581,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		_, ok := <-leavesChannel.LeavesChan
 		assert.False(t, ok)
 
-		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 		assert.Nil(t, err)
 	})
 
@@ -617,7 +594,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
 		expectedErr := errors.New("expected error")
@@ -637,7 +614,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		for leaf := range leavesChannel.LeavesChan {
 			recovered[string(leaf.Key())] = leaf.Value()
 		}
-		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 		assert.Equal(t, expectedErr, err)
 		assert.Equal(t, 0, len(recovered))
 	})
@@ -653,7 +630,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
 		expectedErr := errors.New("expected error")
@@ -679,7 +656,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		for leaf := range leavesChannel.LeavesChan {
 			recovered[string(leaf.Key())] = leaf.Value()
 		}
-		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 		assert.Equal(t, expectedErr, err)
 
 		expectedLeaves := map[string][]byte{
@@ -702,7 +679,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 		leavesChannel := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    make(chan error, 1),
+			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 		err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
 		assert.Nil(t, err)
@@ -712,7 +689,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		for leaf := range leavesChannel.LeavesChan {
 			recovered[string(leaf.Key())] = leaf.Value()
 		}
-		err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 		assert.Nil(t, err)
 		assert.Equal(t, leaves, recovered)
 	})
@@ -1008,7 +985,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 			case 12:
 				trieIteratorChannels := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, 1000),
-					ErrChan:    make(chan error, 1000),
+					ErrChan:    errChan.NewErrChanWrapper(),
 				}
 
 				err := tr.GetAllLeavesOnChannel(
@@ -1049,7 +1026,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
 	t.Parallel()
 
-	args := getDefaultTrieStorageManagerParameters()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	args.MainStorer = &storage.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			// gets take a long time

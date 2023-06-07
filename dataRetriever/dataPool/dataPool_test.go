@@ -209,6 +209,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.SmartContracts == tdp.SmartContracts())
 	assert.True(t, args.PeerAuthentications == tdp.PeerAuthentications())
 	assert.True(t, args.Heartbeats == tdp.Heartbeats())
+	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
 }
 
 func TestNewDataPool_Close(t *testing.T) {

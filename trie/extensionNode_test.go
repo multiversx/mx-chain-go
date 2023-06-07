@@ -6,9 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/mock"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
-	chainErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -1021,10 +1020,10 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	cancel()
 
 	err := en.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 
 	err = en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, chainErrors.ErrContextClosing, err)
+	assert.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
@@ -1037,11 +1036,11 @@ func TestExtensionNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 	t.Parallel()
 
-	db := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, chainErrors.ErrContextClosing
-		},
+	db := testscommon.NewMemDbMock()
+	db.GetCalled = func(key []byte) ([]byte, error) {
+		return nil, core.ErrContextClosing
 	}
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
