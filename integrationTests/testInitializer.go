@@ -706,11 +706,6 @@ func CreateFullGenesisBlocks(
 		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
-		ImportStartHandler: &mock.ImportStartHandlerStub{
-			ShouldStartImportCalled: func() bool {
-				return false
-			},
-		},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
@@ -812,9 +807,8 @@ func CreateGenesisMetaBlock(
 				MaxServiceFee: 100,
 			},
 		},
-		BlockSignKeyGen:    &mock.KeyGenMock{},
-		ImportStartHandler: &mock.ImportStartHandlerStub{},
-		GenesisNodePrice:   big.NewInt(1000),
+		BlockSignKeyGen:  &mock.KeyGenMock{},
+		GenesisNodePrice: big.NewInt(1000),
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
