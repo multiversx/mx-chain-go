@@ -649,7 +649,9 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{
+			IsInImportDBMode: true,
+		})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Nil(t, err)
 		assert.True(t, outportHandler.HasDrivers())
