@@ -1,4 +1,4 @@
-package testscommon
+package enableEpochsHandlerMock
 
 import "sync"
 
@@ -118,10 +118,13 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsRelayedNonceFixEnabledField                                bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
+	IsAutoBalanceDataTriesEnabledField                           bool
+	FixDelegationChangeOwnerOnAccountEnabledField                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1027,6 +1030,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	return stub.IsSetGuardianEnabledField
 }
 
+// IsRelayedNonceFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsRelayedNonceFixEnabledField
+}
+
 // IsKeepExecOrderOnCreatedSCRsEnabled -
 func (stub *EnableEpochsHandlerStub) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
 	stub.RLock()
@@ -1057,6 +1068,22 @@ func (stub *EnableEpochsHandlerStub) IsConsistentTokensValuesLengthCheckEnabled(
 	defer stub.RUnlock()
 
 	return stub.IsConsistentTokensValuesLengthCheckEnabledField
+}
+
+// IsAutoBalanceDataTriesEnabled -
+func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsAutoBalanceDataTriesEnabledField
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixDelegationChangeOwnerOnAccountEnabledField
 }
 
 // IsInterfaceNil -

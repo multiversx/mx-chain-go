@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
@@ -103,7 +104,7 @@ func generateTriesWithMaxDepth(
 ) []*keyForTrie {
 	tries := make([]*keyForTrie, numTries)
 	for i := 0; i < numTries; i++ {
-		tr, _ := trie.NewTrie(storage, marshaller, hasher, 2)
+		tr, _ := trie.NewTrie(storage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 2)
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()

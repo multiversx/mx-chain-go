@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -298,7 +299,13 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = trie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+	err = trie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	if err != nil {
 		return err
 	}

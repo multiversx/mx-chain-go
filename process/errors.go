@@ -1199,3 +1199,9 @@ var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
 
 // ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
 var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
+
+// ErrBuiltinFunctionMismatch signals that a builtin function mismatch was detected
+var ErrBuiltinFunctionMismatch = errors.New("builtin function mismatch")
+
+// ErrBuiltinFunctionNotExecutable signals that a builtin function is not executable
+var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executable")

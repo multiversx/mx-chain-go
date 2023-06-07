@@ -400,6 +400,11 @@ func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, err
 	return nil, errNodeStarting
 }
 
+// IsDataTrieMigrated returns false and error
+func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
+	return false, errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil
