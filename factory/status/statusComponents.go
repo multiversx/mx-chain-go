@@ -214,7 +214,6 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
 	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
-		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
