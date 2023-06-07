@@ -35,13 +35,13 @@ func TestNewOutport(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid retrial time should error", func(t *testing.T) {
-		outportHandler, err := NewOutport(0)
+		outportHandler, err := NewOutport(0, outportcore.OutportConfig{})
 
 		assert.True(t, errors.Is(err, ErrInvalidRetrialInterval))
 		assert.True(t, check.IfNil(outportHandler))
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, err := NewOutport(minimumRetrialInterval)
+		outportHandler, err := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(outportHandler))
@@ -70,7 +70,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -116,7 +116,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -162,7 +162,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -207,7 +207,7 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -254,7 +254,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -301,7 +301,7 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -349,7 +349,7 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -378,7 +378,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil driver should error", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval)
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -387,7 +387,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 		require.False(t, outportHandler.HasDrivers())
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval)
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -400,7 +400,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 func TestOutport_Close(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 	localErr := errors.New("local err")
 	driver1 := &mock.DriverStub{
@@ -424,7 +424,7 @@ func TestOutport_Close(t *testing.T) {
 func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 	localErr := errors.New("driver stuck in error")
 	driver1 := &mock.DriverStub{
@@ -512,7 +512,7 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	logErrorCalled := atomic.Flag{}
@@ -547,7 +547,7 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	numLogDebugCalled := uint32(0)
@@ -595,7 +595,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second)
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Equal(t, expectedErr, err)
 		require.False(t, outportHandler.HasDrivers())
@@ -624,7 +624,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second)
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
 		err := outportHandler.SubscribeDriver(driver)
 
 		callback()
@@ -649,7 +649,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second)
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Nil(t, err)
 		assert.True(t, outportHandler.HasDrivers())

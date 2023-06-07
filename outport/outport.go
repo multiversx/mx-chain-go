@@ -28,14 +28,9 @@ type outport struct {
 }
 
 // NewOutport will create a new instance of proxy
-func NewOutport(retrialInterval time.Duration) (*outport, error) {
+func NewOutport(retrialInterval time.Duration, cfg outportcore.OutportConfig) (*outport, error) {
 	if retrialInterval < minimumRetrialInterval {
 		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
-	}
-
-	// TODO inject config on the constructor
-	cfg := outportcore.OutportConfig{
-		IsInImportDBMode: true,
 	}
 
 	return &outport{

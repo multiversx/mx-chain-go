@@ -48,10 +48,11 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	}
 
 	return &hostDriver{
-		marshaller: args.Marshaller,
-		senderHost: args.SenderHost,
-		log:        args.Log,
-		isClosed:   atomic.Flag{},
+		marshaller:  args.Marshaller,
+		senderHost:  args.SenderHost,
+		log:         args.Log,
+		isClosed:    atomic.Flag{},
+		payloadProc: payloadProc,
 	}, nil
 }
 

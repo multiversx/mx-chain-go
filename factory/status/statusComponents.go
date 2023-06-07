@@ -205,6 +205,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
 		HostDriverArgs:            hostDriverArgs,
+		IsImportDB:                scf.isInImportMode,
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
