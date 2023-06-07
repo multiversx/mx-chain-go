@@ -616,8 +616,6 @@ github.com/multiformats/go-varint v0.0.6 h1:gk85QWKxh3TazbLxED/NlDVv8+q+ReFJk7Y2
 github.com/multiformats/go-varint v0.0.6/go.mod h1:3Ls8CIEsrijN6+B7PbrXRPxHRPuXSrVKRY101jdMZYE=
 github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUYwbO0993uPI=
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
-github.com/multiversx/mx-chain-communication-go v1.0.2 h1:1AKdqFZNmigt1kcwYMl+L8fzolsb+WpeTX6yzpmvbV4=
-github.com/multiversx/mx-chain-communication-go v1.0.2/go.mod h1:OnnSUjnSP87H5MtQtxn33FGnTVRVgo2Huo3ijmCgN2M=
 github.com/multiversx/mx-chain-communication-go v1.0.3-0.20230607101542-b80e6e676772 h1:K5lIIlpjBckiQtNJLCpTHkaYAnEUBA3xSkQ6kC0MpUY=
 github.com/multiversx/mx-chain-communication-go v1.0.3-0.20230607101542-b80e6e676772/go.mod h1:OnnSUjnSP87H5MtQtxn33FGnTVRVgo2Huo3ijmCgN2M=
 github.com/multiversx/mx-chain-core-go v1.1.30/go.mod h1:8gGEQv6BWuuJwhd25qqhCOZbBSv9mk+hLeKvinSaSMk=
@@ -630,8 +628,6 @@ github.com/multiversx/mx-chain-core-go v1.2.7-0.20230607131648-8b420aac1dd4 h1:b
 github.com/multiversx/mx-chain-core-go v1.2.7-0.20230607131648-8b420aac1dd4/go.mod h1:jzYFSiYBuO0dGpGFXnZWSwcwcKP7Flyn/X41y4zIQrQ=
 github.com/multiversx/mx-chain-crypto-go v1.2.6 h1:yxsjAQGh62los+iYmORMfh3w9qen0xbYlmwU0juNSeg=
 github.com/multiversx/mx-chain-crypto-go v1.2.6/go.mod h1:rOj0Rr19HTOYt9YTeym7RKxlHt91NXln3LVKjHKVmA0=
-github.com/multiversx/mx-chain-es-indexer-go v1.4.5-0.20230530073512-afb543a23ade h1:euMxQa1tbHMGRDdIRshFAx89wq0I2C27yZBbWN122Yg=
-github.com/multiversx/mx-chain-es-indexer-go v1.4.5-0.20230530073512-afb543a23ade/go.mod h1:3/jvvvNExuwW2mu//q3utMUBpbal3LT24UUMyNSGAnQ=
 github.com/multiversx/mx-chain-es-indexer-go v1.4.5-0.20230607125709-d6bc468d3614 h1:CZTx1Y5bi1D5bqWA3ujXrivkirftA65OS2aCim5qIJE=
 github.com/multiversx/mx-chain-es-indexer-go v1.4.5-0.20230607125709-d6bc468d3614/go.mod h1:ZAunzONdMv4wcPpjcdurdArKA9kNA0AG0k+Oh3mYqI8=
 github.com/multiversx/mx-chain-logger-go v1.0.11 h1:DFsHa+sc5fKwhDR50I8uBM99RTDTEW68ESyr5ALRDwE=
