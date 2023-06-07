@@ -22,7 +22,6 @@ type hostDriver struct {
 	senderHost  SenderHost
 	isClosed    atomic.Flag
 	log         core.Logger
-	cfg         outport.OutportConfig
 	payloadProc payloadProcessorHandler
 }
 
