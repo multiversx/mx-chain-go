@@ -175,3 +175,17 @@ func TestPeerAccount_IncreaseAndGetNonce(t *testing.T) {
 	acc.IncreaseNonce(nonce)
 	assert.Equal(t, nonce, acc.GetNonce())
 }
+
+func TestPeerAccount_AddressBytes(t *testing.T) {
+	t.Parallel()
+
+	address := []byte("address bytes")
+	acc, _ := state.NewPeerAccount(address)
+
+	assert.Equal(t, address, acc.AddressBytes())
+
+	newAddress := []byte("new address bytes")
+	err := acc.SetBLSPublicKey(newAddress)
+	assert.Nil(t, err)
+	assert.Equal(t, newAddress, acc.AddressBytes())
+}

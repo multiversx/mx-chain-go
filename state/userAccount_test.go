@@ -67,6 +67,15 @@ func TestNewUserAccount(t *testing.T) {
 	})
 }
 
+func TestUserAccount_AddressBytes(t *testing.T) {
+	t.Parallel()
+
+	address := []byte("address bytes")
+	acc := createUserAcc(address)
+
+	assert.Equal(t, address, acc.AddressBytes())
+}
+
 func TestUserAccount_AddToBalanceInsufficientFundsShouldErr(t *testing.T) {
 	t.Parallel()
 

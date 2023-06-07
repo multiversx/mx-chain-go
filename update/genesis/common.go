@@ -53,7 +53,7 @@ func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccoun
 
 func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
-		PublicKey:                  peerAccount.GetBLSPublicKey(),
+		PublicKey:                  peerAccount.AddressBytes(),
 		ShardId:                    peerAccount.GetShardId(),
 		List:                       getActualList(peerAccount),
 		Index:                      peerAccount.GetIndexInList(),

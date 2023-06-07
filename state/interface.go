@@ -26,7 +26,6 @@ type Updater interface {
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
 //  with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
-	GetBLSPublicKey() []byte
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte
 	SetRewardAddress([]byte) error
@@ -100,6 +99,10 @@ type DataTrieTracker interface {
 	SaveDirtyData(common.Trie) ([]core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
+}
+
+type dataTrieInteractor interface {
+	DataTrieTracker
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie

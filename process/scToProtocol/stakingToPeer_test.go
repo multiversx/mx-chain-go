@@ -656,7 +656,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	t.Parallel()
 
-	peerAccount := state.NewEmptyPeerAccount()
+	blsPubKey := []byte("key")
+	peerAccount, _ := state.NewPeerAccount(blsPubKey)
 	peerAccountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return peerAccount, nil
@@ -680,7 +681,6 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		StakedNonce:   math.MaxUint64,
 	}
 
-	blsPubKey := []byte("key")
 	nonce := uint64(1)
 	err := stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.Nil(t, err)
@@ -690,7 +690,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	stakingData.StakedNonce = nonce
 	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.NoError(t, err)
-	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.AddressBytes()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
@@ -720,7 +720,8 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	t.Parallel()
 
-	peerAccount := state.NewEmptyPeerAccount()
+	blsPubKey := []byte("key")
+	peerAccount, _ := state.NewPeerAccount(blsPubKey)
 	peerAccountsDB := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return peerAccount, nil
@@ -746,12 +747,11 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 		StakedNonce:   math.MaxUint64,
 	}
 
-	blsPubKey := []byte("key")
 	stakingData.Staked = true
 	stakingData.StakedNonce = 1
 	err := stp.updatePeerState(stakingData, blsPubKey, stakingData.StakedNonce)
 	assert.NoError(t, err)
-	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.AddressBytes()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 

@@ -1294,7 +1294,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.True(t, bytes.Equal(peerAcc.AddressBytes(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 	numRegistered := getTotalNumberOfRegisteredNodes(t, s)
 	assert.Equal(t, 1, numRegistered)
@@ -1347,7 +1347,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.True(t, bytes.Equal(peerAcc.AddressBytes(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 }
 
@@ -1442,7 +1442,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
 	assert.Nil(t, err)
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.True(t, bytes.Equal(peerAcc.AddressBytes(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(common.NewList))
 
 	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))

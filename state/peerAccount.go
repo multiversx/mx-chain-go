@@ -5,20 +5,18 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
-	//TODO investigate if *baseAccount is needed in peerAccount, and remove if not
-	*baseAccount
 	PeerAccountData
 }
+
+// TODO: replace NewEmptyPeerAccount with GetPeerAccountFromBytes
 
 // NewEmptyPeerAccount returns an empty peerAccount
 func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
-		baseAccount: &baseAccount{},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),
 			UnStakedEpoch:   common.DefaultUnstakedEpoch,
@@ -33,15 +31,17 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 	}
 
 	return &peerAccount{
-		baseAccount: &baseAccount{
-			address:         address,
-			dataTrieTracker: disabled.NewDisabledTrackableDataTrie(),
-		},
 		PeerAccountData: PeerAccountData{
+			BLSPublicKey:    address,
 			AccumulatedFees: big.NewInt(0),
 			UnStakedEpoch:   common.DefaultUnstakedEpoch,
 		},
 	}, nil
+}
+
+// AddressBytes returns the account's address
+func (pa *peerAccount) AddressBytes() []byte {
+	return pa.BLSPublicKey
 }
 
 // SetBLSPublicKey sets the account's bls public key, saving the old key before changing
