@@ -3290,7 +3290,7 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	})
 }
 
-func TestTxProcessor_AddUnExecutableLog(t *testing.T) {
+func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForTxProcessor()
@@ -3303,7 +3303,7 @@ func TestTxProcessor_AddUnExecutableLog(t *testing.T) {
 	originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
 	assert.Nil(t, err)
 
-	t.Run("not an un-executable error should not add", func(t *testing.T) {
+	t.Run("not an non-executable error should not add", func(t *testing.T) {
 		t.Parallel()
 
 		argsLocal := args
@@ -3315,7 +3315,7 @@ func TestTxProcessor_AddUnExecutableLog(t *testing.T) {
 			},
 		}
 		txProc, _ := txproc.NewTxProcessor(argsLocal)
-		err = txProc.AddUnExecutableLog(errors.New("random error"), originalTxHash, originalTx)
+		err = txProc.AddNonExecutableLog(errors.New("random error"), originalTxHash, originalTx)
 		assert.Nil(t, err)
 	})
 	t.Run("is execution error should record log", func(t *testing.T) {
@@ -3340,13 +3340,13 @@ func TestTxProcessor_AddUnExecutableLog(t *testing.T) {
 		}
 
 		txProc, _ := txproc.NewTxProcessor(argsLocal)
-		err = txProc.AddUnExecutableLog(process.ErrLowerNonceInTransaction, originalTxHash, originalTx)
+		err = txProc.AddNonExecutableLog(process.ErrLowerNonceInTransaction, originalTxHash, originalTx)
 		assert.Nil(t, err)
 
-		err = txProc.AddUnExecutableLog(process.ErrHigherNonceInTransaction, originalTxHash, originalTx)
+		err = txProc.AddNonExecutableLog(process.ErrHigherNonceInTransaction, originalTxHash, originalTx)
 		assert.Nil(t, err)
 
-		err = txProc.AddUnExecutableLog(process.ErrTransactionNotExecutable, originalTxHash, originalTx)
+		err = txProc.AddNonExecutableLog(process.ErrTransactionNotExecutable, originalTxHash, originalTx)
 		assert.Nil(t, err)
 
 		assert.Equal(t, 3, numLogsSaved)

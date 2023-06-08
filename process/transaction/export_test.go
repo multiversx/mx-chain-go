@@ -94,7 +94,7 @@ func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
 	return txProc.shouldIncreaseNonce(executionErr)
 }
 
-// AddUnExecutableLog -
-func (txProc *txProcessor) AddUnExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
-	return txProc.addUnExecutableLog(executionErr, originalTxHash, originalTx)
+// AddNonExecutableLog -
+func (txProc *txProcessor) AddNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	return txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
 }

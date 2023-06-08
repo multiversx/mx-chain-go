@@ -714,7 +714,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		userAcnt.IncreaseNonce(1)
 	}
 
-	err = txProc.addUnExecutableLog(executionErr, originalTxHash, originalTx)
+	err = txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
 	if err != nil {
 		return err
 	}
@@ -727,8 +727,8 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	return nil
 }
 
-func (txProc *txProcessor) addUnExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
-	if !isUnExecutableError(executionErr) {
+func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	if !isNonExecutableError(executionErr) {
 		return nil
 	}
 
@@ -985,14 +985,14 @@ func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
 		return true
 	}
 
-	if isUnExecutableError(executionErr) {
+	if isNonExecutableError(executionErr) {
 		return false
 	}
 
 	return true
 }
 
-func isUnExecutableError(executionErr error) bool {
+func isNonExecutableError(executionErr error) bool {
 	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
 		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
 		errors.Is(executionErr, process.ErrTransactionNotExecutable)
