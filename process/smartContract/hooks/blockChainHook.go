@@ -585,8 +585,16 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error) {
 	var sndAccount vmcommon.UserAccountHandler
+
 	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
-	if sndShardId == bh.shardCoordinator.SelfId() {
+	selfShard := bh.shardCoordinator.SelfId()
+
+	isSelfShardSovereign := selfShard == core.SovereignChainShardId
+	isSenderESDTAddr := bytes.Equal(input.CallerAddr, core.ESDTSCAddress)
+	isIncomingSovereignSCR := isSelfShardSovereign && isSenderESDTAddr
+
+	// If we have an incoming sovereign scr, sender should be nil
+	if sndShardId == selfShard && !isIncomingSovereignSCR {
 		acc, err := bh.accounts.GetExistingAccount(input.CallerAddr)
 		if err != nil {
 			return nil, nil, err
@@ -605,7 +613,7 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 
 	var dstAccount vmcommon.UserAccountHandler
 	dstShardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
-	if dstShardId == bh.shardCoordinator.SelfId() {
+	if dstShardId == selfShard {
 		acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
 		if err != nil {
 			return nil, nil, err
