@@ -45,7 +45,6 @@ type networkComponentsFactory struct {
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler
-	listenAddress         string
 	marshalizer           marshal.Marshalizer
 	syncer                p2p.SyncTimer
 	preferredPeersSlices  []string
@@ -96,7 +95,6 @@ func NewNetworkComponentsFactory(
 		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,
 		statusHandler:         args.StatusHandler,
-		listenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		syncer:                args.Syncer,
 		bootstrapWaitTime:     args.BootstrapWaitTime,
 		preferredPeersSlices:  args.PreferredPeersSlices,
@@ -132,7 +130,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           ncf.marshalizer,
-		ListenAddress:         ncf.listenAddress,
 		P2pConfig:             ncf.p2pConfig,
 		SyncTimer:             ncf.syncer,
 		PreferredPeersHolder:  ph,
