@@ -263,7 +263,6 @@ func createNode(
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
 		P2pPrivateKey:         p2pKey,

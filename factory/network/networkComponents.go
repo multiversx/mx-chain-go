@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	p2pDisabled "github.com/multiversx/mx-chain-go/p2p/disabled"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/rating/peerHonesty"
@@ -203,8 +204,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	fullArchiveNetworkComp.netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.fullArchiveP2PConfig.Node.MinNumPeersToWaitForOnBootstrap)
-
 	return &networkComponents{
 		mainNetworkHolder:        mainNetworkComp,
 		fullArchiveNetworkHolder: fullArchiveNetworkComp,
@@ -267,7 +266,6 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 		P2pConfig:             p2pConfig,
 		SyncTimer:             ncf.syncer,
 		PreferredPeersHolder:  peersHolder,
-		NodeOperationMode:     ncf.nodeOperationMode,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,
 		P2pPrivateKey:         ncf.cryptoComponents.P2pPrivateKey(),
@@ -305,7 +303,7 @@ func (ncf *networkComponentsFactory) createMainNetworkHolder(peersHolder p2p.Pre
 func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersHolder p2p.PreferredPeersHolderHandler) (networkComponentsHolder, error) {
 	if ncf.nodeOperationMode != p2p.FullArchiveMode {
 		return networkComponentsHolder{
-			netMessenger:       disabled.NewNetworkMessenger(),
+			netMessenger:       p2pDisabled.NewNetworkMessenger(),
 			peersRatingHandler: disabled.NewPeersRatingHandler(),
 			peersRatingMonitor: disabled.NewPeersRatingMonitor(),
 		}, nil

@@ -587,7 +587,7 @@ type ConfigurationPathsHolder struct {
 	Ratings                  string
 	Preferences              string
 	External                 string
-	P2p                      string
+	MainP2p                  string
 	FullArchiveP2p           string
 	GasScheduleDirectoryName string
 	Nodes                    string

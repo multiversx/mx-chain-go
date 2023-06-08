@@ -1103,7 +1103,7 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.Genesis,
 			configurationPaths.SmartContracts,
 			configurationPaths.Nodes,
-			configurationPaths.P2p,
+			configurationPaths.MainP2p,
 			configurationPaths.FullArchiveP2p,
 			configurationPaths.Preferences,
 			configurationPaths.Ratings,

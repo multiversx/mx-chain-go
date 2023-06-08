@@ -1,7 +1,5 @@
 #FullArchiveP2P config file
 
-#TODO[Sorin]: proper values on this config, it is just a copy of p2p.toml for the moment
-
 #NodeConfig holds the P2P settings
 [Node]
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it

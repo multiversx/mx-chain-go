@@ -201,12 +201,12 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.External)
 
-	configurationPaths.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
-	mainP2PConfig, err := common.LoadP2PConfig(configurationPaths.P2p)
+	configurationPaths.MainP2p = ctx.GlobalString(p2pConfigurationFile.Name)
+	mainP2PConfig, err := common.LoadP2PConfig(configurationPaths.MainP2p)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPaths.P2p)
+	log.Debug("config", "file", configurationPaths.MainP2p)
 
 	configurationPaths.FullArchiveP2p = ctx.GlobalString(fullArchiveP2PConfigurationFile.Name)
 	fullArchiveP2PConfig, err := common.LoadP2PConfig(configurationPaths.FullArchiveP2p)
