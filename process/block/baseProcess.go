@@ -2234,10 +2234,13 @@ func makeCommonHeaderHandlerHashMap(hdrMap map[string]data.HeaderHandler) map[st
 }
 
 func waitForHeaderHashes(waitTime time.Duration, chanRcvHeaderHashes chan bool) error {
+	timer := time.NewTimer(waitTime)
+	defer timer.Stop()
+
 	select {
 	case <-chanRcvHeaderHashes:
 		return nil
-	case <-time.After(waitTime):
+	case <-timer.C:
 		return process.ErrTimeIsOut
 	}
 }

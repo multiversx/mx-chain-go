@@ -1,6 +1,8 @@
 package processing_test
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -60,7 +63,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.MissingTrieNodesNotifierStub{})
 
 		require.NoError(t, err)
-		require.NotNil(t, bp)
+		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
 	})
 
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
@@ -95,7 +98,44 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.MissingTrieNodesNotifierStub{})
 
 		require.NoError(t, err)
-		require.NotNil(t, bp)
+		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
+	})
+
+	t.Run("invalid chain id, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		pcf.SetChainRunType("invalid")
+
+		bp, err := pcf.NewBlockProcessor(
+			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.ExtendedShardHeaderTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+			&testscommon.BlockProcessingCutoffStub{},
+			&testscommon.MissingTrieNodesNotifierStub{})
+
+		require.NotNil(t, err)
+		require.Nil(t, bp)
+		require.True(t, strings.Contains(err.Error(), customErrors.ErrUnimplementedChainRunType.Error()))
+		require.True(t, strings.Contains(err.Error(), "invalid"))
 	})
 }
 
