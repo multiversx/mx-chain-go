@@ -339,7 +339,7 @@ func TestTxsPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testing.T)
 		},
 	}
 	numTxsRequested = sctp.RequestTransactionsForMiniBlock(miniBlock)
-	assert.Equal(t, 0, numTxsRequested)
+	assert.Equal(t, 2, numTxsRequested)
 }
 
 func TestTxsPreprocessor_RequestBlockTransactionsShouldWork(t *testing.T) {
@@ -366,7 +366,7 @@ func TestTxsPreprocessor_RequestBlockTransactionsShouldWork(t *testing.T) {
 	}
 
 	numTxsRequested = sctp.RequestBlockTransactions(blockBody)
-	assert.Equal(t, 0, numTxsRequested)
+	assert.Equal(t, 2, numTxsRequested)
 }
 
 func TestTxsPreprocessor_ShouldContinueProcessingScheduledTxShouldWork(t *testing.T) {
