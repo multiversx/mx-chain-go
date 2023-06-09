@@ -249,7 +249,6 @@ func TestNewDataPool_Close(t *testing.T) {
 
 		tnExpectedErr := errors.New("tn expected error")
 		paExpectedErr := errors.New("pa expected error")
-		faExpectedErr := errors.New("fa expected error")
 		args := createMockDataPoolArgs()
 		tnCalled, paCalled := false, false
 		args.TrieNodes = &testscommon.CacherStub{
@@ -267,7 +266,7 @@ func TestNewDataPool_Close(t *testing.T) {
 		tdp, _ := dataPool.NewDataPool(args)
 		assert.NotNil(t, tdp)
 		err := tdp.Close()
-		assert.Equal(t, faExpectedErr, err)
+		assert.Equal(t, paExpectedErr, err)
 		assert.True(t, tnCalled)
 		assert.True(t, paCalled)
 	})
