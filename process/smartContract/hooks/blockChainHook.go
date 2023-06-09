@@ -93,6 +93,8 @@ type BlockChainHookImpl struct {
 	mutGasLock               sync.RWMutex
 	gasSchedule              core.GasScheduleNotifier
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
+
+	getUserAccountsFunc func(input *vmcommon.ContractCallInput) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error)
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -136,6 +138,8 @@ func NewBlockChainHookImpl(
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
+
+	blockChainHookImpl.getUserAccountsFunc = blockChainHookImpl.getUserAccounts
 
 	return blockChainHookImpl, nil
 }
@@ -467,7 +471,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
-	sndAccount, dstAccount, err := bh.getUserAccounts(input)
+	sndAccount, dstAccount, err := bh.getUserAccountsFunc(input)
 	if err != nil {
 		return nil, err
 	}
@@ -584,49 +588,44 @@ func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error) {
-	var sndAccount vmcommon.UserAccountHandler
-
-	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
-	selfShard := bh.shardCoordinator.SelfId()
-
-	isSelfShardSovereign := selfShard == core.SovereignChainShardId
-	isSenderESDTAddr := bytes.Equal(input.CallerAddr, core.ESDTSCAddress)
-	isIncomingSovereignSCR := isSelfShardSovereign && isSenderESDTAddr
-
-	// If we have an incoming sovereign scr, sender should be nil
-	if sndShardId == selfShard && !isIncomingSovereignSCR {
-		acc, err := bh.accounts.GetExistingAccount(input.CallerAddr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		var ok bool
-		sndAccount, ok = acc.(vmcommon.UserAccountHandler)
-		if !ok {
-			return nil, nil, process.ErrWrongTypeAssertion
-		}
-
-		if bytes.Equal(input.CallerAddr, input.RecipientAddr) {
-			return sndAccount, sndAccount, nil
-		}
+	sndAccount, err := bh.getAccount(input.CallerAddr, bh.accounts.GetExistingAccount)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	var dstAccount vmcommon.UserAccountHandler
-	dstShardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
-	if dstShardId == selfShard {
-		acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
-		if err != nil {
-			return nil, nil, err
-		}
+	if bytes.Equal(input.CallerAddr, input.RecipientAddr) && !check.IfNil(sndAccount) {
+		return sndAccount, sndAccount, nil
+	}
 
-		var ok bool
-		dstAccount, ok = acc.(vmcommon.UserAccountHandler)
-		if !ok {
-			return nil, nil, process.ErrWrongTypeAssertion
-		}
+	dstAccount, err := bh.getAccount(input.RecipientAddr, bh.accounts.LoadAccount)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return sndAccount, dstAccount, nil
+}
+
+func (bh *BlockChainHookImpl) getAccount(
+	address []byte,
+	getAccountFunc func(address []byte) (vmcommon.AccountHandler, error),
+) (vmcommon.UserAccountHandler, error) {
+	var account vmcommon.UserAccountHandler
+
+	addressShard := bh.shardCoordinator.ComputeId(address)
+	if addressShard == bh.shardCoordinator.SelfId() {
+		acc, err := getAccountFunc(address)
+		if err != nil {
+			return nil, err
+		}
+
+		var ok bool
+		account, ok = acc.(vmcommon.UserAccountHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+	}
+
+	return account, nil
 }
 
 // GetBuiltinFunctionNames returns the built-in function names
