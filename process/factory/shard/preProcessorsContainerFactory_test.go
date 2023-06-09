@@ -333,6 +333,53 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	assert.Equal(t, process.ErrNilUTxDataPool, err)
 }
 
+func TestPreProcessorsContainerFactory_CreateSCRPreprocessor(t *testing.T) {
+	t.Run("createSmartContractResultPreProcessor should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		ppcf, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcf)
+
+		ppcf.chainRunType = common.ChainRunTypeRegular
+
+		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
+
+		assert.NotNil(t, preProc)
+		assert.Nil(t, errCreate)
+	})
+
+	t.Run("createSmartContractResultPreProcessor should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		ppcf, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcf)
+
+		ppcf.chainRunType = common.ChainRunTypeSovereign
+
+		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
+
+		assert.NotNil(t, preProc)
+		assert.Nil(t, errCreate)
+	})
+
+	t.Run("createSmartContractResultPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		ppcf, err := createMockPreProcessorContainerFactory()
+		require.Nil(t, err)
+		require.NotNil(t, ppcf)
+
+		ppcf.chainRunType = "invalid"
+
+		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
+
+		assert.Nil(t, preProc)
+		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
+	})
+}
+
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
@@ -349,50 +396,17 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("createTxPreProcessor should create a main chain instance", func(t *testing.T) {
-		t.Parallel()
+	ppcf, err := createMockPreProcessorContainerFactory()
+	require.Nil(t, err)
+	require.NotNil(t, ppcf)
 
-		ppcf, err := createMockPreProcessorContainerFactory()
-		require.Nil(t, err)
-		require.NotNil(t, ppcf)
+	ppcf.chainRunType = common.ChainRunTypeRegular
 
-		ppcf.chainRunType = common.ChainRunTypeRegular
+	preProc, errCreate := ppcf.createTxPreProcessor()
 
-		preProc, errCreate := ppcf.createTxPreProcessor()
+	assert.NotNil(t, preProc)
+	assert.Nil(t, errCreate)
 
-		assert.NotNil(t, preProc)
-		assert.Nil(t, errCreate)
-	})
-
-	t.Run("createTxPreProcessor should create a sovereign chain instance", func(t *testing.T) {
-		t.Parallel()
-
-		ppcf, err := createMockPreProcessorContainerFactory()
-		require.Nil(t, err)
-		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = common.ChainRunTypeSovereign
-
-		preProc, errCreate := ppcf.createTxPreProcessor()
-
-		assert.NotNil(t, preProc)
-		assert.Nil(t, errCreate)
-	})
-
-	t.Run("createTxPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		ppcf, err := createMockPreProcessorContainerFactory()
-		require.Nil(t, err)
-		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = "X"
-
-		preProc, errCreate := ppcf.createTxPreProcessor()
-
-		assert.Nil(t, preProc)
-		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
-	})
 }
 
 func createMockPreProcessorContainerFactory() (*preProcessorsContainerFactory, error) {
