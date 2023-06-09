@@ -310,15 +310,15 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 }
 
 func (hcf *heartbeatV2ComponentsFactory) createTopicsIfNeeded() error {
-	err := createTopicIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger())
+	err := createTopicsIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger())
 	if err != nil {
 		return err
 	}
 
-	return createTopicIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger())
+	return createTopicsIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger())
 }
 
-func createTopicIfNeededOnMessenger(messenger p2p.Messenger) error {
+func createTopicsIfNeededOnMessenger(messenger p2p.Messenger) error {
 	if !messenger.HasTopic(common.PeerAuthenticationTopic) {
 		err := messenger.CreateTopic(common.PeerAuthenticationTopic, true)
 		if err != nil {

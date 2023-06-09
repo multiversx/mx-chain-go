@@ -129,7 +129,6 @@ func (sender *peerAuthenticationSender) execute() (error, bool) {
 		"public key", pkBytes, "pid", sender.mainMessenger.ID().Pretty(),
 		"timestamp", msgTimestamp)
 	sender.mainMessenger.Broadcast(sender.topic, data)
-	sender.fullArchiveMessenger.Broadcast(sender.topic, data)
 
 	return nil, isTriggered
 }
