@@ -1,6 +1,8 @@
 package dataPool
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -12,38 +14,42 @@ var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
 var log = logger.GetOrCreate("dataRetriever/dataPool")
 
 type dataPool struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	smartContracts         storage.Cacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	transactions                   dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions           dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions             dataRetriever.ShardedDataCacherNotifier
+	headers                        dataRetriever.HeadersPool
+	miniBlocks                     storage.Cacher
+	peerChangesBlocks              storage.Cacher
+	trieNodes                      storage.Cacher
+	trieNodesChunks                storage.Cacher
+	currBlockTxs                   dataRetriever.TransactionCacher
+	currEpochValidatorInfo         dataRetriever.ValidatorInfoCacher
+	smartContracts                 storage.Cacher
+	mainPeerAuthentications        storage.Cacher
+	mainHeartbeats                 storage.Cacher
+	fullArchivePeerAuthentications storage.Cacher
+	fullArchiveHeartbeats          storage.Cacher
+	validatorsInfo                 dataRetriever.ShardedDataCacherNotifier
 }
 
 // DataPoolArgs represents the data pool's constructor structure
 type DataPoolArgs struct {
-	Transactions              dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactions      dataRetriever.ShardedDataCacherNotifier
-	RewardTransactions        dataRetriever.ShardedDataCacherNotifier
-	Headers                   dataRetriever.HeadersPool
-	MiniBlocks                storage.Cacher
-	PeerChangesBlocks         storage.Cacher
-	TrieNodes                 storage.Cacher
-	TrieNodesChunks           storage.Cacher
-	CurrentBlockTransactions  dataRetriever.TransactionCacher
-	CurrentEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	SmartContracts            storage.Cacher
-	PeerAuthentications       storage.Cacher
-	Heartbeats                storage.Cacher
-	ValidatorsInfo            dataRetriever.ShardedDataCacherNotifier
+	Transactions                   dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactions           dataRetriever.ShardedDataCacherNotifier
+	RewardTransactions             dataRetriever.ShardedDataCacherNotifier
+	Headers                        dataRetriever.HeadersPool
+	MiniBlocks                     storage.Cacher
+	PeerChangesBlocks              storage.Cacher
+	TrieNodes                      storage.Cacher
+	TrieNodesChunks                storage.Cacher
+	CurrentBlockTransactions       dataRetriever.TransactionCacher
+	CurrentEpochValidatorInfo      dataRetriever.ValidatorInfoCacher
+	SmartContracts                 storage.Cacher
+	MainPeerAuthentications        storage.Cacher
+	MainHeartbeats                 storage.Cacher
+	FullArchivePeerAuthentications storage.Cacher
+	FullArchiveHeartbeats          storage.Cacher
+	ValidatorsInfo                 dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewDataPool creates a data pools holder object
@@ -81,31 +87,39 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.SmartContracts) {
 		return nil, dataRetriever.ErrNilSmartContractsPool
 	}
-	if check.IfNil(args.PeerAuthentications) {
-		return nil, dataRetriever.ErrNilPeerAuthenticationPool
+	if check.IfNil(args.MainPeerAuthentications) {
+		return nil, fmt.Errorf("%w for main", dataRetriever.ErrNilPeerAuthenticationPool)
 	}
-	if check.IfNil(args.Heartbeats) {
-		return nil, dataRetriever.ErrNilHeartbeatPool
+	if check.IfNil(args.MainHeartbeats) {
+		return nil, fmt.Errorf("%w for main", dataRetriever.ErrNilHeartbeatPool)
+	}
+	if check.IfNil(args.FullArchivePeerAuthentications) {
+		return nil, fmt.Errorf("%w for full archive", dataRetriever.ErrNilPeerAuthenticationPool)
+	}
+	if check.IfNil(args.FullArchiveHeartbeats) {
+		return nil, fmt.Errorf("%w for  full archive", dataRetriever.ErrNilHeartbeatPool)
 	}
 	if check.IfNil(args.ValidatorsInfo) {
 		return nil, dataRetriever.ErrNilValidatorInfoPool
 	}
 
 	return &dataPool{
-		transactions:           args.Transactions,
-		unsignedTransactions:   args.UnsignedTransactions,
-		rewardTransactions:     args.RewardTransactions,
-		headers:                args.Headers,
-		miniBlocks:             args.MiniBlocks,
-		peerChangesBlocks:      args.PeerChangesBlocks,
-		trieNodes:              args.TrieNodes,
-		trieNodesChunks:        args.TrieNodesChunks,
-		currBlockTxs:           args.CurrentBlockTransactions,
-		currEpochValidatorInfo: args.CurrentEpochValidatorInfo,
-		smartContracts:         args.SmartContracts,
-		peerAuthentications:    args.PeerAuthentications,
-		heartbeats:             args.Heartbeats,
-		validatorsInfo:         args.ValidatorsInfo,
+		transactions:                   args.Transactions,
+		unsignedTransactions:           args.UnsignedTransactions,
+		rewardTransactions:             args.RewardTransactions,
+		headers:                        args.Headers,
+		miniBlocks:                     args.MiniBlocks,
+		peerChangesBlocks:              args.PeerChangesBlocks,
+		trieNodes:                      args.TrieNodes,
+		trieNodesChunks:                args.TrieNodesChunks,
+		currBlockTxs:                   args.CurrentBlockTransactions,
+		currEpochValidatorInfo:         args.CurrentEpochValidatorInfo,
+		smartContracts:                 args.SmartContracts,
+		mainPeerAuthentications:        args.MainPeerAuthentications,
+		mainHeartbeats:                 args.MainHeartbeats,
+		fullArchivePeerAuthentications: args.FullArchivePeerAuthentications,
+		fullArchiveHeartbeats:          args.FullArchiveHeartbeats,
+		validatorsInfo:                 args.ValidatorsInfo,
 	}, nil
 }
 
@@ -166,12 +180,22 @@ func (dp *dataPool) SmartContracts() storage.Cacher {
 
 // PeerAuthentications returns the holder for peer authentications
 func (dp *dataPool) PeerAuthentications() storage.Cacher {
-	return dp.peerAuthentications
+	return dp.mainPeerAuthentications
 }
 
 // Heartbeats returns the holder for heartbeats
 func (dp *dataPool) Heartbeats() storage.Cacher {
-	return dp.heartbeats
+	return dp.mainHeartbeats
+}
+
+// FullArchivePeerAuthentications returns the holder for full archive peer authentications
+func (dp *dataPool) FullArchivePeerAuthentications() storage.Cacher {
+	return dp.fullArchivePeerAuthentications
+}
+
+// FullArchiveHeartbeats returns the holder for full archive heartbeats
+func (dp *dataPool) FullArchiveHeartbeats() storage.Cacher {
+	return dp.fullArchiveHeartbeats
 }
 
 // ValidatorsInfo returns the holder for validators info
@@ -191,9 +215,18 @@ func (dp *dataPool) Close() error {
 		}
 	}
 
-	if !check.IfNil(dp.peerAuthentications) {
-		log.Debug("closing peer authentications data pool....")
-		err := dp.peerAuthentications.Close()
+	if !check.IfNil(dp.mainPeerAuthentications) {
+		log.Debug("closing main peer authentications data pool....")
+		err := dp.mainPeerAuthentications.Close()
+		if err != nil {
+			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.fullArchivePeerAuthentications) {
+		log.Debug("closing full archive peer authentications data pool....")
+		err := dp.fullArchivePeerAuthentications.Close()
 		if err != nil {
 			log.Error("failed to close peer authentications data pool", "error", err.Error())
 			lastError = err

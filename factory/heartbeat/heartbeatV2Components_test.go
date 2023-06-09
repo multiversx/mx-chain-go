@@ -190,7 +190,19 @@ func TestNewHeartbeatV2ComponentsFactory(t *testing.T) {
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.Nil(t, hcf)
-		assert.Equal(t, errorsMx.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, errorsMx.ErrNilMessenger))
+	})
+	t.Run("nil FullArchiveNetworkMessenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: nil,
+		}
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.Nil(t, hcf)
+		assert.True(t, errors.Is(err, errorsMx.ErrNilMessenger))
 	})
 	t.Run("nil CryptoComponents should error", func(t *testing.T) {
 		t.Parallel()
@@ -257,6 +269,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return nil
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -283,6 +296,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return nil
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -440,6 +454,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return expectedErr
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)

@@ -8,22 +8,24 @@ import (
 
 // PoolsHolderStub -
 type PoolsHolderStub struct {
-	HeadersCalled                func() dataRetriever.HeadersPool
-	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled             func() storage.Cacher
-	MetaBlocksCalled             func() storage.Cacher
-	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
-	CurrEpochValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
-	TrieNodesCalled              func() storage.Cacher
-	TrieNodesChunksCalled        func() storage.Cacher
-	PeerChangesBlocksCalled      func() storage.Cacher
-	SmartContractsCalled         func() storage.Cacher
-	PeerAuthenticationsCalled    func() storage.Cacher
-	HeartbeatsCalled             func() storage.Cacher
-	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
-	CloseCalled                  func() error
+	HeadersCalled                        func() dataRetriever.HeadersPool
+	TransactionsCalled                   func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled             func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled                     func() storage.Cacher
+	MetaBlocksCalled                     func() storage.Cacher
+	CurrBlockTxsCalled                   func() dataRetriever.TransactionCacher
+	CurrEpochValidatorInfoCalled         func() dataRetriever.ValidatorInfoCacher
+	TrieNodesCalled                      func() storage.Cacher
+	TrieNodesChunksCalled                func() storage.Cacher
+	PeerChangesBlocksCalled              func() storage.Cacher
+	SmartContractsCalled                 func() storage.Cacher
+	PeerAuthenticationsCalled            func() storage.Cacher
+	HeartbeatsCalled                     func() storage.Cacher
+	FullArchivePeerAuthenticationsCalled func() storage.Cacher
+	FullArchiveHeartbeatsCalled          func() storage.Cacher
+	ValidatorsInfoCalled                 func() dataRetriever.ShardedDataCacherNotifier
+	CloseCalled                          func() error
 }
 
 // NewPoolsHolderStub -
@@ -152,6 +154,24 @@ func (holder *PoolsHolderStub) PeerAuthentications() storage.Cacher {
 func (holder *PoolsHolderStub) Heartbeats() storage.Cacher {
 	if holder.HeartbeatsCalled != nil {
 		return holder.HeartbeatsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// FullArchivePeerAuthentications -
+func (holder *PoolsHolderStub) FullArchivePeerAuthentications() storage.Cacher {
+	if holder.FullArchivePeerAuthenticationsCalled != nil {
+		return holder.FullArchivePeerAuthenticationsCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}
+
+// FullArchiveHeartbeats -
+func (holder *PoolsHolderStub) FullArchiveHeartbeats() storage.Cacher {
+	if holder.FullArchiveHeartbeatsCalled != nil {
+		return holder.FullArchiveHeartbeatsCalled()
 	}
 
 	return testscommon.NewCacherStub()

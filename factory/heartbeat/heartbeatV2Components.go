@@ -102,7 +102,10 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 		return errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents.NetworkMessenger()) {
-		return errors.ErrNilMessenger
+		return fmt.Errorf("%w for main", errors.ErrNilMessenger)
+	}
+	if check.IfNil(args.NetworkComponents.FullArchiveNetworkMessenger()) {
+		return fmt.Errorf("%w for full archive", errors.ErrNilMessenger)
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return errors.ErrNilCryptoComponentsHolder

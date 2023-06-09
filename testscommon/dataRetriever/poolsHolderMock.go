@@ -18,20 +18,22 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	smartContracts         storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	transactions                   dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions           dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions             dataRetriever.ShardedDataCacherNotifier
+	headers                        dataRetriever.HeadersPool
+	miniBlocks                     storage.Cacher
+	peerChangesBlocks              storage.Cacher
+	trieNodes                      storage.Cacher
+	trieNodesChunks                storage.Cacher
+	smartContracts                 storage.Cacher
+	currBlockTxs                   dataRetriever.TransactionCacher
+	currEpochValidatorInfo         dataRetriever.ValidatorInfoCacher
+	mainPeerAuthentications        storage.Cacher
+	mainHeartbeats                 storage.Cacher
+	fullArchivePeerAuthentications storage.Cacher
+	fullArchiveHeartbeats          storage.Cacher
+	validatorsInfo                 dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderMock -
@@ -93,13 +95,22 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.smartContracts, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.peerAuthentications, err = cache.NewTimeCacher(cache.ArgTimeCacher{
+	holder.mainPeerAuthentications, err = cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: 10 * time.Second,
 		CacheExpiry: 10 * time.Second,
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.heartbeats, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	holder.mainHeartbeats, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.fullArchivePeerAuthentications, err = cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: 10 * time.Second,
+		CacheExpiry: 10 * time.Second,
+	})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.fullArchiveHeartbeats, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.validatorsInfo, err = shardedData.NewShardedData("validatorsInfoPool", storageunit.CacheConfig{
@@ -179,12 +190,22 @@ func (holder *PoolsHolderMock) SmartContracts() storage.Cacher {
 
 // PeerAuthentications -
 func (holder *PoolsHolderMock) PeerAuthentications() storage.Cacher {
-	return holder.peerAuthentications
+	return holder.mainPeerAuthentications
 }
 
 // Heartbeats -
 func (holder *PoolsHolderMock) Heartbeats() storage.Cacher {
-	return holder.heartbeats
+	return holder.mainHeartbeats
+}
+
+// FullArchivePeerAuthentications -
+func (holder *PoolsHolderMock) FullArchivePeerAuthentications() storage.Cacher {
+	return holder.fullArchivePeerAuthentications
+}
+
+// FullArchiveHeartbeats -
+func (holder *PoolsHolderMock) FullArchiveHeartbeats() storage.Cacher {
+	return holder.fullArchiveHeartbeats
 }
 
 // ValidatorsInfo -
@@ -202,8 +223,15 @@ func (holder *PoolsHolderMock) Close() error {
 		}
 	}
 
-	if !check.IfNil(holder.peerAuthentications) {
-		err := holder.peerAuthentications.Close()
+	if !check.IfNil(holder.mainPeerAuthentications) {
+		err := holder.mainPeerAuthentications.Close()
+		if err != nil {
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(holder.fullArchivePeerAuthentications) {
+		err := holder.fullArchivePeerAuthentications.Close()
 		if err != nil {
 			lastError = err
 		}
