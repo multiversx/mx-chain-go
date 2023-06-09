@@ -116,6 +116,7 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+	requestMissingHeadersFunc     func(missingNonces []uint64, shardID uint32)
 }
 
 type bootStorerDataArgs struct {
@@ -254,12 +255,12 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 
 // getRootHash returns the accounts merkle tree root hash
 func (bp *baseProcessor) getRootHash() []byte {
-	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
+	userAccountsRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		log.Trace("get account.RootHash", "error", err.Error())
 	}
 
-	return rootHash
+	return userAccountsRootHash
 }
 
 func (bp *baseProcessor) requestHeadersIfMissing(
@@ -307,12 +308,16 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, nonces...)
 	}
 
+	bp.requestMissingHeadersFunc(missingNonces, shardId)
+
+	return nil
+}
+
+func (bp *baseProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {
 	for _, nonce := range missingNonces {
 		bp.addHeaderIntoTrackerPool(nonce, shardId)
 		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
-
-	return nil
 }
 
 func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uint64 {
@@ -339,7 +344,7 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var valStatRootHash, epochStartMetaHash, scheduledRootHash []byte
 
-	validatorStatsGetter, isOk := headerHandler.(validatorStatsGetter)
+	validatorStatsGetter, isOk := headerHandler.(validatorStatsRootHashGetter)
 	if isOk {
 		valStatRootHash = validatorStatsGetter.GetValidatorStatsRootHash()
 	} else {
@@ -2226,4 +2231,16 @@ func makeCommonHeaderHandlerHashMap(hdrMap map[string]data.HeaderHandler) map[st
 		commonHdrMap[key] = val
 	}
 	return commonHdrMap
+}
+
+func waitForHeaderHashes(waitTime time.Duration, chanRcvHeaderHashes chan bool) error {
+	timer := time.NewTimer(waitTime)
+	defer timer.Stop()
+
+	select {
+	case <-chanRcvHeaderHashes:
+		return nil
+	case <-timer.C:
+		return process.ErrTimeIsOut
+	}
 }

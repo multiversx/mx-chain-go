@@ -132,6 +132,7 @@ type baseBootstrap struct {
 	processAndCommitFunc                func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	handleScheduledRollBackToHeaderFunc func(header data.HeaderHandler, headerHash []byte) []byte
 	getRootHashFromBlockFunc            func(header data.HeaderHandler, headerHash []byte) []byte
+	doProcessReceivedHeaderJobFunc      func(headerHandler data.HeaderHandler, headerHash []byte)
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -163,6 +164,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	boot.doProcessReceivedHeaderJobFunc(headerHandler, headerHash)
+}
+
+func (boot *baseBootstrap) doProcessReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
 	if boot.shardCoordinator.SelfId() != headerHandler.GetShardID() {
 		return
 	}

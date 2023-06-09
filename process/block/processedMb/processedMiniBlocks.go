@@ -48,8 +48,8 @@ func (pmbt *processedMiniBlocksTracker) SetProcessedMiniBlockInfo(metaBlockHash 
 	}
 }
 
-// RemoveMetaBlockHash will remove a meta block hash
-func (pmbt *processedMiniBlocksTracker) RemoveMetaBlockHash(metaBlockHash []byte) {
+// RemoveHeaderHash will remove a header hash
+func (pmbt *processedMiniBlocksTracker) RemoveHeaderHash(metaBlockHash []byte) {
 	pmbt.mutProcessedMiniBlocks.Lock()
 	defer pmbt.mutProcessedMiniBlocks.Unlock()
 

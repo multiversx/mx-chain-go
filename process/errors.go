@@ -323,6 +323,9 @@ var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
 
+// ErrCrossShardMBWithoutConfirmationFromNotifier signals that miniblock was not yet notarized by notifier
+var ErrCrossShardMBWithoutConfirmationFromNotifier = errors.New("cross shard miniblock with destination current shard is not confirmed by notifier")
+
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
 

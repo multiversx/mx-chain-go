@@ -1283,7 +1283,7 @@ type PreProcessorExecutionInfoHandler interface {
 // ProcessedMiniBlocksTracker handles tracking of processed mini blocks
 type ProcessedMiniBlocksTracker interface {
 	SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
-	RemoveMetaBlockHash(metaBlockHash []byte)
+	RemoveHeaderHash(metaBlockHash []byte)
 	RemoveMiniBlockHash(miniBlockHash []byte)
 	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)

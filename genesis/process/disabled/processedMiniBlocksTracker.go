@@ -13,8 +13,8 @@ type ProcessedMiniBlocksTracker struct {
 func (pmbt *ProcessedMiniBlocksTracker) SetProcessedMiniBlockInfo(_ []byte, _ []byte, _ *processedMb.ProcessedMiniBlockInfo) {
 }
 
-// RemoveMetaBlockHash does nothing as it is a disabled component
-func (pmbt *ProcessedMiniBlocksTracker) RemoveMetaBlockHash(_ []byte) {
+// RemoveHeaderHash does nothing as it is a disabled component
+func (pmbt *ProcessedMiniBlocksTracker) RemoveHeaderHash(_ []byte) {
 }
 
 // RemoveMiniBlockHash does nothing as it is a disabled component

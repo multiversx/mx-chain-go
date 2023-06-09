@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -22,7 +23,17 @@ import (
 // CreateSovereignChainBlockProcessorMockArguments -
 func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
 	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	sovereignChainHeaderValidator, _ := processBlock.NewSovereignChainHeaderValidator(headerValidator)
+	blockProcessorArguments.HeaderValidator = sovereignChainHeaderValidator
+
 	return blockProcessorArguments
 }
 
@@ -205,18 +216,21 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 		},
 	}
 
-	shardHeaderExtended1Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended1)
-	shardHeaderExtendedHash1 := hasherMock.Compute(string(shardHeaderExtended1Marshalled))
+	header1Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended1.Header)
+	headerHash1 := hasherMock.Compute(string(header1Marshalled))
 
 	shardHeaderExtended2 := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
 			Header: &block.Header{
 				Round:    2,
 				Nonce:    2,
-				PrevHash: shardHeaderExtendedHash1,
+				PrevHash: headerHash1,
 			},
 		},
 	}
+
+	header2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2.Header)
+	headerHash2 := hasherMock.Compute(string(header2Marshalled))
 
 	shardHeaderExtended2Marshalled, _ := marshalizerMock.Marshal(shardHeaderExtended2)
 	shardHeaderExtendedHash2 := hasherMock.Compute(string(shardHeaderExtended2Marshalled))
@@ -226,7 +240,7 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 			Header: &block.Header{
 				Round:    3,
 				Nonce:    3,
-				PrevHash: shardHeaderExtendedHash2,
+				PrevHash: headerHash2,
 			},
 		},
 	}
@@ -236,7 +250,7 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 
 	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return shardHeaderExtended1, shardHeaderExtendedHash1, nil
+			return shardHeaderExtended1, headerHash1, nil
 		},
 	}
 

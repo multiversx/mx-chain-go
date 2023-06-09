@@ -151,7 +151,7 @@ func (txc *transactionCounter) displayLogInfo(
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
 		"num shards", numShards,
-		"shard", selfId,
+		"shard", getShardName(selfId),
 	}
 	txc.mutex.RUnlock()
 	log.Debug(message, arguments...)
@@ -174,7 +174,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.GetShardID())}),
+			getShardName(header.GetShardID())}),
 	}
 
 	lines := displayHeader(header)
@@ -182,6 +182,11 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines := make([]*display.LineData, 0, len(lines)+len(headerLines))
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
+
+	shardHeaderHashesGetter, ok := header.(extendedShardHeaderHashesGetter)
+	if ok {
+		shardLines = txc.displayExtendedShardHeaderHashesIncluded(shardLines, shardHeaderHashesGetter.GetExtendedShardHeaderHashes())
+	}
 
 	var varBlockBodyType int32 = math.MaxInt32
 	shardHeader, ok := header.(data.ShardHeaderHandler)
@@ -200,6 +205,43 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	return tableHeader, shardLines
+}
+
+func (txc *transactionCounter) displayExtendedShardHeaderHashesIncluded(
+	lines []*display.LineData,
+	extendedShardHeaderHashes [][]byte,
+) []*display.LineData {
+
+	if len(extendedShardHeaderHashes) == 0 {
+		return lines
+	}
+
+	part := "ExtendedShardHeaderHashes"
+	for i := 0; i < len(extendedShardHeaderHashes); i++ {
+		if i == 0 || i >= len(extendedShardHeaderHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("ExtendedShardHeaderHash_%d", i+1),
+				logger.DisplayByteSlice(extendedShardHeaderHashes[i])}))
+
+			part = ""
+			continue
+		}
+
+		if i == 1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				"...",
+				"...",
+			}))
+
+			part = ""
+		}
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
 }
 
 func (txc *transactionCounter) displayMetaHashesIncluded(
@@ -260,13 +302,16 @@ func (txc *transactionCounter) displayTxBlockBody(
 			processingTypeInMiniBlockStr = "S_"
 		}
 
-		part := fmt.Sprintf("%s%s%s_MiniBlock_%s%d->%d",
+		senderShardStr := getShardName(miniBlock.SenderShardID)
+		receiverShardStr := getShardName(miniBlock.ReceiverShardID)
+
+		part := fmt.Sprintf("%s%s%s_MiniBlock_%s%s->%s",
 			processingTypeInMiniBlockHeaderStr,
 			constructionStateInMiniBlockHeaderStr,
 			miniBlock.Type.String(),
 			processingTypeInMiniBlockStr,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+			senderShardStr,
+			receiverShardStr)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -302,6 +347,24 @@ func (txc *transactionCounter) displayTxBlockBody(
 	}
 
 	return lines
+}
+
+// TODO: Could move this in mx-chain-core-go
+func getShardName(shardID uint32) string {
+	var shardStr string
+
+	switch shardID {
+	case core.MetachainShardId:
+		shardStr = "MetaChain"
+	case core.MainChainShardId:
+		shardStr = "MainChain"
+	case core.SovereignChainShardId:
+		shardStr = "SovereignChain"
+	default:
+		shardStr = fmt.Sprintf("%d", shardID)
+	}
+
+	return shardStr
 }
 
 func getProcessingTypeAsString(miniBlockHeader data.MiniBlockHeaderHandler) string {
@@ -349,7 +412,7 @@ func DisplayLastNotarized(
 	}
 
 	log.Debug("last notarized block from shard",
-		"shard", shardId,
+		"shard", getShardName(shardId),
 		"epoch", lastNotarizedHdrForShard.GetEpoch(),
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),
