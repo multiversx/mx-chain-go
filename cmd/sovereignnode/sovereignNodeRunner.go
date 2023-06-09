@@ -668,6 +668,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
+		ChainRunType:         common.ChainRunTypeSovereign,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
