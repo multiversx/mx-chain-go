@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -3235,4 +3236,38 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 	err := execTx.ExecuteFailedRelayedTransaction(&userTx, tx.SndAddr, tx.Value, tx.Nonce, &tx, txHash, "")
 	assert.Nil(t, err)
 	assert.False(t, negativeCost)
+}
+
+func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fix not enabled, should return true", func(t *testing.T) {
+		args := createArgsForTxProcessor()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRelayedNonceFixEnabledField: false,
+		}
+		txProc, _ := txproc.NewTxProcessor(args)
+
+		assert.True(t, txProc.ShouldIncreaseNonce(nil))
+	})
+	t.Run("fix enabled, different errors should return true", func(t *testing.T) {
+		args := createArgsForTxProcessor()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRelayedNonceFixEnabledField: true,
+		}
+		txProc, _ := txproc.NewTxProcessor(args)
+
+		assert.True(t, txProc.ShouldIncreaseNonce(nil))
+		assert.True(t, txProc.ShouldIncreaseNonce(fmt.Errorf("random error")))
+	})
+	t.Run("fix enabled, errors for an un-executable transaction should return false", func(t *testing.T) {
+		args := createArgsForTxProcessor()
+		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRelayedNonceFixEnabledField: true,
+		}
+		txProc, _ := txproc.NewTxProcessor(args)
+
+		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrLowerNonceInTransaction))
+		assert.False(t, txProc.ShouldIncreaseNonce(process.ErrHigherNonceInTransaction))
+	})
 }

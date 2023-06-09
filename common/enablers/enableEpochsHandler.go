@@ -118,6 +118,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch, handler.maxBlockchainHookCountersFlag, "maxBlockchainHookCountersFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag")
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag")
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch, handler.relayedNonceFixFlag, "relayedNonceFixFlag")
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string) {
@@ -213,6 +214,11 @@ func (handler *enableEpochsHandler) MiniBlockPartialExecutionEnableEpoch() uint3
 // RefactorPeersMiniBlocksEnableEpoch returns the epoch when refactor of peers mini blocks becomes active
 func (handler *enableEpochsHandler) RefactorPeersMiniBlocksEnableEpoch() uint32 {
 	return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
+}
+
+// RelayedNonceFixEnableEpoch returns the epoch when relayed nonce fix becomes active
+func (handler *enableEpochsHandler) RelayedNonceFixEnableEpoch() uint32 {
+	return handler.enableEpochsConfig.RelayedNonceFixEnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

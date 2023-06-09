@@ -59,6 +59,7 @@ import (
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -2537,4 +2538,23 @@ func SaveDelegationContractsList(nodes []*TestProcessorNode) {
 		_ = n.AccntState.SaveAccount(userAcc)
 		_, _ = n.AccntState.Commit()
 	}
+}
+
+// PrepareRelayedTxDataV1 repares the data for a relayed transaction V1
+func PrepareRelayedTxDataV1(innerTx *transaction.Transaction) []byte {
+	userTxBytes, _ := TestMarshalizer.Marshal(innerTx)
+	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
+}
+
+// PrepareRelayedTxDataV2 prepares the data for a relayed transaction V2
+func PrepareRelayedTxDataV2(innerTx *transaction.Transaction) []byte {
+	dataBuilder := txDataBuilder.NewBuilder()
+	txData := dataBuilder.
+		Func(core.RelayedTransactionV2).
+		Bytes(innerTx.RcvAddr).
+		Int64(int64(innerTx.Nonce)).
+		Bytes(innerTx.Data).
+		Bytes(innerTx.Signature)
+
+	return txData.ToBytes()
 }
