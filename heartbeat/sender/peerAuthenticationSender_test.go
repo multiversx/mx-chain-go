@@ -325,7 +325,6 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		mainBroadcastCalled := false
-		fullArchiveBroadcastCalled := false
 		argsBase.mainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
@@ -334,8 +333,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 		argsBase.fullArchiveMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
-				assert.Equal(t, argsBase.topic, topic)
-				fullArchiveBroadcastCalled = true
+				assert.Fail(t, "should have not been called")
 			},
 		}
 
@@ -345,7 +343,6 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		err, isHardforkTriggered := senderInstance.execute()
 		assert.Nil(t, err)
 		assert.True(t, mainBroadcastCalled)
-		assert.True(t, fullArchiveBroadcastCalled)
 		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("should work with some real components", func(t *testing.T) {
@@ -520,7 +517,6 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 
 		argsBase := createMockBaseArgs()
 		counterMainBroadcast := 0
-		counterFullArchiveroadcast := 0
 		argsBase.mainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				counterMainBroadcast++
@@ -528,7 +524,7 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		}
 		argsBase.fullArchiveMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
-				counterFullArchiveroadcast++
+				assert.Fail(t, "should have not been called")
 			},
 		}
 		args := createMockPeerAuthenticationSenderArgs(argsBase)
@@ -550,7 +546,6 @@ func TestPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute() // validator
 		senderInstance.Execute() // observer
 		assert.Equal(t, 1, counterMainBroadcast)
-		assert.Equal(t, 1, counterFullArchiveroadcast)
 	})
 	t.Run("execute worked, should set the hardfork time duration value", func(t *testing.T) {
 		t.Parallel()
