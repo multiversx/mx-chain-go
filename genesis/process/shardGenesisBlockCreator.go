@@ -434,7 +434,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := hooks.CreateBlockChainHook(arg.ChainRunType, argsHook)
 	if err != nil {
 		return nil, err
 	}

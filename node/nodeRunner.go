@@ -707,6 +707,7 @@ func (nr *nodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
+		ChainRunType:         common.ChainRunTypeRegular,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
