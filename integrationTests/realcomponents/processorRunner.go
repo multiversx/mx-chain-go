@@ -167,7 +167,8 @@ func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 	argsNetwork := factoryNetwork.NetworkComponentsFactoryArgs{
-		P2pConfig:             *pr.Config.P2pConfig,
+		MainP2pConfig:         *pr.Config.MainP2pConfig,
+		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),

@@ -135,7 +135,6 @@ type ManualEpochStartNotifier interface {
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
-	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	ID() core.PeerID
 	IsInterfaceNil() bool
@@ -168,7 +167,6 @@ type StorageType uint8
 type PeerListCreator interface {
 	CrossShardPeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
-	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
 }
 

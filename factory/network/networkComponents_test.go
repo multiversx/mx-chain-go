@@ -50,6 +50,16 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 		require.Nil(t, ncf)
 		require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, err)
 	})
+	t.Run("invalid node operation mode should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetNetworkFactoryArgs()
+		args.NodeOperationMode = "invalid"
+
+		ncf, err := networkComp.NewNetworkComponentsFactory(args)
+		require.Equal(t, errorsMx.ErrInvalidNodeOperationMode, err)
+		require.Nil(t, ncf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

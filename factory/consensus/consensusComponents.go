@@ -668,6 +668,7 @@ func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PS
 	p2pSignerArgs := p2pFactory.ArgsMessageVerifier{
 		Marshaller: ccf.coreComponents.InternalMarshalizer(),
 		P2PSigner:  ccf.networkComponents.NetworkMessenger(),
+		Logger:     logger.GetOrCreate("main/p2p/messagecheck"),
 	}
 
 	return p2pFactory.NewMessageVerifier(p2pSignerArgs)

@@ -558,3 +558,6 @@ var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
 
 // ErrNilTrieMigrator signals that a nil trie migrator has been provided
 var ErrNilTrieMigrator = errors.New("nil trie migrator")
+
+// ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
+var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")

@@ -125,3 +125,6 @@ type P2PKeyConverter interface {
 	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
 	IsInterfaceNil() bool
 }
+
+// Logger defines the behavior of a data logger component
+type Logger = p2p.Logger
