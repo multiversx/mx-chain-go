@@ -130,7 +130,8 @@ func (sender *multikeyHeartbeatSender) execute() error {
 		return err
 	}
 
-	sender.messenger.Broadcast(sender.topic, buff)
+	sender.mainMessenger.Broadcast(sender.topic, buff)
+	sender.fullArchiveMessenger.Broadcast(sender.topic, buff)
 
 	return sender.sendMultiKeysInfo()
 }
@@ -184,7 +185,8 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 		return err
 	}
 
-	sender.messenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
+	sender.mainMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
+	sender.fullArchiveMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
 
 	return nil
 }

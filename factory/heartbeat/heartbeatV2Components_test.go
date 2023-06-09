@@ -65,7 +65,8 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			BlockChain: &testscommon.ChainHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
-			Messenger: &p2pmocks.MessengerStub{},
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		},
 		CryptoComponents: &testsMocks.CryptoComponentsStub{
 			PrivKey:                 &cryptoMocks.PrivateKeyStub{},

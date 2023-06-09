@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/processor"
 	"github.com/multiversx/mx-chain-go/heartbeat/sender"
 	"github.com/multiversx/mx-chain-go/heartbeat/status"
+	"github.com/multiversx/mx-chain-go/p2p"
 	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/update"
@@ -53,12 +54,13 @@ type heartbeatV2ComponentsFactory struct {
 }
 
 type heartbeatV2Components struct {
-	sender                    update.Closer
-	peerAuthRequestsProcessor update.Closer
-	shardSender               update.Closer
-	monitor                   factory.HeartbeatV2Monitor
-	statusHandler             update.Closer
-	directConnectionProcessor update.Closer
+	sender                               update.Closer
+	peerAuthRequestsProcessor            update.Closer
+	shardSender                          update.Closer
+	monitor                              factory.HeartbeatV2Monitor
+	statusHandler                        update.Closer
+	mainDirectConnectionProcessor        update.Closer
+	fullArchiveDirectConnectionProcessor update.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -120,17 +122,9 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 
 // Create creates the heartbeatV2 components
 func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error) {
-	if !hcf.networkComponents.NetworkMessenger().HasTopic(common.PeerAuthenticationTopic) {
-		err := hcf.networkComponents.NetworkMessenger().CreateTopic(common.PeerAuthenticationTopic, true)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if !hcf.networkComponents.NetworkMessenger().HasTopic(common.HeartbeatV2Topic) {
-		err := hcf.networkComponents.NetworkMessenger().CreateTopic(common.HeartbeatV2Topic, true)
-		if err != nil {
-			return nil, err
-		}
+	err := hcf.createTopicsIfNeeded()
+	if err != nil {
+		return nil, err
 	}
 
 	cfg := hcf.config.HeartbeatV2
@@ -157,11 +151,12 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsSender := sender.ArgSender{
-		Messenger:                          hcf.networkComponents.NetworkMessenger(),
-		Marshaller:                         hcf.coreComponents.InternalMarshalizer(),
-		PeerAuthenticationTopic:            common.PeerAuthenticationTopic,
-		HeartbeatTopic:                     heartbeatTopic,
-		PeerAuthenticationTimeBetweenSends: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
+		MainMessenger:                               hcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:                        hcf.networkComponents.FullArchiveNetworkMessenger(),
+		Marshaller:                                  hcf.coreComponents.InternalMarshalizer(),
+		PeerAuthenticationTopic:                     common.PeerAuthenticationTopic,
+		HeartbeatTopic:                              heartbeatTopic,
+		PeerAuthenticationTimeBetweenSends:          time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsWhenErrorInSec),
 		PeerAuthenticationTimeThresholdBetweenSends: cfg.PeerAuthenticationTimeThresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
@@ -209,7 +204,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsPeerShardSender := sender.ArgPeerShardSender{
-		Messenger:                 hcf.networkComponents.NetworkMessenger(),
+		MainMessenger:             hcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:      hcf.networkComponents.FullArchiveNetworkMessenger(),
 		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
 		ShardCoordinator:          hcf.bootstrapComponents.ShardCoordinator(),
 		TimeBetweenSends:          time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
@@ -247,7 +243,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		return nil, err
 	}
 
-	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
+	argsMainDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
 		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
 		Messenger:                   hcf.networkComponents.NetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
@@ -255,32 +251,85 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		BaseIntraShardTopic:         common.ConsensusTopic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
-	directConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsDirectConnectionProcessor)
+	mainDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsMainDirectConnectionProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
-		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
-		PeerShardMapper:  hcf.processComponents.PeerShardMapper(),
+	argsFullArchiveDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
+		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
+		Messenger:                   hcf.networkComponents.FullArchiveNetworkMessenger(),
+		PeerShardMapper:             hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
+		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
-	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
+	fullArchiveDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsFullArchiveDirectConnectionProcessor)
 	if err != nil {
 		return nil, err
 	}
-	err = hcf.networkComponents.NetworkMessenger().AddPeerTopicNotifier(crossShardPeerTopicNotifier)
+
+	argsMainCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
+		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
+		PeerShardMapper:  hcf.processComponents.PeerShardMapper(),
+	}
+	mainCrossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsMainCrossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+	err = hcf.networkComponents.NetworkMessenger().AddPeerTopicNotifier(mainCrossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	argsFullArchiveCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
+		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
+		PeerShardMapper:  hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+	}
+	fullArchiveCrossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsFullArchiveCrossShardPeerTopicNotifier)
+	if err != nil {
+		return nil, err
+	}
+	err = hcf.networkComponents.FullArchiveNetworkMessenger().AddPeerTopicNotifier(fullArchiveCrossShardPeerTopicNotifier)
 	if err != nil {
 		return nil, err
 	}
 
 	return &heartbeatV2Components{
-		sender:                    heartbeatV2Sender,
-		peerAuthRequestsProcessor: paRequestsProcessor,
-		shardSender:               shardSender,
-		monitor:                   heartbeatsMonitor,
-		statusHandler:             statusHandler,
-		directConnectionProcessor: directConnectionProcessor,
+		sender:                               heartbeatV2Sender,
+		peerAuthRequestsProcessor:            paRequestsProcessor,
+		shardSender:                          shardSender,
+		monitor:                              heartbeatsMonitor,
+		statusHandler:                        statusHandler,
+		mainDirectConnectionProcessor:        mainDirectConnectionProcessor,
+		fullArchiveDirectConnectionProcessor: fullArchiveDirectConnectionProcessor,
 	}, nil
+}
+
+func (hcf *heartbeatV2ComponentsFactory) createTopicsIfNeeded() error {
+	err := createTopicIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger())
+	if err != nil {
+		return err
+	}
+
+	return createTopicIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger())
+}
+
+func createTopicIfNeededOnMessenger(messenger p2p.Messenger) error {
+	if !messenger.HasTopic(common.PeerAuthenticationTopic) {
+		err := messenger.CreateTopic(common.PeerAuthenticationTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+	if !messenger.HasTopic(common.HeartbeatV2Topic) {
+		err := messenger.CreateTopic(common.HeartbeatV2Topic, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Close closes the heartbeat components
@@ -303,8 +352,12 @@ func (hc *heartbeatV2Components) Close() error {
 		log.LogIfError(hc.statusHandler.Close())
 	}
 
-	if !check.IfNil(hc.directConnectionProcessor) {
-		log.LogIfError(hc.directConnectionProcessor.Close())
+	if !check.IfNil(hc.mainDirectConnectionProcessor) {
+		log.LogIfError(hc.mainDirectConnectionProcessor.Close())
+	}
+
+	if !check.IfNil(hc.fullArchiveDirectConnectionProcessor) {
+		log.LogIfError(hc.fullArchiveDirectConnectionProcessor.Close())
 	}
 
 	return nil

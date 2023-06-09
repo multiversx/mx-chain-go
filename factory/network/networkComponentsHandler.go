@@ -217,7 +217,6 @@ func (mnc *managedNetworkComponents) PeersRatingMonitor() p2p.PeersRatingMonitor
 }
 
 // FullArchiveNetworkMessenger returns the p2p messenger of the full archive network
-// TODO[Sorin]: add these new methods into the interface
 func (mnc *managedNetworkComponents) FullArchiveNetworkMessenger() p2p.Messenger {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()

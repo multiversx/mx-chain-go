@@ -128,6 +128,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
+	// TODO[Sorin]: create new peer authentication and heartbeat cachers for the messages from full archive network
 	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec) * time.Second * peerAuthExpiryMultiplier,
 		CacheExpiry: peerAuthenticationCacheRefresh,

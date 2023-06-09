@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
@@ -50,15 +49,25 @@ func createMockMultikeyHeartbeatSenderArgs(argBase argBaseSender) argMultikeyHea
 func TestNewMultikeyHeartbeatSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
-		args.messenger = nil
+		args.mainMessenger = nil
 
 		senderInstance, err := newMultikeyHeartbeatSender(args)
-		assert.True(t, check.IfNil(senderInstance))
-		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
+		args.fullArchiveMessenger = nil
+
+		senderInstance, err := newMultikeyHeartbeatSender(args)
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -67,7 +76,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args.marshaller = nil
 
 		senderInstance, err := newMultikeyHeartbeatSender(args)
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -79,7 +88,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(argsBase)
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -91,7 +100,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(argsBase)
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -105,7 +114,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(argsBase)
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -138,7 +147,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args.peerTypeProvider = nil
 
 		senderInstance, err := newMultikeyHeartbeatSender(args)
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 	})
 	t.Run("version number too long should error", func(t *testing.T) {
@@ -192,7 +201,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args.currentBlockProvider = nil
 
 		senderInstance, err := newMultikeyHeartbeatSender(args)
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilCurrentBlockProvider, err)
 	})
 	t.Run("nil managed peers holder should error", func(t *testing.T) {
@@ -202,7 +211,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args.managedPeersHolder = nil
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
@@ -212,7 +221,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args.shardCoordinator = nil
 		senderInstance, err := newMultikeyHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilShardCoordinator, err)
 	})
 
@@ -222,7 +231,7 @@ func TestNewMultikeyHeartbeatSender(t *testing.T) {
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 
 		senderInstance, err := newMultikeyHeartbeatSender(args)
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 		assert.Nil(t, err)
 	})
 }
@@ -287,13 +296,22 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 		t.Parallel()
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
-		broadcastCalled := false
-		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &p2pmocks.MessengerStub{
+		mainBroadcastCalled := false
+		fullArchiveBroadcastCalled := false
+		recordedMessagesFromMain := make(map[core.PeerID][][]byte)
+		recordedMessagesFromFullArchive := make(map[core.PeerID][][]byte)
+		args.mainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
-				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
-				broadcastCalled = true
+				recordedMessagesFromMain[args.mainMessenger.ID()] = append(recordedMessagesFromMain[args.mainMessenger.ID()], buff)
+				mainBroadcastCalled = true
+			},
+		}
+		args.fullArchiveMessenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				assert.Equal(t, args.topic, topic)
+				recordedMessagesFromFullArchive[args.mainMessenger.ID()] = append(recordedMessagesFromFullArchive[args.mainMessenger.ID()], buff)
+				fullArchiveBroadcastCalled = true
 			},
 		}
 
@@ -301,24 +319,38 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		err := senderInstance.execute()
 		assert.Nil(t, err)
-		assert.True(t, broadcastCalled)
-		assert.Equal(t, 1, len(recordedMessages))
-		checkRecordedMessages(t, recordedMessages, args, args.versionNumber, args.nodeDisplayName, args.messenger.ID(), core.FullHistoryObserver)
+		assert.True(t, mainBroadcastCalled)
+		assert.True(t, fullArchiveBroadcastCalled)
+		assert.Equal(t, 1, len(recordedMessagesFromMain))
+		checkRecordedMessages(t, recordedMessagesFromMain, args, args.versionNumber, args.nodeDisplayName, args.mainMessenger.ID(), core.FullHistoryObserver)
+		assert.Equal(t, 1, len(recordedMessagesFromFullArchive))
+		checkRecordedMessages(t, recordedMessagesFromFullArchive, args, args.versionNumber, args.nodeDisplayName, args.mainMessenger.ID(), core.FullHistoryObserver)
 		assert.Equal(t, uint64(1), args.currentBlockProvider.GetCurrentBlockHeader().GetNonce())
 	})
 	t.Run("should send the current node heartbeat and some multikey heartbeats", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
-		recordedMessages := make(map[core.PeerID][][]byte)
-		args.messenger = &p2pmocks.MessengerStub{
+		recordedMainMessages := make(map[core.PeerID][][]byte)
+		recordedFullArchiveMessages := make(map[core.PeerID][][]byte)
+		args.mainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
-				recordedMessages[args.messenger.ID()] = append(recordedMessages[args.messenger.ID()], buff)
+				recordedMainMessages[args.mainMessenger.ID()] = append(recordedMainMessages[args.mainMessenger.ID()], buff)
 			},
 			BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 				assert.Equal(t, args.topic, topic)
-				recordedMessages[pid] = append(recordedMessages[pid], buff)
+				recordedMainMessages[pid] = append(recordedMainMessages[pid], buff)
+			},
+		}
+		args.fullArchiveMessenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				assert.Equal(t, args.topic, topic)
+				recordedFullArchiveMessages[args.mainMessenger.ID()] = append(recordedFullArchiveMessages[args.mainMessenger.ID()], buff)
+			},
+			BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+				assert.Equal(t, args.topic, topic)
+				recordedFullArchiveMessages[pid] = append(recordedFullArchiveMessages[pid], buff)
 			},
 		}
 		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
@@ -358,18 +390,19 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		err := senderInstance.execute()
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(recordedMessages)) // current pid, aa, bb, cc
+		assert.Equal(t, 4, len(recordedMainMessages))        // current pid, aa, bb, cc
+		assert.Equal(t, 4, len(recordedFullArchiveMessages)) // current pid, aa, bb, cc
 
 		checkRecordedMessages(t,
-			recordedMessages,
+			recordedMainMessages,
 			args,
 			args.versionNumber,
 			args.nodeDisplayName,
-			args.messenger.ID(),
+			args.mainMessenger.ID(),
 			core.FullHistoryObserver)
 
 		checkRecordedMessages(t,
-			recordedMessages,
+			recordedMainMessages,
 			args,
 			args.baseVersionNumber+"/aa_machineID",
 			"aa_name",
@@ -377,7 +410,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 			core.RegularPeer)
 
 		checkRecordedMessages(t,
-			recordedMessages,
+			recordedMainMessages,
 			args,
 			args.baseVersionNumber+"/bb_machineID",
 			"bb_name",
@@ -385,7 +418,39 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 			core.RegularPeer)
 
 		checkRecordedMessages(t,
-			recordedMessages,
+			recordedMainMessages,
+			args,
+			args.baseVersionNumber+"/cc_machineID",
+			"cc_name",
+			"cc_pid",
+			core.RegularPeer)
+
+		checkRecordedMessages(t,
+			recordedFullArchiveMessages,
+			args,
+			args.versionNumber,
+			args.nodeDisplayName,
+			args.mainMessenger.ID(),
+			core.FullHistoryObserver)
+
+		checkRecordedMessages(t,
+			recordedFullArchiveMessages,
+			args,
+			args.baseVersionNumber+"/aa_machineID",
+			"aa_name",
+			"aa_pid",
+			core.RegularPeer)
+
+		checkRecordedMessages(t,
+			recordedFullArchiveMessages,
+			args,
+			args.baseVersionNumber+"/bb_machineID",
+			"bb_name",
+			"bb_pid",
+			core.RegularPeer)
+
+		checkRecordedMessages(t,
+			recordedFullArchiveMessages,
 			args,
 			args.baseVersionNumber+"/cc_machineID",
 			"cc_name",
@@ -444,6 +509,17 @@ func TestMultikeyHeartbeatSender_generateMessageBytes(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "identity"))
 		assert.Nil(t, buff)
 	})
+}
+
+func TestMultikeyHeartbeatSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var senderInstance *multikeyHeartbeatSender
+	assert.True(t, senderInstance.IsInterfaceNil())
+
+	args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
+	senderInstance, _ = newMultikeyHeartbeatSender(args)
+	assert.False(t, senderInstance.IsInterfaceNil())
 }
 
 func checkRecordedMessages(

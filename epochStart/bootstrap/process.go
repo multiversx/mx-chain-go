@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/heartbeat/sender"
+	disabledP2P "github.com/multiversx/mx-chain-go/p2p/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -1305,7 +1306,8 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	}
 	heartbeatCfg := e.generalConfig.HeartbeatV2
 	argsHeartbeatSender := sender.ArgBootstrapSender{
-		Messenger:                          e.messenger,
+		MainMessenger:                      e.messenger,
+		FullArchiveMessenger:               disabledP2P.NewNetworkMessenger(), // TODO[Sorin]: pass full archive messenger
 		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),

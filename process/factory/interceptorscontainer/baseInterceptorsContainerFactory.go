@@ -657,6 +657,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 //------- Heartbeat interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() error {
+	// TODO[Sorin]: we'll need separate interceptors for full archive heartbeats and peer authentications
 	shardC := bicf.shardCoordinator
 	identifierHeartbeat := common.HeartbeatV2Topic + shardC.CommunicationIdentifier(shardC.SelfId())
 

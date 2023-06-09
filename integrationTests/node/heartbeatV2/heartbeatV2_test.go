@@ -143,6 +143,7 @@ func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes 
 func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, maxMessageAgeAllowed time.Duration) {
 	numOfNodes := len(nodes)
 	for i := 0; i < numOfNodes; i++ {
+		// TODO[Sorin]: check also the full archive cachers
 		paCache := nodes[i].DataPool.PeerAuthentications()
 		hbCache := nodes[i].DataPool.Heartbeats()
 
@@ -155,7 +156,7 @@ func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, ma
 			assert.Nil(t, err)
 
 			assert.True(t, paCache.Has(pkBytes))
-			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
+			assert.True(t, hbCache.Has(node.MainMessenger.ID().Bytes()))
 
 			// Also check message age
 			value, found := paCache.Get(pkBytes)

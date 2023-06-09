@@ -247,6 +247,9 @@ type NetworkComponentsHolder interface {
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
 	PeersRatingMonitor() p2p.PeersRatingMonitor
+	FullArchiveNetworkMessenger() p2p.Messenger
+	FullArchivePeersRatingHandler() p2p.PeersRatingHandler
+	FullArchivePeersRatingMonitor() p2p.PeersRatingMonitor
 	IsInterfaceNil() bool
 }
 

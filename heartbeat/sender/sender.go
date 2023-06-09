@@ -12,7 +12,8 @@ import (
 
 // ArgSender represents the arguments for the sender
 type ArgSender struct {
-	Messenger                                   heartbeat.P2PMessenger
+	MainMessenger                               heartbeat.P2PMessenger
+	FullArchiveMessenger                        heartbeat.P2PMessenger
 	Marshaller                                  marshal.Marshalizer
 	PeerAuthenticationTopic                     string
 	HeartbeatTopic                              string
@@ -56,7 +57,8 @@ func NewSender(args ArgSender) (*sender, error) {
 
 	pas, err := createPeerAuthenticationSender(argPeerAuthenticationSenderFactory{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.PeerAuthenticationTopic,
 			timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
@@ -80,7 +82,8 @@ func NewSender(args ArgSender) (*sender, error) {
 
 	hbs, err := createHeartbeatSender(argHeartbeatSenderFactory{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
@@ -113,7 +116,8 @@ func NewSender(args ArgSender) (*sender, error) {
 
 func checkSenderArgs(args ArgSender) error {
 	basePeerAuthSenderArgs := argBaseSender{
-		messenger:                 args.Messenger,
+		mainMessenger:             args.MainMessenger,
+		fullArchiveMessenger:      args.FullArchiveMessenger,
 		marshaller:                args.Marshaller,
 		topic:                     args.PeerAuthenticationTopic,
 		timeBetweenSends:          args.PeerAuthenticationTimeBetweenSends,
@@ -153,7 +157,8 @@ func checkSenderArgs(args ArgSender) error {
 
 	hbsArgs := argHeartbeatSender{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
@@ -177,7 +182,8 @@ func checkSenderArgs(args ArgSender) error {
 
 	mhbsArgs := argMultikeyHeartbeatSender{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
