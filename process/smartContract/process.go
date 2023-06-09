@@ -85,8 +85,6 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
-
-	getAccountFromAddressFunc func(address []byte) (state.UserAccountHandler, error)
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -204,8 +202,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 	}
-
-	sc.getAccountFromAddressFunc = sc.getAccountFromAddress
 
 	var err error
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
@@ -621,7 +617,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	}
-	userAcc, err := sc.getAccountFromAddressFunc(address)
+	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
 		return err
 	}
@@ -1125,7 +1121,7 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	newDestSC, err := sc.getAccountFromAddressFunc(vmInput.RecipientAddr)
+	newDestSC, err := sc.getAccountFromAddress(vmInput.RecipientAddr)
 	if err != nil {
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
@@ -1518,7 +1514,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 		return nil, nil
 	}
 
-	relayerAcnt, err := sc.getAccountFromAddressFunc(relayedSCR.RelayerAddr)
+	relayerAcnt, err := sc.getAccountFromAddress(relayedSCR.RelayerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -1631,7 +1627,7 @@ func (sc *scProcessor) addBackTxValues(
 		determineCallType(originalTx) == vmData.AsynchronousCallBack &&
 		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
 	if isOriginalTxAsyncCallBack {
-		destAcc, err := sc.getAccountFromAddressFunc(originalTx.GetRcvAddr())
+		destAcc, err := sc.getAccountFromAddress(originalTx.GetRcvAddr())
 		if err != nil {
 			return err
 		}
@@ -1950,7 +1946,7 @@ func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) e
 }
 
 func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) error {
-	userAcc, err := sc.getAccountFromAddressFunc(address)
+	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
 		return err
 	}
@@ -2136,7 +2132,7 @@ func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (sta
 		return acntSnd, nil
 	}
 
-	return sc.getAccountFromAddressFunc(acntSnd.AddressBytes())
+	return sc.getAccountFromAddress(acntSnd.AddressBytes())
 }
 
 func createBaseSCR(
@@ -2507,7 +2503,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
-		acc, err := sc.getAccountFromAddressFunc(outAcc.Address)
+		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return false, nil, err
 		}
@@ -2673,7 +2669,7 @@ func (sc *scProcessor) updateSmartContractCode(
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
 func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	for _, value := range deletedAccounts {
-		acc, err := sc.getAccountFromAddressFunc(value)
+		acc, err := sc.getAccountFromAddress(value)
 		if err != nil {
 			return err
 		}
@@ -2762,11 +2758,11 @@ func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartCo
 		return nil, err
 	}
 
-	dstAcc, err := sc.getAccountFromAddressFunc(scr.RcvAddr)
+	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
 		return nil, err
 	}
-	sndAcc, err := sc.getAccountFromAddressFunc(scr.SndAddr)
+	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
 	if err != nil {
 		return nil, err
 	}

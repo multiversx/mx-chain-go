@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -24,13 +23,9 @@ func NewSovereignSCRProcessor(scrProc *scProcessor) (*sovereignSCProcessor, erro
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
 
-	sovereignSCProc := &sovereignSCProcessor{
+	return &sovereignSCProcessor{
 		scProcessor: scrProc,
-	}
-
-	sovereignSCProc.getAccountFromAddressFunc = sovereignSCProc.getAccountFromAddress
-
-	return sovereignSCProc, nil
+	}, nil
 }
 
 // ProcessSmartContractResult updates the account state from the smart contract result
@@ -60,7 +55,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.ExecuteBuiltInFunction(scr, nil, scrData.destination) //nil sender account
+		return sc.ExecuteBuiltInFunction(scr, nil, scrData.destination)
 	default:
 		err = process.ErrWrongTransaction
 	}
@@ -79,24 +74,4 @@ func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {
 	}
 
 	return nil
-}
-
-func (sc *sovereignSCProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	addrShard := sc.shardCoordinator.ComputeId(address)
-	// TODO: This will not work for now, since coordinator does not know how to return correct sovereign shard ID
-	if addrShard != core.SovereignChainShardId || bytes.Equal(address, core.ESDTSCAddress) {
-		return nil, nil
-	}
-
-	account, err := sc.accounts.LoadAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return userAccount, nil
 }
