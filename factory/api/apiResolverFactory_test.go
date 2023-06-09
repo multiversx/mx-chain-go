@@ -101,6 +101,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
 		AllowVMQueriesChan: common.GetClosedUnbufferedChannel(),
+		ChainRunType:       common.ChainRunTypeRegular,
 	}
 }
 
@@ -335,6 +336,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
+		ChainRunType:          common.ChainRunTypeRegular,
 	}
 }
 
