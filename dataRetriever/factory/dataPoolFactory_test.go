@@ -135,7 +135,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	fmt.Println(err)
 	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
-	require.True(t, strings.Contains(err.Error(), "the cache for the main heartbeat messages"))
+	require.True(t, strings.Contains(err.Error(), "the cache for the heartbeat messages"))
 
 	args = getGoodArgs()
 	args.Config.ValidatorInfoPool.Capacity = 0

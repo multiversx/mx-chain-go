@@ -16,22 +16,20 @@ import (
 
 func createMockDataPoolArgs() dataPool.DataPoolArgs {
 	return dataPool.DataPoolArgs{
-		Transactions:                   testscommon.NewShardedDataStub(),
-		UnsignedTransactions:           testscommon.NewShardedDataStub(),
-		RewardTransactions:             testscommon.NewShardedDataStub(),
-		Headers:                        &mock.HeadersCacherStub{},
-		MiniBlocks:                     testscommon.NewCacherStub(),
-		PeerChangesBlocks:              testscommon.NewCacherStub(),
-		TrieNodes:                      testscommon.NewCacherStub(),
-		TrieNodesChunks:                testscommon.NewCacherStub(),
-		CurrentBlockTransactions:       &mock.TxForCurrentBlockStub{},
-		CurrentEpochValidatorInfo:      &mock.ValidatorInfoForCurrentEpochStub{},
-		SmartContracts:                 testscommon.NewCacherStub(),
-		MainPeerAuthentications:        testscommon.NewCacherStub(),
-		MainHeartbeats:                 testscommon.NewCacherStub(),
-		FullArchivePeerAuthentications: testscommon.NewCacherStub(),
-		FullArchiveHeartbeats:          testscommon.NewCacherStub(),
-		ValidatorsInfo:                 testscommon.NewShardedDataStub(),
+		Transactions:              testscommon.NewShardedDataStub(),
+		UnsignedTransactions:      testscommon.NewShardedDataStub(),
+		RewardTransactions:        testscommon.NewShardedDataStub(),
+		Headers:                   &mock.HeadersCacherStub{},
+		MiniBlocks:                testscommon.NewCacherStub(),
+		PeerChangesBlocks:         testscommon.NewCacherStub(),
+		TrieNodes:                 testscommon.NewCacherStub(),
+		TrieNodesChunks:           testscommon.NewCacherStub(),
+		CurrentBlockTransactions:  &mock.TxForCurrentBlockStub{},
+		CurrentEpochValidatorInfo: &mock.ValidatorInfoForCurrentEpochStub{},
+		SmartContracts:            testscommon.NewCacherStub(),
+		PeerAuthentications:       testscommon.NewCacherStub(),
+		Heartbeats:                testscommon.NewCacherStub(),
+		ValidatorsInfo:            testscommon.NewShardedDataStub(),
 	}
 }
 
@@ -123,44 +121,22 @@ func TestNewDataPool_NilSmartContractsShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
-func TestNewDataPool_NilMainPeerAuthenticationsShouldErr(t *testing.T) {
+func TestNewDataPool_NilPeerAuthenticationsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockDataPoolArgs()
-	args.MainPeerAuthentications = nil
+	args.PeerAuthentications = nil
 	tdp, err := dataPool.NewDataPool(args)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeerAuthenticationPool))
 	assert.Nil(t, tdp)
 }
 
-func TestNewDataPool_NilMainHeartbeatsShouldErr(t *testing.T) {
+func TestNewDataPool_NilHeartbeatsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockDataPoolArgs()
-	args.MainHeartbeats = nil
-	tdp, err := dataPool.NewDataPool(args)
-
-	assert.True(t, errors.Is(err, dataRetriever.ErrNilHeartbeatPool))
-	assert.Nil(t, tdp)
-}
-
-func TestNewDataPool_NilFullArchivePeerAuthenticationsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockDataPoolArgs()
-	args.FullArchivePeerAuthentications = nil
-	tdp, err := dataPool.NewDataPool(args)
-
-	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeerAuthenticationPool))
-	assert.Nil(t, tdp)
-}
-
-func TestNewDataPool_NilFullArchiveHeartbeatsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockDataPoolArgs()
-	args.FullArchiveHeartbeats = nil
+	args.Heartbeats = nil
 	tdp, err := dataPool.NewDataPool(args)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrNilHeartbeatPool))
@@ -231,10 +207,8 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.TrieNodes == tdp.TrieNodes())
 	assert.True(t, args.TrieNodesChunks == tdp.TrieNodesChunks())
 	assert.True(t, args.SmartContracts == tdp.SmartContracts())
-	assert.True(t, args.MainPeerAuthentications == tdp.PeerAuthentications())
-	assert.True(t, args.MainHeartbeats == tdp.Heartbeats())
-	assert.True(t, args.FullArchivePeerAuthentications == tdp.FullArchivePeerAuthentications())
-	assert.True(t, args.FullArchiveHeartbeats == tdp.FullArchiveHeartbeats())
+	assert.True(t, args.PeerAuthentications == tdp.PeerAuthentications())
+	assert.True(t, args.Heartbeats == tdp.Heartbeats())
 	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
 }
 
@@ -256,11 +230,11 @@ func TestNewDataPool_Close(t *testing.T) {
 		err := tdp.Close()
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("main peer authentications close returns error", func(t *testing.T) {
+	t.Run("peer authentications close returns error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockDataPoolArgs()
-		args.MainPeerAuthentications = &testscommon.CacherStub{
+		args.PeerAuthentications = &testscommon.CacherStub{
 			CloseCalled: func() error {
 				return expectedErr
 			},
@@ -270,21 +244,7 @@ func TestNewDataPool_Close(t *testing.T) {
 		err := tdp.Close()
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("full archive peer authentications close returns error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockDataPoolArgs()
-		args.FullArchivePeerAuthentications = &testscommon.CacherStub{
-			CloseCalled: func() error {
-				return expectedErr
-			},
-		}
-		tdp, _ := dataPool.NewDataPool(args)
-		assert.NotNil(t, tdp)
-		err := tdp.Close()
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("all fail", func(t *testing.T) {
+	t.Run("both fail", func(t *testing.T) {
 		t.Parallel()
 
 		tnExpectedErr := errors.New("tn expected error")
@@ -298,16 +258,10 @@ func TestNewDataPool_Close(t *testing.T) {
 				return tnExpectedErr
 			},
 		}
-		args.MainPeerAuthentications = &testscommon.CacherStub{
+		args.PeerAuthentications = &testscommon.CacherStub{
 			CloseCalled: func() error {
 				paCalled = true
 				return paExpectedErr
-			},
-		}
-		args.FullArchivePeerAuthentications = &testscommon.CacherStub{
-			CloseCalled: func() error {
-				paCalled = true
-				return faExpectedErr
 			},
 		}
 		tdp, _ := dataPool.NewDataPool(args)
@@ -321,22 +275,16 @@ func TestNewDataPool_Close(t *testing.T) {
 		t.Parallel()
 
 		args := createMockDataPoolArgs()
-		tnCalled, paCalled, faCalled := false, false, false
+		tnCalled, paCalled := false, false
 		args.TrieNodes = &testscommon.CacherStub{
 			CloseCalled: func() error {
 				tnCalled = true
 				return nil
 			},
 		}
-		args.MainPeerAuthentications = &testscommon.CacherStub{
+		args.PeerAuthentications = &testscommon.CacherStub{
 			CloseCalled: func() error {
 				paCalled = true
-				return nil
-			},
-		}
-		args.FullArchivePeerAuthentications = &testscommon.CacherStub{
-			CloseCalled: func() error {
-				faCalled = true
 				return nil
 			},
 		}
@@ -346,6 +294,5 @@ func TestNewDataPool_Close(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, tnCalled)
 		assert.True(t, paCalled)
-		assert.True(t, faCalled)
 	})
 }

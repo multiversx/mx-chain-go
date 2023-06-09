@@ -244,8 +244,6 @@ type PoolsHolder interface {
 	CurrentEpochValidatorInfo() ValidatorInfoCacher
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
-	FullArchivePeerAuthentications() storage.Cacher
-	FullArchiveHeartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	Close() error
 	IsInterfaceNil() bool

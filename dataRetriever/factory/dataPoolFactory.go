@@ -128,32 +128,18 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the smartcontract results", err)
 	}
 
-	mainPeerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec) * time.Second * peerAuthExpiryMultiplier,
 		CacheExpiry: peerAuthenticationCacheRefresh,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the main peer authentication messages", err)
+		return nil, fmt.Errorf("%w while creating the cache for the peer authentication messages", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatV2.HeartbeatPool)
-	mainHeartbeatPool, err := storageunit.NewCache(cacherCfg)
+	heartbeatPool, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the main heartbeat messages", err)
-	}
-
-	fullArchivePeerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: time.Duration(mainConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec) * time.Second * peerAuthExpiryMultiplier,
-		CacheExpiry: peerAuthenticationCacheRefresh,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the full archive peer authentication messages", err)
-	}
-
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.HeartbeatV2.HeartbeatPool)
-	fullArchiveHeartbeatPool, err := storageunit.NewCache(cacherCfg)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the full archive heartbeat messages", err)
+		return nil, fmt.Errorf("%w while creating the cache for the heartbeat messages", err)
 	}
 
 	validatorsInfo, err := shardedData.NewShardedData(dataRetriever.ValidatorsInfoPoolName, factory.GetCacherFromConfig(mainConfig.ValidatorInfoPool))
@@ -164,22 +150,20 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
-		Transactions:                   txPool,
-		UnsignedTransactions:           uTxPool,
-		RewardTransactions:             rewardTxPool,
-		Headers:                        hdrPool,
-		MiniBlocks:                     txBlockBody,
-		PeerChangesBlocks:              peerChangeBlockBody,
-		TrieNodes:                      adaptedTrieNodesStorage,
-		TrieNodesChunks:                trieNodesChunks,
-		CurrentBlockTransactions:       currBlockTransactions,
-		CurrentEpochValidatorInfo:      currEpochValidatorInfo,
-		SmartContracts:                 smartContracts,
-		MainPeerAuthentications:        mainPeerAuthPool,
-		MainHeartbeats:                 mainHeartbeatPool,
-		FullArchivePeerAuthentications: fullArchivePeerAuthPool,
-		FullArchiveHeartbeats:          fullArchiveHeartbeatPool,
-		ValidatorsInfo:                 validatorsInfo,
+		Transactions:              txPool,
+		UnsignedTransactions:      uTxPool,
+		RewardTransactions:        rewardTxPool,
+		Headers:                   hdrPool,
+		MiniBlocks:                txBlockBody,
+		PeerChangesBlocks:         peerChangeBlockBody,
+		TrieNodes:                 adaptedTrieNodesStorage,
+		TrieNodesChunks:           trieNodesChunks,
+		CurrentBlockTransactions:  currBlockTransactions,
+		CurrentEpochValidatorInfo: currEpochValidatorInfo,
+		SmartContracts:            smartContracts,
+		PeerAuthentications:       peerAuthPool,
+		Heartbeats:                heartbeatPool,
+		ValidatorsInfo:            validatorsInfo,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }
