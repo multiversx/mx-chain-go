@@ -209,8 +209,6 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	args := createArgs()
 
-	wasAddedInHeaderPool := false
-
 	addr1 := []byte("addr1")
 	addr2 := []byte("addr2")
 
@@ -250,10 +248,30 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
+	headerV2 := &block.HeaderV2{ScheduledRootHash: []byte("root hash")}
+	extendedHeader := &block.ShardHeaderExtended{
+		Header: headerV2,
+		IncomingMiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        [][]byte{scrHash1, scrHash2},
+				ReceiverShardID: core.SovereignChainShardId,
+				SenderShardID:   core.MainChainShardId,
+				Type:            block.SmartContractResultBlock,
+			},
+		},
+	}
+	extendedHeaderHash, err := core.CalculateHash(args.Marshaller, args.Hasher, extendedHeader)
+	require.Nil(t, err)
+
+	wasAddedInHeaderPool := false
 	args.HeadersPool = &mock.HeadersCacherStub{
 		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
+			require.Equal(t, extendedHeaderHash, headerHash)
+			require.Equal(t, extendedHeader, header)
+
 			wasAddedInHeaderPool = true
-		}}
+		},
+	}
 
 	wasAddedInTxPool := false
 	args.TxPool = &testscommon.ShardedDataStub{
@@ -291,7 +309,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	handler, _ := NewIncomingHeaderProcessor(args)
 	incomingHeader := &sovereign.IncomingHeader{
-		Header: &block.HeaderV2{},
+		Header: headerV2,
 		IncomingEvents: []*transaction.Event{
 			{
 				Identifier: []byte("deposit"),
