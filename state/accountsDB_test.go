@@ -981,22 +981,16 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 				IsClosedCalled: func() bool {
 					return true
 				},
-				PutCalled: func(key []byte, val []byte) error {
-					mut.Lock()
-					defer mut.Unlock()
-
-					if string(key) == state.LastSnapshotStarted {
-						lastSnapshotStartedWasPut = true
-					}
-
-					return nil
-				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
 					mut.Lock()
 					defer mut.Unlock()
 
 					if string(key) == common.ActiveDBKey {
 						activeDBWasPut = true
+					}
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
 					}
 
 					return nil
@@ -1035,22 +1029,16 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 				IsClosedCalled: func() bool {
 					return false
 				},
-				PutCalled: func(key []byte, val []byte) error {
-					mut.Lock()
-					defer mut.Unlock()
-
-					if string(key) == state.LastSnapshotStarted {
-						lastSnapshotStartedWasPut = true
-					}
-
-					return nil
-				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
 					mut.Lock()
 					defer mut.Unlock()
 
 					if string(key) == common.ActiveDBKey {
 						activeDBWasPut = true
+					}
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
 					}
 
 					return nil

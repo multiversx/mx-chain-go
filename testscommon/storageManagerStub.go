@@ -28,6 +28,7 @@ type StorageManagerStub struct {
 	IsClosedCalled                         func() bool
 	RemoveFromCheckpointHashesHolderCalled func([]byte)
 	GetBaseTrieStorageManagerCalled        func() common.StorageManager
+	RemoveFromAllEpochsCalled              func(hash []byte) error
 }
 
 // Put -
@@ -209,6 +210,15 @@ func (sms *StorageManagerStub) RemoveFromCheckpointHashesHolder(hash []byte) {
 func (sms *StorageManagerStub) GetBaseTrieStorageManager() common.StorageManager {
 	if sms.GetBaseTrieStorageManagerCalled != nil {
 		return sms.GetBaseTrieStorageManagerCalled()
+	}
+
+	return nil
+}
+
+// RemoveFromAllEpochs -
+func (sms *StorageManagerStub) RemoveFromAllEpochs(hash []byte) error {
+	if sms.RemoveFromAllEpochsCalled != nil {
+		return sms.RemoveFromAllEpochsCalled(hash)
 	}
 
 	return nil

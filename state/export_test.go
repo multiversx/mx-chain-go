@@ -7,7 +7,7 @@ import (
 )
 
 // LastSnapshotStarted -
-const LastSnapshotStarted = lastSnapshotStarted
+const LastSnapshotStarted = lastSnapshot
 
 // NewEmptyBaseAccount -
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {

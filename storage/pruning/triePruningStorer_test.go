@@ -381,6 +381,67 @@ func TestTriePruningStorer_GetLatestStorageEpoch(t *testing.T) {
 	})
 }
 
+func TestTriePruningStorer_RemoveFromAllEpochs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no active persisters returns nil err", func(t *testing.T) {
+		t.Parallel()
+
+		epochsData := pruning.EpochArgs{
+			NumOfEpochsToKeep:     2,
+			NumOfActivePersisters: 2,
+			StartingEpoch:         5,
+		}
+		args := getDefaultArgs()
+		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+
+		tps, _ := pruning.NewTriePruningStorer(args)
+		err := tps.RemoveFromAllEpochs([]byte("test"))
+		assert.Nil(t, err)
+	})
+
+	t.Run("key not present returns nil err", func(t *testing.T) {
+		args := getDefaultArgs()
+
+		tps, _ := pruning.NewTriePruningStorer(args)
+		_ = tps.ChangeEpochSimple(3)
+
+		err := tps.RemoveFromAllEpochs([]byte("test"))
+		assert.Nil(t, err)
+	})
+
+	t.Run("key is removed from all persisters", func(t *testing.T) {
+		args := getDefaultArgs()
+
+		tps, _ := pruning.NewTriePruningStorer(args)
+		_ = tps.ChangeEpochSimple(1)
+
+		key := []byte("test")
+		value := []byte("test data")
+		_ = tps.PutInEpoch(key, value, 0)
+		_ = tps.PutInEpoch(key, value, 1)
+
+		val, err := tps.GetFromEpoch(key, 0)
+		assert.Nil(t, err)
+		assert.Equal(t, value, val)
+
+		val, err = tps.GetFromEpoch(key, 1)
+		assert.Nil(t, err)
+		assert.Equal(t, value, val)
+
+		err = tps.RemoveFromAllEpochs([]byte("test"))
+		assert.Nil(t, err)
+
+		val, err = tps.GetFromEpoch(key, 0)
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+
+		val, err = tps.GetFromEpoch(key, 1)
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+	})
+}
+
 func TestTriePruningStorer_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
