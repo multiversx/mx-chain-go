@@ -1170,6 +1170,8 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 	latestEpoch := uint32(0)
 	snapshotMutex := sync.RWMutex{}
 	takeSnapshotCalled := 0
+	waitForOpToFinish := time.Millisecond * 100
+
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &testscommon.StorageManagerStub{
@@ -1179,6 +1181,7 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
+					time.Sleep(waitForOpToFinish)
 					close(iteratorChannels.LeavesChan)
 					stats.SnapshotFinished()
 					snapshotMutex.Unlock()
@@ -1187,7 +1190,6 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	waitForOpToFinish := time.Millisecond * 100
 
 	for _, rootHash := range rootHashes {
 		adb.SnapshotState(rootHash)
