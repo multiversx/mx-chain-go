@@ -17,7 +17,7 @@ type DriverStub struct {
 	FinalizedBlockCalled                    func(finalizedBlock *outportcore.FinalizedBlock) error
 	CloseCalled                             func() error
 	RegisterHandlerForSettingsRequestCalled func(handlerFunction func()) error
-	CurrentSettingsCalled                   func(config outportcore.OutportConfig) error
+	SetCurrentSettingsCalled                func(config outportcore.OutportConfig) error
 }
 
 // SaveBlock -
@@ -88,10 +88,10 @@ func (d *DriverStub) GetMarshaller() marshal.Marshalizer {
 	return marshallerMock.MarshalizerMock{}
 }
 
-// CurrentSettings -
-func (d *DriverStub) CurrentSettings(config outportcore.OutportConfig) error {
-	if d.CurrentSettingsCalled != nil {
-		return d.CurrentSettingsCalled(config)
+// SetCurrentSettings -
+func (d *DriverStub) SetCurrentSettings(config outportcore.OutportConfig) error {
+	if d.SetCurrentSettingsCalled != nil {
+		return d.SetCurrentSettingsCalled(config)
 	}
 
 	return nil

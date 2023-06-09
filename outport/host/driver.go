@@ -119,8 +119,8 @@ func (o *hostDriver) RegisterHandlerForSettingsRequest(handlerFunction func()) e
 	return o.payloadProc.SetHandlerFunc(handlerFunction)
 }
 
-// CurrentSettings will send the current settings
-func (o *hostDriver) CurrentSettings(config outport.OutportConfig) error {
+// SetCurrentSettings will send the current settings
+func (o *hostDriver) SetCurrentSettings(config outport.OutportConfig) error {
 	configBytes, err := o.marshaller.Marshal(&config)
 	if err != nil {
 		return err

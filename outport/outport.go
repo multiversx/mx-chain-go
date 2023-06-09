@@ -374,7 +374,7 @@ func (o *outport) SubscribeDriver(driver Driver) error {
 	}
 
 	callback := func() {
-		err := driver.CurrentSettings(o.config)
+		err := driver.SetCurrentSettings(o.config)
 		if err != nil {
 			log.Error("outport.requestCurrentSettings", "error", err, "driver", driverString(driver))
 		}

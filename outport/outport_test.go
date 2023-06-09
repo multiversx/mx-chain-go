@@ -600,7 +600,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 		require.False(t, outportHandler.HasDrivers())
 	})
-	t.Run("CurrentSettings errors, should not panic", func(t *testing.T) {
+	t.Run("SetCurrentSettings errors, should not panic", func(t *testing.T) {
 		t.Parallel()
 
 		defer func() {
@@ -618,7 +618,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 
 				return nil
 			},
-			CurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+			SetCurrentSettingsCalled: func(config outportcore.OutportConfig) error {
 				currentSettingsCalled = true
 				return expectedErr
 			},
@@ -643,30 +643,28 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 
 				return nil
 			},
-			CurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+			SetCurrentSettingsCalled: func(config outportcore.OutportConfig) error {
 				receivedOutportConfig = config
 				return nil
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{
+		providedConfig := outportcore.OutportConfig{
 			IsInImportDBMode: true,
-		})
+		}
+		outportHandler, _ := NewOutport(time.Second, providedConfig)
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Nil(t, err)
 		assert.True(t, outportHandler.HasDrivers())
 
 		assert.NotNil(t, driverRequestHandler) // the RegisterHandlerForSettingsRequest should have been called, handler set
 
-		// the expected config should be empty as the handler should not call the driver's CurrentSettings automatically at subscribe time
+		// the expected config should be empty as the handler should not call the driver's SetCurrentSettings automatically at subscribe time
 		expectedConfig := outportcore.OutportConfig{}
 		assert.Equal(t, expectedConfig, receivedOutportConfig)
 
-		// driver not calls the handler because it wants the config
+		// driver doesn't call the handler because it wants the config
 		driverRequestHandler()
-		expectedConfig = outportcore.OutportConfig{ // TODO: remove this, use the providedConfigs when injecting the configs on the constructor
-			IsInImportDBMode: true,
-		}
-		assert.Equal(t, expectedConfig, receivedOutportConfig)
+		assert.Equal(t, providedConfig, receivedOutportConfig)
 	})
 }

@@ -155,8 +155,8 @@ func (en *eventNotifier) RegisterHandlerForSettingsRequest(_ func()) error {
 	return nil
 }
 
-// CurrentSettings will do nothing
-func (en *eventNotifier) CurrentSettings(_ outport.OutportConfig) error {
+// SetCurrentSettings will do nothing
+func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 	return nil
 }
 

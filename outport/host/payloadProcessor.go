@@ -18,6 +18,7 @@ func newPayloadProcessor() (*payloadProcessor, error) {
 	}, nil
 }
 
+// ProcessPayload will process the provided payload based on the topic
 func (p *payloadProcessor) ProcessPayload(_ []byte, topic string) error {
 	if topic != outport.TopicSettings {
 		return nil
@@ -27,6 +28,7 @@ func (p *payloadProcessor) ProcessPayload(_ []byte, topic string) error {
 	return nil
 }
 
+// SetHandlerFunc will set the handler func
 func (p *payloadProcessor) SetHandlerFunc(handler func()) error {
 	if handler == nil {
 		return errNilHandlerFunc
@@ -36,10 +38,12 @@ func (p *payloadProcessor) SetHandlerFunc(handler func()) error {
 	return nil
 }
 
+// Close will do nothing
 func (p *payloadProcessor) Close() error {
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (p *payloadProcessor) IsInterfaceNil() bool {
 	return p == nil
 }
