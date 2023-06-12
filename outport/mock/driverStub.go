@@ -8,16 +8,16 @@ import (
 
 // DriverStub -
 type DriverStub struct {
-	SaveBlockCalled                         func(outportBlock *outportcore.OutportBlock) error
-	RevertIndexedBlockCalled                func(blockData *outportcore.BlockData) error
-	SaveRoundsInfoCalled                    func(roundsInfos *outportcore.RoundsInfo) error
-	SaveValidatorsPubKeysCalled             func(validatorsPubKeys *outportcore.ValidatorsPubKeys) error
-	SaveValidatorsRatingCalled              func(validatorsRating *outportcore.ValidatorsRating) error
-	SaveAccountsCalled                      func(accounts *outportcore.Accounts) error
-	FinalizedBlockCalled                    func(finalizedBlock *outportcore.FinalizedBlock) error
-	CloseCalled                             func() error
-	RegisterHandlerForSettingsRequestCalled func(handlerFunction func() error, topic string) error
-	SetCurrentSettingsCalled                func(config outportcore.OutportConfig) error
+	SaveBlockCalled             func(outportBlock *outportcore.OutportBlock) error
+	RevertIndexedBlockCalled    func(blockData *outportcore.BlockData) error
+	SaveRoundsInfoCalled        func(roundsInfos *outportcore.RoundsInfo) error
+	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys) error
+	SaveValidatorsRatingCalled  func(validatorsRating *outportcore.ValidatorsRating) error
+	SaveAccountsCalled          func(accounts *outportcore.Accounts) error
+	FinalizedBlockCalled        func(finalizedBlock *outportcore.FinalizedBlock) error
+	CloseCalled                 func() error
+	RegisterHandlerCalled       func(handlerFunction func() error, topic string) error
+	SetCurrentSettingsCalled    func(config outportcore.OutportConfig) error
 }
 
 // SaveBlock -
@@ -99,8 +99,8 @@ func (d *DriverStub) SetCurrentSettings(config outportcore.OutportConfig) error 
 
 // RegisterHandler -
 func (d *DriverStub) RegisterHandler(handlerFunction func() error, topic string) error {
-	if d.RegisterHandlerForSettingsRequestCalled != nil {
-		return d.RegisterHandlerForSettingsRequestCalled(handlerFunction, topic)
+	if d.RegisterHandlerCalled != nil {
+		return d.RegisterHandlerCalled(handlerFunction, topic)
 	}
 
 	return nil

@@ -590,7 +590,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		t.Parallel()
 
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error, _ string) error {
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
 				return expectedErr
 			},
 		}
@@ -613,7 +613,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		currentSettingsCalled := false
 		var callback func() error
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error, _ string) error {
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
 				callback = handlerFunction
 
 				return nil
@@ -640,7 +640,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		var driverRequestHandler func() error
 		receivedOutportConfig := outportcore.OutportConfig{}
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error, _ string) error {
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
 				driverRequestHandler = handlerFunction
 
 				return nil
