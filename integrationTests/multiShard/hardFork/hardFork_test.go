@@ -73,7 +73,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		_ = hardforkTriggerNode.MainMessenger.Close()
 	}()
 
 	round := uint64(0)
@@ -144,7 +144,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		_ = hardforkTriggerNode.MainMessenger.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -585,7 +585,7 @@ func createHardForkExporter(
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			Messenger:            node.Messenger,
+			Messenger:            node.MainMessenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{

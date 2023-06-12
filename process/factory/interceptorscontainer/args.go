@@ -4,6 +4,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -17,7 +18,8 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	Accounts                     state.AccountsAdapter
 	ShardCoordinator             sharding.Coordinator
 	NodesCoordinator             nodesCoordinator.NodesCoordinator
-	Messenger                    process.TopicHandler
+	MainMessenger                process.TopicHandler
+	FullArchiveMessenger         process.TopicHandler
 	Store                        dataRetriever.StorageService
 	DataPool                     dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed       int
@@ -37,6 +39,8 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
-	PeerShardMapper              process.PeerShardMapper
+	MainPeerShardMapper          process.PeerShardMapper
+	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
+	NodeOperationMode            p2p.NodeOperation
 }

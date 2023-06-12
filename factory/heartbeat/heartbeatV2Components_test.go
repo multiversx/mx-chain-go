@@ -80,7 +80,8 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
 			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
-			PeerMapper:                    &testsMocks.PeerShardMapperStub{},
+			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
+			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
 			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
@@ -485,7 +486,8 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 			EpochNotifier:                 processComp.EpochStartNotifier(),
 			NodeRedundancyHandlerInternal: processComp.NodeRedundancyHandler(),
 			HardforkTriggerField:          processComp.HardforkTrigger(),
-			PeerMapper:                    processComp.PeerShardMapper(),
+			MainPeerMapper:                processComp.PeerShardMapper(),
+			FullArchivePeerMapper:         processComp.FullArchivePeerShardMapper(),
 			ShardCoordinatorCalled: func() sharding.Coordinator {
 				cnt++
 				if cnt > 3 {

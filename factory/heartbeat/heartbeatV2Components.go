@@ -262,7 +262,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	argsFullArchiveDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
 		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
 		Messenger:                   hcf.networkComponents.FullArchiveNetworkMessenger(),
-		PeerShardMapper:             hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:             hcf.processComponents.FullArchivePeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
 		BaseIntraShardTopic:         common.ConsensusTopic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
@@ -287,7 +287,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	argsFullArchiveCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
 		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
-		PeerShardMapper:  hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:  hcf.processComponents.FullArchivePeerShardMapper(),
 	}
 	fullArchiveCrossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsFullArchiveCrossShardPeerTopicNotifier)
 	if err != nil {

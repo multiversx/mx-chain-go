@@ -18,8 +18,8 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, shardId)
 
@@ -54,8 +54,8 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	shardIdRequester := uint32(1)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardIdResolver, shardIdRequester)
 
@@ -89,8 +89,8 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, shardId)
 
@@ -124,8 +124,8 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.MetachainShardId)
 
@@ -159,8 +159,8 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(core.MetachainShardId, core.AllShardId)
 
@@ -195,8 +195,8 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	shardIdRequester := uint32(1)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardIdResolver, core.AllShardId)
 
@@ -230,8 +230,8 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.AllShardId)
 
@@ -265,8 +265,8 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.AllShardId)
 

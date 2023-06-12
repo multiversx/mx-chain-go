@@ -40,7 +40,8 @@ type ProcessComponentsStub struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
 	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
@@ -190,7 +191,12 @@ func (pcs *ProcessComponentsStub) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingCollector {
-	return pcs.PeerMapper
+	return pcs.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcs *ProcessComponentsStub) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcs.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -

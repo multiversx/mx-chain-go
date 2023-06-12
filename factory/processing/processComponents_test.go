@@ -215,11 +215,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
-			Messenger:               &p2pmocks.MessengerStub{},
-			InputAntiFlood:          &testsMocks.P2PAntifloodHandlerStub{},
-			OutputAntiFlood:         &testsMocks.P2PAntifloodHandlerStub{},
-			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
-			PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
+			InputAntiFlood:                   &testsMocks.P2PAntifloodHandlerStub{},
+			OutputAntiFlood:                  &testsMocks.P2PAntifloodHandlerStub{},
+			PreferredPeersHolder:             &p2pmocks.PeersHolderStub{},
+			PeersRatingHandlerField:          &p2pmocks.PeersRatingHandlerStub{},
 		},
 		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
 			ShCoordinator:              mock.NewMultiShardsCoordinatorMock(2),

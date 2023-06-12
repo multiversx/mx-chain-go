@@ -290,11 +290,14 @@ type ArgTestProcessorNode struct {
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
-	ShardCoordinator sharding.Coordinator
-	NodesCoordinator nodesCoordinator.NodesCoordinator
-	PeerShardMapper  process.PeerShardMapper
-	NodesSetup       sharding.GenesisNodesSetupHandler
-	Messenger        p2p.Messenger
+	ShardCoordinator           sharding.Coordinator
+	NodesCoordinator           nodesCoordinator.NodesCoordinator
+	MainPeerShardMapper        process.PeerShardMapper
+	FullArchivePeerShardMapper process.PeerShardMapper
+	NodesSetup                 sharding.GenesisNodesSetupHandler
+	MainMessenger              p2p.Messenger
+	FullArchiveMessenger       p2p.Messenger
+	NodeOperationMode          p2p.NodeOperation
 
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestNodeKeys
@@ -468,29 +471,32 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                messenger,
-		NodesCoordinator:         nodesCoordinatorInstance,
-		ChainID:                  ChainID,
-		MinTransactionVersion:    MinTransactionVersion,
-		NodesSetup:               nodesSetup,
-		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:            genericEpochNotifier,
-		EnableEpochsHandler:      enableEpochsHandler,
-		WasmVMChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor:  logsProcessor,
-		Bootstrapper:             mock.NewTestBootstrapperMock(),
-		PeersRatingHandler:       peersRatingHandler,
-		PeerShardMapper:          mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:             *epochsConfig,
-		UseValidVmBlsSigVerifier: args.WithBLSSigVerifier,
-		StorageBootstrapper:      &mock.StorageBootstrapperMock{},
-		BootstrapStorer:          &mock.BoostrapStorerMock{},
-		RatingsData:              args.RatingsData,
-		EpochStartNotifier:       args.EpochStartSubscriber,
-		GuardedAccountHandler:    &guardianMocks.GuardedAccountHandlerStub{},
-		AppStatusHandler:         appStatusHandler,
-		PeersRatingMonitor:       peersRatingMonitor,
+		ShardCoordinator:           shardCoordinator,
+		MainMessenger:              messenger,
+		FullArchiveMessenger:       &p2pmocks.MessengerStub{}, // TODO[Sorin]: inject a proper messenger when all pieces are done to test this network as well,
+		NodeOperationMode:          p2p.NormalOperation,
+		NodesCoordinator:           nodesCoordinatorInstance,
+		ChainID:                    ChainID,
+		MinTransactionVersion:      MinTransactionVersion,
+		NodesSetup:                 nodesSetup,
+		HistoryRepository:          &dblookupextMock.HistoryRepositoryStub{},
+		EpochNotifier:              genericEpochNotifier,
+		EnableEpochsHandler:        enableEpochsHandler,
+		WasmVMChangeLocker:         &sync.RWMutex{},
+		TransactionLogProcessor:    logsProcessor,
+		Bootstrapper:               mock.NewTestBootstrapperMock(),
+		PeersRatingHandler:         peersRatingHandler,
+		MainPeerShardMapper:        mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper: mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:               *epochsConfig,
+		UseValidVmBlsSigVerifier:   args.WithBLSSigVerifier,
+		StorageBootstrapper:        &mock.StorageBootstrapperMock{},
+		BootstrapStorer:            &mock.BoostrapStorerMock{},
+		RatingsData:                args.RatingsData,
+		EpochStartNotifier:         args.EpochStartSubscriber,
+		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:           appStatusHandler,
+		PeersRatingMonitor:         peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -547,7 +553,7 @@ func (tpn *TestProcessorNode) ConnectTo(connectable Connectable) error {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return tpn.Messenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return tpn.MainMessenger.ConnectToPeer(connectable.GetConnectableAddress())
 }
 
 // GetConnectableAddress returns a non circuit, non windows default connectable p2p address
@@ -556,12 +562,13 @@ func (tpn *TestProcessorNode) GetConnectableAddress() string {
 		return "nil"
 	}
 
-	return GetConnectableAddress(tpn.Messenger)
+	return GetConnectableAddress(tpn.MainMessenger)
 }
 
 // Close -
 func (tpn *TestProcessorNode) Close() {
-	_ = tpn.Messenger.Close()
+	_ = tpn.MainMessenger.Close()
+	_ = tpn.FullArchiveMessenger.Close()
 	_ = tpn.VMContainer.Close()
 }
 
@@ -765,7 +772,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		TestHasher,
-		tpn.Messenger,
+		tpn.MainMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -773,7 +780,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
 			tpn.NodeKeys.MainKey.Sk,
-			tpn.Messenger.ID(),
+			tpn.MainMessenger.ID(),
 		),
 	)
 
@@ -954,7 +961,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		TestHasher,
-		tpn.Messenger,
+		tpn.MainMessenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
@@ -962,7 +969,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
 			tpn.NodeKeys.MainKey.Sk,
-			tpn.Messenger.ID(),
+			tpn.MainMessenger.ID(),
 		),
 	)
 	tpn.setGenesisBlock()
@@ -1207,7 +1214,8 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			Accounts:                     tpn.AccntState,
 			ShardCoordinator:             tpn.ShardCoordinator,
 			NodesCoordinator:             tpn.NodesCoordinator,
-			Messenger:                    tpn.Messenger,
+			MainMessenger:                tpn.MainMessenger,
+			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
 			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
@@ -1227,8 +1235,10 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
-			PeerShardMapper:              tpn.PeerShardMapper,
+			MainPeerShardMapper:          tpn.MainPeerShardMapper,
+			FullArchivePeerShardMapper:   tpn.FullArchivePeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			NodeOperationMode:            tpn.NodeOperationMode,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1272,7 +1282,8 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			Accounts:                     tpn.AccntState,
 			ShardCoordinator:             tpn.ShardCoordinator,
 			NodesCoordinator:             tpn.NodesCoordinator,
-			Messenger:                    tpn.Messenger,
+			MainMessenger:                tpn.MainMessenger,
+			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
 			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
@@ -1292,8 +1303,10 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
 			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
-			PeerShardMapper:              tpn.PeerShardMapper,
+			MainPeerShardMapper:          tpn.MainPeerShardMapper,
+			FullArchivePeerShardMapper:   tpn.FullArchivePeerShardMapper,
 			HardforkTrigger:              tpn.HardforkTrigger,
+			NodeOperationMode:            tpn.NodeOperationMode,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
@@ -1335,13 +1348,13 @@ func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
-	_ = tpn.Messenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
+	_ = tpn.MainMessenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           tpn.ShardCoordinator,
-		Messenger:                  tpn.Messenger,
+		Messenger:                  tpn.MainMessenger,
 		Store:                      tpn.Storage,
 		Marshalizer:                TestMarshalizer,
 		DataPools:                  tpn.DataPool,
@@ -1378,7 +1391,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 			NumFullHistoryPeers: 3,
 		},
 		ShardCoordinator:            tpn.ShardCoordinator,
-		Messenger:                   tpn.Messenger,
+		Messenger:                   tpn.MainMessenger,
 		Marshaller:                  TestMarshaller,
 		Uint64ByteSliceConverter:    TestUint64Converter,
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
@@ -2356,7 +2369,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	cryptoComponents := GetDefaultCryptoComponents()
@@ -2388,7 +2401,8 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsAccountsRepo)
 
 	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tpn.Messenger
+	networkComponents.Messenger = tpn.MainMessenger
+	networkComponents.FullArchiveNetworkMessengerField = tpn.FullArchiveMessenger
 	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
 	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
@@ -2934,7 +2948,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	cryptoComponents.PeerSignHandler = psh
 
 	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tpn.Messenger
+	networkComponents.Messenger = tpn.MainMessenger
+	networkComponents.FullArchiveNetworkMessengerField = tpn.FullArchiveMessenger
 	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 
 	processComponents := GetDefaultProcessComponents()
@@ -2959,7 +2974,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
-	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.Messenger)
+	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
 
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
@@ -3170,7 +3185,8 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		ReqHandler:               &testscommon.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
-		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerMapper:           &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerMapper:    &p2pmocks.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {

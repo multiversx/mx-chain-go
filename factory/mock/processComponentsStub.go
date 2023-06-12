@@ -37,7 +37,8 @@ type ProcessComponentsMock struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
 	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
@@ -178,7 +179,12 @@ func (pcm *ProcessComponentsMock) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingCollector {
-	return pcm.PeerMapper
+	return pcm.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcm *ProcessComponentsMock) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcm.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -

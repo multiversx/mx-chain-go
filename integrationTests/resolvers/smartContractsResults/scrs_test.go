@@ -20,8 +20,8 @@ func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testi
 	shardIdRequester := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		_ = nRequester.MainMessenger.Close()
+		_ = nResolver.MainMessenger.Close()
 	}()
 	scr, hash := resolvers.CreateLargeSmartContractResults()
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -143,16 +144,28 @@ func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *tes
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
-func TestNewMetaInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) {
+func TestNewMetaInterceptorsContainerFactory_NilMainTopicHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = nil
+	args.MainMessenger = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, process.ErrNilMessenger))
+}
+
+func TestNewMetaInterceptorsContainerFactory_NilFullArchiveTopicHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.FullArchiveMessenger = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.True(t, errors.Is(err, process.ErrNilMessenger))
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
@@ -420,16 +433,28 @@ func TestNewMetaInterceptorsContainerFactory_NilRequestHandlerShouldErr(t *testi
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
-func TestNewMetaInterceptorsContainerFactory_NilPeerShardMapperShouldErr(t *testing.T) {
+func TestNewMetaInterceptorsContainerFactory_NilMainPeerShardMapperShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.PeerShardMapper = nil
+	args.MainPeerShardMapper = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilPeerShardMapper, err)
+	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
+}
+
+func TestNewMetaInterceptorsContainerFactory_NilFullArchivePeerShardMapperShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.FullArchivePeerShardMapper = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
@@ -470,74 +495,59 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.
 
 // ------- Create
 
-func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *testing.T) {
+func TestMetaInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = createMetaStubTopicHandler(factory.MetachainBlocksTopic, "")
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateMetachainHeaderInterceptors_create", factory.MetachainBlocksTopic, "")
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateMetachainHeaderInterceptors_register", "", factory.MetachainBlocksTopic)
 
-	container, err := icf.Create()
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateShardHeaderInterceptors", factory.ShardBlocksTopic, "")
 
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTxInterceptors", factory.TransactionTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateUnsignedTxsInterceptors", factory.UnsignedTransactionTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateRewardTxInterceptors", factory.RewardsTransactionTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateMiniBlocksInterceptors", factory.MiniBlocksTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTrieNodesInterceptors_validator", factory.ValidatorTrieNodesTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateTrieNodesInterceptors_account", factory.AccountTrieNodesTopic, "")
+
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateValidatorInfoInterceptor", common.ValidatorInfoTopic, "")
+
+	t.Run("generatePeerAuthenticationInterceptor_main", testCreateMetaTopicShouldFail(common.PeerAuthenticationTopic, ""))
+	t.Run("generateHeartbeatInterceptor_main", testCreateMetaTopicShouldFail(common.HeartbeatV2Topic, ""))
+	t.Run("generateHeartbeatInterceptor_full_archive", testCreateMetaTopicShouldFail(common.FullArchiveTopicPrefix+common.HeartbeatV2Topic, ""))
+	t.Run("generatePeerShardInterceptor_main", testCreateMetaTopicShouldFail(common.ConnectionTopic, ""))
+	t.Run("generatePeerShardInterceptor_full_archive", testCreateMetaTopicShouldFail(common.FullArchiveTopicPrefix+common.ConnectionTopic, ""))
 }
 
-func TestMetaInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = createMetaStubTopicHandler(factory.ShardBlocksTopic, "")
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
+func testCreateMetaTopicShouldFailOnAllMessenger(t *testing.T, testNamePrefix string, matchStrToErrOnCreate string, matchStrToErrOnRegister string) {
+	t.Run(testNamePrefix+"main messenger", testCreateMetaTopicShouldFail(matchStrToErrOnCreate, matchStrToErrOnRegister))
+	t.Run(testNamePrefix+"full archive messenger", testCreateMetaTopicShouldFail(matchStrToErrOnCreate, matchStrToErrOnRegister))
 }
 
-func TestMetaInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
+func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOnRegister string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
 
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+		coreComp, cryptoComp := createMockComponentHolders()
+		args := getArgumentsMeta(coreComp, cryptoComp)
+		if strings.Contains(t.Name(), "full_archive") {
+			args.NodeOperationMode = p2p.FullArchiveMode
+			args.FullArchiveMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
+		} else {
+			args.MainMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
+		}
+		icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
-	container, err := icf.Create()
+		container, err := icf.Create()
 
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestMetaInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestMetaInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = createMetaStubTopicHandler("", factory.AccountTrieNodesTopic)
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
+		assert.Nil(t, container)
+		assert.Equal(t, errExpected, err)
+	}
 }
 
 func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
@@ -545,14 +555,6 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.Messenger = &mock.TopicHandlerStub{
-		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-			return nil
-		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
-			return nil
-		},
-	}
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	container, err := icf.Create()
@@ -564,58 +566,103 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	noOfShards := 4
+	t.Run("regular mode", func(t *testing.T) {
+		t.Parallel()
 
-	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
-	shardCoordinator.SetNoShards(uint32(noOfShards))
-	shardCoordinator.CurrentShard = 1
+		noOfShards := 4
 
-	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
-		ShardConsensusSize: 1,
-		MetaConsensusSize:  1,
-		NbShards:           uint32(noOfShards),
-		ShardId:            1,
-	}
+		shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+		shardCoordinator.SetNoShards(uint32(noOfShards))
+		shardCoordinator.CurrentShard = 1
 
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.ShardCoordinator = shardCoordinator
-	args.NodesCoordinator = nodesCoordinator
-	args.Messenger = &mock.TopicHandlerStub{
-		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-			return nil
-		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
-			return nil
-		},
-	}
-	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-	require.Nil(t, err)
+		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+			ShardConsensusSize: 1,
+			MetaConsensusSize:  1,
+			NbShards:           uint32(noOfShards),
+			ShardId:            1,
+		}
 
-	container, err := icf.Create()
+		coreComp, cryptoComp := createMockComponentHolders()
+		args := getArgumentsMeta(coreComp, cryptoComp)
+		args.ShardCoordinator = shardCoordinator
+		args.NodesCoordinator = nodesCoordinator
+		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+		require.Nil(t, err)
 
-	numInterceptorsMetablock := 1
-	numInterceptorsShardHeadersForMetachain := noOfShards
-	numInterceptorsTransactionsForMetachain := noOfShards + 1
-	numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
-	numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
-	numInterceptorsRewardsTxsForMetachain := noOfShards
-	numInterceptorsTrieNodes := 2
-	numInterceptorsPeerAuthForMetachain := 1
-	numInterceptorsHeartbeatForMetachain := 1
-	numInterceptorsShardValidatorInfoForMetachain := 1
-	numInterceptorValidatorInfo := 1
-	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
-		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
-		numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-		numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+		container, err := icf.Create()
 
-	assert.Nil(t, err)
-	assert.Equal(t, totalInterceptors, container.Len())
+		numInterceptorsMetablock := 1
+		numInterceptorsShardHeadersForMetachain := noOfShards
+		numInterceptorsTransactionsForMetachain := noOfShards + 1
+		numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
+		numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
+		numInterceptorsRewardsTxsForMetachain := noOfShards
+		numInterceptorsTrieNodes := 2
+		numInterceptorsPeerAuthForMetachain := 1
+		numInterceptorsHeartbeatForMetachain := 1
+		numInterceptorsShardValidatorInfoForMetachain := 1
+		numInterceptorValidatorInfo := 1
+		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
+			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
+			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
 
-	err = icf.AddShardTrieNodeInterceptors(container)
-	assert.Nil(t, err)
-	assert.Equal(t, totalInterceptors+noOfShards, container.Len())
+		assert.Nil(t, err)
+		assert.Equal(t, totalInterceptors, container.Len())
+
+		err = icf.AddShardTrieNodeInterceptors(container)
+		assert.Nil(t, err)
+		assert.Equal(t, totalInterceptors+noOfShards, container.Len())
+	})
+	t.Run("full archive mode", func(t *testing.T) {
+		t.Parallel()
+
+		noOfShards := 4
+
+		shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+		shardCoordinator.SetNoShards(uint32(noOfShards))
+		shardCoordinator.CurrentShard = 1
+		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+			ShardConsensusSize: 1,
+			MetaConsensusSize:  1,
+			NbShards:           uint32(noOfShards),
+			ShardId:            1,
+		}
+
+		coreComp, cryptoComp := createMockComponentHolders()
+		args := getArgumentsMeta(coreComp, cryptoComp)
+		args.NodeOperationMode = p2p.FullArchiveMode
+		args.ShardCoordinator = shardCoordinator
+		args.NodesCoordinator = nodesCoordinator
+
+		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+		require.Nil(t, err)
+
+		container, err := icf.Create()
+
+		numInterceptorsMetablock := 1
+		numInterceptorsShardHeadersForMetachain := noOfShards
+		numInterceptorsTransactionsForMetachain := noOfShards + 1
+		numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
+		numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
+		numInterceptorsRewardsTxsForMetachain := noOfShards
+		numInterceptorsTrieNodes := 2
+		numInterceptorsPeerAuthForMetachain := 1
+		numInterceptorsHeartbeatForMetachain := 2          // one for full archive
+		numInterceptorsShardValidatorInfoForMetachain := 2 // one for full archive
+		numInterceptorValidatorInfo := 1
+		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
+			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
+			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+
+		assert.Nil(t, err)
+		assert.Equal(t, totalInterceptors, container.Len())
+
+		err = icf.AddShardTrieNodeInterceptors(container)
+		assert.Nil(t, err)
+		assert.Equal(t, totalInterceptors+noOfShards, container.Len())
+	})
 }
 
 func getArgumentsMeta(
@@ -628,7 +675,8 @@ func getArgumentsMeta(
 		Accounts:                     &stateMock.AccountsStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
-		Messenger:                    &mock.TopicHandlerStub{},
+		MainMessenger:                &mock.TopicHandlerStub{},
+		FullArchiveMessenger:         &mock.TopicHandlerStub{},
 		Store:                        createMetaStore(),
 		DataPool:                     createMetaDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
@@ -647,7 +695,9 @@ func getArgumentsMeta(
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
 		SignaturesHandler:            &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
-		PeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerShardMapper:   &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
+		NodeOperationMode:            p2p.NormalOperation,
 	}
 }

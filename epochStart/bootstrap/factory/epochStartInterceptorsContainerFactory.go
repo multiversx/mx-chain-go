@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
 	disabledGenesis "github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -29,7 +30,8 @@ type ArgsEpochStartInterceptorContainer struct {
 	CryptoComponents        process.CryptoComponentsHolder
 	Config                  config.Config
 	ShardCoordinator        sharding.Coordinator
-	Messenger               process.TopicHandler
+	MainMessenger           process.TopicHandler
+	FullArchiveMessenger    process.TopicHandler
 	DataPool                dataRetriever.PoolsHolder
 	WhiteListHandler        update.WhiteListHandler
 	WhiteListerVerifiedTxs  update.WhiteListHandler
@@ -40,6 +42,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
+	NodeOperationMode       p2p.NodeOperation
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -72,6 +75,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 	// TODO: move the peerShardMapper creation before boostrapComponents
 	peerShardMapper := disabled.NewPeerShardMapper()
+	fullArchivePeerShardMapper := disabled.NewPeerShardMapper()
 	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -80,7 +84,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		Accounts:                     accountsAdapter,
 		ShardCoordinator:             args.ShardCoordinator,
 		NodesCoordinator:             nodesCoordinator,
-		Messenger:                    args.Messenger,
+		MainMessenger:                args.MainMessenger,
+		FullArchiveMessenger:         args.FullArchiveMessenger,
 		Store:                        storer,
 		DataPool:                     args.DataPool,
 		MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
@@ -100,7 +105,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
-		PeerShardMapper:              peerShardMapper,
+		MainPeerShardMapper:          peerShardMapper,
+		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 	}
 

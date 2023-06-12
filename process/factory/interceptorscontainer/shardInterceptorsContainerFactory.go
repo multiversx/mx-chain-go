@@ -29,7 +29,8 @@ func NewShardInterceptorsContainerFactory(
 		args.Accounts,
 		args.Store,
 		args.DataPool,
-		args.Messenger,
+		args.MainMessenger,
+		args.FullArchiveMessenger,
 		args.NodesCoordinator,
 		args.BlockBlackList,
 		args.AntifloodHandler,
@@ -37,7 +38,8 @@ func NewShardInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
-		args.PeerShardMapper,
+		args.MainPeerShardMapper,
+		args.FullArchivePeerShardMapper,
 		args.HardforkTrigger,
 	)
 	if err != nil {
@@ -95,29 +97,32 @@ func NewShardInterceptorsContainerFactory(
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
-		PeerID:                       args.Messenger.ID(),
+		PeerID:                       args.MainMessenger.ID(),
 	}
 
 	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		accounts:               args.Accounts,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		argInterceptorFactory:  argInterceptorFactory,
-		blockBlackList:         args.BlockBlackList,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		antifloodHandler:       args.AntifloodHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:   args.PreferredPeersHolder,
-		hasher:                 args.CoreComponents.Hasher(),
-		requestHandler:         args.RequestHandler,
-		peerShardMapper:        args.PeerShardMapper,
-		hardforkTrigger:        args.HardforkTrigger,
+		container:                  container,
+		accounts:                   args.Accounts,
+		shardCoordinator:           args.ShardCoordinator,
+		mainMessenger:              args.MainMessenger,
+		fullArchiveMessenger:       args.FullArchiveMessenger,
+		store:                      args.Store,
+		dataPool:                   args.DataPool,
+		nodesCoordinator:           args.NodesCoordinator,
+		argInterceptorFactory:      argInterceptorFactory,
+		blockBlackList:             args.BlockBlackList,
+		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:           args.AntifloodHandler,
+		whiteListHandler:           args.WhiteListHandler,
+		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:       args.PreferredPeersHolder,
+		hasher:                     args.CoreComponents.Hasher(),
+		requestHandler:             args.RequestHandler,
+		mainPeerShardMapper:        args.MainPeerShardMapper,
+		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
+		hardforkTrigger:            args.HardforkTrigger,
+		nodeOperationMode:          args.NodeOperationMode,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
@@ -174,12 +179,22 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, err
 	}
 
-	err = sicf.generateHeartbeatInterceptor()
+	err = sicf.generateMainHeartbeatInterceptor()
 	if err != nil {
 		return nil, err
 	}
 
-	err = sicf.generatePeerShardInterceptor()
+	err = sicf.generateFullArchiveHeartbeatInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generateMainPeerShardInterceptor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = sicf.generateFullArchivePeerShardInterceptor()
 	if err != nil {
 		return nil, err
 	}

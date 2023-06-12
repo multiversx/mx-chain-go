@@ -167,7 +167,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	}
 
 	metablockProcessor, err := NewStorageEpochStartMetaBlockProcessor(
-		sesb.messenger,
+		sesb.mainMessenger,
 		sesb.requestHandler,
 		sesb.coreComponentsHolder.InternalMarshalizer(),
 		sesb.coreComponentsHolder.Hasher(),
@@ -180,7 +180,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		CoreComponentsHolder:    sesb.coreComponentsHolder,
 		CryptoComponentsHolder:  sesb.cryptoComponentsHolder,
 		RequestHandler:          sesb.requestHandler,
-		Messenger:               sesb.messenger,
+		Messenger:               sesb.mainMessenger,
 		ShardCoordinator:        sesb.shardCoordinator,
 		EconomicsData:           sesb.economicsData,
 		WhitelistHandler:        sesb.whiteListHandler,
@@ -245,7 +245,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
 		Hasher:                   sesb.coreComponentsHolder.Hasher(),
 		ShardCoordinator:         shardCoordinator,
-		Messenger:                sesb.messenger,
+		Messenger:                sesb.mainMessenger,
 		Store:                    sesb.store,
 		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
@@ -329,7 +329,13 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", sesb.baseData.numberOfShards, "shardId", sesb.baseData.shardId)
 
-	err = sesb.messenger.CreateTopic(common.ConsensusTopic+sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId()), true)
+	consensusTopic := common.ConsensusTopic + sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId())
+	err = sesb.mainMessenger.CreateTopic(consensusTopic, true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = sesb.fullArchiveMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}
