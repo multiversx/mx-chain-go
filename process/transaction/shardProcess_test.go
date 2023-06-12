@@ -3303,7 +3303,7 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 	originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
 	assert.Nil(t, err)
 
-	t.Run("not an non-executable error should not add", func(t *testing.T) {
+	t.Run("not a non-executable error should not record log", func(t *testing.T) {
 		t.Parallel()
 
 		argsLocal := args
@@ -3318,7 +3318,7 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 		err = txProc.AddNonExecutableLog(errors.New("random error"), originalTxHash, originalTx)
 		assert.Nil(t, err)
 	})
-	t.Run("is execution error should record log", func(t *testing.T) {
+	t.Run("is non executable tx error should record log", func(t *testing.T) {
 		t.Parallel()
 
 		argsLocal := args
