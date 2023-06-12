@@ -16,7 +16,7 @@ type DriverStub struct {
 	SaveAccountsCalled                      func(accounts *outportcore.Accounts) error
 	FinalizedBlockCalled                    func(finalizedBlock *outportcore.FinalizedBlock) error
 	CloseCalled                             func() error
-	RegisterHandlerForSettingsRequestCalled func(handlerFunction func()) error
+	RegisterHandlerForSettingsRequestCalled func(handlerFunction func() error) error
 	SetCurrentSettingsCalled                func(config outportcore.OutportConfig) error
 }
 
@@ -98,7 +98,7 @@ func (d *DriverStub) SetCurrentSettings(config outportcore.OutportConfig) error 
 }
 
 // RegisterHandlerForSettingsRequest -
-func (d *DriverStub) RegisterHandlerForSettingsRequest(handlerFunction func()) error {
+func (d *DriverStub) RegisterHandlerForSettingsRequest(handlerFunction func() error) error {
 	if d.RegisterHandlerForSettingsRequestCalled != nil {
 		return d.RegisterHandlerForSettingsRequestCalled(handlerFunction)
 	}

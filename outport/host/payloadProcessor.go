@@ -2,39 +2,43 @@ package host
 
 import (
 	"errors"
-
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 )
 
-var errNilHandlerFunc = errors.New("err nil handler func")
+var (
+	errNilHandlerFunc = errors.New("err nil handler func")
+	errEmptyTopic     = errors.New("empty topic")
+)
 
 type payloadProcessor struct {
-	handlerFunc func()
+	handlerFuncs map[string]func() error
 }
 
 func newPayloadProcessor() (*payloadProcessor, error) {
 	return &payloadProcessor{
-		handlerFunc: func() {},
+		handlerFuncs: make(map[string]func() error),
 	}, nil
 }
 
 // ProcessPayload will process the provided payload based on the topic
 func (p *payloadProcessor) ProcessPayload(_ []byte, topic string) error {
-	if topic != outport.TopicSettings {
+	handlerFunc, found := p.handlerFuncs[topic]
+	if !found {
 		return nil
 	}
 
-	p.handlerFunc()
-	return nil
+	return handlerFunc()
 }
 
-// SetHandlerFunc will set the handler func
-func (p *payloadProcessor) SetHandlerFunc(handler func()) error {
+// SetHandlerFuncForTopic will set the handler func for the provided topic
+func (p *payloadProcessor) SetHandlerFuncForTopic(handler func() error, topic string) error {
 	if handler == nil {
 		return errNilHandlerFunc
 	}
+	if topic == "" {
+		return errEmptyTopic
+	}
 
-	p.handlerFunc = handler
+	p.handlerFuncs[topic] = handler
 	return nil
 }
 

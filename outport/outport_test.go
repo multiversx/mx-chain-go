@@ -590,7 +590,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		t.Parallel()
 
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error) error {
 				return expectedErr
 			},
 		}
@@ -611,9 +611,9 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		}()
 
 		currentSettingsCalled := false
-		var callback func()
+		var callback func() error
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error) error {
 				callback = handlerFunction
 
 				return nil
@@ -626,19 +626,21 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 
 		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
 		err := outportHandler.SubscribeDriver(driver)
-
-		callback()
-
 		assert.Nil(t, err)
+
+		assert.False(t, currentSettingsCalled)
+
+		err = callback()
+		assert.Equal(t, expectedErr, err)
 		assert.True(t, currentSettingsCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		var driverRequestHandler func()
+		var driverRequestHandler func() error
 		receivedOutportConfig := outportcore.OutportConfig{}
 		driver := &mock.DriverStub{
-			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func()) error {
+			RegisterHandlerForSettingsRequestCalled: func(handlerFunction func() error) error {
 				driverRequestHandler = handlerFunction
 
 				return nil
@@ -660,11 +662,11 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		assert.NotNil(t, driverRequestHandler) // the RegisterHandlerForSettingsRequest should have been called, handler set
 
 		// the expected config should be empty as the handler should not call the driver's SetCurrentSettings automatically at subscribe time
-		expectedConfig := outportcore.OutportConfig{}
-		assert.Equal(t, expectedConfig, receivedOutportConfig)
+		assert.Equal(t, outportcore.OutportConfig{}, receivedOutportConfig)
 
-		// driver doesn't call the handler because it wants the config
-		driverRequestHandler()
+		// driver call the handler because it wants the config
+		err = driverRequestHandler()
+		assert.Nil(t, err)
 		assert.Equal(t, providedConfig, receivedOutportConfig)
 	})
 }

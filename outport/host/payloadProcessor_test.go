@@ -22,14 +22,20 @@ func TestPayloadProcessor_SetHandlerFunc(t *testing.T) {
 	pp, _ := newPayloadProcessor()
 
 	// set nil handler func
-	err := pp.SetHandlerFunc(nil)
+	err := pp.SetHandlerFuncForTopic(nil, "")
 	require.Equal(t, errNilHandlerFunc, err)
 
+	// set empty topic
+	err = pp.SetHandlerFuncForTopic(func() error { return nil }, "")
+	require.Equal(t, errEmptyTopic, err)
+
 	called := false
-	hFunc := func() {
+	hFunc := func() error {
 		called = true
+		return nil
 	}
-	_ = pp.SetHandlerFunc(hFunc)
+	err = pp.SetHandlerFuncForTopic(hFunc, outport.TopicSettings)
+	require.Nil(t, err)
 
 	// wrong topic should ignore
 	err = pp.ProcessPayload([]byte(""), outport.TopicSaveAccounts)

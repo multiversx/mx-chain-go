@@ -12,5 +12,5 @@ type SenderHost interface {
 
 type payloadProcessorHandler interface {
 	websocket.PayloadHandler
-	SetHandlerFunc(handler func()) error
+	SetHandlerFuncForTopic(handler func() error, topic string) error
 }

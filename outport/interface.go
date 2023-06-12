@@ -18,7 +18,7 @@ type Driver interface {
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) error
 	GetMarshaller() marshal.Marshalizer
 	SetCurrentSettings(config outportcore.OutportConfig) error
-	RegisterHandlerForSettingsRequest(handlerFunction func()) error
+	RegisterHandlerForSettingsRequest(handlerFunction func() error) error
 	Close() error
 	IsInterfaceNil() bool
 }

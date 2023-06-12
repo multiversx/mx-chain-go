@@ -115,8 +115,8 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 }
 
 // RegisterHandlerForSettingsRequest will register the handler function for the settings request
-func (o *hostDriver) RegisterHandlerForSettingsRequest(handlerFunction func()) error {
-	return o.payloadProc.SetHandlerFunc(handlerFunction)
+func (o *hostDriver) RegisterHandlerForSettingsRequest(handlerFunction func() error) error {
+	return o.payloadProc.SetHandlerFuncForTopic(handlerFunction, outport.TopicSettings)
 }
 
 // SetCurrentSettings will send the current settings
