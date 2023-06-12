@@ -10,9 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +23,17 @@ import (
 // CreateSovereignChainShardTrackerMockArguments -
 func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	shardBlockTrackArguments := CreateShardTrackerMockArguments()
+
 	shardBlockTrackArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Hasher:      &hashingMocks.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	sovereignChainHeaderValidator, _ := processBlock.NewSovereignChainHeaderValidator(headerValidator)
+	shardBlockTrackArguments.HeaderValidator = sovereignChainHeaderValidator
+
 	return shardBlockTrackArguments
 }
 
@@ -44,6 +56,19 @@ func TestNewSovereignChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing
 	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
 	assert.Nil(t, scsbt)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestNewSovereignChainShardBlockTrack_ShouldErrWhenInitCrossNotarizedStartHeadersFails(t *testing.T) {
+	t.Parallel()
+
+	shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardBlockTrackArguments)
+
+	sbt.ClearStartHeaders()
+
+	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
+	assert.Nil(t, scsbt)
+	assert.ErrorIs(t, err, process.ErrMissingHeader)
 }
 
 func TestNewSovereignChainShardBlockTrack_ShouldWork(t *testing.T) {
@@ -169,7 +194,7 @@ func TestSovereignChainShardBlockTrack_ReceivedExtendedShardHeaderShouldWork(t *
 
 		shardHeaderExtendedInit := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
-				Header: &block.Header{},
+				Header: &block.Header{Nonce: 1},
 			},
 		}
 		shardHeaderExtendedInitHash := []byte("init_hash")
@@ -179,7 +204,7 @@ func TestSovereignChainShardBlockTrack_ReceivedExtendedShardHeaderShouldWork(t *
 		shardHeaderExtended := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Nonce: 1001,
+					Nonce: 1002,
 				},
 			},
 		}
@@ -227,28 +252,6 @@ func TestSovereignChainShardBlockTrack_ReceivedExtendedShardHeaderShouldWork(t *
 func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return true when first extended shard header is added", func(t *testing.T) {
-		t.Parallel()
-
-		shardArguments := CreateSovereignChainShardTrackerMockArguments()
-		sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
-
-		maxNumHeadersToKeepPerShard := uint64(scsbt.GetMaxNumHeadersToKeepPerShard())
-
-		shardHeaderExtended := &block.ShardHeaderExtended{
-			Header: &block.HeaderV2{
-				Header: &block.Header{
-					Nonce: maxNumHeadersToKeepPerShard + 1,
-				},
-			},
-		}
-
-		result := scsbt.ShouldAddExtendedShardHeader(shardHeaderExtended)
-		assert.True(t, result)
-	})
-
 	t.Run("should return false when extended shard header is out of range", func(t *testing.T) {
 		t.Parallel()
 
@@ -261,7 +264,7 @@ func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t 
 
 		shardHeaderExtendedInit := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
-				Header: &block.Header{},
+				Header: &block.Header{Nonce: 1},
 			},
 		}
 		shardHeaderExtendedInitHash := []byte("init_hash")
@@ -271,7 +274,7 @@ func TestSovereignChainShardBlockTrack_ShouldAddExtendedShardHeaderShouldWork(t 
 		shardHeaderExtended := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Nonce: maxNumHeadersToKeepPerShard + 1,
+					Nonce: maxNumHeadersToKeepPerShard + 2,
 				},
 			},
 		}
@@ -336,7 +339,7 @@ func TestSovereignChainShardBlockTrack_DoWhitelistWithExtendedShardHeaderIfNeede
 
 		shardHeaderExtendedInit := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
-				Header: &block.Header{},
+				Header: &block.Header{Nonce: 1},
 			},
 		}
 		shardHeaderExtendedInitHash := []byte("init_hash")
@@ -354,7 +357,7 @@ func TestSovereignChainShardBlockTrack_DoWhitelistWithExtendedShardHeaderIfNeede
 		shardHeaderExtended := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Nonce: process.MaxHeadersToWhitelistInAdvance + 1,
+					Nonce: process.MaxHeadersToWhitelistInAdvance + 2,
 				},
 			},
 			IncomingMiniBlocks: incomingMiniBlocks,
@@ -487,19 +490,6 @@ func TestSovereignChainShardBlockTrack_IsExtendedShardHeaderOutOfRangeShouldWork
 func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastNotarizedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return error when notarized header slice for shard is nil", func(t *testing.T) {
-		t.Parallel()
-
-		shardArguments := CreateSovereignChainShardTrackerMockArguments()
-		sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
-
-		_, _, err := scsbt.ComputeLongestExtendedShardChainFromLastNotarized()
-
-		assert.Equal(t, err, process.ErrNotarizedHeadersSliceForShardIsNil)
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -511,6 +501,8 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 		shardHeaderExtendedInit := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
+					Round:    1,
+					Nonce:    1,
 					RandSeed: []byte("rand seed init"),
 				},
 			},
@@ -520,12 +512,13 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 
 		scsbt.AddCrossNotarizedHeader(core.SovereignChainShardId, shardHeaderExtendedInit, shardHeaderExtendedInitHash)
 
+		headerInitHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, shardHeaderExtendedInit.Header)
 		shardHeaderExtended1 := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Round:        1,
-					Nonce:        1,
-					PrevHash:     shardHeaderExtendedInitHash,
+					Round:        2,
+					Nonce:        2,
+					PrevHash:     headerInitHash,
 					PrevRandSeed: shardHeaderExtendedInit.GetRandSeed(),
 					RandSeed:     []byte("rand seed 1"),
 				},
@@ -534,12 +527,13 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 
 		shardHeaderExtendedHash1, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, shardHeaderExtended1)
 
+		headerHash1, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, shardHeaderExtended1.Header)
 		shardHeaderExtended2 := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Round:        2,
-					Nonce:        2,
-					PrevHash:     shardHeaderExtendedHash1,
+					Round:        3,
+					Nonce:        3,
+					PrevHash:     headerHash1,
 					PrevRandSeed: shardHeaderExtended1.GetRandSeed(),
 					RandSeed:     []byte("rand seed 2"),
 				},
@@ -548,12 +542,13 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 
 		shardHeaderExtendedHash2, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, shardHeaderExtended2)
 
+		headerHash2, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, shardHeaderExtended2.Header)
 		shardHeaderExtended3 := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
 				Header: &block.Header{
-					Round:        3,
-					Nonce:        3,
-					PrevHash:     shardHeaderExtendedHash2,
+					Round:        4,
+					Nonce:        4,
+					PrevHash:     headerHash2,
 					PrevRandSeed: shardHeaderExtended2.GetRandSeed(),
 					RandSeed:     []byte("rand seed 3"),
 				},
@@ -747,5 +742,73 @@ func TestSovereignChainShardBlockTrack_GetFinalHeaderShouldWork(t *testing.T) {
 
 		assert.Equal(t, expectedExtendedShardHeader, finalHeader)
 		assert.Nil(t, err)
+	})
+}
+
+func TestSovereignChainShardBlockTrack_InitCrossNotarizedStartHeadersShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("init cross notarized start headers should return error when self start header is missing", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+		scsbt.ClearStartHeaders()
+
+		err := scsbt.InitCrossNotarizedStartHeaders()
+
+		assert.ErrorIs(t, err, process.ErrMissingHeader)
+	})
+
+	t.Run("init cross notarized start headers should return error when wrong type assertion is occurred", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+		startHeaders := make(map[uint32]data.HeaderHandler)
+		startHeaders[shardArguments.ShardCoordinator.SelfId()] = &block.MetaBlock{}
+		scsbt.SetStartHeaders(startHeaders)
+
+		err := scsbt.InitCrossNotarizedStartHeaders()
+
+		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+
+	t.Run("init cross notarized start headers should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateSovereignChainShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+		_ = scsbt.InitNotarizedHeaders(make(map[uint32]data.HeaderHandler))
+
+		_, _, err := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+		assert.Equal(t, process.ErrNotarizedHeadersSliceForShardIsNil, err)
+
+		err = scsbt.InitCrossNotarizedStartHeaders()
+		assert.Nil(t, err)
+
+		lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := scsbt.GetLastCrossNotarizedHeader(core.SovereignChainShardId)
+		assert.Nil(t, err)
+
+		selfStartHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
+		header := selfStartHeader.(*block.Header)
+		extendedSelfStartHeader := &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: header,
+			},
+		}
+		extendedSelfStartHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, extendedSelfStartHeader)
+
+		assert.Equal(t, extendedSelfStartHeader, lastCrossNotarizedHeader)
+		assert.Equal(t, extendedSelfStartHeaderHash, lastCrossNotarizedHeaderHash)
 	})
 }

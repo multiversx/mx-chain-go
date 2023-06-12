@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
@@ -98,6 +99,38 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 
 	assert.NotNil(t, lines)
 	assert.Equal(t, len(header.MetaBlockHashes), len(lines))
+}
+
+func TestDisplayBlock_DisplayExtendedShardHeaderHashesIncluded(t *testing.T) {
+	t.Parallel()
+
+	shardLines := make([]*display.LineData, 0)
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hash3 := []byte("hash3")
+	extendedShardHeaderHashes := [][]byte{hash1, hash2, hash3}
+	args := createMockArgsTransactionCounter()
+	txCounter, _ := NewTransactionCounter(args)
+	lines := txCounter.displayExtendedShardHeaderHashesIncluded(
+		shardLines,
+		extendedShardHeaderHashes,
+	)
+
+	require.Equal(t, []*display.LineData{
+		{
+			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(hash1)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "...", "..."},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ExtendedShardHeaderHash_3", hex.EncodeToString(hash3)},
+			HorizontalRuleAfter: true,
+		},
+	}, lines)
 }
 
 func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {

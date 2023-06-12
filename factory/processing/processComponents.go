@@ -424,7 +424,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Hasher:      pcf.coreData.Hasher(),
 		Marshalizer: pcf.coreData.InternalMarshalizer(),
 	}
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	headerValidator, err := pcf.createHeaderValidator(argsHeaderValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -822,7 +822,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Hasher:      pcf.coreData.Hasher(),
 			Marshalizer: pcf.coreData.InternalMarshalizer(),
 		}
-		headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+		headerValidator, err := pcf.createHeaderValidator(argsHeaderValidator)
 		if err != nil {
 			return nil, err
 		}
@@ -881,6 +881,22 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	}
 
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
+}
+
+func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
+	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return headerValidator, nil
+	case common.ChainRunTypeSovereign:
+		return block.NewSovereignChainHeaderValidator(headerValidator)
+	default:
+		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {

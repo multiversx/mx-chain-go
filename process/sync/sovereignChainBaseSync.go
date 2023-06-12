@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -43,4 +44,13 @@ func (boot *baseBootstrap) sovereignChainGetRootHashFromBlock(header data.Header
 	}
 
 	return rootHash
+}
+
+func (boot *baseBootstrap) sovereignChainDoProcessReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
+	_, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
+	if isExtendedShardHeaderReceived {
+		return
+	}
+
+	boot.doProcessReceivedHeaderJob(headerHandler, headerHash)
 }

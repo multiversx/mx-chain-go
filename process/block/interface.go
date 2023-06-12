@@ -26,6 +26,10 @@ type receiptsRepository interface {
 	IsInterfaceNil() bool
 }
 
-type validatorStatsGetter interface {
+type validatorStatsRootHashGetter interface {
 	GetValidatorStatsRootHash() []byte
+}
+
+type extendedShardHeaderHashesGetter interface {
+	GetExtendedShardHeaderHashes() [][]byte
 }

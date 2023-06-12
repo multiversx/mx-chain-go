@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -660,7 +661,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
-	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := createTransactionCoordinator(argsTransactionCoordinator, arg.ChainRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -691,6 +692,25 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		vmContainersFactory: vmFactoryImpl,
 		vmContainer:         vmContainer,
 	}, nil
+}
+
+func createTransactionCoordinator(
+	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
+	chainRunType common.ChainRunType,
+) (process.TransactionCoordinator, error) {
+	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	switch chainRunType {
+	case common.ChainRunTypeRegular:
+		return transactionCoordinator, nil
+	case common.ChainRunTypeSovereign:
+		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
+	}
 }
 
 func deployInitialSmartContracts(

@@ -64,6 +64,10 @@ func (scsbt *sovereignChainShardBlockTrack) GetFinalHeader(headerHandler data.He
 	return scsbt.getFinalHeader(headerHandler)
 }
 
+func (scsbt *sovereignChainShardBlockTrack) InitCrossNotarizedStartHeaders() error {
+	return scsbt.initCrossNotarizedStartHeaders()
+}
+
 // metaBlockTrack
 
 func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
@@ -73,7 +77,7 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // baseBlockTrack
 
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	bbt.receivedHeaderFunc(headerHandler, headerHash)
+	bbt.receivedHeader(headerHandler, headerHash)
 }
 
 func CheckTrackerNilParameters(arguments ArgBaseTracker) error {
@@ -162,6 +166,18 @@ func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) 
 
 func (bbt *baseBlockTrack) SetGetFinalHeaderFunc() {
 	bbt.getFinalHeaderFunc = bbt.getFinalHeader
+}
+
+func (bbt *baseBlockTrack) ClearStartHeaders() {
+	bbt.mutStartHeaders.Lock()
+	bbt.startHeaders = make(map[uint32]data.HeaderHandler)
+	bbt.mutStartHeaders.Unlock()
+}
+
+func (bbt *baseBlockTrack) SetStartHeaders(startHeaders map[uint32]data.HeaderHandler) {
+	bbt.mutStartHeaders.Lock()
+	bbt.startHeaders = startHeaders
+	bbt.mutStartHeaders.Unlock()
 }
 
 // blockNotifier
