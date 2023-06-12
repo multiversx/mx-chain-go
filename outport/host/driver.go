@@ -37,7 +37,7 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 		return nil, core.ErrNilLogger
 	}
 
-	payloadProc, err := newPayloadProcessor()
+	payloadProc, err := newPayloadProcessor(args.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -114,19 +114,14 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 	return nil
 }
 
-// RegisterHandlerForSettingsRequest will register the handler function for the settings request
-func (o *hostDriver) RegisterHandlerForSettingsRequest(handlerFunction func() error) error {
-	return o.payloadProc.SetHandlerFuncForTopic(handlerFunction, outport.TopicSettings)
+// RegisterHandler will register the handler function for the provided topic
+func (o *hostDriver) RegisterHandler(handlerFunction func() error, topic string) error {
+	return o.payloadProc.SetHandlerFuncForTopic(handlerFunction, topic)
 }
 
 // SetCurrentSettings will send the current settings
 func (o *hostDriver) SetCurrentSettings(config outport.OutportConfig) error {
-	configBytes, err := o.marshaller.Marshal(&config)
-	if err != nil {
-		return err
-	}
-
-	return o.senderHost.Send(configBytes, outport.TopicSettings)
+	return o.handleAction(&config, outport.TopicSettings)
 }
 
 // Close will handle the closing of the outport driver web socket sender

@@ -377,7 +377,7 @@ func (o *outport) SubscribeDriver(driver Driver) error {
 		return driver.SetCurrentSettings(o.config)
 	}
 
-	err := driver.RegisterHandlerForSettingsRequest(callback)
+	err := driver.RegisterHandler(callback, outportcore.TopicSettings)
 	if err != nil {
 		return err
 	}

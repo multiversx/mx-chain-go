@@ -150,8 +150,8 @@ func (en *eventNotifier) Close() error {
 	return nil
 }
 
-// RegisterHandlerForSettingsRequest will do nothing
-func (en *eventNotifier) RegisterHandlerForSettingsRequest(_ func() error) error {
+// RegisterHandler will do nothing
+func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
 	return nil
 }
 

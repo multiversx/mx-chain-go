@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPayloadProcessor_New(t *testing.T) {
 	t.Parallel()
 
-	pp, err := newPayloadProcessor()
+	pp, err := newPayloadProcessor(&testscommon.LoggerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, pp)
 	require.False(t, pp.IsInterfaceNil())
@@ -19,10 +20,10 @@ func TestPayloadProcessor_New(t *testing.T) {
 func TestPayloadProcessor_SetHandlerFunc(t *testing.T) {
 	t.Parallel()
 
-	pp, _ := newPayloadProcessor()
+	pp, _ := newPayloadProcessor(&testscommon.LoggerStub{})
 
 	// set nil handler func
-	err := pp.SetHandlerFuncForTopic(nil, "")
+	err := pp.SetHandlerFuncForTopic(nil, "topic")
 	require.Equal(t, errNilHandlerFunc, err)
 
 	// set empty topic
