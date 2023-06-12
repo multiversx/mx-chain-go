@@ -18,8 +18,17 @@ type TestScProcessor struct {
 }
 
 // NewTestScProcessor -
-func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
-	return &TestScProcessor{internalData}
+func NewTestScProcessor(scProcHandler SCRProcessorHandler) *TestScProcessor {
+	scProc, ok := scProcHandler.(*scProcessor)
+	if ok {
+		return &TestScProcessor{scProc}
+	}
+	sovScProc, ok := scProcHandler.(*sovereignSCProcessor)
+	if ok {
+		return &TestScProcessor{sovScProc.scProcessor}
+	}
+
+	panic("invalid sc processor handler provided")
 }
 
 // GetCompositeTestError composes all errors found in the logs or by parsing the scr forwarder's contents
