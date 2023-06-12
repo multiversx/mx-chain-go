@@ -254,16 +254,16 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestTrieStorageManager_RemoveFromAllEpochs(t *testing.T) {
+func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
 	t.Parallel()
 
-	removeFromAllEpochsCalled := false
+	RemoveFromAllActiveEpochsCalled := false
 	removeFromCheckpointCalled := false
 	args := getNewTrieStorageManagerArgs()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
-		RemoveFromAllEpochsCalled: func(key []byte) error {
-			removeFromAllEpochsCalled = true
+		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
+			RemoveFromAllActiveEpochsCalled = true
 			return nil
 		},
 	}
@@ -274,9 +274,9 @@ func TestTrieStorageManager_RemoveFromAllEpochs(t *testing.T) {
 	}
 	ts, _ := trie.NewTrieStorageManager(args)
 
-	err := ts.RemoveFromAllEpochs([]byte("key"))
+	err := ts.RemoveFromAllActiveEpochs([]byte("key"))
 	assert.Nil(t, err)
-	assert.True(t, removeFromAllEpochsCalled)
+	assert.True(t, RemoveFromAllActiveEpochsCalled)
 	assert.True(t, removeFromCheckpointCalled)
 }
 

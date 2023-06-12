@@ -16,7 +16,7 @@ type SnapshotPruningStorerStub struct {
 	PutInEpochWithoutCacheCalled               func(key []byte, data []byte, epoch uint32) error
 	GetLatestStorageEpochCalled                func() (uint32, error)
 	RemoveFromCurrentEpochCalled               func(key []byte) error
-	RemoveFromAllEpochsCalled                  func(key []byte) error
+	RemoveFromAllActiveEpochsCalled            func(key []byte) error
 }
 
 // GetFromOldEpochsWithoutAddingToCache -
@@ -90,11 +90,11 @@ func (spss *SnapshotPruningStorerStub) RemoveFromCurrentEpoch(key []byte) error 
 	return spss.Remove(key)
 }
 
-// RemoveFromAllEpochs -
-func (spss *SnapshotPruningStorerStub) RemoveFromAllEpochs(key []byte) error {
-	if spss.RemoveFromAllEpochsCalled != nil {
-		return spss.RemoveFromAllEpochsCalled(key)
+// RemoveFromAllActiveEpochs -
+func (spss *SnapshotPruningStorerStub) RemoveFromAllActiveEpochs(key []byte) error {
+	if spss.RemoveFromAllActiveEpochsCalled != nil {
+		return spss.RemoveFromAllActiveEpochsCalled(key)
 	}
-	
+
 	return spss.Remove(key)
 }

@@ -567,8 +567,8 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	return storer.RemoveFromCurrentEpoch(hash)
 }
 
-// RemoveFromAllEpochs removes the given hash from all epochs
-func (tsm *trieStorageManager) RemoveFromAllEpochs(hash []byte) error {
+// RemoveFromAllActiveEpochs removes the given hash from all epochs
+func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -578,7 +578,7 @@ func (tsm *trieStorageManager) RemoveFromAllEpochs(hash []byte) error {
 		return fmt.Errorf("trie storage manager: main storer does not implement snapshotPruningStorer interface: %T", tsm.mainStorer)
 	}
 
-	return storer.RemoveFromAllEpochs(hash)
+	return storer.RemoveFromAllActiveEpochs(hash)
 }
 
 // RemoveFromCheckpointHashesHolder removes the given hash from the checkpointHashesHolder

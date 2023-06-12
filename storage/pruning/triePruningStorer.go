@@ -164,8 +164,8 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	return ps.activePersisters[currentEpochIndex].epoch, nil
 }
 
-// RemoveFromAllEpochs removes the data associated to the given key from both cache and epochs storers
-func (ps *triePruningStorer) RemoveFromAllEpochs(key []byte) error {
+// RemoveFromAllActiveEpochs removes the data associated to the given key from both cache and epochs storers
+func (ps *triePruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
 	var err error
 	ps.cacher.Remove(key)
 

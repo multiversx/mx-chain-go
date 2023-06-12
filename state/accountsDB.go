@@ -1285,7 +1285,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 		return
 	}
 
-	err := trieStorageManager.RemoveFromAllEpochs([]byte(lastSnapshot))
+	err := trieStorageManager.RemoveFromAllActiveEpochs([]byte(lastSnapshot))
 	handleLoggingWhenError("could not remove lastSnapshot", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
