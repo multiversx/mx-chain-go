@@ -387,6 +387,7 @@ type EnableEpochsHandler interface {
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
 }

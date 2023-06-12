@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
@@ -43,6 +44,9 @@ func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
 	return &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
+		},
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+			return hex.EncodeToString(pkBytes)
 		},
 	}
 }
@@ -512,10 +516,12 @@ func TestAccountsParser_getShardIDs(t *testing.T) {
 }
 
 func TestAccountsParser_createMintTransaction(t *testing.T) {
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	expectedAddr, _ := pkConv.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
+	ap := parsing.NewTestAccountsParser(pkConv)
 	balance := int64(1)
 	ibs := []*data.InitialAccount{
-		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -530,7 +536,7 @@ func TestAccountsParser_createMintTransaction(t *testing.T) {
 	assert.Equal(t, uint64(0), tx.GetNonce())
 	assert.Equal(t, ia[0].AddressBytes(), tx.GetRcvAddr())
 	assert.Equal(t, ia[0].GetSupply(), tx.GetValue())
-	assert.Equal(t, []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"), tx.GetSndAddr())
+	assert.Equal(t, expectedAddr, tx.GetSndAddr())
 	assert.Equal(t, []byte(common.GenesisTxSignatureString), tx.GetSignature())
 	assert.Equal(t, uint64(0), tx.GetGasLimit())
 	assert.Equal(t, uint64(0), tx.GetGasPrice())
@@ -743,4 +749,13 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 		assert.Equal(t, txHash, []byte(hashString))
 		assert.Equal(t, tx, v.Transaction)
 	}
+}
+
+func TestAccountsParser_GenesisMintingAddress(t *testing.T) {
+	t.Parallel()
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	ap := parsing.NewTestAccountsParser(pkConv)
+	addr := ap.GenesisMintingAddress()
+	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", addr)
 }

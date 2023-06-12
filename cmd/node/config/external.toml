@@ -57,3 +57,5 @@
     RetryDurationInSec = 5
     # Sets if, in case of data payload processing error, we should block or not the advancement to the next processing event. Set this to true if you wish the node to stop processing blocks if the client/server encounters errors while processing requests.
     BlockingAckOnError = false
+    # Set to true to drop messages if there is no active WebSocket connection to send to.
+    DropMessagesIfNoConnection = false
