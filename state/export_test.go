@@ -18,7 +18,7 @@ func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	}
 }
 
-// LoadCode -
+// IsSnapshotInProgress -
 func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
 	return &adb.isSnapshotInProgress
 }
