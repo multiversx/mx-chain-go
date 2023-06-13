@@ -186,7 +186,10 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 	)
 	require.Nil(t, err)
 
-	log.Info("multisign contract", "address", integrationTests.TestAddressPubkeyConverter.Encode(multisigContractAddress))
+	encodedMultisigContractAddress, err := integrationTests.TestAddressPubkeyConverter.Encode(multisigContractAddress)
+	require.Nil(t, err)
+
+	log.Info("multisign contract", "address", encodedMultisigContractAddress)
 	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), emptyAddress, txData, 100000)
 
 	return multisigContractAddress

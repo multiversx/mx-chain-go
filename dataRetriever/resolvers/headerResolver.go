@@ -1,6 +1,8 @@
 package resolvers
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
@@ -35,6 +37,7 @@ type HeaderResolver struct {
 	headers          dataRetriever.HeadersPool
 	hdrNoncesStorage storage.Storer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	mutEpochHandler  sync.RWMutex
 	epochHandler     dataRetriever.EpochHandler
 	shardCoordinator sharding.Coordinator
 }
@@ -97,7 +100,10 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 		return dataRetriever.ErrNilEpochHandler
 	}
 
+	hdrRes.mutEpochHandler.Lock()
 	hdrRes.epochHandler = epochHandler
+	hdrRes.mutEpochHandler.Unlock()
+
 	return nil
 }
 
@@ -130,7 +136,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
-		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+		hdrRes.DebugHandler().LogFailedToResolveData(
 			hdrRes.topic,
 			rd.Value,
 			err,
@@ -139,7 +145,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	}
 
 	if buff == nil {
-		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+		hdrRes.DebugHandler().LogFailedToResolveData(
 			hdrRes.topic,
 			rd.Value,
 			dataRetriever.ErrMissingData,
@@ -150,7 +156,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return nil
 	}
 
-	hdrRes.ResolverDebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
+	hdrRes.DebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
 
 	return hdrRes.Send(buff, message.Peer())
 }
@@ -221,45 +227,14 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		return nil, err
 	}
 	if isUnknownEpoch {
-		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
+		hdrRes.mutEpochHandler.RLock()
+		metaEpoch := hdrRes.epochHandler.MetaEpoch()
+		hdrRes.mutEpochHandler.RUnlock()
+
+		actualKey = []byte(core.EpochStartIdentifier(metaEpoch))
 	}
 
 	return hdrRes.searchFirst(actualKey)
-}
-
-// RequestDataFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.NonceType,
-			Value: hdrRes.nonceConverter.ToByteSlice(nonce),
-			Epoch: epoch,
-		},
-		[][]byte{hdrRes.nonceConverter.ToByteSlice(nonce)},
-	)
-}
-
-// RequestDataFromEpoch requests a header from other peers having input the epoch
-func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
-	return hdrRes.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.EpochType,
-			Value: identifier,
-		},
-		[][]byte{identifier},
-	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

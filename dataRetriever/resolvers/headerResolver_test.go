@@ -3,6 +3,9 @@ package resolvers_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,8 +42,6 @@ func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 }
 
 var errKeyNotFound = errors.New("key not found")
-
-//------- NewHeaderResolver
 
 func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 	t.Parallel()
@@ -149,12 +151,9 @@ func TestNewHeaderResolver_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(hdrRes))
 }
 
-//------- ProcessReceivedMessage
-
 func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	arg := createMockArgHeaderResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -168,8 +167,8 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId)
 	assert.True(t, errors.Is(err, expectedErr))
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
@@ -180,8 +179,8 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *testing.T) {
@@ -193,8 +192,34 @@ func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *test
 	requestedData := []byte("request")
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), "")
 	assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestHeaderResolver_ProcessReceivedMessageEpochTypeUnknownEpochShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeaderResolver()
+	arg.HdrStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) (i []byte, e error) {
+			return []byte("hash"), nil
+		},
+	}
+	wasSent := false
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			wasSent = true
+			return nil
+		},
+	}
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	requestedData := []byte(fmt.Sprintf("epoch_%d", math.MaxUint32))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), "")
+	assert.NoError(t, err)
+	assert.True(t, wasSent)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
@@ -211,32 +236,8 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 	requestedData := []byte("request_1")
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, requestedData), "")
 	assert.Nil(t, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
-}
-
-func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
-	t.Parallel()
-
-	called := false
-	arg := createMockArgHeaderResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-			called = true
-			return nil
-		},
-	}
-	arg.HdrStorage = &storageStubs.StorerStub{
-		GetCalled: func(key []byte) (i []byte, err error) {
-			return nil, nil
-		},
-	}
-	hdrRes, _ := resolvers.NewHeaderResolver(arg)
-
-	requestedData := []byte("request_1")
-	err := hdrRes.RequestDataFromEpoch(requestedData)
-	assert.Nil(t, err)
-	assert.True(t, called)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *testing.T) {
@@ -247,8 +248,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrResolveTypeUnknown, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend(t *testing.T) {
@@ -283,8 +284,45 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSendFullHistory(t *testing.T) {
+	t.Parallel()
+
+	requestedData := []byte("aaaa")
+
+	searchWasCalled := false
+	sendWasCalled := false
+
+	headers := &mock.HeadersCacherStub{}
+
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		if bytes.Equal(requestedData, hash) {
+			searchWasCalled = true
+			return &block.Header{}, nil
+		}
+		return nil, errors.New("0")
+	}
+
+	arg := createMockArgHeaderResolver()
+	arg.IsFullHistoryNode = true
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			sendWasCalled = true
+			return nil
+		},
+	}
+	arg.Headers = headers
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId)
+	assert.Nil(t, err)
+	assert.True(t, searchWasCalled)
+	assert.True(t, sendWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarshalizerFailsShouldErr(t *testing.T) {
@@ -324,8 +362,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId)
 	assert.Equal(t, errExpected, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValAndSend(t *testing.T) {
@@ -366,8 +404,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	assert.Nil(t, err)
 	assert.True(t, wasGotFromStorage)
 	assert.True(t, wasSent)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShouldErr(t *testing.T) {
@@ -383,8 +421,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 
 	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorrectEpoch(t *testing.T) {
@@ -407,10 +445,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceShouldCallWithTheCorre
 			Epoch: expectedEpoch,
 		},
 	)
-	msg := &mock.P2PMessageMock{DataField: buff}
+	msg := &p2pmocks.P2PMessageMock{DataField: buff}
 	_ = hdrRes.ProcessReceivedMessage(msg, "")
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolAndStorageShouldRetNilAndNotSend(t *testing.T) {
@@ -418,7 +456,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 
 	requestedNonce := uint64(67)
 
-	expectedErr := errors.New("err")
 	wasSent := false
 
 	arg := createMockArgHeaderResolver()
@@ -457,8 +494,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	)
 	assert.Equal(t, expectedErr, err)
 	assert.False(t, wasSent)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolShouldRetFromPoolAndSend(t *testing.T) {
@@ -504,8 +541,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSent)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolShouldRetFromStorageAndSend(t *testing.T) {
@@ -566,8 +603,104 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSend)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolButMarshalFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	requestedNonce := uint64(67)
+	targetShardId := uint32(9)
+	wasResolved := false
+
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		return nil, errors.New("err")
+	}
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+		wasResolved = true
+		return []data.HeaderHandler{&block.Header{}, &block.Header{}}, [][]byte{[]byte("1"), []byte("2")}, nil
+	}
+
+	arg := createMockArgHeaderResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			assert.Fail(t, "should not have been called")
+			return nil
+		},
+		TargetShardIDCalled: func() uint32 {
+			return targetShardId
+		},
+	}
+	arg.Headers = headers
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
+		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			return nil, errKeyNotFound
+		},
+		SearchFirstCalled: func(key []byte) (i []byte, e error) {
+			return nil, errKeyNotFound
+		},
+	}
+	initialMarshaller := arg.Marshaller
+	arg.Marshaller = &mock.MarshalizerStub{
+		UnmarshalCalled: initialMarshaller.Unmarshal,
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, arg.NonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
+	)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, wasResolved)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNoncePoolShouldRetFromPoolAndSend(t *testing.T) {
+	t.Parallel()
+
+	requestedNonce := uint64(67)
+	wasSend := false
+	hash := []byte("aaaa")
+
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+		return &block.Header{}, nil
+	}
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+		assert.Fail(t, "should not have been called")
+		return nil, nil, nil
+	}
+	arg := createMockArgHeaderResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			wasSend = true
+			return nil
+		},
+	}
+	arg.Headers = headers
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) (i []byte, e error) {
+			return hash, nil
+		},
+	}
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, arg.NonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
+	)
+
+	assert.Nil(t, err)
+	assert.True(t, wasSend)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolCheckRetErr(t *testing.T) {
@@ -621,58 +754,9 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	)
 
 	assert.Equal(t, errExpected, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
-
-//------- Requests
-
-func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
-	t.Parallel()
-
-	nonceRequested := uint64(67)
-	wasRequested := false
-
-	nonceConverter := mock.NewNonceHashConverterMock()
-	buffToExpect := nonceConverter.ToByteSlice(nonceRequested)
-
-	arg := createMockArgHeaderResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-			if bytes.Equal(rd.Value, buffToExpect) {
-				wasRequested = true
-			}
-			return nil
-		},
-	}
-	hdrRes, _ := resolvers.NewHeaderResolver(arg)
-
-	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested, 0))
-	assert.True(t, wasRequested)
-}
-
-func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	buffRequested := []byte("aaaa")
-	wasRequested := false
-	arg := createMockArgHeaderResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-			if bytes.Equal(rd.Value, buffRequested) {
-				wasRequested = true
-			}
-
-			return nil
-		},
-	}
-	hdrResBase, _ := resolvers.NewHeaderResolver(arg)
-
-	assert.Nil(t, hdrResBase.RequestDataFromHash(buffRequested, 0))
-	assert.True(t, wasRequested)
-}
-
-//------- SetEpochHandler
 
 func TestHeaderResolver_SetEpochHandlerNilShouldErr(t *testing.T) {
 	t.Parallel()
@@ -698,28 +782,6 @@ func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
 	assert.True(t, eh == hdrRes.EpochHandler())
 }
 
-//------ NumPeersToQuery setter and getter
-
-func TestHeaderResolver_SetAndGetNumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	expectedIntra := 5
-	expectedCross := 7
-
-	arg := createMockArgHeaderResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return expectedIntra, expectedCross
-		},
-	}
-	hdrRes, _ := resolvers.NewHeaderResolver(arg)
-
-	hdrRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := hdrRes.NumPeersToQuery()
-	assert.Equal(t, expectedIntra, actualIntra)
-	assert.Equal(t, expectedCross, actualCross)
-}
-
 func TestHeaderResolver_Close(t *testing.T) {
 	t.Parallel()
 
@@ -727,4 +789,30 @@ func TestHeaderResolver_Close(t *testing.T) {
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
 	assert.Nil(t, hdrRes.Close())
+}
+
+func TestHeaderResolver_SetEpochHandlerConcurrency(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeaderResolver()
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	eh := &mock.EpochHandlerStub{}
+	var wg sync.WaitGroup
+	numCalls := 1000
+	wg.Add(numCalls)
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			defer wg.Done()
+
+			if idx == 0 {
+				err := hdrRes.SetEpochHandler(eh)
+				assert.Nil(t, err)
+				return
+			}
+			err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, []byte("request_1")), fromConnectedPeerId)
+			assert.Nil(t, err)
+		}(i)
+	}
+	wg.Wait()
 }

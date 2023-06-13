@@ -186,8 +186,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	)
 
 	//Step 4. request tx
-	rewardTxResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, core.MetachainShardId)
-	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
+	rewardTxRequester, _ := nRequester.RequestersFinder.CrossShardRequester(factory.RewardsTransactionTopic, core.MetachainShardId)
+	err = rewardTxRequester.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {

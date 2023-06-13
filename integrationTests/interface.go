@@ -4,10 +4,10 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -85,6 +85,7 @@ type Facade interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatings() string
 	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
@@ -108,6 +109,7 @@ type Facade interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
-	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error)
+	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
+	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
 }

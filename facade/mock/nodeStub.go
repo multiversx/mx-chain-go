@@ -38,6 +38,7 @@ type NodeStub struct {
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatingsCalled                 func() string
 	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
@@ -51,6 +52,8 @@ type NodeStub struct {
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
+	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
+	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetProof -
@@ -212,6 +215,15 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return make([]core.QueryP2PPeerInfo, 0), nil
 }
 
+// GetConnectedPeersRatings -
+func (ns *NodeStub) GetConnectedPeersRatings() string {
+	if ns.GetConnectedPeersRatingsCalled != nil {
+		return ns.GetConnectedPeersRatingsCalled()
+	}
+
+	return ""
+}
+
 // GetEpochStartDataAPI -
 func (ns *NodeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
 	if ns.GetEpochStartDataAPICalled != nil {
@@ -258,7 +270,10 @@ func (ns *NodeStub) GetAllESDTTokens(address string, options api.AccountQueryOpt
 }
 
 // GetTokenSupply -
-func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+func (ns *NodeStub) GetTokenSupply(token string) (*api.ESDTSupply, error) {
+	if ns.GetTokenSupplyCalled != nil {
+		return ns.GetTokenSupplyCalled(token)
+	}
 	return nil, nil
 }
 
@@ -268,6 +283,14 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]
 		return ns.GetAllIssuedESDTsCalled(tokenType, ctx)
 	}
 	return make([]string, 0), nil
+}
+
+// IsDataTrieMigrated -
+func (ns *NodeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	if ns.IsDataTrieMigratedCalled != nil {
+		return ns.IsDataTrieMigratedCalled(address, options)
+	}
+	return false, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -

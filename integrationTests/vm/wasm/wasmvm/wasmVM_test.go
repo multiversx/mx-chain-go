@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -504,6 +505,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testHasher := sha256.NewSha256()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	accnts := integrationtests.CreateInMemoryShardAccountsDB()
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(testMarshalizer)
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -512,7 +514,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:      parsers.NewCallArgsParser(),
 		ESDTTransferParser:  esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &economicsmocks.EconomicsHandlerStub{
@@ -542,7 +544,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -932,4 +934,114 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 
 	utils.TestAccount(t, testContextParentSC.Accounts, parentAddress, 0, zero)
 	utils.TestAccount(t, testContextFunderSC.Accounts, funderAddress, 0, transferEGLD)
+}
+
+func TestDeployDNSV2SetDeleteUserNames(t *testing.T) {
+	senderAddressBytes, _ := vm.TestAddressPubkeyConverter.Decode(vm.DNSV2DeployerAddress)
+	senderNonce := uint64(0)
+	senderBalance := big.NewInt(100000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000)
+
+	scCode := wasm.GetSCCode("../testdata/manage-user-contract.wasm")
+
+	tx := vm.CreateTx(
+		senderAddressBytes,
+		vm.CreateEmptyAddress(),
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		wasm.CreateDeployTxData(scCode),
+	)
+
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		config.EnableEpochs{},
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	expectedBalance := big.NewInt(90000000)
+
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		senderAddressBytes,
+		senderNonce+1,
+		expectedBalance)
+
+	dnsV2Address, _ := vm.TestAddressPubkeyConverter.Decode(vm.DNSV2Address)
+	senderNonce++
+	tx = vm.CreateTx(
+		senderAddressBytes,
+		dnsV2Address,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		"saveName@"+hex.EncodeToString(senderAddressBytes)+"@"+hex.EncodeToString([]byte("userName1")),
+	)
+
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+	vm.TestAccountUsername(t, testContext.Accounts, senderAddressBytes, []byte("userName1"))
+
+	senderNonce++
+	tx = vm.CreateTx(
+		senderAddressBytes,
+		dnsV2Address,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		"removeName@"+hex.EncodeToString(senderAddressBytes),
+	)
+
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+	vm.TestAccountUsername(t, testContext.Accounts, senderAddressBytes, nil)
+
+	senderNonce++
+	tx = vm.CreateTx(
+		senderAddressBytes,
+		dnsV2Address,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		"saveName@"+hex.EncodeToString(senderAddressBytes)+"@"+hex.EncodeToString([]byte("userName2")),
+	)
+
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+	vm.TestAccountUsername(t, testContext.Accounts, senderAddressBytes, []byte("userName2"))
+
+	senderNonce++
+	tx = vm.CreateTx(
+		senderAddressBytes,
+		dnsV2Address,
+		senderNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		"saveName@"+hex.EncodeToString(senderAddressBytes)+"@"+hex.EncodeToString([]byte("userName3")),
+	)
+
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, returnCode, vmcommon.Ok)
+	vm.TestAccountUsername(t, testContext.Accounts, senderAddressBytes, []byte("userName3"))
 }

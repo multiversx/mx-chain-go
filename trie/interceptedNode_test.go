@@ -20,7 +20,7 @@ func getDefaultInterceptedTrieNodeParameters() ([]byte, hashing.Hasher) {
 }
 
 func getEncodedTrieNodesAndHashes(tr common.Trie) ([][]byte, [][]byte) {
-	it, _ := trie.NewIterator(tr)
+	it, _ := trie.NewDFSIterator(tr)
 	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)

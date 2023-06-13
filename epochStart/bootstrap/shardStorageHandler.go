@@ -41,6 +41,8 @@ func NewShardStorageHandler(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	nodeProcessingMode common.NodeProcessingMode,
+	snapshotsEnabled bool,
+	managedPeersHolder common.ManagedPeersHolder,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -55,6 +57,9 @@ func NewShardStorageHandler(
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            nodeProcessingMode,
+			SnapshotsEnabled:              snapshotsEnabled,
+			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
+			ManagedPeersHolder:            managedPeersHolder,
 		},
 	)
 	if err != nil {

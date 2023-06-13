@@ -5,9 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -20,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,12 +82,23 @@ func createStoreForMeta() dataRetriever.StorageService {
 
 func createTriesHolderForMeta() common.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &trieMock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), &trieMock.TrieStub{})
 	return triesHolder
 }
 
 // ------- NewResolversContainerFactory
+
+func TestNewMetaResolversContainerFactory_NewNumGoRoutinesThrottlerFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.NumConcurrentResolvingJobs = 0
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, core.ErrNotPositiveValue, err)
+}
 
 func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -169,17 +178,6 @@ func TestNewMetaResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *te
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.PeersRatingHandler = nil
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
-}
-
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -233,73 +231,6 @@ func TestNewMetaResolversContainerFactory_NilOutputAntifloodHandlerShouldErr(t *
 
 	assert.Nil(t, rcf)
 	assert.True(t, errors.Is(err, dataRetriever.ErrNilAntifloodHandler))
-}
-
-func TestNewMetaResolversContainerFactory_NilCurrentNetworkEpochProviderShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.CurrentNetworkEpochProvider = nil
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
-}
-
-func TestNewMetaResolversContainerFactory_InvalidNumCrossShardPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.ResolverConfig.NumCrossShardPeers = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
-func TestNewMetaResolversContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	t.Run("NumTotalPeers is lower than NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
-		args.ResolverConfig.NumTotalPeers = 0
-		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-	t.Run("NumTotalPeers is equal to NumCrossShardPeers", func(t *testing.T) {
-		args := getArgumentsMeta()
-		args.ResolverConfig.NumTotalPeers = args.ResolverConfig.NumCrossShardPeers
-		rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-		assert.Nil(t, rcf)
-		assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-	})
-}
-
-func TestNewMetaResolversContainerFactory_InvalidNumFullHistoryPeersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.ResolverConfig.NumFullHistoryPeers = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
-}
-
-func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(rcf))
-	assert.Equal(t, int(args.ResolverConfig.NumTotalPeers), rcf.NumTotalPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
-	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 // ------- Create
@@ -361,28 +292,33 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	assert.Equal(t, totalResolvers+noOfShards, container.Len())
 }
 
+func TestMetaResolversContainerFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.ShardCoordinator = nil
+	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
+	assert.True(t, rcf.IsInterfaceNil())
+
+	rcf, _ = resolverscontainer.NewMetaResolversContainerFactory(getArgumentsMeta())
+	assert.False(t, rcf.IsInterfaceNil())
+}
+
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandlerForMeta("", ""),
-		Store:                       createStoreForMeta(),
-		Marshalizer:                 &mock.MarshalizerMock{},
-		DataPools:                   createDataPoolsForMeta(),
-		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                  &mock.DataPackerStub{},
-		TriesContainer:              createTriesHolderForMeta(),
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs:  10,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		ResolverConfig: config.ResolverConfig{
-			NumCrossShardPeers:  1,
-			NumTotalPeers:       3,
-			NumFullHistoryPeers: 3,
-		},
-		PeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
-		PayloadValidator:   &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
+		Messenger:                  createStubTopicMessageHandlerForMeta("", ""),
+		Store:                      createStoreForMeta(),
+		Marshalizer:                &mock.MarshalizerMock{},
+		DataPools:                  createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                 &mock.DataPackerStub{},
+		TriesContainer:             createTriesHolderForMeta(),
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs: 10,
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
+		PayloadValidator:           &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

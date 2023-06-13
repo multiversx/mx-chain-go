@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,11 +20,11 @@ import (
 func createMockBootstrapSenderArgs() ArgBootstrapSender {
 	return ArgBootstrapSender{
 		Messenger:                          &p2pmocks.MessengerStub{},
-		Marshaller:                         &testscommon.MarshalizerMock{},
+		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		HeartbeatTopic:                     "hb-topic",
 		HeartbeatTimeBetweenSends:          time.Second,
 		HeartbeatTimeBetweenSendsWhenError: time.Second,
-		HeartbeatThresholdBetweenSends:     0.1,
+		HeartbeatTimeThresholdBetweenSends: 0.1,
 		VersionNumber:                      "v1",
 		NodeDisplayName:                    "node",
 		Identity:                           "identity",

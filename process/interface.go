@@ -348,7 +348,7 @@ type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
-	StartSyncingBlocks()
+	StartSyncingBlocks() error
 	IsInterfaceNil() bool
 }
 
@@ -1163,6 +1163,7 @@ type CryptoComponentsHolder interface {
 	PublicKey() crypto.PublicKey
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
+	ManagedPeersHolder() common.ManagedPeersHolder
 	IsInterfaceNil() bool
 }
 
@@ -1194,7 +1195,7 @@ type InterceptedChunksProcessor interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

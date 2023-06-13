@@ -9,42 +9,42 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedFullHistoryPeersOnTopicCalled func(topic string) []core.PeerID
-	IDCalled                               func() core.PeerID
-	CloseCalled                            func() error
-	CreateTopicCalled                      func(name string, createChannelForTopic bool) error
-	HasTopicCalled                         func(name string) bool
-	HasTopicValidatorCalled                func(name string) bool
-	BroadcastOnChannelCalled               func(channel string, topic string, buff []byte)
-	BroadcastCalled                        func(topic string, buff []byte)
-	RegisterMessageProcessorCalled         func(topic string, identifier string, handler p2p.MessageProcessor) error
-	BootstrapCalled                        func() error
-	PeerAddressesCalled                    func(pid core.PeerID) []string
-	BroadcastOnChannelBlockingCalled       func(channel string, topic string, buff []byte) error
-	IsConnectedToTheNetworkCalled          func() bool
-	PeersCalled                            func() []core.PeerID
-	AddressesCalled                        func() []string
-	ConnectToPeerCalled                    func(address string) error
-	IsConnectedCalled                      func(peerID core.PeerID) bool
-	ConnectedPeersCalled                   func() []core.PeerID
-	ConnectedAddressesCalled               func() []string
-	ConnectedPeersOnTopicCalled            func(topic string) []core.PeerID
-	UnregisterAllMessageProcessorsCalled   func() error
-	UnregisterMessageProcessorCalled       func(topic string, identifier string) error
-	SendToConnectedPeerCalled              func(topic string, buff []byte, peerID core.PeerID) error
-	ThresholdMinConnectedPeersCalled       func() int
-	SetThresholdMinConnectedPeersCalled    func(minConnectedPeers int) error
-	SetPeerShardResolverCalled             func(peerShardResolver p2p.PeerShardResolver) error
-	SetPeerDenialEvaluatorCalled           func(handler p2p.PeerDenialEvaluator) error
-	GetConnectedPeersInfoCalled            func() *p2p.ConnectedPeersInfo
-	UnjoinAllTopicsCalled                  func() error
-	PortCalled                             func() int
-	WaitForConnectionsCalled               func(maxWaitingTime time.Duration, minNumOfPeers uint32)
-	SignCalled                             func(payload []byte) ([]byte, error)
-	VerifyCalled                           func(payload []byte, pid core.PeerID, signature []byte) error
-	AddPeerTopicNotifierCalled             func(notifier p2p.PeerTopicNotifier) error
-	BroadcastUsingPrivateKeyCalled         func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
-	SignUsingPrivateKeyCalled              func(skBytes []byte, payload []byte) ([]byte, error)
+	ConnectedFullHistoryPeersOnTopicCalled  func(topic string) []core.PeerID
+	IDCalled                                func() core.PeerID
+	CloseCalled                             func() error
+	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
+	HasTopicCalled                          func(name string) bool
+	HasTopicValidatorCalled                 func(name string) bool
+	BroadcastOnChannelCalled                func(channel string, topic string, buff []byte)
+	BroadcastCalled                         func(topic string, buff []byte)
+	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
+	BootstrapCalled                         func() error
+	PeerAddressesCalled                     func(pid core.PeerID) []string
+	IsConnectedToTheNetworkCalled           func() bool
+	PeersCalled                             func() []core.PeerID
+	AddressesCalled                         func() []string
+	ConnectToPeerCalled                     func(address string) error
+	IsConnectedCalled                       func(peerID core.PeerID) bool
+	ConnectedPeersCalled                    func() []core.PeerID
+	ConnectedAddressesCalled                func() []string
+	ConnectedPeersOnTopicCalled             func(topic string) []core.PeerID
+	UnregisterAllMessageProcessorsCalled    func() error
+	UnregisterMessageProcessorCalled        func(topic string, identifier string) error
+	SendToConnectedPeerCalled               func(topic string, buff []byte, peerID core.PeerID) error
+	ThresholdMinConnectedPeersCalled        func() int
+	SetThresholdMinConnectedPeersCalled     func(minConnectedPeers int) error
+	SetPeerShardResolverCalled              func(peerShardResolver p2p.PeerShardResolver) error
+	SetPeerDenialEvaluatorCalled            func(handler p2p.PeerDenialEvaluator) error
+	GetConnectedPeersInfoCalled             func() *p2p.ConnectedPeersInfo
+	UnJoinAllTopicsCalled                   func() error
+	PortCalled                              func() int
+	WaitForConnectionsCalled                func(maxWaitingTime time.Duration, minNumOfPeers uint32)
+	SignCalled                              func(payload []byte) ([]byte, error)
+	VerifyCalled                            func(payload []byte, pid core.PeerID, signature []byte) error
+	AddPeerTopicNotifierCalled              func(notifier p2p.PeerTopicNotifier) error
+	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
+	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
 }
 
 // ConnectedFullHistoryPeersOnTopic -
@@ -140,15 +140,6 @@ func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
 	}
 
 	return make([]string, 0)
-}
-
-// BroadcastOnChannelBlocking -
-func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	if ms.BroadcastOnChannelBlockingCalled != nil {
-		return ms.BroadcastOnChannelBlockingCalled(channel, topic, buff)
-	}
-
-	return nil
 }
 
 // IsConnectedToTheNetwork -
@@ -295,10 +286,10 @@ func (ms *MessengerStub) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	return nil
 }
 
-// UnjoinAllTopics -
-func (ms *MessengerStub) UnjoinAllTopics() error {
-	if ms.UnjoinAllTopicsCalled != nil {
-		return ms.UnjoinAllTopicsCalled()
+// UnJoinAllTopics -
+func (ms *MessengerStub) UnJoinAllTopics() error {
+	if ms.UnJoinAllTopicsCalled != nil {
+		return ms.UnJoinAllTopicsCalled()
 	}
 
 	return nil
@@ -351,6 +342,13 @@ func (ms *MessengerStub) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) er
 func (ms *MessengerStub) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 	if ms.BroadcastUsingPrivateKeyCalled != nil {
 		ms.BroadcastUsingPrivateKeyCalled(topic, buff, pid, skBytes)
+	}
+}
+
+// BroadcastOnChannelUsingPrivateKey -
+func (ms *MessengerStub) BroadcastOnChannelUsingPrivateKey(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte) {
+	if ms.BroadcastOnChannelUsingPrivateKeyCalled != nil {
+		ms.BroadcastOnChannelUsingPrivateKeyCalled(channel, topic, buff, pid, skBytes)
 	}
 }
 

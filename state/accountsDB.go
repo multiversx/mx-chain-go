@@ -18,9 +18,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -220,7 +221,7 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 	if err == nil {
 		return
 	}
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		args := []interface{}{"reason", err}
 		log.Debug(message, append(args, extraArguments...)...)
 		return
@@ -435,7 +436,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Update(oldCodeHash, nil)
+		err = adb.mainTrie.Delete(oldCodeHash)
 		if err != nil {
 			return nil, err
 		}
@@ -553,6 +554,9 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	//TODO in order to avoid recomputing the root hash after every transaction for the same data trie,
+	// benchmark if it is better to cache the account and compute the rootHash only when the state is committed.
+	// For this to work, LoadAccount should check that cache first, and only after load from the trie.
 	rootHash, err := accountHandler.DataTrie().RootHash()
 	if err != nil {
 		return err
@@ -620,7 +624,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		"address", hex.EncodeToString(address),
 	)
 
-	return adb.mainTrie.Update(address, make([]byte, 0))
+	return adb.mainTrie.Delete(address)
 }
 
 func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error {
@@ -1043,7 +1047,13 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	mainTrie := adb.getMainTrie()
-	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1306,7 +1316,7 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, errChan co
 	}
 
 	for missingNode := range missingNodesChan {
-		err := syncer.SyncAccounts(missingNode)
+		err := syncer.SyncAccounts(missingNode, storageMarker.NewDisabledStorageMarker())
 		if err != nil {
 			log.Error("could not sync missing node",
 				"missing node hash", missingNode,
@@ -1356,7 +1366,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			address := adb.addressConverter.Encode(account.Address)
+			address := adb.addressConverter.SilentEncode(account.Address, log)
 			adb.mainTrie.GetStorageManager().TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
@@ -1419,8 +1429,8 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder())
+func (adb *AccountsDB) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
+	return adb.getMainTrie().GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), trieLeafParser)
 }
 
 // Close will handle the closing of the underlying components
@@ -1442,13 +1452,19 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		return nil, fmt.Errorf("invalid trie, type is %T", mainTrie)
 	}
 
-	collectStats(tr, stats, rootHash, "")
+	collectStats(tr, stats, rootHash, "", common.MainTrie)
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := mainTrie.GetAllLeavesOnChannel(
+		iteratorChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1465,8 +1481,12 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 			continue
 		}
 
-		address := adb.addressConverter.Encode(account.Address)
-		collectStats(tr, stats, account.RootHash, address)
+		accountAddress, err := adb.addressConverter.Encode(account.Address)
+		if err != nil {
+			return nil, err
+		}
+
+		collectStats(tr, stats, account.RootHash, accountAddress, common.DataTrie)
 	}
 
 	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
@@ -1477,13 +1497,19 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	return stats, nil
 }
 
-func collectStats(tr common.TrieStats, stats common.TriesStatisticsCollector, rootHash []byte, address string) {
+func collectStats(
+	tr common.TrieStats,
+	stats common.TriesStatisticsCollector,
+	rootHash []byte,
+	address string,
+	trieType common.TrieType,
+) {
 	trieStats, err := tr.GetTrieStats(address, rootHash)
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
-	stats.Add(trieStats)
+	stats.Add(trieStats, trieType)
 
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }

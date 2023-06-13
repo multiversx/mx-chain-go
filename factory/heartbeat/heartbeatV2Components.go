@@ -27,6 +27,7 @@ var log = logger.GetOrCreate("factory")
 type ArgHeartbeatV2ComponentsFactory struct {
 	Config               config.Config
 	Prefs                config.Preferences
+	BaseVersion          string
 	AppVersion           string
 	BootstrapComponents  factory.BootstrapComponentsHolder
 	CoreComponents       factory.CoreComponentsHolder
@@ -40,6 +41,7 @@ type ArgHeartbeatV2ComponentsFactory struct {
 type heartbeatV2ComponentsFactory struct {
 	config               config.Config
 	prefs                config.Preferences
+	baseVersion          string
 	version              string
 	bootstrapComponents  factory.BootstrapComponentsHolder
 	coreComponents       factory.CoreComponentsHolder
@@ -69,6 +71,7 @@ func NewHeartbeatV2ComponentsFactory(args ArgHeartbeatV2ComponentsFactory) (*hea
 	return &heartbeatV2ComponentsFactory{
 		config:               args.Config,
 		prefs:                args.Prefs,
+		baseVersion:          args.BaseVersion,
 		version:              args.AppVersion,
 		bootstrapComponents:  args.BootstrapComponents,
 		coreComponents:       args.CoreComponents,
@@ -90,8 +93,14 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.DataComponents) {
 		return errors.ErrNilDataComponentsHolder
 	}
+	if check.IfNil(args.DataComponents.Datapool()) {
+		return errors.ErrNilDataPoolsHolder
+	}
 	if check.IfNil(args.NetworkComponents) {
 		return errors.ErrNilNetworkComponentsHolder
+	}
+	if check.IfNil(args.NetworkComponents.NetworkMessenger()) {
+		return errors.ErrNilMessenger
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return errors.ErrNilCryptoComponentsHolder
@@ -99,15 +108,11 @@ func checkHeartbeatV2FactoryArgs(args ArgHeartbeatV2ComponentsFactory) error {
 	if check.IfNil(args.ProcessComponents) {
 		return errors.ErrNilProcessComponentsHolder
 	}
+	if check.IfNil(args.ProcessComponents.EpochStartTrigger()) {
+		return errors.ErrNilEpochStartTrigger
+	}
 	if check.IfNil(args.StatusCoreComponents) {
 		return errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return errors.ErrNilAppStatusHandler
-	}
-	hardforkTrigger := args.ProcessComponents.HardforkTrigger()
-	if check.IfNil(hardforkTrigger) {
-		return errors.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -158,10 +163,11 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatTopic:                     heartbeatTopic,
 		PeerAuthenticationTimeBetweenSends: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsInSec),
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenSendsWhenErrorInSec),
-		PeerAuthenticationThresholdBetweenSends:     cfg.PeerAuthenticationThresholdBetweenSends,
+		PeerAuthenticationTimeThresholdBetweenSends: cfg.PeerAuthenticationTimeThresholdBetweenSends,
 		HeartbeatTimeBetweenSends:                   time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsInSec),
 		HeartbeatTimeBetweenSendsWhenError:          time.Second * time.Duration(cfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:              cfg.HeartbeatThresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends:          cfg.HeartbeatTimeThresholdBetweenSends,
+		BaseVersionNumber:                           hcf.baseVersion,
 		VersionNumber:                               hcf.version,
 		NodeDisplayName:                             hcf.prefs.Preferences.NodeDisplayName,
 		Identity:                                    hcf.prefs.Preferences.Identity,
@@ -175,6 +181,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
 		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
 		PeerTypeProvider:                            peerTypeProvider,
+		ManagedPeersHolder:                          hcf.cryptoComponents.ManagedPeersHolder(),
+		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),
+		ShardCoordinator:                            hcf.processComponents.ShardCoordinator(),
 	}
 	heartbeatV2Sender, err := sender.NewSender(argsSender)
 	if err != nil {
@@ -189,8 +198,8 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		ShardId:                 epochBootstrapParams.SelfShardID(),
 		Epoch:                   epochBootstrapParams.Epoch(),
 		MinPeersThreshold:       cfg.MinPeersThreshold,
-		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenRequestsInSec),
-		MaxTimeout:              time.Second * time.Duration(cfg.MaxTimeoutInSec),
+		DelayBetweenRequests:    time.Second * time.Duration(cfg.DelayBetweenPeerAuthenticationRequestsInSec),
+		MaxTimeoutForRequests:   time.Second * time.Duration(cfg.PeerAuthenticationMaxTimeoutForRequestsInSec),
 		MaxMissingKeysInRequest: cfg.MaxMissingKeysInRequest,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -200,12 +209,12 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsPeerShardSender := sender.ArgPeerShardSender{
-		Messenger:             hcf.networkComponents.NetworkMessenger(),
-		Marshaller:            hcf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:      hcf.bootstrapComponents.ShardCoordinator(),
-		TimeBetweenSends:      time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
-		ThresholdBetweenSends: cfg.PeerShardThresholdBetweenSends,
-		NodesCoordinator:      hcf.processComponents.NodesCoordinator(),
+		Messenger:                 hcf.networkComponents.NetworkMessenger(),
+		Marshaller:                hcf.coreComponents.InternalMarshalizer(),
+		ShardCoordinator:          hcf.bootstrapComponents.ShardCoordinator(),
+		TimeBetweenSends:          time.Second * time.Duration(cfg.PeerShardTimeBetweenSendsInSec),
+		TimeThresholdBetweenSends: cfg.PeerShardTimeThresholdBetweenSends,
+		NodesCoordinator:          hcf.processComponents.NodesCoordinator(),
 	}
 	shardSender, err := sender.NewPeerShardSender(argsPeerShardSender)
 	if err != nil {
@@ -231,7 +240,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		HeartbeatMonitor:                    heartbeatsMonitor,
 		HeartbeatSenderInfoProvider:         heartbeatV2Sender,
 		AppStatusHandler:                    hcf.statusCoreComponents.AppStatusHandler(),
-		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeBetweenConnectionsMetricsUpdateInSec),
+		TimeBetweenConnectionsMetricsUpdate: time.Second * time.Duration(cfg.TimeBetweenConnectionsMetricsUpdateInSec),
 	}
 	statusHandler, err := status.NewMetricsUpdater(argsMetricsUpdater)
 	if err != nil {
@@ -239,7 +248,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	}
 
 	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
-		TimeToReadDirectConnections: time.Second * time.Duration(hcf.config.HeartbeatV2.TimeToReadDirectConnectionsInSec),
+		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
 		Messenger:                   hcf.networkComponents.NetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),

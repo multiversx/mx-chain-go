@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -419,7 +420,7 @@ func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	errMessenger := e.messenger.UnregisterAllMessageProcessors()
 	log.LogIfError(errMessenger)
 
-	errMessenger = e.messenger.UnjoinAllTopics()
+	errMessenger = e.messenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
 	e.closeTrieNodes()
@@ -485,6 +486,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.closeTrieComponents()
 	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
@@ -495,6 +497,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
+
+	err = e.createResolversContainer()
+	if err != nil {
+		return err
+	}
 
 	err = e.createRequestHandler()
 	if err != nil {
@@ -760,6 +767,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -769,6 +778,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -927,6 +937,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
+		e.flagsConfig.SnapshotsEnabled,
+		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
 		return err
@@ -936,6 +948,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -1053,7 +1066,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	}
 
 	e.mutTrieStorageManagers.RLock()
-	trieStorageManager := e.trieStorageManagers[factory.UserAccountTrie]
+	trieStorageManager := e.trieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	e.mutTrieStorageManagers.RUnlock()
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
@@ -1068,9 +1081,9 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
+			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1081,7 +1094,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}
@@ -1109,6 +1122,9 @@ func (e *epochStartBootstrap) createStorageService(
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
+			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
+			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
 	if err != nil {
 		return nil, err
@@ -1123,7 +1139,7 @@ func (e *epochStartBootstrap) createStorageService(
 
 func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
 	e.mutTrieStorageManagers.RLock()
-	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
+	peerTrieStorageManager := e.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	e.mutTrieStorageManagers.RUnlock()
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
@@ -1138,9 +1154,9 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
+			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -1148,7 +1164,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewTrieStorageMarker())
 	if err != nil {
 		return err
 	}
@@ -1156,7 +1172,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 	return nil
 }
 
-func (e *epochStartBootstrap) createRequestHandler() error {
+func (e *epochStartBootstrap) createResolversContainer() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
@@ -1173,23 +1189,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
-		Store:                       storageService,
-		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                   e.dataPool,
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:  10,
-		DataPacker:                  dataPacker,
-		TriesContainer:              e.trieContainer,
-		SizeCheckDelta:              0,
-		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		ResolverConfig:              e.generalConfig.Resolvers,
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
-		PayloadValidator:            payloadValidator,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Store:                      storageService,
+		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                  e.dataPool,
+		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs: 10,
+		DataPacker:                 dataPacker,
+		TriesContainer:             e.trieContainer,
+		SizeCheckDelta:             0,
+		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		PreferredPeersHolder:       disabled.NewPreferredPeersHolder(),
+		PayloadValidator:           payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1201,12 +1214,38 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	return resolverFactory.AddShardTrieNodeResolvers(container)
+}
+
+func (e *epochStartBootstrap) createRequestHandler() error {
+	requestersContainerArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig:             e.generalConfig.Requesters,
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:              0,
+	}
+	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return err
 	}
 
-	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
+	container, err := requestersFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	err = requestersFactory.AddShardTrieNodeRequesters(container)
+	if err != nil {
+		return err
+	}
+
+	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -1271,7 +1310,7 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),
 		HeartbeatTimeBetweenSendsWhenError: time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsWhenErrorInSec),
-		HeartbeatThresholdBetweenSends:     heartbeatCfg.HeartbeatThresholdBetweenSends,
+		HeartbeatTimeThresholdBetweenSends: heartbeatCfg.HeartbeatTimeThresholdBetweenSends,
 		VersionNumber:                      e.flagsConfig.Version,
 		NodeDisplayName:                    e.prefsConfig.NodeDisplayName,
 		Identity:                           e.prefsConfig.Identity,

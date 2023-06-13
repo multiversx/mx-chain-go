@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -348,6 +347,9 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -387,6 +389,9 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return nil, err
+		}
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
@@ -441,8 +446,8 @@ func (sc *scProcessor) printBlockchainHookCounters(tx data.TransactionHandler) {
 	logCounters.Trace("blockchain hook counters",
 		"counters", sc.getBlockchainHookCountersString(),
 		"tx hash", sc.computeTxHashUnsafe(tx),
-		"receiver", sc.pubkeyConv.Encode(tx.GetRcvAddr()),
-		"sender", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"receiver", sc.pubkeyConv.SilentEncode(tx.GetRcvAddr(), log),
+		"sender", sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log),
 		"value", tx.GetValue().String(),
 		"data", tx.GetData(),
 	)
@@ -987,6 +992,9 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		tmpCreatedAsyncCallback := false
 		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
+			if core.IsGetNodeFromDBError(err) {
+				return vmcommon.ExecutionFailed, err
+			}
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
@@ -1084,6 +1092,10 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
+		}
+
+		if core.IsGetNodeFromDBError(err) {
+			return nil, err
 		}
 
 		return vmOutput, nil
@@ -1354,7 +1366,8 @@ func (sc *scProcessor) ProcessIfError(
 	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil, nil)
 }
 
-func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
+func (sc *scProcessor) processIfErrorWithAddedLogs(
+	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -1371,7 +1384,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		if !errors.IsClosingError(err) {
+		if !core.IsClosingError(err) {
 			log.Warn("revert to snapshot", "error", err.Error())
 		}
 
@@ -1725,6 +1738,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
@@ -1747,6 +1763,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
@@ -1809,11 +1828,14 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
+		scAddress := sc.pubkeyConv.SilentEncode(addr, log)
+		scGenerated = append(scGenerated, scAddress)
 	}
 
+	ownerAddress := sc.pubkeyConv.SilentEncode(tx.GetSndAddr(), log)
+
 	log.Debug("SmartContract deployed",
-		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"owner", ownerAddress,
 		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
@@ -2619,12 +2641,14 @@ func (sc *scProcessor) updateSmartContractCode(
 		},
 	}
 
+	encodedOutputAccountAddr := sc.pubkeyConv.SilentEncode(outputAccount.Address, log)
+
 	if isDeployment {
 		// At this point, we are under the condition "noExistingOwner"
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
@@ -2634,7 +2658,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		stateAccount.SetCodeMetadata(outputAccountCodeMetadataBytes)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): upgraded", "address", encodedOutputAccountAddr, "upgradeable", newCodeMetadata.Upgradeable)
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)

@@ -26,6 +26,14 @@ func createMockInitialAccount() *InitialAccount {
 	}
 }
 
+func TestInitialAccount_UnmarshalJSONInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	acc := &InitialAccount{}
+	err := acc.UnmarshalJSON([]byte("invalid data"))
+	assert.Error(t, err)
+}
+
 func TestInitialAccount_UnmarshalJSON_MarshalUnmarshalEmptyStruct(t *testing.T) {
 	t.Parallel()
 

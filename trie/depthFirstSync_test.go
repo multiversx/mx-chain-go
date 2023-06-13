@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,7 +80,7 @@ func TestDepthFirstTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)
-	require.Equal(t, errors.ErrContextClosing, err)
+	require.Equal(t, core.ErrContextClosing, err)
 }
 
 func TestDepthFirstTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
@@ -109,6 +109,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 
 	arg := createMockArgument(time.Minute)
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
+	arg.LeavesChan = make(chan core.KeyValueHolder, 110)
 
 	d, _ := NewDepthFirstTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
@@ -135,6 +136,22 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	assert.True(t, d.NumTrieNodes() > d.NumLeaves())
 	assert.True(t, d.NumBytes() > 0)
 	assert.True(t, d.Duration() > 0)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(numKeysValues)
+
+	numLeavesOnChan := 0
+	go func() {
+		for range arg.LeavesChan {
+			numLeavesOnChan++
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	assert.Equal(t, numKeysValues, numLeavesOnChan)
+
 	log.Info("synced trie",
 		"num trie nodes", d.NumTrieNodes(),
 		"num leaves", d.NumLeaves(),

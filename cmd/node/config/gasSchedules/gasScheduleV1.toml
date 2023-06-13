@@ -18,6 +18,8 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
+    TrieLoadPerNode          = 20000
+    TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -39,6 +41,7 @@
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
     DelegationMgrOps      = 50000000
+    GetActiveFund         = 50000
     ValidatorToDelegation = 500000000
     GetAllNodeStates      = 100000000
     FixWaitingListSize    = 500000000

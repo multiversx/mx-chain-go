@@ -258,7 +258,7 @@ func createNode(
 	}
 
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           marshalizer,
+		Marshaller:            marshalizer,
 		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},

@@ -208,6 +208,13 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// allValidatorKeysPemFile defines a flag for the path to the file that hold all validator keys used in block signing
+	// managed by the current node
+	allValidatorKeysPemFile = cli.StringFlag{
+		Name:  "all-validator-keys-pem-file",
+		Usage: "The `filepath` for the PEM file which contains all the secret keys managed by the current node.",
+		Value: "./config/allValidatorsKeys.pem",
+	}
 
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
@@ -247,7 +254,19 @@ var (
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
-		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics.",
+		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics if no other related flags are set.",
+		Value: "",
+	}
+	// dbDirectory defines a flag for the path for the db directory.
+	dbDirectory = cli.StringFlag{
+		Name:  "db-path",
+		Usage: "This flag specifies the `directory` where the node will store databases.",
+		Value: "",
+	}
+	// logsDirectory defines a flag for the path for the logs directory.
+	logsDirectory = cli.StringFlag{
+		Name:  "logs-path",
+		Usage: "This flag specifies the `directory` where the node will store logs.",
 		Value: "",
 	}
 
@@ -353,11 +372,23 @@ var (
 		Value: "./config/p2pKey.pem",
 	}
 
+	// snapshotsEnabled is used to enable snapshots, if it is not set it defaults to true, it will be set to false if it is set specifically
+	snapshotsEnabled = cli.BoolTFlag{
+		Name:  "snapshots-enabled",
+		Usage: "Boolean option for enabling state snapshots. If it is not set it defaults to true, it will be set to false if it is set specifically as --snapshots-enabled=false",
+	}
+
 	// operationMode defines the flag for specifying how configs should be altered depending on the node's intent
 	operationMode = cli.StringFlag{
 		Name:  "operation-mode",
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
+	}
+
+	// repopulateTokensSupplies defines a flag that, if set, will repopulate the tokens supplies database by iterating over the trie
+	repopulateTokensSupplies = cli.BoolFlag{
+		Name:  "repopulate-tokens-supplies",
+		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
 	}
 )
 
@@ -379,6 +410,7 @@ func getFlags() []cli.Flag {
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
+		allValidatorKeysPemFile,
 		port,
 		profileMode,
 		useHealthService,
@@ -413,15 +445,20 @@ func getFlags() []cli.Flag {
 		serializeSnapshots,
 		noKey,
 		p2pKeyPemFile,
+		snapshotsEnabled,
+		dbDirectory,
+		logsDirectory,
 		operationMode,
+		repopulateTokensSupplies,
 	}
 }
 
 func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
-	workingDir := ctx.GlobalString(workingDirectory.Name)
-	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
+	flagsConfig.WorkingDir = getWorkingDir(ctx, workingDirectory, log)
+	flagsConfig.DbDir = getCustomDirIfSet(ctx, dbDirectory, log)
+	flagsConfig.LogsDir = getCustomDirIfSet(ctx, logsDirectory, log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
@@ -440,7 +477,9 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
+	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
+	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 
 	return flagsConfig
 }
@@ -452,6 +491,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.AllValidatorKeys = ctx.GlobalString(allValidatorKeysPemFile.Name)
 	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
@@ -502,8 +542,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	return nil
 }
 
-func getWorkingDir(workingDir string, log logger.Logger) string {
+func getWorkingDir(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
 	var err error
+
+	workingDir := ctx.GlobalString(cliFlag.Name)
 	if len(workingDir) == 0 {
 		workingDir, err = os.Getwd()
 		if err != nil {
@@ -511,9 +553,19 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 			workingDir = ""
 		}
 	}
-	log.Trace("working directory", "path", workingDir)
+	log.Trace("working directory", "dirName", cliFlag.Name, "path", workingDir)
 
 	return workingDir
+}
+
+func getCustomDirIfSet(ctx *cli.Context, cliFlag cli.StringFlag, log logger.Logger) string {
+	dirStr := ctx.GlobalString(cliFlag.Name)
+
+	if len(dirStr) == 0 {
+		return getWorkingDir(ctx, workingDirectory, log)
+	}
+
+	return getWorkingDir(ctx, cliFlag, log)
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
@@ -532,6 +584,11 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
+	}
+
+	if configs.PreferencesConfig.BlockProcessingCutoff.Enabled {
+		log.Debug("node is started by using the block processing cut-off - will disable the watchdog")
+		configs.FlagsConfig.DisableConsensusWatchdog = true
 	}
 
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
@@ -600,12 +657,12 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 
 func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
-	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
+	configs.FlagsConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
 	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		"FlagsConfig.SnapshotsEnabled", configs.FlagsConfig.SnapshotsEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }

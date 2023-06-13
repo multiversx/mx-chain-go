@@ -73,38 +73,6 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	return nil
 }
 
-// RequestDataFromHash requests peer authentication data from other peers having input a public key hash
-func (res *peerAuthenticationResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests peer authentication data from other peers having input multiple public key hashes
-func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
-}
-
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
 func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {

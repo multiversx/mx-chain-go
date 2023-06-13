@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	storageResolversContainers "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageResolversContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -38,7 +38,7 @@ type ArgsStorageEpochStartBootstrap struct {
 
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
-	resolvers                  dataRetriever.ResolversContainer
+	container                  dataRetriever.RequestersContainer
 	store                      dataRetriever.StorageService
 	importDbConfig             config.ImportDbConfig
 	chanGracefullyClose        chan endProcess.ArgEndProcess
@@ -47,7 +47,7 @@ type storageEpochStartBootstrap struct {
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
-// the node with the help of storage resolvers through the import-db process
+// the node with the help of storage requesters through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
 	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
 	if err != nil {
@@ -81,10 +81,10 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
 		sesb.cleanupOnBootstrapFinish()
 
-		if !check.IfNil(sesb.resolvers) {
-			err := sesb.resolvers.Close()
+		if !check.IfNil(sesb.container) {
+			err := sesb.container.Close()
 			if err != nil {
-				log.Debug("non critical error closing resolvers", "error", err)
+				log.Debug("non critical error closing requesters", "error", err)
 			}
 		}
 
@@ -149,6 +149,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
 	sesb.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		sesb.flagsConfig.SnapshotsEnabled,
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
@@ -197,12 +198,12 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
-	err := sesb.createStorageResolvers()
+	err := sesb.createStorageRequesters()
 	if err != nil {
 		return err
 	}
 
-	finder, err := containers.NewResolversFinder(sesb.resolvers, sesb.shardCoordinator)
+	finder, err := containers.NewRequestersFinder(sesb.container, sesb.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -219,7 +220,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 	return err
 }
 
-func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
+func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(sesb.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
@@ -237,7 +238,7 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		return err
 	}
 
-	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+	requestersContainerFactoryArgs := storagerequesterscontainer.FactoryArgs{
 		GeneralConfig:            sesb.generalConfig,
 		ShardIDForTries:          sesb.importDbConfig.ImportDBTargetShardID,
 		ChainID:                  sesb.chainID,
@@ -251,20 +252,22 @@ func (sesb *storageEpochStartBootstrap) createStorageResolvers() error {
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
+		SnapshotsEnabled:         sesb.flagsConfig.SnapshotsEnabled,
+		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
 	}
 
-	var resolversContainerFactory dataRetriever.ResolversContainerFactory
+	var requestersContainerFactory dataRetriever.RequestersContainerFactory
 	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
-		resolversContainerFactory, err = storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+		requestersContainerFactory, err = storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	} else {
-		resolversContainerFactory, err = storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+		requestersContainerFactory, err = storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	sesb.resolvers, err = resolversContainerFactory.Create()
+	sesb.container, err = requestersContainerFactory.Create()
 
 	return err
 }

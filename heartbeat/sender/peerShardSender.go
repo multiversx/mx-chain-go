@@ -20,22 +20,22 @@ const minDelayBetweenSends = time.Second
 
 // ArgPeerShardSender represents the arguments for the peer shard sender
 type ArgPeerShardSender struct {
-	Messenger             p2p.Messenger
-	Marshaller            marshal.Marshalizer
-	ShardCoordinator      sharding.Coordinator
-	TimeBetweenSends      time.Duration
-	ThresholdBetweenSends float64
-	NodesCoordinator      processor.NodesCoordinator
+	Messenger                 p2p.Messenger
+	Marshaller                marshal.Marshalizer
+	ShardCoordinator          sharding.Coordinator
+	TimeBetweenSends          time.Duration
+	TimeThresholdBetweenSends float64
+	NodesCoordinator          processor.NodesCoordinator
 }
 
 type peerShardSender struct {
-	messenger             p2p.Messenger
-	marshaller            marshal.Marshalizer
-	shardCoordinator      sharding.Coordinator
-	timeBetweenSends      time.Duration
-	thresholdBetweenSends float64
-	nodesCoordinator      processor.NodesCoordinator
-	cancel                func()
+	messenger                 p2p.Messenger
+	marshaller                marshal.Marshalizer
+	shardCoordinator          sharding.Coordinator
+	timeBetweenSends          time.Duration
+	timeThresholdBetweenSends float64
+	nodesCoordinator          processor.NodesCoordinator
+	cancel                    func()
 }
 
 // NewPeerShardSender creates a new instance of peerShardSender
@@ -46,12 +46,12 @@ func NewPeerShardSender(args ArgPeerShardSender) (*peerShardSender, error) {
 	}
 
 	pss := &peerShardSender{
-		messenger:             args.Messenger,
-		marshaller:            args.Marshaller,
-		shardCoordinator:      args.ShardCoordinator,
-		timeBetweenSends:      args.TimeBetweenSends,
-		thresholdBetweenSends: args.ThresholdBetweenSends,
-		nodesCoordinator:      args.NodesCoordinator,
+		messenger:                 args.Messenger,
+		marshaller:                args.Marshaller,
+		shardCoordinator:          args.ShardCoordinator,
+		timeBetweenSends:          args.TimeBetweenSends,
+		timeThresholdBetweenSends: args.TimeThresholdBetweenSends,
+		nodesCoordinator:          args.NodesCoordinator,
 	}
 
 	var ctx context.Context
@@ -76,9 +76,9 @@ func checkArgPeerShardSender(args ArgPeerShardSender) error {
 		return fmt.Errorf("%w for TimeBetweenSends, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.TimeBetweenSends, minDelayBetweenSends)
 	}
-	if args.ThresholdBetweenSends < minThresholdBetweenSends || args.ThresholdBetweenSends > maxThresholdBetweenSends {
-		return fmt.Errorf("%w for ThresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
-			heartbeat.ErrInvalidThreshold, args.ThresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
+	if args.TimeThresholdBetweenSends < minThresholdBetweenSends || args.TimeThresholdBetweenSends > maxThresholdBetweenSends {
+		return fmt.Errorf("%w for TimeThresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
+			heartbeat.ErrInvalidThreshold, args.TimeThresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
 	}
 	if check.IfNil(args.NodesCoordinator) {
 		return heartbeat.ErrNilNodesCoordinator
@@ -109,7 +109,7 @@ func (pss *peerShardSender) startSendingShard(ctx context.Context) {
 
 func (pss *peerShardSender) computeRandomDuration(baseDuration time.Duration) time.Duration {
 	timeBetweenSendsInNano := baseDuration.Nanoseconds()
-	maxThreshold := float64(timeBetweenSendsInNano) * pss.thresholdBetweenSends
+	maxThreshold := float64(timeBetweenSendsInNano) * pss.timeThresholdBetweenSends
 	randThreshold := randomizer.Intn(int(maxThreshold))
 
 	ret := time.Duration(timeBetweenSendsInNano + int64(randThreshold))

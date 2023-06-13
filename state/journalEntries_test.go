@@ -4,9 +4,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +18,7 @@ import (
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, &testscommon.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, &marshallerMock.MarshalizerMock{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
 }
@@ -31,7 +34,7 @@ func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &testscommon.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &marshallerMock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -40,7 +43,7 @@ func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &trieMock.TrieStub{}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &testscommon.MarshalizerMock{})
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &marshallerMock.MarshalizerMock{})
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
@@ -54,7 +57,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 		Code:          []byte("newCode"),
 		NumReferences: 1,
 	}
-	marshalizer := &testscommon.MarshalizerMock{}
+	marshalizer := &marshallerMock.MarshalizerMock{}
 
 	updateCalled := false
 	trieStub := &trieMock.TrieStub{
@@ -173,8 +176,12 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, nil)
 
 	assert.True(t, check.IfNil(entry))
@@ -184,8 +191,13 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
-	accnt, _ := state.NewUserAccount(make([]byte, 32))
+	trieUpdates := make([]core.TrieData, 0)
+	args := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accnt, _ := state.NewUserAccount(make([]byte, 32), args)
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.True(t, check.IfNil(entry))
@@ -195,9 +207,18 @@ func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) 
 func TestNewJournalEntryDataTrieUpdates_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
-	accnt, _ := state.NewUserAccount(make([]byte, 32))
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
+	args := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accnt, _ := state.NewUserAccount(make([]byte, 32), args)
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	assert.Nil(t, err)
@@ -209,12 +230,16 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return expectedErr
 		},
 	}
@@ -232,12 +257,16 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 
 	expectedErr := errors.New("error")
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return nil
 		},
 		RootCalled: func() ([]byte, error) {
@@ -259,12 +288,16 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 	updateWasCalled := false
 	rootWasCalled := false
 
-	trieUpdates := make(map[string][]byte)
-	trieUpdates["a"] = []byte("b")
+	trieUpdates := make([]core.TrieData, 0)
+	trieUpdates = append(trieUpdates, core.TrieData{
+		Key:     []byte("a"),
+		Value:   []byte("b"),
+		Version: 0,
+	})
 	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			updateWasCalled = true
 			return nil
 		},

@@ -184,7 +184,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 		PeerField: originatorPid,
 	}
@@ -206,7 +206,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -247,7 +247,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := arg.Marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 		PeerField: originatorPid,
 	}
@@ -298,7 +298,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := arg.Marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -357,7 +357,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -398,7 +398,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -440,7 +440,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -493,7 +493,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -538,7 +538,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := arg.Marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
@@ -606,7 +606,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 		PeerField: originator,
 	}
@@ -683,7 +683,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := arg.Marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)

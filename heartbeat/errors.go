@@ -79,3 +79,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilTrieSyncStatisticsProvider signals that a nil trie sync statistics provider was provided
 var ErrNilTrieSyncStatisticsProvider = errors.New("nil trie sync statistics provider")
+
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrInvalidConfiguration signals that an invalid configuration has been provided
+var ErrInvalidConfiguration = errors.New("invalid configuration")

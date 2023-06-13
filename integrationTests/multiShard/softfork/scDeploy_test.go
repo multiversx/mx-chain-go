@@ -96,7 +96,9 @@ func TestScDeploy(t *testing.T) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	log.Info("resulted sc address (failed)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deployedFailedAddress))
+	encodedDeployFailedAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(deployedFailedAddress)
+	assert.Nil(t, err)
+	log.Info("resulted sc address (failed)", "address", encodedDeployFailedAddr)
 	assert.False(t, scAccountExists(shardNode, deployedFailedAddress))
 
 	deploySucceeded := deploySc(t, nodes)
@@ -109,7 +111,9 @@ func TestScDeploy(t *testing.T) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	log.Info("resulted sc address (success)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deploySucceeded))
+	encodedDeploySucceededAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(deploySucceeded)
+	assert.Nil(t, err)
+	log.Info("resulted sc address (success)", "address", encodedDeploySucceededAddr)
 	assert.True(t, scAccountExists(shardNode, deploySucceeded))
 }
 

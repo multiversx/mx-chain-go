@@ -10,3 +10,6 @@ var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
 // ErrNilResolverContainer signals that a nil resolver container has been provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilRequestersContainer signals that a nil requesters container has been provided
+var ErrNilRequestersContainer = errors.New("nil requesters container")

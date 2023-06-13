@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,8 +38,8 @@ var recvAddress = []byte("23456789012345678901234567890123")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
-func createMockPubKeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubKeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createDummySigner() crypto.SingleSigner {
@@ -73,7 +74,7 @@ func createFreeTxFeeHandler() *economicsmocks.EconomicsHandlerStub {
 }
 
 func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler, txVerChecker *testscommon.TxVersionCheckerStub) (*transaction.InterceptedTransaction, error) {
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	txBuff, err := marshaller.Marshal(tx)
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -142,7 +143,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -185,7 +186,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1035,7 +1036,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1095,7 +1096,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShouldWork(t *testing
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1184,7 +1185,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
@@ -1319,7 +1320,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		signer,
-		&mock.PubkeyConverterStub{
+		&testscommon.PubkeyConverterStub{
 			LenCalled: func() int {
 				return 32
 			},
@@ -1616,7 +1617,7 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
@@ -1659,7 +1660,7 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&testscommon.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
@@ -1688,11 +1689,11 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		},
 	}
 	setGuardianBuiltinCallData := []byte("SetGuardian@xxxx")
-	tx1 := &dataTransaction.Transaction{
+	testTx1 := &dataTransaction.Transaction{
 		GasPrice: maxAllowedGasPriceSetGuardian / 2,
 		Data:     setGuardianBuiltinCallData,
 	}
-	tx2 := &dataTransaction.Transaction{
+	testTx2 := &dataTransaction.Transaction{
 		GasPrice: maxAllowedGasPriceSetGuardian * 2,
 		Data:     setGuardianBuiltinCallData,
 	}
@@ -1703,9 +1704,9 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 				return true
 			},
 		}
-		inTx1, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx1, feeHandler, txVersionChecker)
+		inTx1, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(testTx1, feeHandler, txVersionChecker)
 		require.Nil(t, err)
-		inTx2, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx2, feeHandler, txVersionChecker)
+		inTx2, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(testTx2, feeHandler, txVersionChecker)
 		require.Nil(t, err)
 
 		errMaxGasPrice := inTx1.CheckMaxGasPrice()
@@ -1715,9 +1716,9 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		require.Nil(t, errMaxGasPrice)
 	})
 	t.Run("not guarded Tx, not setGuardian always OK", func(t *testing.T) {
-		tx1 := *tx1
+		tx1 := *testTx1
 		tx1.Data = []byte("dummy")
-		tx2 := *tx2
+		tx2 := *testTx2
 		tx2.Data = []byte("dummy")
 
 		txVersionChecker := &testscommon.TxVersionCheckerStub{
@@ -1738,9 +1739,9 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		require.Nil(t, errMaxGasPrice)
 	})
 	t.Run("not guarded Tx with setGuardian call and price lower than max or equal OK", func(t *testing.T) {
-		tx1 := *tx1
+		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian
-		tx2 := *tx2
+		tx2 := *testTx2
 		tx2.GasPrice = maxAllowedGasPriceSetGuardian / 2
 
 		txVersionChecker := &testscommon.TxVersionCheckerStub{
@@ -1761,7 +1762,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		require.Nil(t, errMaxGasPrice)
 	})
 	t.Run("not guarded Tx with setGuardian call and price higher than max err", func(t *testing.T) {
-		tx1 := *tx1
+		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian * 2
 		txVersionChecker := &testscommon.TxVersionCheckerStub{
 			IsGuardedTransactionCalled: func(tx *dataTransaction.Transaction) bool {
@@ -1780,7 +1781,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 	t.Parallel()
 
-	txVersionChecker := testscommon.TxVersionCheckerStub{
+	testTxVersionChecker := testscommon.TxVersionCheckerStub{
 		IsGuardedTransactionCalled: func(tx *dataTransaction.Transaction) bool {
 			return true
 		},
@@ -1790,15 +1791,15 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 			return 1000
 		},
 	}
-	tx := dataTransaction.Transaction{
+	testTx := dataTransaction.Transaction{
 		Data:              []byte("some data"),
 		GuardianAddr:      []byte("guardian addr"),
 		GuardianSignature: []byte("guardian signature"),
 	}
 
 	t.Run("get data for signing with error", func(t *testing.T) {
-		tx := tx
-		txVersionChecker := txVersionChecker
+		tx := testTx
+		txVersionChecker := testTxVersionChecker
 		txVersionChecker.IsSignedWithHashCalled = func(tx *dataTransaction.Transaction) bool {
 			return true
 		}
@@ -1808,9 +1809,9 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 	})
 	t.Run("nil guardian sig", func(t *testing.T) {
-		tx := tx
+		tx := testTx
 		tx.GuardianSignature = nil
-		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &testTxVersionChecker)
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
@@ -1818,9 +1819,9 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("normal TX with not empty guardian address", func(t *testing.T) {
-		tx := tx
+		tx := testTx
 		tx.GuardianAddr = []byte("guardian addr")
-		txVersionChecker := txVersionChecker
+		txVersionChecker := testTxVersionChecker
 		txVersionChecker.IsGuardedTransactionCalled = func(tx *dataTransaction.Transaction) bool {
 			return false
 		}
@@ -1831,10 +1832,10 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.True(t, errors.Is(err, process.ErrGuardianAddressNotExpected))
 	})
 	t.Run("normal TX with guardian sig", func(t *testing.T) {
-		tx := tx
+		tx := testTx
 		tx.GuardianAddr = nil
 		tx.GuardianSignature = []byte("guardian signature")
-		txVersionChecker := txVersionChecker
+		txVersionChecker := testTxVersionChecker
 		txVersionChecker.IsGuardedTransactionCalled = func(tx *dataTransaction.Transaction) bool {
 			return false
 		}
@@ -1845,9 +1846,9 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.True(t, errors.Is(err, process.ErrGuardianSignatureNotExpected))
 	})
 	t.Run("wrong guardian sig", func(t *testing.T) {
-		tx := tx
+		tx := testTx
 		tx.GuardianSignature = sigBad
-		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &testTxVersionChecker)
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)
@@ -1855,9 +1856,9 @@ func TestInterceptedTransaction_VerifyGuardianSig(t *testing.T) {
 		require.Contains(t, err.Error(), "guardian's signature")
 	})
 	t.Run("correct guardian sig", func(t *testing.T) {
-		tx := tx
+		tx := testTx
 		tx.GuardianSignature = sigOk
-		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &txVersionChecker)
+		inTx, err := createInterceptedTxWithTxFeeHandlerAndVersionChecker(&tx, feeHandler, &testTxVersionChecker)
 		require.Nil(t, err)
 
 		err = inTx.VerifyGuardianSig(&tx)

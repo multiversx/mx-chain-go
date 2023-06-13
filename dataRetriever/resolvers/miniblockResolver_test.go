@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeerId = core.PeerID("from connected peer Id")
@@ -29,8 +28,6 @@ func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 		DataPacker:       &mock.DataPackerStub{},
 	}
 }
-
-//------- NewMiniblockResolver
 
 func TestNewMiniblockResolver_NilSenderResolverShouldErr(t *testing.T) {
 	t.Parallel()
@@ -98,6 +95,17 @@ func TestNewMiniblockResolver_NilThrottlerShouldErr(t *testing.T) {
 	assert.True(t, check.IfNil(mbRes))
 }
 
+func TestNewMiniblockResolver_NilDataPackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMiniblockResolver()
+	arg.DataPacker = nil
+	mbRes, err := resolvers.NewMiniblockResolver(arg)
+
+	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
+	assert.True(t, check.IfNil(mbRes))
+}
+
 func TestNewMiniblockResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -108,43 +116,9 @@ func TestNewMiniblockResolver_OkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(mbRes))
 }
 
-func TestMiniblockResolver_RequestDataFromHashArrayMarshalErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgMiniblockResolver()
-	arg.Marshaller.(*mock.MarshalizerMock).Fail = true
-	mbRes, err := resolvers.NewMiniblockResolver(arg)
-	assert.Nil(t, err)
-
-	err = mbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
-	require.NotNil(t, err)
-}
-
-func TestMiniblockResolver_RequestDataFromHashArray(t *testing.T) {
-	t.Parallel()
-
-	called := false
-	arg := createMockArgMiniblockResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-			called = true
-			return nil
-		},
-	}
-	mbRes, err := resolvers.NewMiniblockResolver(arg)
-	assert.Nil(t, err)
-
-	err = mbRes.RequestDataFromHashArray([][]byte{[]byte("hash")}, 0)
-	require.Nil(t, err)
-	require.True(t, called)
-}
-
-//------- ProcessReceivedMessage
-
 func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	arg := createMockArgMiniblockResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -155,8 +129,8 @@ func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T)
 
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
 	assert.True(t, errors.Is(err, expectedErr))
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
@@ -167,8 +141,8 @@ func TestMiniblockResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T)
 
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
@@ -180,8 +154,8 @@ func TestMiniblockResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, make([]byte, 0)), fromConnectedPeerId)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrRequestTypeNotImplemented))
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
@@ -231,8 +205,8 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSent)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
@@ -283,8 +257,149 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 	)
 
 	assert.True(t, errors.Is(err, errExpected))
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestMiniblockResolver_ProcessReceivedMessageUnmarshalFails(t *testing.T) {
+	t.Parallel()
+
+	goodMarshalizer := &mock.MarshalizerMock{}
+	cnt := 0
+	marshalizer := &mock.MarshalizerStub{
+		MarshalCalled: goodMarshalizer.Marshal,
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			cnt++
+			if cnt > 1 {
+				return expectedErr
+			}
+			return goodMarshalizer.Unmarshal(obj, buff)
+		},
+	}
+	mbHash := []byte("aaa")
+	miniBlockList := make([][]byte, 0)
+	miniBlockList = append(miniBlockList, mbHash)
+	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{Data: miniBlockList})
+
+	assert.Nil(t, merr)
+
+	cache := testscommon.NewCacherStub()
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		return nil, false
+	}
+
+	arg := createMockArgMiniblockResolver()
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = &storageStubs.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			body := block.MiniBlock{}
+			buff, _ := goodMarshalizer.Marshal(&body)
+			return buff, nil
+		},
+	}
+	arg.Marshaller = marshalizer
+	arg.DataPacker = &mock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			assert.Fail(t, "should not have been called")
+			return nil, nil
+		},
+	}
+	mbRes, _ := resolvers.NewMiniblockResolver(arg)
+
+	err := mbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
+		fromConnectedPeerId,
+	)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestMiniblockResolver_ProcessReceivedMessagePackDataInChunksFails(t *testing.T) {
+	t.Parallel()
+
+	goodMarshalizer := &mock.MarshalizerMock{}
+	mbHash := []byte("aaa")
+	miniBlockList := make([][]byte, 0)
+	miniBlockList = append(miniBlockList, mbHash)
+	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{Data: miniBlockList})
+
+	assert.Nil(t, merr)
+
+	cache := testscommon.NewCacherStub()
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		return nil, false
+	}
+
+	arg := createMockArgMiniblockResolver()
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = &storageStubs.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			body := block.MiniBlock{}
+			buff, _ := goodMarshalizer.Marshal(&body)
+			return buff, nil
+		},
+	}
+	arg.Marshaller = goodMarshalizer
+	arg.DataPacker = &mock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	mbRes, _ := resolvers.NewMiniblockResolver(arg)
+
+	err := mbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
+		fromConnectedPeerId,
+	)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestMiniblockResolver_ProcessReceivedMessageSendFails(t *testing.T) {
+	t.Parallel()
+
+	goodMarshalizer := &mock.MarshalizerMock{}
+	mbHash := []byte("aaa")
+	miniBlockList := make([][]byte, 0)
+	miniBlockList = append(miniBlockList, mbHash)
+	requestedBuff, merr := goodMarshalizer.Marshal(&batch.Batch{Data: miniBlockList})
+
+	assert.Nil(t, merr)
+
+	cache := testscommon.NewCacherStub()
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		return nil, false
+	}
+
+	arg := createMockArgMiniblockResolver()
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = &storageStubs.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			body := block.MiniBlock{}
+			buff, _ := goodMarshalizer.Marshal(&body)
+			return buff, nil
+		},
+	}
+	arg.Marshaller = goodMarshalizer
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			return expectedErr
+		},
+	}
+	mbRes, _ := resolvers.NewMiniblockResolver(arg)
+
+	err := mbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, requestedBuff),
+		fromConnectedPeerId,
+	)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
@@ -330,8 +445,59 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
 	assert.True(t, wasSend)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
+func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("aaa")
+	marshalizer := &mock.MarshalizerMock{}
+	miniBlockList := make([][]byte, 0)
+	miniBlockList = append(miniBlockList, mbHash)
+	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
+
+	wasResolved := false
+
+	cache := testscommon.NewCacherStub()
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		return nil, false
+	}
+
+	store := &storageStubs.StorerStub{}
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
+		wasResolved = true
+		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
+		return mb, nil
+	}
+
+	arg := createMockArgMiniblockResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			assert.Fail(t, "should have not been called")
+			return nil
+		},
+	}
+	arg.MiniBlockPool = cache
+	arg.MiniBlockStorage = store
+	arg.Marshaller = &mock.MarshalizerStub{
+		UnmarshalCalled: marshalizer.Unmarshal,
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	mbRes, _ := resolvers.NewMiniblockResolver(arg)
+
+	err := mbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		fromConnectedPeerId,
+	)
+
+	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, wasResolved)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
@@ -372,52 +538,8 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	)
 
 	assert.False(t, wasSent)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
-}
-
-//------- Requests
-
-func TestMiniblockResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-
-	buffRequested := []byte("aaaa")
-
-	arg := createMockArgMiniblockResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
-			wasCalled = true
-			return nil
-		},
-	}
-	mbRes, _ := resolvers.NewMiniblockResolver(arg)
-
-	assert.Nil(t, mbRes.RequestDataFromHash(buffRequested, 0))
-	assert.True(t, wasCalled)
-}
-
-//------ NumPeersToQuery setter and getter
-
-func TestMiniblockResolver_SetAndGetNumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	expectedIntra := 5
-	expectedCross := 7
-
-	arg := createMockArgMiniblockResolver()
-	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return expectedIntra, expectedCross
-		},
-	}
-	mbRes, _ := resolvers.NewMiniblockResolver(arg)
-
-	mbRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := mbRes.NumPeersToQuery()
-	assert.Equal(t, expectedIntra, actualIntra)
-	assert.Equal(t, expectedCross, actualCross)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 }
 
 func TestMiniblockResolver_Close(t *testing.T) {

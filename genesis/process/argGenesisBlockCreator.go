@@ -35,7 +35,7 @@ type dataComponentsHandler interface {
 	StorageService() dataRetriever.StorageService
 	Blockchain() data.ChainHandler
 	Datapool() dataRetriever.PoolsHolder
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -60,7 +60,6 @@ type ArgsGenesisBlockCreator struct {
 	TrieStorageManagers  map[string]common.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
 	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
 

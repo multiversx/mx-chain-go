@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -130,110 +131,6 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 	})
 }
 
-func TestValidatorInfoResolver_RequestDataFromHash(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				return expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHash(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedHash := []byte("provided hash")
-		providedEpoch := uint32(123)
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				assert.Equal(t, providedHash, originalHashes[0])
-				assert.Equal(t, dataRetriever.HashType, rd.Type)
-				assert.Equal(t, providedHash, rd.Value)
-				assert.Equal(t, providedEpoch, rd.Epoch)
-
-				return nil
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		require.False(t, check.IfNil(res))
-
-		err := res.RequestDataFromHash(providedHash, providedEpoch)
-		assert.Nil(t, err)
-	})
-}
-
-func TestValidatorInfoResolver_RequestDataFromHashArray(t *testing.T) {
-	t.Parallel()
-
-	t.Run("marshal returns error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.Marshaller = &testscommon.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHashArray(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("expected err")
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				return expectedErr
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		err := res.RequestDataFromHashArray(nil, 0)
-		assert.Equal(t, expectedErr, err)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		providedHashes := [][]byte{[]byte("provided hash")}
-		providedEpoch := uint32(123)
-		args := createMockArgValidatorInfoResolver()
-		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-				assert.Equal(t, providedHashes, originalHashes)
-				assert.Equal(t, dataRetriever.HashArrayType, rd.Type)
-
-				b := &batch.Batch{}
-				_ = args.Marshaller.Unmarshal(b, rd.Value)
-				assert.Equal(t, providedHashes, b.Data)
-				assert.Equal(t, providedEpoch, rd.Epoch)
-
-				return nil
-			},
-		}
-
-		res, _ := resolvers.NewValidatorInfoResolver(args)
-		require.False(t, check.IfNil(res))
-
-		err := res.RequestDataFromHashArray(providedHashes, providedEpoch)
-		assert.Nil(t, err)
-	})
-}
-
 func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 
@@ -249,7 +146,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("canProcessMessage due to antiflood handler error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -261,13 +157,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer)
 		assert.True(t, errors.Is(err, expectedErr))
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	})
 	t.Run("parseReceivedMessage returns error due to marshalizer error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -295,7 +190,6 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data not found in cache and fetchValidatorInfoByteSlice fails when getting data from storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -316,20 +210,19 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in cache but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
-		marshallerMock := testscommon.MarshalizerMock{}
+		marshMock := marshallerMock.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return []byte("some value"), true
 			},
 		}
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return marshallerMock.Unmarshal(obj, buff)
+				return marshMock.Unmarshal(obj, buff)
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
@@ -341,8 +234,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("data found in storage but marshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
-		marshallerMock := testscommon.MarshalizerMock{}
+		marshMock := marshallerMock.MarshalizerMock{}
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -354,12 +246,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				return []byte("some value"), nil
 			},
 		}
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return marshallerMock.Unmarshal(obj, buff)
+				return marshMock.Unmarshal(obj, buff)
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
@@ -381,12 +273,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				marshallerMock := testscommon.MarshalizerMock{}
+				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
-				_ = marshallerMock.Unmarshal(b, buff)
+				_ = marshMock.Unmarshal(b, buff)
 
 				vi := &state.ValidatorInfo{}
-				_ = marshallerMock.Unmarshal(vi, b.Data[0])
+				_ = marshMock.Unmarshal(vi, b.Data[0])
 
 				assert.Equal(t, &providedValue, vi)
 				wasCalled = true
@@ -414,18 +306,18 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.ValidatorInfoStorage = &storage.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				marshallerMock := testscommon.MarshalizerMock{}
-				return marshallerMock.Marshal(providedValue)
+				marshMock := marshallerMock.MarshalizerMock{}
+				return marshMock.Marshal(providedValue)
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				marshallerMock := testscommon.MarshalizerMock{}
+				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
-				_ = marshallerMock.Unmarshal(b, buff)
+				_ = marshMock.Unmarshal(b, buff)
 
 				vi := &state.ValidatorInfo{}
-				_ = marshallerMock.Unmarshal(vi, b.Data[0])
+				_ = marshMock.Unmarshal(vi, b.Data[0])
 
 				assert.Equal(t, &providedValue, vi)
 				wasCalled = true
@@ -445,13 +337,12 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("unmarshal fails", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				switch obj.(type) {
 				case *dataRetriever.RequestData:
-					return testscommon.MarshalizerMock{}.Unmarshal(obj, buff)
+					return marshallerMock.MarshalizerMock{}.Unmarshal(obj, buff)
 				case *batch.Batch:
 					return expectedErr
 				}
@@ -489,10 +380,9 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		require.NotNil(t, err)
 		assert.True(t, strings.Contains(err.Error(), dataRetriever.ErrValidatorInfoNotFound.Error()))
 	})
-	t.Run("pack data in chuncks returns error", func(t *testing.T) {
+	t.Run("pack data in chunks returns error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
 		args := createMockArgValidatorInfoResolver()
 		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -516,6 +406,40 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			Data: [][]byte{[]byte("hash")},
 		}
 		buff, _ := args.Marshaller.Marshal(b)
+		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("send returns error", func(t *testing.T) {
+		t.Parallel()
+
+		numOfProvidedData := 3
+		providedHashes := make([][]byte, 0)
+		providedData := make([]state.ValidatorInfo, 0)
+		for i := 0; i < numOfProvidedData; i++ {
+			hashStr := fmt.Sprintf("hash%d", i)
+			providedHashes = append(providedHashes, []byte(hashStr))
+			pkStr := fmt.Sprintf("pk%d", i)
+			providedData = append(providedData, createMockValidatorInfo([]byte(pkStr)))
+		}
+		args := createMockArgValidatorInfoResolver()
+		numOfCalls := 0
+		args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				val := providedData[numOfCalls]
+				numOfCalls++
+				return val, true
+			},
+		}
+		args.SenderResolver = &mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer core.PeerID) error {
+				return expectedErr
+			},
+		}
+		args.DataPacker, _ = partitioning.NewSimpleDataPacker(args.Marshaller)
+		res, _ := resolvers.NewValidatorInfoResolver(args)
+		require.False(t, check.IfNil(res))
+
+		buff, _ := args.Marshaller.Marshal(&batch.Batch{Data: providedHashes})
 		err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -543,14 +467,14 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				marshallerMock := testscommon.MarshalizerMock{}
+				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
-				_ = marshallerMock.Unmarshal(b, buff)
+				_ = marshMock.Unmarshal(b, buff)
 				assert.Equal(t, numOfProvidedData, len(b.Data))
 
 				for i := 0; i < numOfProvidedData; i++ {
 					vi := &state.ValidatorInfo{}
-					_ = marshallerMock.Unmarshal(vi, b.Data[i])
+					_ = marshMock.Unmarshal(vi, b.Data[i])
 
 					assert.Equal(t, &providedData[i], vi)
 				}
@@ -576,7 +500,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashes := make([][]byte, 0)
 		providedData := make([]state.ValidatorInfo, 0)
 		testHasher := hashingMocks.HasherMock{}
-		testMarshaller := testscommon.MarshalizerMock{}
+		testMarshaller := marshallerMock.MarshalizerMock{}
 		providedDataMap := make(map[string]struct{}, 0)
 		for i := 0; i < numOfProvidedData; i++ {
 			hashStr := fmt.Sprintf("hash%d", i)
@@ -601,19 +525,19 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		numOfCallsSend := 0
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID) error {
-				marshallerMock := testscommon.MarshalizerMock{}
+				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
-				_ = marshallerMock.Unmarshal(b, buff)
+				_ = marshMock.Unmarshal(b, buff)
 
 				dataLen := len(b.Data)
 				for i := 0; i < dataLen; i++ {
 					vi := &state.ValidatorInfo{}
-					_ = marshallerMock.Unmarshal(vi, b.Data[i])
+					_ = marshMock.Unmarshal(vi, b.Data[i])
 
 					// remove this info from the provided map
-					buff, err := testMarshaller.Marshal(vi)
+					validatorInfoBuff, err := testMarshaller.Marshal(vi)
 					require.Nil(t, err)
-					hash := testHasher.Compute(string(buff))
+					hash := testHasher.Compute(string(validatorInfoBuff))
 					delete(providedDataMap, string(hash))
 				}
 
@@ -633,7 +557,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	})
 }
 
-func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
+func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -646,32 +570,5 @@ func TestValidatorInfoResolver_SetResolverDebugHandler(t *testing.T) {
 	res, _ := resolvers.NewValidatorInfoResolver(createMockArgValidatorInfoResolver())
 	require.False(t, check.IfNil(res))
 
-	_ = res.SetResolverDebugHandler(nil)
-}
-
-func TestValidatorInfoResolver_NumPeersToQuery(t *testing.T) {
-	t.Parallel()
-
-	providedIntra, providedCross := 5, 10
-	receivedIntra, receivedCross := 0, 0
-	args := createMockArgValidatorInfoResolver()
-	args.SenderResolver = &mock.TopicResolverSenderStub{
-		SetNumPeersToQueryCalled: func(intra int, cross int) {
-			assert.Equal(t, providedIntra, intra)
-			assert.Equal(t, providedCross, cross)
-			receivedIntra = intra
-			receivedCross = cross
-		},
-		GetNumPeersToQueryCalled: func() (int, int) {
-			return receivedIntra, receivedCross
-		},
-	}
-
-	res, _ := resolvers.NewValidatorInfoResolver(args)
-	require.False(t, check.IfNil(res))
-
-	res.SetNumPeersToQuery(providedIntra, providedCross)
-	intra, cross := res.NumPeersToQuery()
-	assert.Equal(t, providedIntra, intra)
-	assert.Equal(t, providedCross, cross)
+	_ = res.SetDebugHandler(nil)
 }

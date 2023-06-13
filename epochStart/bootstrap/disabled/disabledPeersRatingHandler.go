@@ -10,10 +10,6 @@ func NewDisabledPeersRatingHandler() *disabledPeersRatingHandler {
 	return &disabledPeersRatingHandler{}
 }
 
-// AddPeer does nothing as it is disabled
-func (dprs *disabledPeersRatingHandler) AddPeer(_ core.PeerID) {
-}
-
 // IncreaseRating does nothing as it is disabled
 func (dprs *disabledPeersRatingHandler) IncreaseRating(_ core.PeerID) {
 }

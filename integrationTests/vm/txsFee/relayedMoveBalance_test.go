@@ -336,10 +336,3 @@ func executeRelayedTransaction(
 	_, err := testContext.Accounts.Commit()
 	require.Nil(tb, err)
 }
-
-func getAccount(tb testing.TB, testContext *vm.VMTestContext, address []byte) vmcommon.UserAccountHandler {
-	account, err := testContext.Accounts.LoadAccount(address)
-	require.Nil(tb, err)
-
-	return account.(vmcommon.UserAccountHandler)
-}

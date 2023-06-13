@@ -17,7 +17,7 @@ type ArgBootstrapSender struct {
 	HeartbeatTopic                     string
 	HeartbeatTimeBetweenSends          time.Duration
 	HeartbeatTimeBetweenSendsWhenError time.Duration
-	HeartbeatThresholdBetweenSends     float64
+	HeartbeatTimeThresholdBetweenSends float64
 	VersionNumber                      string
 	NodeDisplayName                    string
 	Identity                           string
@@ -44,7 +44,7 @@ func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},

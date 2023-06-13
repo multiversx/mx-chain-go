@@ -294,14 +294,19 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	fmt.Println(testDir)
 	args := getDefaultArgs()
-	args.PersisterFactory = factory.NewPersisterFactory(config.DBConfig{
-		FilePath:          filepath.Join(testDir, dbName),
-		Type:              "LvlDBSerial",
-		MaxBatchSize:      100,
-		MaxOpenFiles:      10,
-		BatchDelaySeconds: 2,
-	})
-	var err error
+	dbConfigHandler := factory.NewDBConfigHandler(
+		config.DBConfig{
+			FilePath:          filepath.Join(testDir, dbName),
+			Type:              "LvlDBSerial",
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			BatchDelaySeconds: 2,
+		},
+	)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	require.Nil(t, err)
+	args.PersisterFactory = persisterFactory
+
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
 	fhArgs := pruning.FullHistoryStorerArgs{

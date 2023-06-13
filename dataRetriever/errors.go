@@ -58,6 +58,9 @@ var ErrNilHeadersNoncesStorage = errors.New("nil headers nonces storage")
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
 
+// ErrNilRequestSender signals that a nil request sender object has been provided
+var ErrNilRequestSender = errors.New("nil request sender")
+
 // ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
 // and an uint64 can not be decoded from that byte slice
 var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
@@ -88,6 +91,9 @@ var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
 
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilRequestersContainer signals that a nil requesters container was provided
+var ErrNilRequestersContainer = errors.New("nil requesters container")
 
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
@@ -134,8 +140,8 @@ var ErrRequestTypeNotImplemented = errors.New("request type is not implemented")
 // ErrNilDataPacker signals that a nil data packer has been provided
 var ErrNilDataPacker = errors.New("nil data packer provided")
 
-// ErrNilResolverFinder signals that a nil resolver finder has been provided
-var ErrNilResolverFinder = errors.New("nil resolvers finder")
+// ErrNilRequestersFinder signals that a nil requesters finder has been provided
+var ErrNilRequestersFinder = errors.New("nil requesters finder")
 
 // ErrInvalidMaxTxRequest signals that max tx request is too small
 var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
@@ -194,8 +200,8 @@ var ErrNilWhiteListHandler = errors.New("nil white list handler")
 // ErrRequestIntervalTooSmall signals that request interval is too small
 var ErrRequestIntervalTooSmall = errors.New("request interval is too small")
 
-// ErrNilResolverDebugHandler signals that a nil resolver debug handler has been provided
-var ErrNilResolverDebugHandler = errors.New("nil resolver debug handler")
+// ErrNilDebugHandler signals that a nil debug handler has been provided
+var ErrNilDebugHandler = errors.New("nil debug handler")
 
 // ErrMissingData signals that the required data is missing
 var ErrMissingData = errors.New("missing data")

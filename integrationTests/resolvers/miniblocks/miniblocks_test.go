@@ -35,10 +35,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	requester, err := nRequester.RequestersFinder.IntraShardRequester(factory.MiniBlocksTopic)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -71,10 +71,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, shardIdResolver)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -106,10 +106,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -141,10 +141,10 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, shardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -176,10 +176,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -212,10 +212,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -247,10 +247,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -282,10 +282,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	}, core.UniqueIdentifier())
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
 	nRequester.WhiteListHandler.Add([][]byte{hash})
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()

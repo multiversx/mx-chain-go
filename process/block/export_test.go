@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -113,7 +114,7 @@ func NewShardProcessorEmptyWith3shards(
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -163,6 +164,7 @@ func NewShardProcessorEmptyWith3shards(
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -344,10 +346,9 @@ func (sp *shardProcessor) DisplayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
-	statusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
-	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, statusHandler, blockTracker)
+	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool, blockTracker)
 }
 
 func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {
@@ -496,7 +497,7 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 }
 
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
+	return checkProcessorParameters(arguments)
 }
 
 func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {

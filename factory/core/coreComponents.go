@@ -224,6 +224,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
+	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
 	if err != nil {
 		return nil, err
@@ -324,6 +325,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	encodedAddressLen, err := computeEncodedAddressLen(addressPubkeyConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -352,7 +358,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
-		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
+		encodedAddressLen:             encodedAddressLen,
 		nodeTypeProvider:              nodeTypeProvider,
 		wasmVMChangeLocker:            wasmVMChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
@@ -375,8 +381,12 @@ func (cc *coreComponents) Close() error {
 	return nil
 }
 
-func computeEncodedAddressLen(converter core.PubkeyConverter) uint32 {
+func computeEncodedAddressLen(converter core.PubkeyConverter) (uint32, error) {
 	emptyAddress := bytes.Repeat([]byte{0}, converter.Len())
-	encodedEmptyAddress := converter.Encode(emptyAddress)
-	return uint32(len(encodedEmptyAddress))
+	encodedEmptyAddress, err := converter.Encode(emptyAddress)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(len(encodedEmptyAddress)), nil
 }

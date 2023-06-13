@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	p2pConfig "github.com/multiversx/mx-chain-p2p-go/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/stretchr/testify/require"
 )
 

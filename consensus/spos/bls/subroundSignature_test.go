@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -277,22 +278,22 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	sr.Data = []byte("X")
 
 	err := errors.New("create signature share error")
-	signatureHandler := &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+	signingHandler := &consensusMocks.SigningHandlerStub{
+		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 
 	r = sr.DoSignatureJob()
 	assert.False(t, r)
 
-	signatureHandler = &mock.SignatureHandlerStub{
-		CreateSignatureShareCalled: func(msg []byte, index uint16, epoch uint32) ([]byte, error) {
+	signingHandler = &consensusMocks.SigningHandlerStub{
+		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
@@ -324,6 +325,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	sr.Header = &block.Header{}
@@ -361,21 +363,25 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
+func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	t.Parallel()
 
-	errVerify := errors.New("signature share verification failed")
-	verifyCalled := false
-	signatureHandler := &mock.SignatureHandlerStub{
+	errStore := errors.New("signature share store failed")
+	storeSigShareCalled := false
+	signingHandler := &consensusMocks.SigningHandlerStub{
 		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-			verifyCalled = true
-			return errVerify
+			return nil
+		},
+		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
+			storeSigShareCalled = true
+			return errStore
 		},
 	}
 
 	container := mock.InitConsensusCore()
-	container.SetSignatureHandler(signatureHandler)
+	container.SetSigningHandler(signingHandler)
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.Header = &block.Header{}
 
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(
@@ -392,6 +398,7 @@ func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	sr.Data = nil
@@ -424,11 +431,9 @@ func TestSubroundSignature_ReceivedSignatureVerifyShareFailed(t *testing.T) {
 			}
 		}
 	}
-
-	sr.Header = &block.Header{Epoch: 0}
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
-	assert.True(t, verifyCalled)
+	assert.True(t, storeSigShareCalled)
 }
 
 func TestSubroundSignature_SignaturesCollected(t *testing.T) {
@@ -604,6 +609,7 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		nil,
 		nil,
 		currentPid,
+		nil,
 	)
 
 	assert.False(t, sr.ReceivedSignature(cnsMsg))

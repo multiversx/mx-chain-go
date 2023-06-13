@@ -22,10 +22,12 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +68,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, shardCoordinator)
+	stateComponents := componentsMock.GetStateComponents(coreComponents)
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
 	argsB := componentsMock.GetBootStrapFactoryArgs()
 
@@ -291,14 +293,14 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		},
 		EpochConfig: &config.EpochConfig{},
 		CoreComponents: &mock.CoreComponentsMock{
-			AddrPubKeyConv: &mock.PubkeyConverterStub{
+			AddrPubKeyConv: &testscommon.PubkeyConverterStub{
 				DecodeCalled: func(humanReadable string) ([]byte, error) {
 					return []byte(humanReadable), nil
 				},
 			},
-			IntMarsh:                   &testscommon.MarshalizerStub{},
+			IntMarsh:                   &marshallerMock.MarshalizerStub{},
 			EpochChangeNotifier:        &epochNotifierMock.EpochNotifierStub{},
-			EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			UInt64ByteSliceConv:        &testsMocks.Uint64ByteSliceConverterMock{},
 			EconomicsHandler:           &economicsmocks.EconomicsHandlerStub{},
 			NodesConfig:                &testscommon.NodesSetupStub{},

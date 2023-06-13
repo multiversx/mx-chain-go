@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,7 +99,7 @@ func TestEpochStartMetaBlockInterceptor_ProcessReceivedMessageUnmarshalError(t *
 	esmbi, _ := interceptors.NewEpochStartMetaBlockInterceptor(getArgsEpochStartMetaBlockInterceptor())
 	require.NotNil(t, esmbi)
 
-	message := &mock.P2PMessageMock{DataField: []byte("wrong meta block  bytes")}
+	message := &p2pmocks.P2PMessageMock{DataField: []byte("wrong meta block  bytes")}
 	err := esmbi.ProcessReceivedMessage(message, "")
 	require.Error(t, err)
 }
@@ -114,7 +115,7 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 		require.Equal(t, expectedEpoch, mbEpoch)
 		wasCalled = true
 	}
-	args.NumConnectedPeersProvider = &mock.MessengerStub{
+	args.NumConnectedPeersProvider = &p2pmocks.MessengerStub{
 		ConnectedPeersCalled: func() []core.PeerID {
 			return make([]core.PeerID, 6) // 6 connected peers
 		},
@@ -143,23 +144,23 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	wrongMetaBlock := &block.MetaBlock{Epoch: 0}
 	wrongMetaBlockBytes, _ := args.Marshalizer.Marshal(wrongMetaBlock)
 
-	err := esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer0")
+	err := esmbi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: metaBlockBytes}, "peer0")
 	require.NoError(t, err)
 	require.False(t, wasCalled)
 
-	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
+	_ = esmbi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
 	require.False(t, wasCalled)
 
 	// send again from peer1 => should not be taken into account
-	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
+	_ = esmbi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
 	require.False(t, wasCalled)
 
 	// send another meta block
-	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: wrongMetaBlockBytes}, "peer2")
+	_ = esmbi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: wrongMetaBlockBytes}, "peer2")
 	require.False(t, wasCalled)
 
 	// send the last needed metablock from a new peer => should fetch the epoch
-	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer3")
+	_ = esmbi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: metaBlockBytes}, "peer3")
 	require.True(t, wasCalled)
 
 }
@@ -168,7 +169,7 @@ func getArgsEpochStartMetaBlockInterceptor() interceptors.ArgsEpochStartMetaBloc
 	return interceptors.ArgsEpochStartMetaBlockInterceptor{
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &hashingMocks.HasherMock{},
-		NumConnectedPeersProvider: &mock.MessengerStub{},
+		NumConnectedPeersProvider: &p2pmocks.MessengerStub{},
 		ConsensusPercentage:       50,
 	}
 }

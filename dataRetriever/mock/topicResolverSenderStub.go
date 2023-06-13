@@ -8,42 +8,14 @@ import (
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SendCalled               func(buff []byte, peer core.PeerID) error
-	TargetShardIDCalled      func() uint32
-	SetNumPeersToQueryCalled func(intra int, cross int)
-	GetNumPeersToQueryCalled func() (int, int)
-	debugHandler             dataRetriever.ResolverDebugHandler
-}
-
-// SetNumPeersToQuery -
-func (trss *TopicResolverSenderStub) SetNumPeersToQuery(intra int, cross int) {
-	if trss.SetNumPeersToQueryCalled != nil {
-		trss.SetNumPeersToQueryCalled(intra, cross)
-	}
-}
-
-// NumPeersToQuery -
-func (trss *TopicResolverSenderStub) NumPeersToQuery() (int, int) {
-	if trss.GetNumPeersToQueryCalled != nil {
-		return trss.GetNumPeersToQueryCalled()
-	}
-
-	return 2, 2
+	SendCalled          func(buff []byte, peer core.PeerID) error
+	TargetShardIDCalled func() uint32
+	debugHandler        dataRetriever.DebugHandler
 }
 
 // RequestTopic -
 func (trss *TopicResolverSenderStub) RequestTopic() string {
 	return "topic_REQUEST"
-}
-
-// SendOnRequestTopic -
-func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-	if trss.SendOnRequestTopicCalled != nil {
-		return trss.SendOnRequestTopicCalled(rd, originalHashes)
-	}
-
-	return nil
 }
 
 // Send -
@@ -64,17 +36,17 @@ func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	return 0
 }
 
-// ResolverDebugHandler -
-func (trss *TopicResolverSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+// DebugHandler -
+func (trss *TopicResolverSenderStub) DebugHandler() dataRetriever.DebugHandler {
 	if check.IfNil(trss.debugHandler) {
-		return &ResolverDebugHandler{}
+		return &DebugHandler{}
 	}
 
 	return trss.debugHandler
 }
 
-// SetResolverDebugHandler -
-func (trss *TopicResolverSenderStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler -
+func (trss *TopicResolverSenderStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	trss.debugHandler = handler
 
 	return nil
