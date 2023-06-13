@@ -701,6 +701,8 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		return vm.ErrInvalidNumOfArguments
 	}
 
+	isUpgradablePropertyInArgs := false
+	isCanAddSpecialRolePropertyInArgs := false
 	for i := 0; i < len(args); i += 2 {
 		optionalArg := string(args[i])
 		val, err := checkAndGetSetting(string(args[i+1]))
@@ -726,10 +728,12 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 			token.CanWipe = val
 		case upgradable:
 			token.Upgradable = val
+			isUpgradablePropertyInArgs = true
 		case canChangeOwner:
 			token.CanChangeOwner = val
 		case canAddSpecialRoles:
 			token.CanAddSpecialRoles = val
+			isCanAddSpecialRolePropertyInArgs = true
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
 		case canCreateMultiShard:
@@ -752,6 +756,14 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 	nonce := big.NewInt(0)
 	topics = append(topics, tokenIdentifier, nonce.Bytes())
 	topics = append(topics, args...)
+
+	if !isUpgradablePropertyInArgs {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable))
+	}
+	if !isCanAddSpecialRolePropertyInArgs {
+		topics = append(topics, []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+	}
+
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(upgradeProperties),
 		Address:    callerAddr,
