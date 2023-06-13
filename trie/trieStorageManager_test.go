@@ -359,7 +359,7 @@ func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
 
 	RemoveFromAllActiveEpochsCalled := false
 	removeFromCheckpointCalled := false
-	args := getNewTrieStorageManagerArgs()
+	args := trie.GetDefaultTrieStorageManagerParameters()
 	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
 		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
