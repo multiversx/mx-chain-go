@@ -251,8 +251,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		}
 	}
 
-	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-	epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, epoch)
+	epochConfigBytes, err := ihnc.getNodesConfigFromStorer(epoch)
 	if err != nil {
 		return nil, false
 	}
@@ -275,6 +274,38 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfigEpoch, 0)
 
 	return nodesConfigEpoch, ok
+}
+
+func (ihnc *indexHashedNodesCoordinator) getNodesConfigFromStorer(epoch uint32) ([]byte, error) {
+	var err error
+
+	mostRecentEpoch := ihnc.getMostRecentLoadedEpoch()
+
+	for epoch := mostRecentEpoch; epoch >= mostRecentEpoch-ihnc.numStoredEpochs; epoch-- {
+		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
+		epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, epoch)
+		if err == nil {
+			return epochConfigBytes, nil
+		}
+	}
+
+	return nil, err
+}
+
+func (ihnc *indexHashedNodesCoordinator) getMostRecentLoadedEpoch() uint32 {
+	var maxEpoch uint32
+
+	for maxEpoch = range ihnc.nodesConfig {
+		break
+	}
+
+	for epoch := range ihnc.nodesConfig {
+		if epoch > maxEpoch {
+			maxEpoch = epoch
+		}
+	}
+
+	return maxEpoch
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
