@@ -29,7 +29,7 @@
    PreferredConnections = []
 
    # PreferredFullArchiveConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
-   # This is only considered on FullArchive mode
+   # This is only considered on FullArchive mode but each full archive preferred peer must be added to PreferredConnections as well
    # Example:
    # PreferredConnections = [
    #    "127.0.0.10",
