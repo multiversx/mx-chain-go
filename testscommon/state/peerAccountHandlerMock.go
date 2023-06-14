@@ -1,4 +1,4 @@
-package mock
+package state
 
 import (
 	"math/big"
@@ -28,23 +28,7 @@ type PeerAccountHandlerMock struct {
 	SetListAndIndexCalled                        func(shardID uint32, list string, index uint32)
 	GetListCalled                                func() string
 	GetUnStakedEpochCalled                       func() uint32
-}
-
-// SignRate -
-type SignRate struct {
-	NumSuccess uint32
-	NumFailure uint32
-}
-
-// GetNumSuccess -
-func (s *SignRate) GetNumSuccess() uint32 {
-	return s.NumSuccess
-
-}
-
-// GetNumFailure -
-func (s *SignRate) GetNumFailure() uint32 {
-	return s.NumFailure
+	AddressBytesCalled                           func() []byte
 }
 
 // GetUnStakedEpoch -
@@ -233,6 +217,10 @@ func (p *PeerAccountHandlerMock) ResetAtNewEpoch() {
 
 // AddressBytes -
 func (p *PeerAccountHandlerMock) AddressBytes() []byte {
+	if p.AddressBytesCalled != nil {
+		return p.AddressBytesCalled()
+	}
+
 	return nil
 }
 

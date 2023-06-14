@@ -27,7 +27,7 @@ type userAccount struct {
 
 var zero = big.NewInt(0)
 
-// NewUserAccount creates a new instance of accounts
+// NewUserAccount creates a new instance of user account
 func NewUserAccount(
 	address []byte,
 	trackableDataTrie common.DataTrieTracker,

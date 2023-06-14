@@ -327,7 +327,7 @@ func TestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.PeerAccountHandlerMock{}, nil
+			return &stateMock.PeerAccountHandlerMock{}, nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)

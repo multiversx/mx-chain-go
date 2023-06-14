@@ -64,9 +64,6 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
 	accF, _ := factory.NewAccountCreator(getDefaultArgs())
-
-	_, ok := accF.(*factory.AccountCreator)
-	assert.Equal(t, true, ok)
 	assert.False(t, check.IfNil(accF))
 
 	acc, err := accF.CreateAccount(nil)
@@ -80,11 +77,7 @@ func TestAccountCreator_CreateAccountOk(t *testing.T) {
 
 	accF, _ := factory.NewAccountCreator(getDefaultArgs())
 
-	_, ok := accF.(*factory.AccountCreator)
-	assert.Equal(t, true, ok)
-
 	acc, err := accF.CreateAccount(make([]byte, 32))
-
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
 }

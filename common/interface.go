@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"math/big"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
@@ -494,7 +494,7 @@ type UserAccountHandler interface {
 	vmcommon.AccountHandler
 }
 
-// DataTrieTracker models what how to manipulate data held by a SC account
+// DataTrieTracker models how to manipulate data held by a SC account
 type DataTrieTracker interface {
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error

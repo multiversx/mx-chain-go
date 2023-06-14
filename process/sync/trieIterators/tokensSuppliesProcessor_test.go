@@ -196,7 +196,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		dtt, _ := state.NewTrackableDataTrie([]byte("addr"), nil, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		dtt, _ := state.NewTrackableDataTrie([]byte("addr"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)
 		userAcc.SetRootHash([]byte("rootHash"))

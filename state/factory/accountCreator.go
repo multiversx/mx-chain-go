@@ -20,7 +20,7 @@ type ArgsAccountCreator struct {
 }
 
 // AccountCreator has method to create a new account
-type AccountCreator struct {
+type accountCreator struct {
 	hasher              hashing.Hasher
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
@@ -38,7 +38,7 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
-	return &AccountCreator{
+	return &accountCreator{
 		hasher:              args.Hasher,
 		marshaller:          args.Marshaller,
 		enableEpochsHandler: args.EnableEpochsHandler,
@@ -46,8 +46,8 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (ac *AccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	trackableDataTrie, err := state.NewTrackableDataTrie(address, nil, ac.hasher, ac.marshaller, ac.enableEpochsHandler)
+func (ac *accountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
+	trackableDataTrie, err := state.NewTrackableDataTrie(address, ac.hasher, ac.marshaller, ac.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +61,6 @@ func (ac *AccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ac *AccountCreator) IsInterfaceNil() bool {
+func (ac *accountCreator) IsInterfaceNil() bool {
 	return ac == nil
 }

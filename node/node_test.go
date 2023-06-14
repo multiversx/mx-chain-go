@@ -96,7 +96,7 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createAcc(address []byte) common.UserAccountHandler {
 	dtlp, _ := parsers.NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := state.NewTrackableDataTrie(address, nil, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := state.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	acc, _ := accounts.NewUserAccount(address, dtt, dtlp)
 
 	return acc

@@ -103,7 +103,7 @@ func NewEmptyAccount(
 ) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		dtt, err := state.NewTrackableDataTrie(address, nil, hasher, marshaller, enableEpochsHandler)
+		dtt, err := state.NewTrackableDataTrie(address, hasher, marshaller, enableEpochsHandler)
 		if err != nil {
 			return nil, err
 		}

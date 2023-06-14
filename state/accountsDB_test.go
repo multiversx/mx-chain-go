@@ -2482,7 +2482,7 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("unmarshall err", func(t *testing.T) {
+	t.Run("unmarshal error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("expected error")
@@ -2502,7 +2502,7 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 	t.Run("return peer account directly", func(t *testing.T) {
 		t.Parallel()
 
-		expectedAccount := &mock.PeerAccountHandlerMock{}
+		expectedAccount := &stateMock.PeerAccountHandlerMock{}
 		args := createMockAccountsDBArgs()
 		args.AccountFactory = &stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(_ []byte, _ hashing.Hasher, _ marshal.Marshalizer) (vmcommon.AccountHandler, error) {

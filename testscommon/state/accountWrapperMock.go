@@ -42,7 +42,6 @@ var errInsufficientBalance = fmt.Errorf("insufficient balance")
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 	tdt, _ := state.NewTrackableDataTrie(
 		[]byte("identifier"),
-		nil,
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},

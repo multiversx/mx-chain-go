@@ -2,8 +2,6 @@ package trie
 
 import "github.com/multiversx/mx-chain-core-go/core"
 
-// generate stub code for TrieLeafParser interface
-
 // TrieLeafParserStub -
 type TrieLeafParserStub struct {
 	ParseLeafCalled func(key []byte, val []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error)
