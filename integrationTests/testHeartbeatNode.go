@@ -741,22 +741,40 @@ func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
 
 }
 
-// ConnectTo will try to initiate a connection to the provided parameter
-func (thn *TestHeartbeatNode) ConnectTo(connectable Connectable) error {
+// ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
+func (thn *TestHeartbeatNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return thn.MainMessenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return thn.MainMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
-// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
-func (thn *TestHeartbeatNode) GetConnectableAddress() string {
+// ConnectOnFullArchive will try to initiate a connection to the provided parameter on the full archive messenger
+func (thn *TestHeartbeatNode) ConnectOnFullArchive(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return thn.FullArchiveMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
+}
+
+// GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (thn *TestHeartbeatNode) GetMainConnectableAddress() string {
 	if thn == nil {
 		return "nil"
 	}
 
 	return GetConnectableAddress(thn.MainMessenger)
+}
+
+// GetFullArchiveConnectableAddress returns a non circuit, non windows default connectable p2p address of the full archive network
+func (thn *TestHeartbeatNode) GetFullArchiveConnectableAddress() string {
+	if thn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(thn.FullArchiveMessenger)
 }
 
 // MakeDisplayTableForHeartbeatNodes returns a string containing counters for received messages for all provided test nodes

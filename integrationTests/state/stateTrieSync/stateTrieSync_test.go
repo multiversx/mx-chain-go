@@ -92,7 +92,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -213,7 +213,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -321,7 +321,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -454,7 +454,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	nRequester := nodes[0]
 	nResolver := nodes[1]
 
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 	time.Sleep(integrationTests.SyncDelay)
 
