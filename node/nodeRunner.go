@@ -56,6 +56,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -707,7 +708,9 @@ func (nr *nodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
-		ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
+			BlockChainHookFactoryHandler: &hooks.BlockChainHookFactory{},
+		},
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

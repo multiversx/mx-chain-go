@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	factory2 "github.com/multiversx/mx-chain-go/factory"
 	"strings"
 	"sync"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -101,7 +103,9 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
 		AllowVMQueriesChan: common.GetClosedUnbufferedChannel(),
-		ChainRunType:       common.ChainRunTypeRegular,
+		RunTypeComponents: factory2.RunTypeComponentsHolder{
+			BlockChainHookFactoryHandler: &hooks.BlockChainHookFactory{},
+		},
 	}
 }
 
@@ -336,7 +340,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents: factory2.RunTypeComponentsHolder{
+			BlockChainHookFactoryHandler: &hooks.BlockChainHookFactory{},
+		},
 	}
 }
 

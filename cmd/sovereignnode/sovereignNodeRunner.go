@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -668,7 +669,9 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
-		ChainRunType:         common.ChainRunTypeSovereign,
+		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
+			BlockChainHookFactoryHandler: &hooks.SovereignBlockChainHookFactory{},
+		},
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1187,7 +1190,8 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
-		ChainRunType:           common.ChainRunTypeSovereign,
+
+		ChainRunType: common.ChainRunTypeSovereign,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -344,6 +345,11 @@ type StatusComponentsHandler interface {
 	// SetForkDetector should be set before starting Polling for updates
 	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
+}
+
+// RunTypeComponentsHolder holds the runType components
+type RunTypeComponentsHolder struct {
+	BlockChainHookFactoryHandler hooks.BlockChainHookFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages

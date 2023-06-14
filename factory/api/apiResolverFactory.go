@@ -58,7 +58,7 @@ type ApiResolverArgs struct {
 	GasScheduleNotifier  common.GasScheduleNotifierAPI
 	Bootstrapper         process.Bootstrapper
 	AllowVMQueriesChan   chan struct{}
-	ChainRunType         common.ChainRunType
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type scQueryServiceArgs struct {
@@ -76,7 +76,7 @@ type scQueryServiceArgs struct {
 	guardedAccountHandler process.GuardedAccountHandler
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
-	chainRunType          common.ChainRunType
+	runTypeComponents     factory.RunTypeComponentsHolder
 }
 
 type scQueryElementArgs struct {
@@ -94,7 +94,7 @@ type scQueryElementArgs struct {
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
 	index                 int
-	chainRunType          common.ChainRunType
+	runTypeComponents     factory.RunTypeComponentsHolder
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -115,7 +115,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		guardedAccountHandler: args.BootstrapComponents.GuardedAccountHandler(),
 		allowVMQueriesChan:    args.AllowVMQueriesChan,
 		workingDir:            apiWorkingDir,
-		chainRunType:          args.ChainRunType,
+		runTypeComponents:     args.RunTypeComponents,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -312,7 +312,7 @@ func createScQueryService(
 		guardedAccountHandler: args.guardedAccountHandler,
 		allowVMQueriesChan:    args.allowVMQueriesChan,
 		index:                 0,
-		chainRunType:          args.chainRunType,
+		runTypeComponents:     args.runTypeComponents,
 	}
 
 	var err error
@@ -403,7 +403,7 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, errBlockChainHook := hooks.CreateBlockChainHook(args.chainRunType, argsHook)
+	blockChainHookImpl, errBlockChainHook := args.runTypeComponents.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if errBlockChainHook != nil {
 		return nil, errBlockChainHook
 	}
