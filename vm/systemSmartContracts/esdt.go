@@ -694,7 +694,19 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		mintBurnable = false
 	}
 
+	topics := make([][]byte, 0)
+	nonce := big.NewInt(0)
+	topics = append(topics, tokenIdentifier, nonce.Bytes())
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    callerAddr,
+	}
+
 	if len(args) == 0 {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable), []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+		logEntry.Topics = topics
+		e.eei.AddLogEntry(logEntry)
+
 		return nil
 	}
 	if len(args)%2 != 0 {
@@ -752,11 +764,7 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		}
 	}
 
-	topics := make([][]byte, 0)
-	nonce := big.NewInt(0)
-	topics = append(topics, tokenIdentifier, nonce.Bytes())
 	topics = append(topics, args...)
-
 	if !isUpgradablePropertyInArgs {
 		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable))
 	}
@@ -764,11 +772,7 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		topics = append(topics, []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
 	}
 
-	logEntry := &vmcommon.LogEntry{
-		Identifier: []byte(upgradeProperties),
-		Address:    callerAddr,
-		Topics:     topics,
-	}
+	logEntry.Topics = topics
 	e.eei.AddLogEntry(logEntry)
 
 	return nil
