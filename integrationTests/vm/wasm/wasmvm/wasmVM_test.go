@@ -543,6 +543,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 
