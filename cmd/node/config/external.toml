@@ -51,11 +51,13 @@
     URL = "127.0.0.1:22111"
     # After a message will be sent it will wait for an ack message if this flag is enabled
     WithAcknowledge = true
+    # The duration in seconds to wait for an acknowledgment message, after this time passes an error will be returned
+    AcknowledgeTimeoutInSec = 60
     # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported
     MarshallerType = "json"
     # The number of seconds when the client will try again to send the data
     RetryDurationInSec = 5
     # Sets if, in case of data payload processing error, we should block or not the advancement to the next processing event. Set this to true if you wish the node to stop processing blocks if the client/server encounters errors while processing requests.
-    BlockingAckOnError = false
+    BlockingAckOnError = true
     # Set to true to drop messages if there is no active WebSocket connection to send to.
     DropMessagesIfNoConnection = false
