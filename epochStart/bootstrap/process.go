@@ -1212,20 +1212,22 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.mainMessenger,
-		Store:                      storageService,
-		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                  e.dataPool,
-		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs: 10,
-		DataPacker:                 dataPacker,
-		TriesContainer:             e.trieContainer,
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
-		PreferredPeersHolder:       disabled.NewPreferredPeersHolder(),
-		PayloadValidator:           payloadValidator,
+		ShardCoordinator:                e.shardCoordinator,
+		MainMessenger:                   e.mainMessenger,
+		FullArchiveMessenger:            e.fullArchiveMessenger,
+		Store:                           storageService,
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                       e.dataPool,
+		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:      10,
+		DataPacker:                      dataPacker,
+		TriesContainer:                  e.trieContainer,
+		SizeCheckDelta:                  0,
+		InputAntifloodHandler:           disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
+		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		PayloadValidator:                payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1242,16 +1244,19 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:             e.generalConfig.Requesters,
-		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.mainMessenger,
-		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
-		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		PeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
-		SizeCheckDelta:              0,
+		RequesterConfig:                 e.generalConfig.Requesters,
+		ShardCoordinator:                e.shardCoordinator,
+		MainMessenger:                   e.mainMessenger,
+		FullArchiveMessenger:            e.fullArchiveMessenger,
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
+		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		MainPeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
+		FullArchivePeersRatingHandler:   disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:                  0,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
 	if err != nil {

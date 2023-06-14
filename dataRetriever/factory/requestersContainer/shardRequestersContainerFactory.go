@@ -26,20 +26,23 @@ func NewShardRequestersContainerFactory(
 	numIntraShardPeers := args.RequesterConfig.NumTotalPeers - args.RequesterConfig.NumCrossShardPeers
 	container := containers.NewRequestersContainer()
 	base := &baseRequestersContainerFactory{
-		container:                   container,
-		shardCoordinator:            args.ShardCoordinator,
-		messenger:                   args.Messenger,
-		marshaller:                  args.Marshaller,
-		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
-		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
-		outputAntifloodHandler:      args.OutputAntifloodHandler,
-		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
-		preferredPeersHolder:        args.PreferredPeersHolder,
-		peersRatingHandler:          args.PeersRatingHandler,
-		numCrossShardPeers:          int(args.RequesterConfig.NumCrossShardPeers),
-		numIntraShardPeers:          int(numIntraShardPeers),
-		numTotalPeers:               int(args.RequesterConfig.NumTotalPeers),
-		numFullHistoryPeers:         int(args.RequesterConfig.NumFullHistoryPeers),
+		container:                       container,
+		shardCoordinator:                args.ShardCoordinator,
+		mainMessenger:                   args.MainMessenger,
+		fullArchiveMessenger:            args.FullArchiveMessenger,
+		marshaller:                      args.Marshaller,
+		uint64ByteSliceConverter:        args.Uint64ByteSliceConverter,
+		intRandomizer:                   &random.ConcurrentSafeIntRandomizer{},
+		outputAntifloodHandler:          args.OutputAntifloodHandler,
+		currentNetworkEpochProvider:     args.CurrentNetworkEpochProvider,
+		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
+		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,
+		mainPeersRatingHandler:          args.MainPeersRatingHandler,
+		fullArchivePeersRatingHandler:   args.FullArchivePeersRatingHandler,
+		numCrossShardPeers:              int(args.RequesterConfig.NumCrossShardPeers),
+		numIntraShardPeers:              int(numIntraShardPeers),
+		numTotalPeers:                   int(args.RequesterConfig.NumTotalPeers),
+		numFullHistoryPeers:             int(args.RequesterConfig.NumFullHistoryPeers),
 	}
 
 	err := base.checkParams()

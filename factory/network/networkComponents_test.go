@@ -77,7 +77,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := componentsMock.GetNetworkFactoryArgs()
-		args.PreferredPeersSlices = []string{"invalid peer"}
+		args.MainPreferredPeersSlices = []string{"invalid peer"}
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 

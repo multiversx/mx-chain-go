@@ -111,15 +111,26 @@ func TestNewMetaResolversContainerFactory_NilShardCoordinatorShouldErr(t *testin
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
+func TestNewMetaResolversContainerFactory_NilMainMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Messenger = nil
+	args.MainMessenger = nil
 	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
+}
+
+func TestNewMetaResolversContainerFactory_NilFullArchiveMessengerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.FullArchiveMessenger = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
 }
 
 func TestNewMetaResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
@@ -167,15 +178,26 @@ func TestNewMetaResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilDataPoolHolder, err)
 }
 
-func TestNewMetaResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+func TestNewMetaResolversContainerFactory_NilMainPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.PreferredPeersHolder = nil
+	args.MainPreferredPeersHolder = nil
 	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
+}
+
+func TestNewMetaResolversContainerFactory_NilFullArchivePreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.FullArchivePreferredPeersHolder = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 }
 
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
@@ -235,11 +257,24 @@ func TestNewMetaResolversContainerFactory_NilOutputAntifloodHandlerShouldErr(t *
 
 // ------- Create
 
-func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
+func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainOnMainNetworkFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.Messenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
+	args.MainMessenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
+	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	container, err := rcf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
+func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainOnFullArchiveNetworkFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.FullArchiveMessenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -269,6 +304,20 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.CurrentShard = 1
 
 	args := getArgumentsMeta()
+	registerMainCnt := 0
+	args.MainMessenger = &p2pmocks.MessengerStub{
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+			registerMainCnt++
+			return nil
+		},
+	}
+	registerFullArchiveCnt := 0
+	args.FullArchiveMessenger = &p2pmocks.MessengerStub{
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+			registerFullArchiveCnt++
+			return nil
+		},
+	}
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
 
@@ -286,6 +335,8 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth + numResolverValidatorInfo
 
 	assert.Equal(t, totalResolvers, container.Len())
+	assert.Equal(t, totalResolvers, registerMainCnt)
+	assert.Equal(t, totalResolvers, registerFullArchiveCnt)
 
 	err := rcf.AddShardTrieNodeResolvers(container)
 	assert.Nil(t, err)
@@ -306,19 +357,21 @@ func TestMetaResolversContainerFactory_IsInterfaceNil(t *testing.T) {
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
-		Messenger:                  createStubTopicMessageHandlerForMeta("", ""),
-		Store:                      createStoreForMeta(),
-		Marshalizer:                &mock.MarshalizerMock{},
-		DataPools:                  createDataPoolsForMeta(),
-		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                 &mock.DataPackerStub{},
-		TriesContainer:             createTriesHolderForMeta(),
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		PayloadValidator:           &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
+		MainMessenger:                   createStubTopicMessageHandlerForMeta("", ""),
+		FullArchiveMessenger:            createStubTopicMessageHandlerForMeta("", ""),
+		Store:                           createStoreForMeta(),
+		Marshalizer:                     &mock.MarshalizerMock{},
+		DataPools:                       createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:        &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                      &mock.DataPackerStub{},
+		TriesContainer:                  createTriesHolderForMeta(),
+		SizeCheckDelta:                  0,
+		InputAntifloodHandler:           &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:      10,
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

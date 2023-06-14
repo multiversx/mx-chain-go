@@ -28,40 +28,43 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	MainP2pConfig         p2pConfig.P2PConfig
-	FullArchiveP2pConfig  p2pConfig.P2PConfig
-	MainConfig            config.Config
-	RatingsConfig         config.RatingsConfig
-	StatusHandler         core.AppStatusHandler
-	Marshalizer           marshal.Marshalizer
-	Syncer                p2p.SyncTimer
-	PreferredPeersSlices  []string
-	BootstrapWaitTime     time.Duration
-	NodeOperationMode     p2p.NodeOperation
-	ConnectionWatcherType string
-	CryptoComponents      factory.CryptoComponentsHolder
+	MainP2pConfig                   p2pConfig.P2PConfig
+	FullArchiveP2pConfig            p2pConfig.P2PConfig
+	MainConfig                      config.Config
+	RatingsConfig                   config.RatingsConfig
+	StatusHandler                   core.AppStatusHandler
+	Marshalizer                     marshal.Marshalizer
+	Syncer                          p2p.SyncTimer
+	MainPreferredPeersSlices        []string
+	FullArchivePreferredPeersSlices []string
+	BootstrapWaitTime               time.Duration
+	NodeOperationMode               p2p.NodeOperation
+	ConnectionWatcherType           string
+	CryptoComponents                factory.CryptoComponentsHolder
 }
 
 type networkComponentsFactory struct {
-	mainP2PConfig         p2pConfig.P2PConfig
-	fullArchiveP2PConfig  p2pConfig.P2PConfig
-	mainConfig            config.Config
-	ratingsConfig         config.RatingsConfig
-	statusHandler         core.AppStatusHandler
-	listenAddress         string
-	marshalizer           marshal.Marshalizer
-	syncer                p2p.SyncTimer
-	preferredPeersSlices  []string
-	bootstrapWaitTime     time.Duration
-	nodeOperationMode     p2p.NodeOperation
-	connectionWatcherType string
-	cryptoComponents      factory.CryptoComponentsHolder
+	mainP2PConfig                   p2pConfig.P2PConfig
+	fullArchiveP2PConfig            p2pConfig.P2PConfig
+	mainConfig                      config.Config
+	ratingsConfig                   config.RatingsConfig
+	statusHandler                   core.AppStatusHandler
+	listenAddress                   string
+	marshalizer                     marshal.Marshalizer
+	syncer                          p2p.SyncTimer
+	mainPreferredPeersSlices        []string
+	fullArchivePreferredPeersSlices []string
+	bootstrapWaitTime               time.Duration
+	nodeOperationMode               p2p.NodeOperation
+	connectionWatcherType           string
+	cryptoComponents                factory.CryptoComponentsHolder
 }
 
 type networkComponentsHolder struct {
-	netMessenger       p2p.Messenger
-	peersRatingHandler p2p.PeersRatingHandler
-	peersRatingMonitor p2p.PeersRatingMonitor
+	netMessenger         p2p.Messenger
+	peersRatingHandler   p2p.PeersRatingHandler
+	peersRatingMonitor   p2p.PeersRatingMonitor
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // networkComponents struct holds the network components
@@ -76,7 +79,6 @@ type networkComponents struct {
 	peerBlackListHandler     process.PeerBlackListCacher
 	antifloodConfig          config.AntifloodConfig
 	peerHonestyHandler       consensus.PeerHonestyHandler
-	peersHolder              factory.PreferredPeersHolderHandler
 	closeFunc                context.CancelFunc
 }
 
@@ -103,35 +105,31 @@ func NewNetworkComponentsFactory(
 	}
 
 	return &networkComponentsFactory{
-		mainP2PConfig:         args.MainP2pConfig,
-		fullArchiveP2PConfig:  args.FullArchiveP2pConfig,
-		ratingsConfig:         args.RatingsConfig,
-		marshalizer:           args.Marshalizer,
-		mainConfig:            args.MainConfig,
-		statusHandler:         args.StatusHandler,
-		listenAddress:         p2p.ListenAddrWithIp4AndTcp,
-		syncer:                args.Syncer,
-		bootstrapWaitTime:     args.BootstrapWaitTime,
-		preferredPeersSlices:  args.PreferredPeersSlices,
-		nodeOperationMode:     args.NodeOperationMode,
-		connectionWatcherType: args.ConnectionWatcherType,
-		cryptoComponents:      args.CryptoComponents,
+		mainP2PConfig:                   args.MainP2pConfig,
+		fullArchiveP2PConfig:            args.FullArchiveP2pConfig,
+		ratingsConfig:                   args.RatingsConfig,
+		marshalizer:                     args.Marshalizer,
+		mainConfig:                      args.MainConfig,
+		statusHandler:                   args.StatusHandler,
+		listenAddress:                   p2p.ListenAddrWithIp4AndTcp,
+		syncer:                          args.Syncer,
+		bootstrapWaitTime:               args.BootstrapWaitTime,
+		mainPreferredPeersSlices:        args.MainPreferredPeersSlices,
+		fullArchivePreferredPeersSlices: args.FullArchivePreferredPeersSlices,
+		nodeOperationMode:               args.NodeOperationMode,
+		connectionWatcherType:           args.ConnectionWatcherType,
+		cryptoComponents:                args.CryptoComponents,
 	}, nil
 }
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	peersHolder, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
+	mainNetworkComp, err := ncf.createMainNetworkHolder()
 	if err != nil {
 		return nil, err
 	}
 
-	mainNetworkComp, err := ncf.createMainNetworkHolder(peersHolder)
-	if err != nil {
-		return nil, err
-	}
-
-	fullArchiveNetworkComp, err := ncf.createFullArchiveNetworkHolder(peersHolder)
+	fullArchiveNetworkComp, err := ncf.createFullArchiveNetworkHolder()
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +169,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peerBlackListHandler:     antiFloodComponents.BlacklistHandler,
 		antifloodConfig:          ncf.mainConfig.Antiflood,
 		peerHonestyHandler:       peerHonestyHandler,
-		peersHolder:              peersHolder,
 		closeFunc:                cancelFunc,
 	}, nil
 }
@@ -232,10 +229,15 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 }
 
 func (ncf *networkComponentsFactory) createNetworkHolder(
-	peersHolder p2p.PreferredPeersHolderHandler,
 	p2pConfig p2pConfig.P2PConfig,
 	logger p2p.Logger,
+	preferredPeers []string,
 ) (networkComponentsHolder, error) {
+
+	peersHolder, err := p2pFactory.NewPeersHolder(preferredPeers)
+	if err != nil {
+		return networkComponentsHolder{}, err
+	}
 
 	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
 	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
@@ -286,29 +288,31 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 	}
 
 	return networkComponentsHolder{
-		netMessenger:       networkMessenger,
-		peersRatingHandler: peersRatingHandler,
-		peersRatingMonitor: peersRatingMonitor,
+		netMessenger:         networkMessenger,
+		peersRatingHandler:   peersRatingHandler,
+		peersRatingMonitor:   peersRatingMonitor,
+		preferredPeersHolder: peersHolder,
 	}, nil
 }
 
-func (ncf *networkComponentsFactory) createMainNetworkHolder(peersHolder p2p.PreferredPeersHolderHandler) (networkComponentsHolder, error) {
+func (ncf *networkComponentsFactory) createMainNetworkHolder() (networkComponentsHolder, error) {
 	loggerInstance := logger.GetOrCreate("main/p2p")
-	return ncf.createNetworkHolder(peersHolder, ncf.mainP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, ncf.mainPreferredPeersSlices)
 }
 
-func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersHolder p2p.PreferredPeersHolderHandler) (networkComponentsHolder, error) {
+func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder() (networkComponentsHolder, error) {
 	if ncf.nodeOperationMode != p2p.FullArchiveMode {
 		return networkComponentsHolder{
-			netMessenger:       p2pDisabled.NewNetworkMessenger(),
-			peersRatingHandler: disabled.NewPeersRatingHandler(),
-			peersRatingMonitor: disabled.NewPeersRatingMonitor(),
+			netMessenger:         p2pDisabled.NewNetworkMessenger(),
+			peersRatingHandler:   disabled.NewPeersRatingHandler(),
+			peersRatingMonitor:   disabled.NewPeersRatingMonitor(),
+			preferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		}, nil
 	}
 
 	loggerInstance := logger.GetOrCreate("full-archive/p2p")
 
-	return ncf.createNetworkHolder(peersHolder, ncf.fullArchiveP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, ncf.fullArchivePreferredPeersSlices)
 }
 
 // Close closes all underlying components that need closing

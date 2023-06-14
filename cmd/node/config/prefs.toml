@@ -28,6 +28,15 @@
    # ]
    PreferredConnections = []
 
+   # PreferredFullArchiveConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
+   # This is only considered on FullArchive mode
+   # Example:
+   # PreferredConnections = [
+   #    "127.0.0.10",
+   #    "16Uiu2HAm6yvbp1oZ6zjnWsn9FdRqBSaQkbhELyaThuq48ybdorrr"
+   # ]
+   PreferredFullArchiveConnections = []
+
    # ConnectionWatcherType represents the type of a connection watcher needed.
    # possible options:
    #  - "disabled" - no connection watching should be made

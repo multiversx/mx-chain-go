@@ -315,14 +315,17 @@ func TestTomlPreferencesParser(t *testing.T) {
 	redundancyLevel := int64(0)
 	prefPubKey0 := "preferred pub key 0"
 	prefPubKey1 := "preferred pub key 1"
+	prefFAPubKey0 := "preferred full archive pub key 0"
+	prefFAPubKey1 := "preferred full archive pub key 1"
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
-			NodeDisplayName:            nodeDisplayName,
-			DestinationShardAsObserver: destinationShardAsObs,
-			Identity:                   identity,
-			RedundancyLevel:            redundancyLevel,
-			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
+			NodeDisplayName:                 nodeDisplayName,
+			DestinationShardAsObserver:      destinationShardAsObs,
+			Identity:                        identity,
+			RedundancyLevel:                 redundancyLevel,
+			PreferredConnections:            []string{prefPubKey0, prefPubKey1},
+			PreferredFullArchiveConnections: []string{prefFAPubKey0, prefFAPubKey1},
 		},
 		BlockProcessingCutoff: BlockProcessingCutoffConfig{
 			Enabled:       true,
@@ -341,6 +344,10 @@ func TestTomlPreferencesParser(t *testing.T) {
     PreferredConnections = [
         "` + prefPubKey0 + `",
         "` + prefPubKey1 + `"
+    ]
+	PreferredFullArchiveConnections = [
+        "` + prefFAPubKey0 + `",
+        "` + prefFAPubKey1 + `"
     ]
 
 [BlockProcessingCutoff]

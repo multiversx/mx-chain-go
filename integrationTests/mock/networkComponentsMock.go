@@ -20,6 +20,7 @@ type NetworkComponentsStub struct {
 	FullArchiveNetworkMessengerField   p2p.Messenger
 	FullArchivePeersRatingHandlerField p2p.PeersRatingHandler
 	FullArchivePeersRatingMonitorField p2p.PeersRatingMonitor
+	FullArchivePreferredPeersHolder    factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -98,6 +99,11 @@ func (ncs *NetworkComponentsStub) FullArchivePeersRatingHandler() p2p.PeersRatin
 // FullArchivePeersRatingMonitor -
 func (ncs *NetworkComponentsStub) FullArchivePeersRatingMonitor() p2p.PeersRatingMonitor {
 	return ncs.FullArchivePeersRatingMonitorField
+}
+
+// FullArchivePreferredPeersHolderHandler -
+func (ncs *NetworkComponentsStub) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncs.FullArchivePreferredPeersHolder
 }
 
 // String -

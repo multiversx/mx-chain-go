@@ -20,10 +20,16 @@ import (
 
 func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
 	return topicsender.ArgBaseTopicSender{
-		Messenger:         &mock.MessageHandlerStub{},
-		TopicName:         "topic",
-		OutputAntiflooder: &mock.P2PAntifloodHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{
+		MainMessenger:        &mock.MessageHandlerStub{},
+		FullArchiveMessenger: &mock.MessageHandlerStub{},
+		TopicName:            "topic",
+		OutputAntiflooder:    &mock.P2PAntifloodHandlerStub{},
+		MainPreferredPeersHolder: &p2pmocks.PeersHolderStub{
+			GetCalled: func() map[uint32][]core.PeerID {
+				return map[uint32][]core.PeerID{}
+			},
+		},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{}
 			},
@@ -34,30 +40,40 @@ func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
 
 func createMockArgTopicRequestSender() topicsender.ArgTopicRequestSender {
 	return topicsender.ArgTopicRequestSender{
-		ArgBaseTopicSender:          createMockArgBaseTopicSender(),
-		Marshaller:                  &mock.MarshalizerMock{},
-		Randomizer:                  &mock.IntRandomizerStub{},
-		PeerListCreator:             &mock.PeerListCreatorStub{},
-		NumIntraShardPeers:          2,
-		NumCrossShardPeers:          2,
-		NumFullHistoryPeers:         2,
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		SelfShardIdProvider:         mock.NewMultipleShardsCoordinatorMock(),
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		ArgBaseTopicSender:            createMockArgBaseTopicSender(),
+		Marshaller:                    &mock.MarshalizerMock{},
+		Randomizer:                    &mock.IntRandomizerStub{},
+		PeerListCreator:               &mock.PeerListCreatorStub{},
+		NumIntraShardPeers:            2,
+		NumCrossShardPeers:            2,
+		NumFullHistoryPeers:           2,
+		CurrentNetworkEpochProvider:   &mock.CurrentNetworkEpochProviderStub{},
+		SelfShardIdProvider:           mock.NewMultipleShardsCoordinatorMock(),
+		MainPeersRatingHandler:        &p2pmocks.PeersRatingHandlerStub{},
+		FullArchivePeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 
 func TestNewTopicRequestSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil Messenger should error", func(t *testing.T) {
+	t.Run("nil MainMessenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = nil
+		arg.MainMessenger = nil
 		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
-		assert.Equal(t, dataRetriever.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
+	})
+	t.Run("nil FullArchiveMessenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgTopicRequestSender()
+		arg.FullArchiveMessenger = nil
+		trs, err := topicsender.NewTopicRequestSender(arg)
+		assert.True(t, check.IfNil(trs))
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
 	})
 	t.Run("nil OutputAntiflooder should error", func(t *testing.T) {
 		t.Parallel()
@@ -68,14 +84,23 @@ func TestNewTopicRequestSender(t *testing.T) {
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 	})
-	t.Run("nil PreferredPeersHolder should error", func(t *testing.T) {
+	t.Run("nil MainPreferredPeersHolder should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgTopicRequestSender()
-		arg.PreferredPeersHolder = nil
+		arg.MainPreferredPeersHolder = nil
 		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
-		assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
+	})
+	t.Run("nil FullArchivePreferredPeersHolder should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgTopicRequestSender()
+		arg.FullArchivePreferredPeersHolder = nil
+		trs, err := topicsender.NewTopicRequestSender(arg)
+		assert.True(t, check.IfNil(trs))
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 	})
 	t.Run("nil Marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -113,14 +138,23 @@ func TestNewTopicRequestSender(t *testing.T) {
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 	})
-	t.Run("nil PeersRatingHandler should error", func(t *testing.T) {
+	t.Run("nil MainPeersRatingHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgTopicRequestSender()
-		arg.PeersRatingHandler = nil
+		arg.MainPeersRatingHandler = nil
 		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
-		assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
+	})
+	t.Run("nil FullArchivePeersRatingHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgTopicRequestSender()
+		arg.FullArchivePeersRatingHandler = nil
+		trs, err := topicsender.NewTopicRequestSender(arg)
+		assert.True(t, check.IfNil(trs))
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
 	})
 	t.Run("nil SelfShardIdProvider should error", func(t *testing.T) {
 		t.Parallel()
@@ -230,7 +264,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		sentToPid2 := false
 
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 					sentToPid1 = true
@@ -239,6 +273,12 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 					sentToPid2 = true
 				}
 
+				return nil
+			},
+		}
+		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should have not been called")
 				return nil
 			},
 		}
@@ -251,7 +291,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 		decreaseCalledCounter := 0
-		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		arg.MainPeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
 			DecreaseRatingCalled: func(pid core.PeerID) {
 				decreaseCalledCounter++
 				if !bytes.Equal(pid.Bytes(), pID1.Bytes()) && !bytes.Equal(pid.Bytes(), pID2.Bytes()) {
@@ -268,48 +308,57 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.True(t, sentToPid2)
 		assert.Equal(t, 2, decreaseCalledCounter)
 	})
-	// TODO[Sorin]: fix this test
-	//t.Run("should work and send to full history", func(t *testing.T) {
-	//	t.Parallel()
-	//
-	//	pIDfullHistory := core.PeerID("full history peer")
-	//	sentToFullHistoryPeer := false
-	//
-	//	arg := createMockArgTopicRequestSender()
-	//	arg.Messenger = &mock.MessageHandlerStub{
-	//		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-	//			if bytes.Equal(peerID.Bytes(), pIDfullHistory.Bytes()) {
-	//				sentToFullHistoryPeer = true
-	//			}
-	//
-	//			return nil
-	//		},
-	//	}
-	//	arg.PeerListCreator = &mock.PeerListCreatorStub{
-	//		FullHistoryListCalled: func() []core.PeerID {
-	//			return []core.PeerID{pIDfullHistory}
-	//		},
-	//	}
-	//	arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
-	//		EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
-	//			return false
-	//		},
-	//	}
-	//	decreaseCalledCounter := 0
-	//	arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
-	//		DecreaseRatingCalled: func(pid core.PeerID) {
-	//			decreaseCalledCounter++
-	//			assert.Equal(t, pIDfullHistory, pid)
-	//		},
-	//	}
-	//	trs, _ := topicsender.NewTopicRequestSender(arg)
-	//
-	//	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
-	//	assert.Nil(t, err)
-	//	assert.True(t, sentToFullHistoryPeer)
-	//	assert.Equal(t, 1, decreaseCalledCounter)
-	//})
-	t.Run("should work and send to preferred peers", func(t *testing.T) {
+	t.Run("should work and send to full history", func(t *testing.T) {
+		t.Parallel()
+
+		pIDfullHistory := core.PeerID("full history peer")
+		sentToFullHistoryPeer := false
+
+		arg := createMockArgTopicRequestSender()
+		arg.MainMessenger = &mock.MessageHandlerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should have not been called")
+
+				return nil
+			},
+		}
+		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{pIDfullHistory}
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				if bytes.Equal(peerID.Bytes(), pIDfullHistory.Bytes()) {
+					sentToFullHistoryPeer = true
+				}
+
+				return nil
+			},
+		}
+		arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				return false
+			},
+		}
+		arg.MainPeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+			DecreaseRatingCalled: func(pid core.PeerID) {
+				assert.Fail(t, "should have not been called")
+			},
+		}
+		decreaseCalledCounter := 0
+		arg.FullArchivePeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+			DecreaseRatingCalled: func(pid core.PeerID) {
+				decreaseCalledCounter++
+				assert.Equal(t, pIDfullHistory, pid)
+			},
+		}
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+		assert.Nil(t, err)
+		assert.True(t, sentToFullHistoryPeer)
+		assert.Equal(t, 1, decreaseCalledCounter)
+	})
+	t.Run("should work and send to preferred regular peers", func(t *testing.T) {
 		t.Parallel()
 
 		selfShardID := uint32(0)
@@ -342,7 +391,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{regularPeer1}
 			},
 		}
-		arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{
 					selfShardID:   preferredPeersShard0,
@@ -352,7 +401,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		}
 		arg.NumCrossShardPeers = 5
 		arg.NumIntraShardPeers = 5
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if strings.HasPrefix(string(peerID), "prefPIDsh0") {
 					countPrefPeersSh0++
@@ -371,7 +420,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, countPrefPeersSh1)
 	})
-	t.Run("should work and send to preferred cross peer first", func(t *testing.T) {
+	t.Run("should work and send to preferred regular cross peer first", func(t *testing.T) {
 		t.Parallel()
 
 		targetShardID := uint32(37)
@@ -391,7 +440,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{}
 			},
 		}
-		arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{
 					targetShardID: {pidPreferred},
@@ -399,7 +448,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -416,7 +465,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, sentToPreferredPeer)
 	})
-	t.Run("should work and send to preferred intra peer first", func(t *testing.T) {
+	t.Run("should work and send to preferred regular intra peer first", func(t *testing.T) {
 		t.Parallel()
 
 		selfShardID := uint32(37)
@@ -436,7 +485,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
 			},
 		}
-		arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{
 					selfShardID: {pidPreferred},
@@ -444,7 +493,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -459,6 +508,54 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		selfShardIDProvider := mock.NewMultipleShardsCoordinatorMock()
 		selfShardIDProvider.CurrentShard = selfShardID
 		arg.SelfShardIdProvider = selfShardIDProvider
+
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+		assert.Nil(t, err)
+		assert.True(t, sentToPreferredPeer)
+	})
+	t.Run("should work and send to preferred full archive first", func(t *testing.T) {
+		t.Parallel()
+
+		selfShardID := uint32(37)
+		pidPreferred := core.PeerID("preferred peer")
+		sentToPreferredPeer := false
+		regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+
+		arg := createMockArgTopicRequestSender()
+		arg.NumFullHistoryPeers = 2
+		arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				return false
+			},
+		}
+		arg.FullArchivePreferredPeersHolder = &p2pmocks.PeersHolderStub{
+			GetCalled: func() map[uint32][]core.PeerID {
+				return map[uint32][]core.PeerID{
+					selfShardID: {pidPreferred},
+				}
+			},
+		}
+		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{regularPeer0, regularPeer1}
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
+					sentToPreferredPeer = true
+				}
+
+				return nil
+			},
+		}
+		arg.MainMessenger = &mock.MessageHandlerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should not have been called")
+
+				return nil
+			},
+		}
 
 		trs, _ := topicsender.NewTopicRequestSender(arg)
 
@@ -487,7 +584,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{}
 			},
 		}
-		arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{
 					targetShardID: {pidPreferred},
@@ -498,7 +595,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidPreferred {
 					sentToPreferredPeer = true
@@ -543,7 +640,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return []core.PeerID{}
 			},
 		}
-		arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{
 					37: {pidPreferred},
@@ -551,7 +648,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -575,7 +672,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				numSent++
 
@@ -605,7 +702,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidNotCalled {
 					assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
@@ -639,7 +736,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidNotCalled {
 					assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
@@ -672,7 +769,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		sentToPid1 := false
 
 		arg := createMockArgTopicRequestSender()
-		arg.Messenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 					sentToPid1 = true

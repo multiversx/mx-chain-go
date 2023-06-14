@@ -462,7 +462,8 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
-		Messenger:                thn.MainMessenger,
+		MainMessenger:            thn.MainMessenger,
+		FullArchiveMessenger:     thn.FullArchiveMessenger,
 		Store:                    thn.Storage,
 		Marshalizer:              TestMarshaller,
 		DataPools:                thn.DataPool,
@@ -473,12 +474,13 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		PayloadValidator:           payloadValidator,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:      10,
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                payloadValidator,
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
@@ -486,15 +488,18 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3},
-		ShardCoordinator:            thn.ShardCoordinator,
-		Messenger:                   thn.MainMessenger,
-		Marshaller:                  TestMarshaller,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		SizeCheckDelta:              0,
+		ShardCoordinator:                thn.ShardCoordinator,
+		MainMessenger:                   thn.MainMessenger,
+		FullArchiveMessenger:            thn.FullArchiveMessenger,
+		Marshaller:                      TestMarshaller,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider:     &mock.CurrentNetworkEpochProviderStub{},
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		MainPeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		FullArchivePeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:                  0,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {

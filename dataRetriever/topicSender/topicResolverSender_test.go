@@ -22,15 +22,26 @@ func createMockArgTopicResolverSender() topicsender.ArgTopicResolverSender {
 	}
 }
 
-func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
+func TestNewTopicResolverSender_NilMainMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
-	arg.Messenger = nil
+	arg.MainMessenger = nil
 	trs, err := topicsender.NewTopicResolverSender(arg)
 
 	assert.True(t, check.IfNil(trs))
-	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
+}
+
+func TestNewTopicResolverSender_NilFullArchiveMessengerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.FullArchiveMessenger = nil
+	trs, err := topicsender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
 }
 
 func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
@@ -44,15 +55,26 @@ func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 }
 
-func TestNewTopicResolverSender_NilPreferredPeersHolderShouldErr(t *testing.T) {
+func TestNewTopicResolverSender_NilMainPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
-	arg.PreferredPeersHolder = nil
+	arg.MainPreferredPeersHolder = nil
 	trs, err := topicsender.NewTopicResolverSender(arg)
 
 	assert.True(t, check.IfNil(trs))
-	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
+}
+
+func TestNewTopicResolverSender_NilFullArchivePreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.FullArchivePreferredPeersHolder = nil
+	trs, err := topicsender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
@@ -74,7 +96,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 
 	expectedErr := errors.New("can not send to peer")
 	arg := createMockArgTopicResolverSender()
-	arg.Messenger = &mock.MessageHandlerStub{
+	arg.MainMessenger = &mock.MessageHandlerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			assert.Fail(t, "send shouldn't have been called")
 
@@ -106,7 +128,7 @@ func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.
 	sendWasCalled := false
 
 	arg := createMockArgTopicResolverSender()
-	arg.Messenger = &mock.MessageHandlerStub{
+	arg.MainMessenger = &mock.MessageHandlerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendWasCalled = true
 			return nil
@@ -119,7 +141,7 @@ func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.
 			return nil
 		},
 	}
-	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+	arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 		ContainsCalled: func(peerID core.PeerID) bool {
 			return peerID == pID1
 		},
@@ -137,24 +159,68 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	pID1 := core.PeerID("peer1")
 	sentToPid1 := false
 	buffToSend := []byte("buff")
+	t.Run("on main network", func(t *testing.T) {
+		t.Parallel()
 
-	arg := createMockArgTopicResolverSender()
-	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
-				bytes.Equal(buff, buffToSend) {
-				sentToPid1 = true
-			}
+		arg := createMockArgTopicResolverSender()
+		arg.MainMessenger = &mock.MessageHandlerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
+					bytes.Equal(buff, buffToSend) {
+					sentToPid1 = true
+				}
 
-			return nil
-		},
-	}
-	trs, _ := topicsender.NewTopicResolverSender(arg)
+				return nil
+			},
+		}
+		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+			IsConnectedCalled: func(peerID core.PeerID) bool {
+				return false
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should have not been called")
 
-	err := trs.Send(buffToSend, pID1)
+				return nil
+			},
+		}
+		trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	assert.Nil(t, err)
-	assert.True(t, sentToPid1)
+		err := trs.Send(buffToSend, pID1)
+
+		assert.Nil(t, err)
+		assert.True(t, sentToPid1)
+	})
+	t.Run("on full archive network", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgTopicResolverSender()
+		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+			IsConnectedCalled: func(peerID core.PeerID) bool {
+				return true
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
+					bytes.Equal(buff, buffToSend) {
+					sentToPid1 = true
+				}
+
+				return nil
+			},
+		}
+		arg.MainMessenger = &mock.MessageHandlerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should have not been called")
+
+				return nil
+			},
+		}
+		trs, _ := topicsender.NewTopicResolverSender(arg)
+
+		err := trs.Send(buffToSend, pID1)
+
+		assert.Nil(t, err)
+		assert.True(t, sentToPid1)
+	})
 }
 
 func TestTopicResolverSender_Topic(t *testing.T) {

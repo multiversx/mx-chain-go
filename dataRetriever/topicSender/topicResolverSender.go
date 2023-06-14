@@ -31,7 +31,11 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
 func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
-	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
+	if trs.fullArchiveMessenger.IsConnected(peer) {
+		return trs.sendToConnectedPeer(trs.topicName, buff, peer, trs.fullArchiveMessenger, fullArchiveNetwork, trs.fullArchivePreferredPeersHolderHandler)
+	}
+
+	return trs.sendToConnectedPeer(trs.topicName, buff, peer, trs.mainMessenger, mainNetwork, trs.mainPreferredPeersHolderHandler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

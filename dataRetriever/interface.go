@@ -137,6 +137,8 @@ type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	ID() core.PeerID
+	ConnectedPeers() []core.PeerID
+	IsConnected(peerID core.PeerID) bool
 	IsInterfaceNil() bool
 }
 

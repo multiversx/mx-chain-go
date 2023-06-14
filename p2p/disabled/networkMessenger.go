@@ -91,9 +91,9 @@ func (netMes *networkMessenger) ConnectToPeer(_ string) error {
 	return nil
 }
 
-// IsConnected returns true as it is disabled
+// IsConnected returns false as it is disabled
 func (netMes *networkMessenger) IsConnected(_ core.PeerID) bool {
-	return true
+	return false
 }
 
 // ConnectedPeers returns an empty slice as it is disabled

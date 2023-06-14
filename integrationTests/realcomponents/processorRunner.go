@@ -167,18 +167,19 @@ func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 	argsNetwork := factoryNetwork.NetworkComponentsFactoryArgs{
-		MainP2pConfig:         *pr.Config.MainP2pConfig,
-		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
-		MainConfig:            *pr.Config.GeneralConfig,
-		RatingsConfig:         *pr.Config.RatingsConfig,
-		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
-		Marshalizer:           pr.CoreComponents.InternalMarshalizer(),
-		Syncer:                pr.CoreComponents.SyncTimer(),
-		PreferredPeersSlices:  make([]string, 0),
-		BootstrapWaitTime:     1,
-		NodeOperationMode:     p2p.NormalOperation,
-		ConnectionWatcherType: "",
-		CryptoComponents:      pr.CryptoComponents,
+		MainP2pConfig:                   *pr.Config.MainP2pConfig,
+		FullArchiveP2pConfig:            *pr.Config.FullArchiveP2pConfig,
+		MainConfig:                      *pr.Config.GeneralConfig,
+		RatingsConfig:                   *pr.Config.RatingsConfig,
+		StatusHandler:                   pr.StatusCoreComponents.AppStatusHandler(),
+		Marshalizer:                     pr.CoreComponents.InternalMarshalizer(),
+		Syncer:                          pr.CoreComponents.SyncTimer(),
+		MainPreferredPeersSlices:        make([]string, 0),
+		FullArchivePreferredPeersSlices: make([]string, 0),
+		BootstrapWaitTime:               1,
+		NodeOperationMode:               p2p.NormalOperation,
+		ConnectionWatcherType:           "",
+		CryptoComponents:                pr.CryptoComponents,
 	}
 
 	networkFactory, err := factoryNetwork.NewNetworkComponentsFactory(argsNetwork)
