@@ -46,7 +46,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -142,7 +142,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)

@@ -135,7 +135,7 @@ func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes 
 		for j := i + 1; j < interactingNodes; j++ {
 			src := nodes[i]
 			dst := nodes[j]
-			_ = src.ConnectTo(dst)
+			_ = src.ConnectOnMain(dst)
 		}
 	}
 }

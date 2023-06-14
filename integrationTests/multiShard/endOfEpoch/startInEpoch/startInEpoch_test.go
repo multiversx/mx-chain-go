@@ -205,7 +205,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	for _, n := range nodes {
-		_ = n.ConnectTo(nodeToJoinLate)
+		_ = n.ConnectOnMain(nodeToJoinLate)
 	}
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}

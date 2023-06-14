@@ -89,7 +89,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	for _, n := range nodes {
 		for _, sn := range syncNodesSlice {
-			_ = sn.ConnectTo(n)
+			_ = sn.ConnectOnMain(n)
 		}
 	}
 	integrationTests.BootstrapDelay()

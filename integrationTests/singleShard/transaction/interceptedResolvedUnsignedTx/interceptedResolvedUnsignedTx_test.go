@@ -44,7 +44,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
