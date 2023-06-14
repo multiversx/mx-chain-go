@@ -17,15 +17,16 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
-	hdr               data.HeaderHandler
-	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.HeaderIntegrityVerifier
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	hash              []byte
-	isForCurrentShard bool
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	hdr                    data.HeaderHandler
+	sigVerifier            process.InterceptedHeaderSigVerifier
+	integrityVerifier      process.HeaderIntegrityVerifier
+	hasher                 hashing.Hasher
+	shardCoordinator       sharding.Coordinator
+	hash                   []byte
+	isForCurrentShard      bool
+	validityAttester       process.ValidityAttester
+	epochStartTrigger      process.EpochStartTriggerHandler
+	chainParametersHandler process.ChainParametersHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -41,13 +42,14 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		integrityVerifier: arg.HeaderIntegrityVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		validityAttester:  arg.ValidityAttester,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:                    hdr,
+		hasher:                 arg.Hasher,
+		sigVerifier:            arg.HeaderSigVerifier,
+		integrityVerifier:      arg.HeaderIntegrityVerifier,
+		shardCoordinator:       arg.ShardCoordinator,
+		validityAttester:       arg.ValidityAttester,
+		epochStartTrigger:      arg.EpochStartTrigger,
+		chainParametersHandler: arg.ChainParametersHandler,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -71,6 +73,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 
 	err = inHdr.integrity()
 	if err != nil {
+		log.Error("InterceptedHeader.CheckValidity", "error", err)
 		return err
 	}
 
@@ -95,7 +98,25 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochStartRound() {
 		return true
 	}
-	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod {
+	log.Error("REMOVE_ME: InterceptedHeader.isEpochCorrect",
+		"round", inHdr.hdr.GetRound(),
+		"nonce", inHdr.hdr.GetNonce(),
+		"shard", inHdr.hdr.GetShardID(),
+		"fin att rnd", inHdr.epochStartTrigger.EpochFinalityAttestingRound(),
+		"grace period", process.EpochChangeGracePeriod,
+		"bool value", inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod)
+
+	chainParameters, err := inHdr.chainParametersHandler.ChainParametersForEpoch(inHdr.hdr.GetEpoch())
+	if err != nil {
+		log.Error("REMOVE_ME: InterceptedHeader.isEpochCorrect: cannot compute chain parameters. Will use the current ones", "epoch", inHdr.hdr.GetEpoch(), "error", err)
+		chainParameters = inHdr.chainParametersHandler.CurrentChainParameters()
+	}
+	finalityForCheck := chainParameters.ShardFinality
+	if finalityForCheck > 1 {
+		finalityForCheck--
+	}
+	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod+uint64(finalityForCheck) {
+		log.Error("REMOVE_ME: inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod")
 		return true
 	}
 

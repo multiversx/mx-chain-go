@@ -67,7 +67,7 @@ func (transactionType TransactionType) String() string {
 
 // BlockFinality defines the block finality which is used in meta-chain/shards (the real finality in shards is given
 // by meta-chain)
-const BlockFinality = 1
+const BlockFinality = 5
 
 // MetaBlockValidity defines the block validity which is when checking a metablock
 const MetaBlockValidity = 1

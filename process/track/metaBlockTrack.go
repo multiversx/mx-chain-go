@@ -46,6 +46,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
 		RoundHandler:                          arguments.RoundHandler,
+		ChainParametersHandler:                arguments.ChainParametersHandler,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
@@ -142,6 +143,12 @@ func (mbt *metaBlockTrack) removeInvalidShardHeadersDueToEpochChange(
 			round := headerInfo.Header.GetRound()
 			epoch := headerInfo.Header.GetEpoch()
 			isInvalidHeader := round > metaRoundAttestingEpoch+process.EpochChangeGracePeriod && epoch < metaNewEpoch
+			log.Error("REMOVE_ME: metaBlockTrack: removeInvalidShardHeadersDueToEpochChange",
+				"metaRoundAttestingEpoch", metaRoundAttestingEpoch,
+				"round", round,
+				"epoch", epoch,
+				"isInvalidHeader", isInvalidHeader,
+			)
 			if !isInvalidHeader {
 				newHeadersInfo = append(newHeadersInfo, headerInfo)
 			}

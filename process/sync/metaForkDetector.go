@@ -22,6 +22,7 @@ func NewMetaForkDetector(
 	roundHandler consensus.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
+	chainParametersHandler process.ChainParametersHandler,
 	genesisTime int64,
 ) (*metaForkDetector, error) {
 
@@ -34,6 +35,9 @@ func NewMetaForkDetector(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
+	if check.IfNil(chainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 	if err != nil {
@@ -41,13 +45,14 @@ func NewMetaForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:     roundHandler,
-		blackListHandler: blackListHandler,
-		genesisTime:      genesisTime,
-		blockTracker:     blockTracker,
-		genesisNonce:     genesisHdr.GetNonce(),
-		genesisRound:     genesisHdr.GetRound(),
-		genesisEpoch:     genesisHdr.GetEpoch(),
+		roundHandler:           roundHandler,
+		chainParametersHandler: chainParametersHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

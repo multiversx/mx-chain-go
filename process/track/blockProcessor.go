@@ -12,9 +12,10 @@ import (
 )
 
 type blockProcessor struct {
-	headerValidator  process.HeaderConstructionValidator
-	requestHandler   process.RequestHandler
-	shardCoordinator sharding.Coordinator
+	headerValidator        process.HeaderConstructionValidator
+	requestHandler         process.RequestHandler
+	shardCoordinator       sharding.Coordinator
+	chainParametersHandler process.ChainParametersHandler
 
 	blockTracker                          blockTrackerHandler
 	crossNotarizer                        blockNotarizerHandler
@@ -24,8 +25,6 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
-
-	blockFinality uint64
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -39,6 +38,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		headerValidator:                       arguments.HeaderValidator,
 		requestHandler:                        arguments.RequestHandler,
 		shardCoordinator:                      arguments.ShardCoordinator,
+		chainParametersHandler:                arguments.ChainParametersHandler,
 		blockTracker:                          arguments.BlockTracker,
 		crossNotarizer:                        arguments.CrossNotarizer,
 		selfNotarizer:                         arguments.SelfNotarizer,
@@ -48,8 +48,6 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
 	}
-
-	bp.blockFinality = process.BlockFinality
 
 	return &bp, nil
 }
@@ -303,9 +301,11 @@ func (bp *blockProcessor) checkHeaderFinality(
 	prevHeader := header
 	numFinalityAttestingHeaders := uint64(0)
 
+	finality := bp.getCurrentFinality(header.GetShardID())
+
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
-		if numFinalityAttestingHeaders >= bp.blockFinality || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
+		if numFinalityAttestingHeaders >= uint64(finality) || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
 			break
 		}
 
@@ -318,7 +318,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 		numFinalityAttestingHeaders += 1
 	}
 
-	if numFinalityAttestingHeaders < bp.blockFinality {
+	if numFinalityAttestingHeaders < uint64(finality) {
 		return process.ErrHeaderNotFinal
 	}
 
@@ -356,7 +356,8 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
 
-	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && numLongestChainHeaders == 0
+	finality := bp.getCurrentFinality(lastNotarizedHeader.GetShardID())
+	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+uint64(finality) && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {
 		return
 	}
@@ -429,7 +430,8 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
-	toNonce := fromNonce + bp.blockFinality
+	finality := bp.getCurrentFinality(shardID)
+	toNonce := fromNonce + uint64(finality)
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Trace("requestHeaders.RequestHeaderByNonce",
 			"shard", shardID,
@@ -443,6 +445,15 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 		}
 	}
+}
+
+func (bp *blockProcessor) getCurrentFinality(shard uint32) int64 {
+	chainParams := bp.chainParametersHandler.CurrentChainParameters()
+	if shard == core.MetachainShardId {
+		return chainParams.MetaFinality
+	}
+
+	return chainParams.ShardFinality
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -459,6 +470,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(arguments.ChainParametersHandler) {
+		return process.ErrNilChainParametersHandler
 	}
 	if check.IfNil(arguments.BlockTracker) {
 		return ErrNilBlockTrackerHandler

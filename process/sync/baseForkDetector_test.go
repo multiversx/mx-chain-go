@@ -8,12 +8,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	"github.com/stretchr/testify/assert"
 )
+
+func getChainParams() process.ChainParametersHandler {
+	return &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{ShardFinality: 1, MetaFinality: 1}, nil
+		},
+	}
+}
 
 func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
 	t.Parallel()
@@ -22,6 +32,7 @@ func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
 		nil,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.Equal(t, process.ErrNilRoundHandler, err)
@@ -36,6 +47,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlackListHandler(t *testing.T) {
 		roundHandler,
 		nil,
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
@@ -50,6 +62,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlockTracker(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		nil,
+		getChainParams(),
 		0,
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -64,6 +77,7 @@ func TestNewBasicForkDetector_ShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.Nil(t, err)
@@ -83,6 +97,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		genesisTime,
 	)
 
@@ -101,6 +116,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	bfd.SetFinalCheckpoint(1, 1, nil)
@@ -116,6 +132,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	bfd.SetFinalCheckpoint(2, 2, nil)
@@ -131,6 +148,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash"))
@@ -145,6 +163,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
@@ -159,6 +178,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
@@ -177,6 +197,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -208,6 +229,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(
@@ -236,6 +258,7 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(
@@ -266,6 +289,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcess
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(
@@ -296,6 +320,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *test
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(
@@ -324,6 +349,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 5
@@ -368,6 +394,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 5
@@ -411,6 +438,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -475,6 +503,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 5
@@ -517,6 +546,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -580,6 +610,7 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 4
@@ -624,6 +655,7 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpoint
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 1
@@ -660,6 +692,7 @@ func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnHigherEpochBloc
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 2
@@ -702,6 +735,7 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
@@ -736,6 +770,7 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 11
@@ -774,6 +809,7 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -793,6 +829,7 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -829,6 +866,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -882,7 +920,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
 	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
@@ -900,7 +938,7 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 	hdr := &block.Header{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality - 1)
@@ -912,7 +950,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	mfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	mfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.BlockFinality)
@@ -930,7 +968,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	mfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	mfd, _ := sync.NewMetaForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(roundHandlerMock.RoundIndex - process.BlockFinality - 1)
@@ -942,7 +980,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 	hdr1 := &block.Header{Nonce: 3, Round: 3}
 	hash1 := []byte("hash1")
 	hdr2 := &block.Header{Nonce: 4, Round: 4}
@@ -988,7 +1026,7 @@ func TestBaseForkDetector_IsConsensusStuckNotSyncingShouldReturnFalse(t *testing
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{}
-	bfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	bfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 
 	bfd.SetProbableHighestNonce(1)
 
@@ -1003,6 +1041,7 @@ func TestBaseForkDetector_IsConsensusStuckNoncesDifferencesNotEnoughShouldReturn
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -1018,6 +1057,7 @@ func TestBaseForkDetector_IsConsensusStuckNotInProperRoundShouldReturnFalse(t *t
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -1033,6 +1073,7 @@ func TestBaseForkDetector_IsConsensusStuckShouldReturnTrue(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -1059,6 +1100,7 @@ func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		genesisTime,
 	)
 
@@ -1073,7 +1115,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	t.Parallel()
 
 	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 10}
-	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, 0)
+	sfd, _ := sync.NewShardForkDetector(roundHandlerMock, &testscommon.TimeCacheStub{}, &mock.BlockTrackerMock{}, getChainParams(), 0)
 	hdr1 := &block.Header{Nonce: 3, Round: 3}
 	hash1 := []byte("hash1")
 	hdr2 := &block.Header{Nonce: 4, Round: 4}
@@ -1113,6 +1155,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	roundHandlerMock.RoundIndex = 5
@@ -1161,6 +1204,7 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 

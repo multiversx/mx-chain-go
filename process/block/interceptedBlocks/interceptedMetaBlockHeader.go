@@ -20,14 +20,15 @@ var log = logger.GetOrCreate("process/block/interceptedBlocks")
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr               data.MetaHeaderHandler
-	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.HeaderIntegrityVerifier
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	hash              []byte
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	hdr                    data.MetaHeaderHandler
+	sigVerifier            process.InterceptedHeaderSigVerifier
+	integrityVerifier      process.HeaderIntegrityVerifier
+	hasher                 hashing.Hasher
+	shardCoordinator       sharding.Coordinator
+	hash                   []byte
+	validityAttester       process.ValidityAttester
+	epochStartTrigger      process.EpochStartTriggerHandler
+	chainParametersHandler process.ChainParametersHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,13 +44,14 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	}
 
 	inHdr := &InterceptedMetaHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		integrityVerifier: arg.HeaderIntegrityVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		validityAttester:  arg.ValidityAttester,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:                    hdr,
+		hasher:                 arg.Hasher,
+		sigVerifier:            arg.HeaderSigVerifier,
+		integrityVerifier:      arg.HeaderIntegrityVerifier,
+		shardCoordinator:       arg.ShardCoordinator,
+		validityAttester:       arg.ValidityAttester,
+		epochStartTrigger:      arg.EpochStartTrigger,
+		chainParametersHandler: arg.ChainParametersHandler,
 	}
 	inHdr.processFields(arg.HdrBuff)
 

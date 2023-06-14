@@ -47,6 +47,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
@@ -96,7 +97,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		GasSchedule: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
-		NodesCoordinator:       &shardingMocks.NodesCoordinatorStub{},
+		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
@@ -195,6 +196,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			RatingsConfig:                &testscommon.RatingsInfoMock{},
 			PathHdl:                      &testscommon.PathManagerStub{},
 			ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+			ChainParametersHandlerField:  &shardingmock.ChainParametersHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

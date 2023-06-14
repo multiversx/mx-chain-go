@@ -19,6 +19,7 @@ type interceptedShardHeaderDataFactory struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
+	chainParametersHandler  process.ChainParametersHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -65,6 +66,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
+		chainParametersHandler:  argument.CoreComponents.ChainParametersHandler(),
 	}, nil
 }
 
@@ -79,6 +81,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
+		ChainParametersHandler:  ishdf.chainParametersHandler,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

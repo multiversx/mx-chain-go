@@ -644,4 +644,6 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+	ShardFinality               int64
+	MetaFinality                int64
 }

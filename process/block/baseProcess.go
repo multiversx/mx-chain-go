@@ -98,16 +98,17 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	outportDataProvider outport.DataProviderOutport
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	enableEpochsHandler common.EnableEpochsHandler
-	enableRoundsHandler process.EnableRoundsHandler
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler         outport.OutportHandler
+	outportDataProvider    outport.DataProviderOutport
+	historyRepo            dblookupext.HistoryRepository
+	epochNotifier          process.EpochNotifier
+	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    process.EnableRoundsHandler
+	vmContainerFactory     process.VirtualMachinesContainerFactory
+	vmContainer            process.VirtualMachinesContainer
+	gasConsumedProvider    gasConsumedProvider
+	economicsData          process.EconomicsDataHandler
+	chainParametersHandler process.ChainParametersHandler
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -888,8 +889,10 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	headersPool := bp.dataPool.Headers()
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
+		log.Error("REMOVE_ME: requestMissingFinalityAttestingHeaders", "i", i, "finality", finality, "lastFinalityAttestingHeader", lastFinalityAttestingHeader)
 		headers, headersHashes, err := headersPool.GetHeadersByNonceAndShardId(i, shardID)
 		if err != nil {
+			log.Error("REMOVE_ME: requestMissingFinalityAttestingHeaders GetHeadersByNonceAndShardId error", "i", i, "error", err)
 			missingFinalityAttestingHeaders++
 			requestedHeaders++
 			go bp.requestHeaderByShardAndNonce(shardID, i)
@@ -2021,6 +2024,7 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 }
 
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
+	// TODO: inject the customizable finality to this function and maybe update this: 2 blocks on shard + 2 blocks on meta + 1 block to previous final
 	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
 	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
 	level := logger.LogWarning

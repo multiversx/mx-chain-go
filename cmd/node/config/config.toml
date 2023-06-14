@@ -25,7 +25,7 @@
     GenesisString = "67656E65736973"
 
     # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
-    GenesisMaxNumberOfShards  = 3
+    GenesisMaxNumberOfShards  = 2
 
     # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
     # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
@@ -42,7 +42,10 @@
 
    # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
    ChainParametersByEpoch = [
-      { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+      { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 2, ShardMinNumNodes = 2, MetachainConsensusGroupSize = 2, MetachainMinNumNodes = 2, Hysteresis = 0.0, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
+      { EnableEpoch = 2, RoundDuration = 4000, ShardConsensusGroupSize = 2, ShardMinNumNodes = 2, MetachainConsensusGroupSize = 2, MetachainMinNumNodes = 2, Hysteresis = 0.0, Adaptivity = false, ShardFinality = 3, MetaFinality = 3 },
+      { EnableEpoch = 4, RoundDuration = 4000, ShardConsensusGroupSize = 2, ShardMinNumNodes = 2, MetachainConsensusGroupSize = 2, MetachainMinNumNodes = 2, Hysteresis = 0.0, Adaptivity = false, ShardFinality = 2, MetaFinality = 2 },
+      { EnableEpoch = 6, RoundDuration = 4000, ShardConsensusGroupSize = 2, ShardMinNumNodes = 2, MetachainConsensusGroupSize = 2, MetachainMinNumNodes = 2, Hysteresis = 0.0, Adaptivity = false, ShardFinality = 0, MetaFinality = 1 }
    ]
 
 [Versions]

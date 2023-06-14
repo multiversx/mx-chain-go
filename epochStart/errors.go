@@ -230,6 +230,9 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier ha
 // ErrNilChanceComputer signals that nil chance computer has been provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
 
+// ErrNilChainParametersHandler signals that a nil chain parameters handler has been provided
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 

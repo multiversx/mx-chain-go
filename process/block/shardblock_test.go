@@ -1684,7 +1684,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, 1)
-	res := sp.RequestMissingFinalityAttestingHeaders()
+	res := sp.RequestMissingFinalityAttestingHeaders(1)
 	assert.Equal(t, res > 0, true)
 }
 

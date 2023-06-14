@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -123,6 +124,11 @@ func createArgBaseProcessor(
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{ShardFinality: 1, MetaFinality: 1}, nil
+			},
+		},
 	}
 }
 

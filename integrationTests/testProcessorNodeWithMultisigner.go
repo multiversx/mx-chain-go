@@ -36,6 +36,18 @@ import (
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
+// CreateNodesWithNodesCoordinatorAndChainParametersHandler -
+func CreateNodesWithNodesCoordinatorAndChainParametersHandler(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	chainParametersHandler process.ChainParametersHandler,
+) map[uint32][]*TestProcessorNode {
+	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, chainParametersHandler)
+}
+
 // CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
 func CreateNodesWithNodesCoordinator(
 	nodesPerShard int,
@@ -44,7 +56,7 @@ func CreateNodesWithNodesCoordinator(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) map[uint32][]*TestProcessorNode {
-	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize)
+	return CreateNodesWithNodesCoordinatorWithCacher(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, nil)
 }
 
 // CreateNodesWithNodesCoordinatorWithCacher returns a map with nodes per shard each using a real nodes coordinator with cacher
@@ -54,9 +66,10 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	nbShards int,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
+	chainParametersHandler process.ChainParametersHandler,
 ) map[uint32][]*TestProcessorNode {
 	coordinatorFactory := &IndexHashedNodesCoordinatorFactory{}
-	return CreateNodesWithNodesCoordinatorFactory(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, coordinatorFactory)
+	return CreateNodesWithNodesCoordinatorFactory(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, coordinatorFactory, chainParametersHandler)
 }
 
 // CreateNodesWithNodesCoordinatorAndTxKeys -
@@ -196,6 +209,7 @@ func CreateNodeWithBLSAndTxKeys(
 		nodesSetup,
 		ratingsData,
 		twa,
+		nil,
 		epochsConfig,
 	)
 }
@@ -208,6 +222,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 	nodesCoordinatorFactory NodesCoordinatorFactory,
+	chainParametersHandler process.ChainParametersHandler,
 ) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
 	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
@@ -261,6 +276,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				nodesSetup,
 				nil,
 				nil,
+				chainParametersHandler,
 				epochsConfig,
 			)
 			nodesList[i] = tpn
@@ -285,6 +301,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				nodesSetup,
 				nil,
 				nil,
+				chainParametersHandler,
 				epochsConfig,
 			)
 			nodesListWaiting[i] = tpn
@@ -316,6 +333,7 @@ func CreateNode(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	ratingsData *rating.RatingsData,
 	ownAccount *TestWalletAccount,
+	chainParametersHandler process.ChainParametersHandler,
 	epochsConfig config.EnableEpochs,
 ) *TestProcessorNode {
 
@@ -352,17 +370,18 @@ func CreateNode(
 	}
 
 	return NewTestProcessorNode(ArgTestProcessorNode{
-		MaxShards:            uint32(nbShards),
-		NodeShardId:          shardId,
-		TxSignPrivKeyShardId: txSignPrivKeyShardId,
-		EpochsConfig:         &epochsConfig,
-		NodeKeys:             cp.NodesKeys[shardId][keyIndex],
-		NodesSetup:           nodesSetup,
-		NodesCoordinator:     nodesCoordinatorInstance,
-		RatingsData:          ratingsData,
-		MultiSigner:          multiSigner,
-		EpochStartSubscriber: epochStartSubscriber,
-		OwnAccount:           ownAccount,
+		MaxShards:              uint32(nbShards),
+		NodeShardId:            shardId,
+		TxSignPrivKeyShardId:   txSignPrivKeyShardId,
+		EpochsConfig:           &epochsConfig,
+		NodeKeys:               cp.NodesKeys[shardId][keyIndex],
+		NodesSetup:             nodesSetup,
+		NodesCoordinator:       nodesCoordinatorInstance,
+		RatingsData:            ratingsData,
+		MultiSigner:            multiSigner,
+		EpochStartSubscriber:   epochStartSubscriber,
+		OwnAccount:             ownAccount,
+		ChainParametersHandler: chainParametersHandler,
 	})
 }
 

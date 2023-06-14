@@ -300,21 +300,21 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
-		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
-		Hasher:               e.CoreComponents.Hasher(),
-		HeaderValidator:      e.headerValidator,
-		Uint64Converter:      e.CoreComponents.Uint64ByteSliceConverter(),
-		DataPool:             e.dataPool,
-		Storage:              e.storageService,
-		RequestHandler:       e.requestHandler,
-		EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
-		Epoch:                0,
-		Validity:             process.MetaBlockValidity,
-		Finality:             process.BlockFinality,
-		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
-		EnableEpochsHandler:  e.CoreComponents.EnableEpochsHandler(),
+		Marshalizer:            e.CoreComponents.InternalMarshalizer(),
+		Hasher:                 e.CoreComponents.Hasher(),
+		HeaderValidator:        e.headerValidator,
+		Uint64Converter:        e.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:               e.dataPool,
+		Storage:                e.storageService,
+		RequestHandler:         e.requestHandler,
+		EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+		Epoch:                  0,
+		Validity:               process.MetaBlockValidity,
+		ChainParametersHandler: e.CoreComponents.ChainParametersHandler(),
+		PeerMiniBlocksSyncer:   peerMiniBlocksSyncer,
+		RoundHandler:           e.roundHandler,
+		AppStatusHandler:       e.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:    e.CoreComponents.EnableEpochsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

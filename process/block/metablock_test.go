@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -31,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -146,6 +148,11 @@ func createMockMetaArguments(
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{ShardFinality: 1, MetaFinality: 1}, nil
+				},
+			},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

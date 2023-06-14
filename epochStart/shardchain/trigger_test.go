@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -19,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -65,6 +67,13 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		RoundHandler:         &mock.RoundHandlerStub{},
 		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					MetaFinality: 2,
+				}, nil
+			},
+		},
 	}
 }
 
@@ -108,6 +117,17 @@ func TestNewEpochStartTrigger_NilHeaderShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilHeaderValidator, err)
+}
+
+func TestNewEpochStartTrigger_NilChainParametersHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.ChainParametersHandler = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilChainParametersHandler, err)
 }
 
 func TestNewEpochStartTrigger_NilDataPoolShouldErr(t *testing.T) {
@@ -262,7 +282,13 @@ func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 2
-	args.Finality = 2
+	args.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MetaFinality: 2,
+			}, nil
+		},
+	}
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
 	hash := []byte("hash")
@@ -278,7 +304,13 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 1
-	args.Finality = 2
+	args.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MetaFinality: 2,
+			}, nil
+		},
+	}
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
 	oldEpHeader := &block.MetaBlock{Nonce: 99, Epoch: 0}
@@ -395,7 +427,13 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	}
 
 	args.Validity = 1
-	args.Finality = 2
+	args.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MetaFinality: 2,
+			}, nil
+		},
+	}
 
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
@@ -575,7 +613,13 @@ func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 1
-	args.Finality = 1
+	args.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MetaFinality: 1,
+			}, nil
+		},
+	}
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
 	oldEpHeader := &block.MetaBlock{Nonce: 99, Round: 99, Epoch: 0}

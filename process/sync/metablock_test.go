@@ -916,6 +916,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 		args.RoundHandler,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 
@@ -981,6 +982,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 		args.RoundHandler,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 

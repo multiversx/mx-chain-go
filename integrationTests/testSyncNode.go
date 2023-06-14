@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -102,10 +103,24 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{ShardFinality: 4, MetaFinality: 4}, nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			&shardingmock.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{ShardFinality: 4, MetaFinality: 4}, nil
+				},
+			},
+			0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -126,7 +141,16 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			&shardingmock.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{ShardFinality: 4, MetaFinality: 4}, nil
+				},
+			},
+			0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator

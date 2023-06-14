@@ -26,6 +26,7 @@ type interceptedDataCoreComponentsHolder interface {
 	IsInterfaceNil() bool
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	ChainParametersHandler() process.ChainParametersHandler
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory

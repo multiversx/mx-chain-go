@@ -777,21 +777,21 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          pcf.coreData.InternalMarshalizer(),
-			Hasher:               pcf.coreData.Hasher(),
-			HeaderValidator:      headerValidator,
-			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:             pcf.data.Datapool(),
-			Storage:              pcf.data.StorageService(),
-			RequestHandler:       requestHandler,
-			Epoch:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:   pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:             process.MetaBlockValidity,
-			Finality:             process.BlockFinality,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         pcf.coreData.RoundHandler(),
-			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+			Marshalizer:            pcf.coreData.InternalMarshalizer(),
+			Hasher:                 pcf.coreData.Hasher(),
+			HeaderValidator:        headerValidator,
+			Uint64Converter:        pcf.coreData.Uint64ByteSliceConverter(),
+			DataPool:               pcf.data.Datapool(),
+			Storage:                pcf.data.StorageService(),
+			RequestHandler:         requestHandler,
+			Epoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartNotifier:     pcf.coreData.EpochStartNotifierWithConfirm(),
+			Validity:               process.MetaBlockValidity,
+			PeerMiniBlocksSyncer:   peerMiniBlockSyncer,
+			RoundHandler:           pcf.coreData.RoundHandler(),
+			AppStatusHandler:       pcf.statusCoreComponents.AppStatusHandler(),
+			EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
+			ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
@@ -1267,17 +1267,18 @@ func (pcf *processComponentsFactory) newBlockTracker(
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:           pcf.coreData.Hasher(),
-		HeaderValidator:  headerValidator,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		RequestHandler:   requestHandler,
-		RoundHandler:     pcf.coreData.RoundHandler(),
-		ShardCoordinator: shardCoordinator,
-		Store:            pcf.data.StorageService(),
-		StartHeaders:     genesisBlocks,
-		PoolsHolder:      pcf.data.Datapool(),
-		WhitelistHandler: pcf.whiteListHandler,
-		FeeHandler:       pcf.coreData.EconomicsData(),
+		Hasher:                 pcf.coreData.Hasher(),
+		HeaderValidator:        headerValidator,
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
+		RequestHandler:         requestHandler,
+		RoundHandler:           pcf.coreData.RoundHandler(),
+		ShardCoordinator:       shardCoordinator,
+		Store:                  pcf.data.StorageService(),
+		StartHeaders:           genesisBlocks,
+		PoolsHolder:            pcf.data.Datapool(),
+		WhitelistHandler:       pcf.whiteListHandler,
+		FeeHandler:             pcf.coreData.EconomicsData(),
+		ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1678,10 +1679,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 ) (process.ForkDetector, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.ChainParametersHandler(), pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.ChainParametersHandler(), pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")

@@ -25,7 +25,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochMetaBlockHash = t.epochMetaBlockHash
 	rt.triggerStateKey = t.triggerStateKey
 	rt.isEpochStart = t.isEpochStart
-	rt.finality = t.finality
+	rt.chainParametersHandler = t.chainParametersHandler
 	rt.validity = t.validity
 	rt.epochFinalityAttestingRound = t.epochFinalityAttestingRound
 	rt.newEpochHdrReceived = t.newEpochHdrReceived

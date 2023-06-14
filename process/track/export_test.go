@@ -1,7 +1,6 @@
 package track
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -64,11 +63,11 @@ func (bbt *baseBlockTrack) GetMaxNumHeadersToKeepPerShard() int {
 }
 
 func (bbt *baseBlockTrack) ShouldAddHeaderForCrossShard(headerHandler data.HeaderHandler) bool {
-	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer, headerHandler.GetShardID())
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer)
 }
 
 func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.HeaderHandler) bool {
-	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer)
 }
 
 func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) bool {

@@ -39,6 +39,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ValidityAttester) {
 		return process.ErrNilValidityAttester
 	}
+	if check.IfNil(arg.ChainParametersHandler) {
+		return process.ErrNilChainParametersHandler
+	}
 
 	return nil
 }

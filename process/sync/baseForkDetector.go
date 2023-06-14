@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -36,7 +37,8 @@ type forkInfo struct {
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
 type baseForkDetector struct {
-	roundHandler consensus.RoundHandler
+	roundHandler           consensus.RoundHandler
+	chainParametersHandler process.ChainParametersHandler
 
 	headers    map[uint64][]*headerInfo
 	mutHeaders sync.RWMutex
@@ -696,9 +698,21 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		return
 	}
 
-	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
+	chainParams := bfd.chainParametersHandler.CurrentChainParameters()
+	//chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+	//if err != nil {
+	//	log.Error("baseForkDetector.processReceivedBlock: cannot compute chain parameters", "epoch", header.GetEpoch(), "error", err)
+	//	return
+	//}
+
+	finality := chainParams.ShardFinality
+	if header.GetShardID() == core.MetachainShardId {
+		finality = chainParams.MetaFinality
+	}
+	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, finality)
 	if isHeaderReceivedTooLate {
 		state = process.BHReceivedTooLate
+		log.Error("REMOVE_ME - header is received too late")
 	}
 
 	appended := bfd.append(&headerInfo{

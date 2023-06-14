@@ -11,6 +11,8 @@ type ArgBlockProcessor struct {
 	HeaderValidator                       process.HeaderConstructionValidator
 	RequestHandler                        process.RequestHandler
 	ShardCoordinator                      sharding.Coordinator
+	ChainParametersHandler                process.ChainParametersHandler
+	InitialBlockFinality                  uint64
 	BlockTracker                          blockTrackerHandler
 	CrossNotarizer                        blockNotarizerHandler
 	SelfNotarizer                         blockNotarizerHandler

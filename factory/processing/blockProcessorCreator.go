@@ -418,6 +418,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
+		ChainParametersHandler:       pcf.coreData.ChainParametersHandler(),
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -832,6 +833,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
+		ChainParametersHandler:       pcf.coreData.ChainParametersHandler(),
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

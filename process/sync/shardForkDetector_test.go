@@ -19,6 +19,7 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		nil,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -32,6 +33,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&mock.RoundHandlerMock{},
 		nil,
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.True(t, check.IfNil(sfd))
@@ -45,10 +47,25 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&mock.RoundHandlerMock{},
 		&testscommon.TimeCacheStub{},
 		nil,
+		getChainParams(),
 		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
+}
+
+func TestNewShardForkDetector_NilChainParametersHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sfd, err := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		nil,
+		0,
+	)
+	assert.True(t, check.IfNil(sfd))
+	assert.Equal(t, process.ErrNilChainParametersHandler, err)
 }
 
 func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
@@ -58,6 +75,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&mock.RoundHandlerMock{},
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	assert.Nil(t, err)
@@ -77,6 +95,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
@@ -91,6 +110,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
@@ -107,6 +127,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
@@ -129,6 +150,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -151,6 +173,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -168,6 +191,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
@@ -189,6 +213,7 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		roundHandlerMock,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
+		getChainParams(),
 		0,
 	)
 	err := bfd.AddHeader(

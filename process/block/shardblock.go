@@ -45,8 +45,7 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	metaBlockFinality uint32
-	chRcvAllMetaHdrs  chan bool
+	chRcvAllMetaHdrs chan bool
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -119,6 +118,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
+		chainParametersHandler:        arguments.ChainParametersHandler,
 	}
 
 	sp := shardProcessor{
@@ -146,7 +146,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool := sp.dataPool.Headers()
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
-	sp.metaBlockFinality = process.BlockFinality
+	//sp.metaBlockFinality = process.BlockFinality
 
 	return &sp, nil
 }
@@ -548,13 +548,19 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
+	chainParams := sp.chainParametersHandler.CurrentChainParameters()
+	//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+	//if err != nil {
+	//	return err
+	//}
+	finality := uint32(chainParams.MetaFinality)
 	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
 	for _, metaHdr := range finalityAttestingMetaHdrs[core.MetachainShardId] {
-		if nextBlocksVerified >= sp.metaBlockFinality {
+		if nextBlocksVerified >= finality {
 			break
 		}
 
@@ -572,7 +578,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		}
 	}
 
-	if nextBlocksVerified < sp.metaBlockFinality {
+	if nextBlocksVerified < finality {
 		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce())
 		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + 1)
 		return process.ErrHeaderNotFinal
@@ -1147,6 +1153,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, header := range headers {
+		log.Error("shardProcessor.updateState", "GetHighestFinalBlockNonce", sp.forkDetector.GetHighestFinalBlockHash(), "hdr nonce", header.GetNonce())
 		if sp.forkDetector.GetHighestFinalBlockNonce() < header.GetNonce() {
 			break
 		}
@@ -1187,7 +1194,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			prevHeaderRootHashForPruning = prevHeaderAdditionalData.GetScheduledRootHash()
 		}
 
-		log.Trace("updateState: prevHeader",
+		log.Debug("updateState: prevHeader",
 			"shard", prevHeader.GetShardID(),
 			"epoch", prevHeader.GetEpoch(),
 			"round", prevHeader.GetRound(),
@@ -1197,7 +1204,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"scheduled root hash after processing", scheduledPrevHeaderRootHash,
 		)
 
-		log.Trace("updateState: currHeader",
+		log.Debug("updateState: currHeader",
 			"shard", header.GetShardID(),
 			"epoch", header.GetEpoch(),
 			"round", header.GetRound(),
@@ -1578,6 +1585,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
+		log.Error(fmt.Sprintf("\tordered meta header"), "nonce", headerInfo.hdr.GetNonce(), "used in block", headerInfo.usedInBlock, "shard", headerInfo.hdr.GetShardID(), "epoch", headerInfo.hdr.GetEpoch())
 		if !headerInfo.usedInBlock {
 			continue
 		}
@@ -1672,7 +1680,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		return
 	}
 
-	log.Trace("received meta block from network",
+	log.Debug("received meta block from network",
 		"round", metaBlock.Round,
 		"nonce", metaBlock.Nonce,
 		"hash", metaBlockHash,
@@ -1696,9 +1704,15 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
+			chainParams := sp.chainParametersHandler.CurrentChainParameters()
+			//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+			//if err != nil {
+			//	log.Warn("shardProcessor.receivedMetaBlock: cannot compute chain params", "epoch", headerHandler.GetEpoch(), "error", err)
+			//	return
+			//}
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				core.MetachainShardId,
-				sp.metaBlockFinality,
+				uint32(chainParams.MetaFinality),
 			)
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
@@ -1761,9 +1775,15 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	}
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
+		chainParams := sp.chainParametersHandler.CurrentChainParameters()
+		//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+		//if err != nil {
+		//	log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
+		//	return 0, 0
+		//}
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
-			sp.metaBlockFinality,
+			uint32(chainParams.MetaFinality),
 		)
 	}
 
@@ -1985,11 +2005,18 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
+	chainParams := sp.chainParametersHandler.CurrentChainParameters()
+	//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(lastMetaHdr.GetEpoch())
+	//if err != nil {
+	//	log.Warn("shardProcessor.requestMetaHeadersIfNeeded: cannot compute chain params", "epoch", lastMetaHdr.GetEpoch(), "error", err)
+	//	return
+	//}
+
 	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
-		toNonce := fromNonce + uint64(sp.metaBlockFinality)
+		toNonce := fromNonce + uint64(chainParams.MetaFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
 			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
 			sp.requestHandler.RequestMetaHeaderByNonce(nonce)

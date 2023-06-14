@@ -47,18 +47,18 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool             dataRetriever.PoolsHolder
-	Storage              dataRetriever.StorageService
-	RequestHandler       epochStart.RequestHandler
-	EpochStartNotifier   epochStart.Notifier
-	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
-	RoundHandler         process.RoundHandler
-	AppStatusHandler     core.AppStatusHandler
-	EnableEpochsHandler  common.EnableEpochsHandler
+	DataPool               dataRetriever.PoolsHolder
+	Storage                dataRetriever.StorageService
+	RequestHandler         epochStart.RequestHandler
+	EpochStartNotifier     epochStart.Notifier
+	PeerMiniBlocksSyncer   process.ValidatorInfoSyncer
+	RoundHandler           process.RoundHandler
+	AppStatusHandler       core.AppStatusHandler
+	EnableEpochsHandler    common.EnableEpochsHandler
+	ChainParametersHandler process.ChainParametersHandler
 
 	Epoch    uint32
 	Validity uint64
-	Finality uint64
 }
 
 type trigger struct {
@@ -66,7 +66,6 @@ type trigger struct {
 	epochStartRound             uint64
 	epochMetaBlockHash          []byte
 	triggerStateKey             []byte
-	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
 	epochStartShardHeader       data.HeaderHandler
@@ -89,9 +88,10 @@ type trigger struct {
 
 	uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	marshaller      marshal.Marshalizer
-	hasher          hashing.Hasher
-	headerValidator epochStart.HeaderValidator
+	marshaller             marshal.Marshalizer
+	hasher                 hashing.Hasher
+	headerValidator        epochStart.HeaderValidator
+	chainParametersHandler process.ChainParametersHandler
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.Notifier
@@ -195,6 +195,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ChainParametersHandler) {
+		return nil, epochStart.ErrNilChainParametersHandler
+	}
 
 	metaHdrStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
@@ -227,7 +230,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochFinalityAttestingRound:   0,
 		isEpochStart:                  false,
 		validity:                      args.Validity,
-		finality:                      args.Finality,
+		chainParametersHandler:        args.ChainParametersHandler,
 		newEpochHdrReceived:           false,
 		mutTrigger:                    sync.RWMutex{},
 		mapHashHdr:                    make(map[string]data.HeaderHandler),
@@ -501,11 +504,20 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+t.finality+1
+	log.Debug("REMOVE_ME: trigger.changeEpochFinalityAttestingRoundIfNeeded", "epoch", metaHdr.GetEpoch(), "shard", metaHdr.GetShardID(), "nonce", metaHdr.GetNonce())
+	chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	finality := uint64(chainParameters.ShardFinality)
+	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+finality+1
+	log.Debug("\tREMOVE_ME: trigger.changeEpochFinalityAttestingRoundIfNeeded",
+		"isHeaderOnTopOfFinalityAttestingRound", isHeaderOnTopOfFinalityAttestingRound,
+		"finality", finality,
+		"epoch", metaHdr.GetEpoch(),
+		"shard", metaHdr.GetShardID(),
+		"nonce", metaHdr.GetNonce())
 	if isHeaderOnTopOfFinalityAttestingRound {
-		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.GetNonce()+t.finality, metaHdr.PrevHash)
+		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.GetNonce()+finality, metaHdr.PrevHash)
 		if err != nil {
-			log.Debug("searched metaHeader was not found")
+			log.Debug("searched metaHeader was not found", "hash", receivedHash, "nonce", metaHdr.GetNonce())
 			_ = t.requestedFinalityAttestingBlock.SetReturningPrevious()
 			return
 		}
@@ -514,7 +526,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	isFinalityAttestingBlock := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+t.finality
+	isFinalityAttestingBlock := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+finality
 	if !isFinalityAttestingBlock {
 		return
 	}
@@ -713,7 +725,10 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.GetRound()
 	currHdr := metaHdr
-	for nonce := metaHdr.GetNonce() + 1; nonce <= metaHdr.GetNonce()+t.finality; nonce++ {
+	chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	finality := uint64(chainParameters.MetaFinality)
+
+	for nonce := metaHdr.GetNonce() + 1; nonce <= metaHdr.GetNonce()+finality; nonce++ {
 		currHash, err := core.CalculateHash(t.marshaller, t.hasher, currHdr)
 		if err != nil {
 			continue
@@ -730,9 +745,9 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 		nextBlocksVerified += 1
 	}
 
-	if nextBlocksVerified < t.finality {
-		log.Debug("isMetaBlockFinal", "nextBlocksVerified", nextBlocksVerified, "finality", t.finality)
-		for nonce := currHdr.GetNonce() + 1; nonce <= currHdr.GetNonce()+t.finality; nonce++ {
+	if nextBlocksVerified < finality {
+		log.Debug("isMetaBlockFinal", "nextBlocksVerified", nextBlocksVerified, "finality", finality)
+		for nonce := currHdr.GetNonce() + 1; nonce <= currHdr.GetNonce()+finality; nonce++ {
 			go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 		return false, 0

@@ -23,6 +23,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -122,17 +123,18 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &hashingMocks.HasherMock{},
-			HeaderValidator:  headerValidator,
-			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &testscommon.RequestHandlerStub{},
-			RoundHandler:     &mock.RoundHandlerMock{},
-			ShardCoordinator: shardCoordinatorMock,
-			Store:            initStore(),
-			StartHeaders:     genesisBlocks,
-			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler: whitelistHandler,
-			FeeHandler:       feeHandler,
+			Hasher:                 &hashingMocks.HasherMock{},
+			HeaderValidator:        headerValidator,
+			Marshalizer:            &mock.MarshalizerMock{},
+			RequestHandler:         &testscommon.RequestHandlerStub{},
+			RoundHandler:           &mock.RoundHandlerMock{},
+			ShardCoordinator:       shardCoordinatorMock,
+			Store:                  initStore(),
+			StartHeaders:           genesisBlocks,
+			PoolsHolder:            dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler:       whitelistHandler,
+			FeeHandler:             feeHandler,
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{},
 		},
 	}
 
@@ -160,17 +162,18 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &hashingMocks.HasherMock{},
-			HeaderValidator:  headerValidator,
-			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &testscommon.RequestHandlerStub{},
-			RoundHandler:     &mock.RoundHandlerMock{},
-			ShardCoordinator: shardCoordinatorMock,
-			Store:            initStore(),
-			StartHeaders:     genesisBlocks,
-			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler: whitelistHandler,
-			FeeHandler:       feeHandler,
+			Hasher:                 &hashingMocks.HasherMock{},
+			HeaderValidator:        headerValidator,
+			Marshalizer:            &mock.MarshalizerMock{},
+			RequestHandler:         &testscommon.RequestHandlerStub{},
+			RoundHandler:           &mock.RoundHandlerMock{},
+			ShardCoordinator:       shardCoordinatorMock,
+			Store:                  initStore(),
+			StartHeaders:           genesisBlocks,
+			PoolsHolder:            dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler:       whitelistHandler,
+			FeeHandler:             feeHandler,
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{},
 		},
 	}
 
@@ -195,15 +198,16 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	}
 
 	arguments := track.ArgBaseTracker{
-		Hasher:           &hashingMocks.HasherMock{},
-		HeaderValidator:  headerValidator,
-		Marshalizer:      &mock.MarshalizerMock{},
-		RequestHandler:   &testscommon.RequestHandlerStub{},
-		RoundHandler:     &mock.RoundHandlerMock{},
-		ShardCoordinator: shardCoordinatorMock,
-		Store:            initStore(),
-		StartHeaders:     genesisBlocks,
-		FeeHandler:       feeHandler,
+		Hasher:                 &hashingMocks.HasherMock{},
+		HeaderValidator:        headerValidator,
+		Marshalizer:            &mock.MarshalizerMock{},
+		RequestHandler:         &testscommon.RequestHandlerStub{},
+		RoundHandler:           &mock.RoundHandlerMock{},
+		ShardCoordinator:       shardCoordinatorMock,
+		Store:                  initStore(),
+		StartHeaders:           genesisBlocks,
+		FeeHandler:             feeHandler,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{},
 	}
 
 	return arguments

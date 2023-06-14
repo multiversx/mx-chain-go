@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -24,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -164,6 +166,11 @@ func NewShardProcessorEmptyWith3shards(
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{ShardFinality: 1, MetaFinality: 1}, nil
+				},
+			},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -265,7 +272,11 @@ func (bp *baseProcessor) RequestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	mp.shardBlockFinality = val
+	mp.chainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{ShardFinality: int64(val), MetaFinality: int64(val)}, nil
+		},
+	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
@@ -317,13 +328,13 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 	return &hashAndHdr{header, hash}
 }
 
-func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders(finality uint32) uint32 {
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	return sp.requestMissingFinalityAttestingHeaders(
 		core.MetachainShardId,
-		sp.metaBlockFinality,
+		finality,
 	)
 }
 

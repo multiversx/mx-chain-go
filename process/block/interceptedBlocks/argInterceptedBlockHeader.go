@@ -17,4 +17,5 @@ type ArgInterceptedBlockHeader struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
+	ChainParametersHandler  process.ChainParametersHandler
 }

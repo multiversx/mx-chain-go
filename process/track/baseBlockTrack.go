@@ -47,6 +47,7 @@ type baseBlockTrack struct {
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
+	chainParametersHandler                process.ChainParametersHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -190,16 +191,15 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
 	shardID := headerHandler.GetShardID()
 	if shardID == bbt.shardCoordinator.SelfId() {
-		return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
+		return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer)
 	}
 
-	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer, shardID)
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer)
 }
 
 func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	headerHandler data.HeaderHandler,
 	blockNotarizer blockNotarizerHandler,
-	_ uint32,
 ) bool {
 	lastNotarizedHeader, _, err := blockNotarizer.GetLastNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
@@ -789,6 +789,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.WhitelistHandler) {
 		return process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(arguments.ChainParametersHandler) {
+		return process.ErrNilChainParametersHandler
 	}
 
 	return nil

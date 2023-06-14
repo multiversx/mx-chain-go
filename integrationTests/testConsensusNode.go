@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	syncFork "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -61,17 +62,18 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
 type ArgsTestConsensusNode struct {
-	ShardID       uint32
-	ConsensusSize int
-	RoundTime     uint64
-	ConsensusType string
-	NodeKeys      *TestNodeKeys
-	EligibleMap   map[uint32][]nodesCoordinator.Validator
-	WaitingMap    map[uint32][]nodesCoordinator.Validator
-	KeyGen        crypto.KeyGenerator
-	P2PKeyGen     crypto.KeyGenerator
-	MultiSigner   *cryptoMocks.MultisignerMock
-	StartTime     int64
+	ShardID                uint32
+	ConsensusSize          int
+	RoundTime              uint64
+	ConsensusType          string
+	NodeKeys               *TestNodeKeys
+	EligibleMap            map[uint32][]nodesCoordinator.Validator
+	WaitingMap             map[uint32][]nodesCoordinator.Validator
+	KeyGen                 crypto.KeyGenerator
+	P2PKeyGen              crypto.KeyGenerator
+	MultiSigner            *cryptoMocks.MultisignerMock
+	ChainParametersHandler process.ChainParametersHandler
+	StartTime              int64
 }
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
@@ -93,6 +95,21 @@ func NewTestConsensusNode(args ArgsTestConsensusNode) *TestConsensusNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, args.ShardID)
 
+	if args.ChainParametersHandler == nil {
+		args.ChainParametersHandler = &shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					ShardConsensusGroupSize:     uint32(args.ConsensusSize),
+					ShardMinNumNodes:            uint32(args.ConsensusSize),
+					MetachainConsensusGroupSize: 0,
+					MetachainMinNumNodes:        0,
+					Adaptivity:                  false,
+					ShardFinality:               0,
+					MetaFinality:                0,
+				}, nil
+			},
+		}
+	}
 	tcn := &TestConsensusNode{
 		NodeKeys:         args.NodeKeys.MainKey,
 		ShardCoordinator: shardCoordinator,
@@ -217,6 +234,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
+		args.ChainParametersHandler,
 		args.StartTime,
 	)
 

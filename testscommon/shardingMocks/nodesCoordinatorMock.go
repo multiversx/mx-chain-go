@@ -23,6 +23,7 @@ type NodesCoordinatorMock struct {
 	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllValidatorsPublicKeysCalled         func(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32, uint32) int
 	GetValidatorsIndexesCalled               func(publicKeys []string, epoch uint32) ([]uint64, error)
@@ -86,6 +87,14 @@ func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllEligibleValidatorsPublicKeysCalled(epoch)
+	}
+	return nil, nil
+}
+
+// GetAllValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllValidatorsPublicKeysCalled(epoch)
 	}
 	return nil, nil
 }
