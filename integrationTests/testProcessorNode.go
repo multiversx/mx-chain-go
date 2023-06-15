@@ -1514,6 +1514,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
@@ -2312,7 +2313,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 // SendTransaction can send a transaction (it does the dispatching)
 func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (string, error) {
-	txArgs := &external.ArgsCreateTransaction{
+	createTxArgs := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         TestAddressPubkeyConverter.Encode(tx.RcvAddr),
@@ -2329,7 +2330,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		Guardian:         TestAddressPubkeyConverter.Encode(tx.GuardianAddr),
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
-	tx, txHash, err := tpn.Node.CreateTransaction(txArgs)
+	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {
 		return "", err
 	}

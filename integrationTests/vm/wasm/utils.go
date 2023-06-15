@@ -390,6 +390,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     logsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

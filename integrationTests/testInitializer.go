@@ -1007,6 +1007,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
