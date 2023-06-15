@@ -54,7 +54,6 @@ func createTestProcessorNodeAndTrieStorage(
 		GasScheduleMap:       createTestGasMap(),
 	})
 	_ = node.MainMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
-	_ = node.FullArchiveMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
 }
@@ -87,8 +86,8 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -208,8 +207,8 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -316,8 +315,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)

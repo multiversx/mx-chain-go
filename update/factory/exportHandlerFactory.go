@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -56,7 +57,8 @@ type ArgsExporter struct {
 	MaxTrieLevelInMemory      uint
 	WhiteListHandler          process.WhiteListHandler
 	WhiteListerVerifiedTxs    process.WhiteListHandler
-	InterceptorsContainer     process.InterceptorsContainer
+	MainInterceptorsContainer        process.InterceptorsContainer
+	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	NodesCoordinator          nodesCoordinator.NodesCoordinator
 	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
@@ -67,6 +69,7 @@ type ArgsExporter struct {
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
+	NodeOperationMode                p2p.NodeOperation
 }
 
 type exportHandlerFactory struct {
@@ -87,7 +90,8 @@ type exportHandlerFactory struct {
 	maxTrieLevelInMemory      uint
 	whiteListHandler          process.WhiteListHandler
 	whiteListerVerifiedTxs    process.WhiteListHandler
-	interceptorsContainer     process.InterceptorsContainer
+	mainInterceptorsContainer        process.InterceptorsContainer
+	fullArchiveInterceptorsContainer process.InterceptorsContainer
 	existingResolvers         dataRetriever.ResolversContainer
 	existingRequesters        dataRetriever.RequestersContainer
 	epochStartTrigger         epochStart.TriggerHandler
@@ -104,6 +108,7 @@ type exportHandlerFactory struct {
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
+	nodeOperationMode                p2p.NodeOperation
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -153,8 +158,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.WhiteListerVerifiedTxs) {
 		return nil, update.ErrNilWhiteListHandler
 	}
-	if check.IfNil(args.InterceptorsContainer) {
-		return nil, update.ErrNilInterceptorsContainer
+	if check.IfNil(args.MainInterceptorsContainer) {
+		return nil, fmt.Errorf("%w on main network", update.ErrNilInterceptorsContainer)
+	}
+	if check.IfNil(args.FullArchiveInterceptorsContainer) {
+		return nil, fmt.Errorf("%w on full archive network", update.ErrNilInterceptorsContainer)
 	}
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
@@ -239,7 +247,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportTriesStorageConfig:  args.ExportTriesStorageConfig,
 		exportStateStorageConfig:  args.ExportStateStorageConfig,
 		exportStateKeysConfig:     args.ExportStateKeysConfig,
-		interceptorsContainer:     args.InterceptorsContainer,
+		mainInterceptorsContainer:        args.MainInterceptorsContainer,
+		fullArchiveInterceptorsContainer: args.FullArchiveInterceptorsContainer,
 		whiteListHandler:          args.WhiteListHandler,
 		whiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		existingResolvers:         args.ExistingResolvers,
@@ -257,6 +266,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		statusCoreComponents:      args.StatusCoreComponents,
+		nodeOperationMode:                args.NodeOperationMode,
 	}
 
 	return e, nil
@@ -533,7 +543,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+	e.mainInterceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
 		errNotCritical = interceptor.SetInterceptedDebugHandler(debugger)
 		if errNotCritical != nil {
 			log.Warn("error setting debugger", "interceptor", key, "error", errNotCritical)
@@ -574,20 +584,23 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		EpochStartTrigger:       e.epochStartTrigger,
 		WhiteListHandler:        e.whiteListHandler,
 		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		InterceptorsContainer:   e.interceptorsContainer,
+		MainInterceptorsContainer:        e.mainInterceptorsContainer,
+		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:        e.networkComponents.InputAntiFloodHandler(),
+		NodeOperationMode:                e.nodeOperationMode,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
 		return err
 	}
 
-	interceptorsContainer, err := fullSyncInterceptors.Create()
+	mainInterceptorsContainer, fullArchiveInterceptorsContainer, err := fullSyncInterceptors.Create()
 	if err != nil {
 		return err
 	}
 
-	e.interceptorsContainer = interceptorsContainer
+	e.mainInterceptorsContainer = mainInterceptorsContainer
+	e.fullArchiveInterceptorsContainer = fullArchiveInterceptorsContainer
 	return nil
 }
 

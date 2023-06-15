@@ -318,15 +318,16 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
 
-	BlockBlackListHandler process.TimeCacher
-	HeaderValidator       process.HeaderConstructionValidator
-	BlockTracker          process.BlockTracker
-	InterceptorsContainer process.InterceptorsContainer
-	ResolversContainer    dataRetriever.ResolversContainer
-	RequestersContainer   dataRetriever.RequestersContainer
-	RequestersFinder      dataRetriever.RequestersFinder
-	RequestHandler        process.RequestHandler
-	WasmVMChangeLocker    common.Locker
+	BlockBlackListHandler            process.TimeCacher
+	HeaderValidator                  process.HeaderConstructionValidator
+	BlockTracker                     process.BlockTracker
+	MainInterceptorsContainer        process.InterceptorsContainer
+	FullArchiveInterceptorsContainer process.InterceptorsContainer
+	ResolversContainer               dataRetriever.ResolversContainer
+	RequestersContainer              dataRetriever.RequestersContainer
+	RequestersFinder                 dataRetriever.RequestersFinder
+	RequestHandler                   process.RequestHandler
+	WasmVMChangeLocker               common.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -829,7 +830,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
+		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
 			tpn.NodeKeys.MainKey.Sk,
@@ -1018,7 +1019,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
-		tpn.InterceptorsContainer,
+		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
 			tpn.NodeKeys.MainKey.Sk,
@@ -1295,7 +1296,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
-		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
+		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
@@ -1363,7 +1364,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
-		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
+		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -2426,7 +2427,8 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
 	processComponents.NodesCoord = tpn.NodesCoordinator
 	processComponents.ShardCoord = tpn.ShardCoordinator
-	processComponents.IntContainer = tpn.InterceptorsContainer
+	processComponents.IntContainer = tpn.MainInterceptorsContainer
+	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
@@ -2486,7 +2488,7 @@ func (tpn *TestProcessorNode) initNode() {
 
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		tpn.Node,
-		tpn.InterceptorsContainer,
+		tpn.MainInterceptorsContainer,
 		tpn.ResolversContainer,
 		tpn.RequestersFinder,
 		config.InterceptorResolverDebugConfig{
@@ -3023,7 +3025,8 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.BlackListHdl = tpn.BlockBlackListHandler
 	processComponents.NodesCoord = tpn.NodesCoordinator
 	processComponents.ShardCoord = tpn.ShardCoordinator
-	processComponents.IntContainer = tpn.InterceptorsContainer
+	processComponents.IntContainer = tpn.MainInterceptorsContainer
+	processComponents.FullArchiveIntContainer = tpn.FullArchiveInterceptorsContainer
 	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
 		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
 			return map[uint32][]*state.ValidatorInfo{

@@ -120,22 +120,23 @@ type epochStartBootstrap struct {
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          p2p.NodeOperation
 	// created components
-	requestHandler            process.RequestHandler
-	interceptorContainer      process.InterceptorsContainer
-	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer             epochStart.HeadersByHashSyncer
-	txSyncerForScheduled      update.TransactionsSyncHandler
-	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	whiteListHandler          update.WhiteListHandler
-	whiteListerVerifiedTxs    update.WhiteListHandler
-	storageOpenerHandler      storage.UnitOpenerHandler
-	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	argumentsParser           process.ArgumentsParser
-	dataSyncerFactory         types.ScheduledDataSyncerCreator
-	dataSyncerWithScheduled   types.ScheduledDataSyncer
-	storageService            dataRetriever.StorageService
+	requestHandler                  process.RequestHandler
+	mainInterceptorContainer        process.InterceptorsContainer
+	fullArchiveInterceptorContainer process.InterceptorsContainer
+	dataPool                        dataRetriever.PoolsHolder
+	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer                   epochStart.HeadersByHashSyncer
+	txSyncerForScheduled            update.TransactionsSyncHandler
+	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler              StartOfEpochNodesConfigHandler
+	whiteListHandler                update.WhiteListHandler
+	whiteListerVerifiedTxs          update.WhiteListHandler
+	storageOpenerHandler            storage.UnitOpenerHandler
+	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
+	argumentsParser                 process.ArgumentsParser
+	dataSyncerFactory               types.ScheduledDataSyncerCreator
+	dataSyncerWithScheduled         types.ScheduledDataSyncer
+	storageService                  dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -379,9 +380,14 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.interceptorContainer.Close()
+		errClose := e.mainInterceptorContainer.Close()
 		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		}
+
+		errClose = e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
 	}()
 
@@ -576,7 +582,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		NodeOperationMode:       e.nodeOperationMode,
 	}
 
-	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
 	if err != nil {
 		return err
 	}
@@ -690,11 +696,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	err = e.fullArchiveMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

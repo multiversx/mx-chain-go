@@ -614,13 +614,16 @@ func createHardForkExporter(
 			MaxTrieLevelInMemory:     uint(5),
 			WhiteListHandler:         node.WhiteListHandler,
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:    node.InterceptorsContainer,
+			MainInterceptorsContainer:        node.MainInterceptorsContainer,
+			FullArchiveInterceptorsContainer: node.FullArchiveInterceptorsContainer,
 			ExistingResolvers:        node.ResolversContainer,
 			ExistingRequesters:       node.RequestersContainer,
 			NodesCoordinator:         node.NodesCoordinator,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
 			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
 			ValidityAttester:         node.BlockTracker,
+			OutputAntifloodHandler:           &mock.NilAntifloodHandler{},
+			InputAntifloodHandler:            &mock.NilAntifloodHandler{},
 			RoundHandler:             &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
@@ -635,6 +638,7 @@ func createHardForkExporter(
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
+			NodeOperationMode:         node.NodeOperationMode,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

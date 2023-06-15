@@ -21,6 +21,7 @@ type ProcessComponentsStub struct {
 	ShardCoord                           sharding.Coordinator
 	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
+	FullArchiveIntContainer              process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -94,6 +95,11 @@ func (pcs *ProcessComponentsStub) ShardCoordinator() sharding.Coordinator {
 // InterceptorsContainer -
 func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsContainer {
 	return pcs.IntContainer
+}
+
+// FullArchiveInterceptorsContainer -
+func (pcs *ProcessComponentsStub) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcs.FullArchiveIntContainer
 }
 
 // ResolversContainer -

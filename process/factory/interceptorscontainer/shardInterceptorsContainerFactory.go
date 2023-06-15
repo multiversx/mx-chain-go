@@ -100,9 +100,9 @@ func NewShardInterceptorsContainerFactory(
 		PeerID:                       args.MainMessenger.ID(),
 	}
 
-	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:                  container,
+		mainContainer:              containers.NewInterceptorsContainer(),
+		fullArchiveContainer:       containers.NewInterceptorsContainer(),
 		accounts:                   args.Accounts,
 		shardCoordinator:           args.ShardCoordinator,
 		mainMessenger:              args.MainMessenger,
@@ -138,73 +138,63 @@ func NewShardInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
+func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	err := sicf.generateTxInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateRewardTxInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateHeaderInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generatePeerAuthenticationInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = sicf.generateMainHeartbeatInterceptor()
+	err = sicf.generateHeartbeatInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = sicf.generateFullArchiveHeartbeatInterceptor()
+	err = sicf.generatePeerShardInterceptor()
 	if err != nil {
-		return nil, err
-	}
-
-	err = sicf.generateMainPeerShardInterceptor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = sicf.generateFullArchivePeerShardInterceptor()
-	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = sicf.generateValidatorInfoInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return sicf.container, nil
+	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 
 func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
@@ -222,7 +212,7 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 	keys = append(keys, identifierTrieNodes)
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
-	return sicf.container.AddMultiple(keys, interceptorsSlice)
+	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
 // ------- Reward transactions interceptors
@@ -242,7 +232,7 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
 
-	return sicf.container.AddMultiple(keys, interceptorSlice)
+	return sicf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

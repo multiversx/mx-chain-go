@@ -251,7 +251,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Messenger:                   hcf.networkComponents.NetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
-		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 	mainDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsMainDirectConnectionProcessor)
@@ -264,7 +264,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Messenger:                   hcf.networkComponents.FullArchiveNetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.FullArchivePeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
-		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 	fullArchiveDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsFullArchiveDirectConnectionProcessor)

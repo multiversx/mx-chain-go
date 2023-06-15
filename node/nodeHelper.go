@@ -23,14 +23,11 @@ func prepareOpenTopics(
 ) {
 	selfID := shardCoordinator.SelfId()
 	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	selfShardHeartbeatV2TopicFullArchive := common.FullArchiveTopicPrefix + common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
 		antiflood.SetTopicsForAll(
 			common.PeerAuthenticationTopic,
 			selfShardHeartbeatV2Topic,
-			selfShardHeartbeatV2TopicFullArchive,
-			common.ConnectionTopic,
-			common.FullArchiveTopicPrefix+common.ConnectionTopic)
+			common.ConnectionTopic)
 		return
 	}
 
@@ -38,9 +35,7 @@ func prepareOpenTopics(
 	antiflood.SetTopicsForAll(
 		common.PeerAuthenticationTopic,
 		selfShardHeartbeatV2Topic,
-		selfShardHeartbeatV2TopicFullArchive,
 		common.ConnectionTopic,
-		common.FullArchiveTopicPrefix+common.ConnectionTopic,
 		selfShardTxTopic)
 }
 
@@ -63,7 +58,7 @@ func CreateNode(
 ) (*Node, error) {
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
-	peerDenialEvaluator, err := preparePeerDenialEvaluators(networkComponents, processComponents)
+	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +123,7 @@ func CreateNode(
 	return nd, nil
 }
 
-func preparePeerDenialEvaluators(
+func createAndAttachPeerDenialEvaluators(
 	networkComponents factory.NetworkComponentsHandler,
 	processComponents factory.ProcessComponentsHandler,
 ) (p2p.PeerDenialEvaluator, error) {

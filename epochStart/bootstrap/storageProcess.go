@@ -335,11 +335,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
-	err = sesb.fullArchiveMessenger.CreateTopic(consensusTopic, true)
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	emptyPeerMiniBlocksSlice := make([]*block.MiniBlock, 0) // empty slice since we have bootstrapped from storage
 	if sesb.shardCoordinator.SelfId() == core.MetachainShardId {
 		err = sesb.requestAndProcessForMeta(emptyPeerMiniBlocksSlice)
