@@ -580,6 +580,8 @@ func (tsm *trieStorageManager) RemoveFromCheckpointHashesHolder(hash []byte) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	log.Trace("trie storage manager: remove", "hash", hash)
+
 	tsm.checkpointHashesHolder.Remove(hash)
 }
 

@@ -1,14 +1,14 @@
 package mock
 
-import "github.com/multiversx/mx-chain-go/common"
+import "github.com/multiversx/mx-chain-go/state"
 
 // ESDTRoleHandlerStub -
 type ESDTRoleHandlerStub struct {
-	CheckAllowedToExecuteCalled func(account common.UserAccountHandler, tokenID []byte, action []byte) error
+	CheckAllowedToExecuteCalled func(account state.UserAccountHandler, tokenID []byte, action []byte) error
 }
 
 // CheckAllowedToExecute -
-func (e *ESDTRoleHandlerStub) CheckAllowedToExecute(account common.UserAccountHandler, tokenID []byte, action []byte) error {
+func (e *ESDTRoleHandlerStub) CheckAllowedToExecute(account state.UserAccountHandler, tokenID []byte, action []byte) error {
 	if e.CheckAllowedToExecuteCalled != nil {
 		return e.CheckAllowedToExecuteCalled(account, tokenID, action)
 	}

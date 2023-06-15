@@ -2011,7 +2011,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 		coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 		coreComponents.IntMarsh = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				userAccount := obj.(common.UserAccountHandler)
+				userAccount := obj.(state.UserAccountHandler)
 				userAccount.SetRootHash(rootHash)
 				return nil
 			},

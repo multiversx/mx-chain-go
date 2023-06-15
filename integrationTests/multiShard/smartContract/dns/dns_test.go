@@ -12,11 +12,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -250,7 +250,7 @@ func checkUserNamesAreSetCorrectly(
 			}
 
 			acnt, _ := node.AccntState.GetExistingAccount(player.Address)
-			userAcc, _ := acnt.(common.UserAccountHandler)
+			userAcc, _ := acnt.(state.UserAccountHandler)
 
 			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
@@ -302,7 +302,7 @@ func checkUserNamesAreDeleted(
 			}
 
 			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
-			dnsAcc, _ := acnt.(common.UserAccountHandler)
+			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
 			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
 			value, _, err := dnsAcc.RetrieveValue([]byte(keyFromTrie))

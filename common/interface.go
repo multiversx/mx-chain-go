@@ -2,14 +2,12 @@ package common
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
@@ -425,88 +423,4 @@ type MissingTrieNodesNotifier interface {
 type StateSyncNotifierSubscriber interface {
 	MissingDataTrieNodeFound(hash []byte)
 	IsInterfaceNil() bool
-}
-
-// PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
-type PeerAccountHandler interface {
-	SetBLSPublicKey([]byte) error
-	GetRewardAddress() []byte
-	SetRewardAddress([]byte) error
-	GetAccumulatedFees() *big.Int
-	AddToAccumulatedFees(*big.Int)
-	GetList() string
-	GetIndexInList() uint32
-	GetShardId() uint32
-	SetUnStakedEpoch(epoch uint32)
-	GetUnStakedEpoch() uint32
-	IncreaseLeaderSuccessRate(uint32)
-	DecreaseLeaderSuccessRate(uint32)
-	IncreaseValidatorSuccessRate(uint32)
-	DecreaseValidatorSuccessRate(uint32)
-	IncreaseValidatorIgnoredSignaturesRate(uint32)
-	GetNumSelectedInSuccessBlocks() uint32
-	IncreaseNumSelectedInSuccessBlocks()
-	GetLeaderSuccessRate() SignRate
-	GetValidatorSuccessRate() SignRate
-	GetValidatorIgnoredSignaturesRate() uint32
-	GetTotalLeaderSuccessRate() SignRate
-	GetTotalValidatorSuccessRate() SignRate
-	GetTotalValidatorIgnoredSignaturesRate() uint32
-	SetListAndIndex(shardID uint32, list string, index uint32)
-	GetRating() uint32
-	SetRating(uint32)
-	GetTempRating() uint32
-	SetTempRating(uint32)
-	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMisses(uint322 uint32)
-	ResetAtNewEpoch()
-	vmcommon.AccountHandler
-}
-
-// UserAccountHandler models a user account, which can journalize account's data with some extra features
-// like balance, developer rewards, owner
-type UserAccountHandler interface {
-	SetCode(code []byte)
-	SetCodeMetadata(codeMetadata []byte)
-	GetCodeMetadata() []byte
-	SetCodeHash([]byte)
-	GetCodeHash() []byte
-	SetRootHash([]byte)
-	GetRootHash() []byte
-	SetDataTrie(trie Trie)
-	DataTrie() DataTrieHandler
-	RetrieveValue(key []byte) ([]byte, uint32, error)
-	SaveKeyValue(key []byte, value []byte) error
-	AddToBalance(value *big.Int) error
-	SubFromBalance(value *big.Int) error
-	GetBalance() *big.Int
-	ClaimDeveloperRewards([]byte) (*big.Int, error)
-	AddToDeveloperReward(*big.Int)
-	GetDeveloperReward() *big.Int
-	ChangeOwnerAddress([]byte, []byte) error
-	SetOwnerAddress([]byte)
-	GetOwnerAddress() []byte
-	SetUserName(userName []byte)
-	GetUserName() []byte
-	IsGuarded() bool
-	GetAllLeaves(leavesChannels *TrieIteratorChannels, ctx context.Context) error
-	vmcommon.AccountHandler
-}
-
-// DataTrieTracker models how to manipulate data held by a SC account
-type DataTrieTracker interface {
-	RetrieveValue(key []byte) ([]byte, uint32, error)
-	SaveKeyValue(key []byte, value []byte) error
-	SetDataTrie(tr Trie)
-	DataTrie() DataTrieHandler
-	SaveDirtyData(Trie) ([]core.TrieData, error)
-	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
-	IsInterfaceNil() bool
-}
-
-// SignRate defines the operations of an entity that holds signing statistics
-type SignRate interface {
-	GetNumSuccess() uint32
-	GetNumFailure() uint32
 }

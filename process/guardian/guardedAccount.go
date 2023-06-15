@@ -9,8 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -84,7 +84,7 @@ func (agc *guardedAccount) CleanOtherThanActive(uah vmcommon.UserAccountHandler)
 }
 
 // HasActiveGuardian returns true if the account has an active guardian configured, false otherwise
-func (agc *guardedAccount) HasActiveGuardian(uah common.UserAccountHandler) bool {
+func (agc *guardedAccount) HasActiveGuardian(uah state.UserAccountHandler) bool {
 	if check.IfNil(uah) {
 		return false
 	}
@@ -99,7 +99,7 @@ func (agc *guardedAccount) HasActiveGuardian(uah common.UserAccountHandler) bool
 }
 
 // HasPendingGuardian return true if the account has a pending guardian, false otherwise
-func (agc *guardedAccount) HasPendingGuardian(uah common.UserAccountHandler) bool {
+func (agc *guardedAccount) HasPendingGuardian(uah state.UserAccountHandler) bool {
 	if check.IfNil(uah) {
 		return false
 	}
@@ -116,7 +116,7 @@ func (agc *guardedAccount) HasPendingGuardian(uah common.UserAccountHandler) boo
 
 // SetGuardian sets a guardian for an account
 func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error {
-	stateUserAccount, ok := uah.(common.UserAccountHandler)
+	stateUserAccount, ok := uah.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -141,7 +141,7 @@ func (agc *guardedAccount) SetGuardian(uah vmcommon.UserAccountHandler, guardian
 }
 
 func (agc *guardedAccount) getVmUserAccountConfiguredGuardian(uah vmcommon.UserAccountHandler) (*guardians.Guardians, error) {
-	stateUserAccount, ok := uah.(common.UserAccountHandler)
+	stateUserAccount, ok := uah.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -157,7 +157,7 @@ func (agc *guardedAccount) getVmUserAccountConfiguredGuardian(uah vmcommon.UserA
 	return configuredGuardians, nil
 }
 
-func (agc *guardedAccount) setAccountGuardian(uah common.UserAccountHandler, guardian *guardians.Guardian) error {
+func (agc *guardedAccount) setAccountGuardian(uah state.UserAccountHandler, guardian *guardians.Guardian) error {
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func (agc *guardedAccount) setAccountGuardian(uah common.UserAccountHandler, gua
 }
 
 func (agc *guardedAccount) instantSetGuardian(
-	uah common.UserAccountHandler,
+	uah state.UserAccountHandler,
 	guardianAddress []byte,
 	txGuardianAddress []byte,
 	guardianServiceUID []byte,
@@ -244,7 +244,7 @@ func (agc *guardedAccount) saveAccountGuardians(account vmcommon.UserAccountHand
 	return account.AccountDataHandler().SaveKeyValue(guardianKey, marshalledData)
 }
 
-func (agc *guardedAccount) getConfiguredGuardians(uah common.UserAccountHandler) (*guardians.Guardians, error) {
+func (agc *guardedAccount) getConfiguredGuardians(uah state.UserAccountHandler) (*guardians.Guardians, error) {
 	guardiansMarshalled, _, err := uah.RetrieveValue(guardianKey)
 	if err != nil || len(guardiansMarshalled) == 0 {
 		return &guardians.Guardians{Slice: make([]*guardians.Guardian, 0)}, nil
@@ -290,7 +290,7 @@ func (agc *guardedAccount) getActiveGuardian(gs *guardians.Guardians) (*guardian
 }
 
 // GetConfiguredGuardians returns the configured guardians for an account
-func (agc *guardedAccount) GetConfiguredGuardians(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+func (agc *guardedAccount) GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 	configuredGuardians, err := agc.getConfiguredGuardians(uah)
 	if err != nil {
 		return nil, nil, err

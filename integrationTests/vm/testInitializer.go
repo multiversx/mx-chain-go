@@ -288,8 +288,8 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 		return nil, err
 	}
 
-	account.(common.UserAccountHandler).IncreaseNonce(nonce)
-	_ = account.(common.UserAccountHandler).AddToBalance(balance)
+	account.(state.UserAccountHandler).IncreaseNonce(nonce)
+	_ = account.(state.UserAccountHandler).AddToBalance(balance)
 
 	err = accnts.SaveAccount(account)
 	if err != nil {
@@ -998,7 +998,7 @@ func TestDeployedContractContents(
 
 	scCodeBytes, _ := hex.DecodeString(scCode)
 	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddressBytes)
-	destinationRecovShardAccount, ok := destinationRecovAccount.(common.UserAccountHandler)
+	destinationRecovShardAccount, ok := destinationRecovAccount.(state.UserAccountHandler)
 
 	assert.True(t, ok)
 	assert.NotNil(t, destinationRecovShardAccount)
@@ -1415,7 +1415,7 @@ func TestAccount(
 		return big.NewInt(0)
 	}
 
-	senderRecovShardAccount := senderRecovAccount.(common.UserAccountHandler)
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
@@ -1433,7 +1433,7 @@ func TestAccountUsername(
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
 	require.False(t, check.IfNil(senderRecovAccount))
 
-	senderRecovShardAccount := senderRecovAccount.(common.UserAccountHandler)
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 	require.Equal(t, senderRecovShardAccount.GetUserName(), username)
 }
 

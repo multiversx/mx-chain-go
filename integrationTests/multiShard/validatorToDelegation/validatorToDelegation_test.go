@@ -8,8 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -224,7 +224,7 @@ func jailNodes(nodes []*integrationTests.TestProcessorNode, blsKeys [][]byte) {
 		}
 
 		acc, _ := node.AccntState.GetExistingAccount(vm.StakingSCAddress)
-		stakingAcc := acc.(common.UserAccountHandler)
+		stakingAcc := acc.(state.UserAccountHandler)
 
 		for _, blsKey := range blsKeys {
 			marshaledData, _, _ := stakingAcc.RetrieveValue(blsKey)
@@ -365,7 +365,7 @@ func testBLSKeyOwnerIsAddress(t *testing.T, nodes []*integrationTests.TestProces
 		}
 
 		acnt, _ := n.AccntState.GetExistingAccount(vm.StakingSCAddress)
-		userAcc, _ := acnt.(common.UserAccountHandler)
+		userAcc, _ := acnt.(state.UserAccountHandler)
 
 		marshaledData, _, _ := userAcc.RetrieveValue(blsKey)
 		stakingData := &systemSmartContracts.StakedDataV2_0{}

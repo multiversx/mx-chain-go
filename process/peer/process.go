@@ -461,7 +461,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func getActualList(peerAccount common.PeerAccountHandler) string {
+func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
 		if savedList == string(common.InactiveList) {
@@ -477,7 +477,7 @@ func getActualList(peerAccount common.PeerAccountHandler) string {
 }
 
 // PeerAccountToValidatorInfo creates a validator info from the given peer account
-func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
+func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	chance := vs.rater.GetChance(peerAccount.GetRating())
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
 	ratingModifier := float32(chance) / float32(startRatingChance)
@@ -520,7 +520,7 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(common.PeerAccountHandler)
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
 	if !ok {
 		return false
 	}
@@ -528,12 +528,12 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 	return vs.isValidatorWithLowRating(validatorAccount)
 }
 
-func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount common.PeerAccountHandler) bool {
+func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.PeerAccountHandler) bool {
 	minChance := vs.rater.GetChance(0)
 	return vs.rater.GetChance(validatorAccount.GetTempRating()) < minChance
 }
 
-func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount common.PeerAccountHandler) {
+func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
 	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
 		return
 	}
@@ -548,7 +548,7 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
 }
 
-func (vs *validatorStatistics) unmarshalPeer(pa []byte) (common.PeerAccountHandler, error) {
+func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
 	peerAccount := accounts.NewEmptyPeerAccount()
 	err := vs.marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
@@ -685,7 +685,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return err
 			}
 
-			peerAccount, ok := account.(common.PeerAccountHandler)
+			peerAccount, ok := account.(state.PeerAccountHandler)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -703,7 +703,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 }
 
 func (vs *validatorStatistics) setToJailedIfNeeded(
-	peerAccount common.PeerAccountHandler,
+	peerAccount state.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
 	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
@@ -962,7 +962,7 @@ func (vs *validatorStatistics) initializeNode(
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
-	peerAccount common.PeerAccountHandler,
+	peerAccount state.PeerAccountHandler,
 	node nodesCoordinator.GenesisNodeInfoHandler,
 	startRating uint32,
 	shardID uint32,
@@ -1045,13 +1045,13 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	return nil
 }
 
-func (vs *validatorStatistics) loadPeerAccount(address []byte) (common.PeerAccountHandler, error) {
+func (vs *validatorStatistics) loadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAccount, ok := account.(common.PeerAccountHandler)
+	peerAccount, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, process.ErrInvalidPeerAccount
 	}

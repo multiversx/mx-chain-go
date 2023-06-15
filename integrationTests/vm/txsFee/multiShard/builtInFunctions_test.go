@@ -7,11 +7,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -89,7 +89,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Equal(t, uint32(1), shardID)
 
 	scStateAcc, _ := testContextDst.Accounts.GetExistingAccount(scAddr)
-	scUserAcc := scStateAcc.(common.UserAccountHandler)
+	scUserAcc := scStateAcc.(state.UserAccountHandler)
 	currentSCDevBalance := scUserAcc.GetDeveloperReward()
 
 	gasLimit = uint64(500)

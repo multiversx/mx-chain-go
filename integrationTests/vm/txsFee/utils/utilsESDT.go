@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
@@ -32,7 +31,7 @@ func CreateAccountWithESDTBalance(
 	account, err := accnts.LoadAccount(pubKey)
 	require.Nil(t, err)
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
 	userAccount.IncreaseNonce(0)
@@ -85,7 +84,7 @@ func CreateAccountWithNFT(
 	account, err := accnts.LoadAccount(pubKey)
 	require.Nil(t, err)
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
 	userAccount.IncreaseNonce(0)
@@ -132,7 +131,7 @@ func saveNewTokenOnSystemAccount(t *testing.T, accnts state.AccountsAdapter, tok
 	sysAccount, err := accnts.LoadAccount(core.SystemAccountAddress)
 	require.Nil(t, err)
 
-	sysUserAccount, ok := sysAccount.(common.UserAccountHandler)
+	sysUserAccount, ok := sysAccount.(state.UserAccountHandler)
 	require.True(t, ok)
 
 	err = sysUserAccount.SaveKeyValue(tokenKey, esdtDataBytes)
@@ -168,7 +167,7 @@ func SetESDTRoles(
 	account, err := accnts.LoadAccount(pubKey)
 	require.Nil(t, err)
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
 	key := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
@@ -209,7 +208,7 @@ func SetLastNFTNonce(
 	account, err := accnts.LoadAccount(pubKey)
 	require.Nil(t, err)
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 
 	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTNFTLatestNonceIdentifier)...)

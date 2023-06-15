@@ -94,7 +94,7 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
-func createAcc(address []byte) common.UserAccountHandler {
+func createAcc(address []byte) state.UserAccountHandler {
 	dtlp, _ := parsers.NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	dtt, _ := state.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	acc, _ := accounts.NewUserAccount(address, dtt, dtlp)
@@ -4819,7 +4819,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		expectedError := errors.New("expected error")
 		bootstrapComponents := getDefaultBootstrapComponents()
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return nil, nil, expectedError
 			},
 		}
@@ -4837,7 +4837,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 	t.Run("one active", func(t *testing.T) {
 		bootstrapComponents := getDefaultBootstrapComponents()
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return g1, nil, nil
 			},
 		}
@@ -4859,7 +4859,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 	t.Run("one pending", func(t *testing.T) {
 		bootstrapComponents := getDefaultBootstrapComponents()
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return nil, g1, nil
 			},
 		}
@@ -4881,7 +4881,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 	t.Run("one active and one pending", func(t *testing.T) {
 		bootstrapComponents := getDefaultBootstrapComponents()
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return g1, g2, nil
 			},
 		}
@@ -4920,7 +4920,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(argsLocal)
 		bootstrapComponents := getDefaultBootstrapComponents()
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return g1, g2, nil
 			},
 		}
@@ -4969,7 +4969,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 
 	t.Run("get configured guardians with error should propagate error", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return nil, nil, expectedErr
 			},
 		}
@@ -4985,7 +4985,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	})
 	t.Run("no pending and no active but no error", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return nil, nil, nil
 			},
 		}
@@ -5000,7 +5000,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	})
 	t.Run("one active", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return g1, nil, nil
 			},
 		}
@@ -5017,7 +5017,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	})
 	t.Run("one pending", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return nil, g1, nil
 			},
 		}
@@ -5033,7 +5033,7 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 	})
 	t.Run("one active one pending", func(t *testing.T) {
 		bootstrapComponents.GuardedAccountHandlerField = &guardianMocks.GuardedAccountHandlerStub{
-			GetConfiguredGuardiansCalled: func(uah common.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
+			GetConfiguredGuardiansCalled: func(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error) {
 				return g1, g2, nil
 			},
 		}

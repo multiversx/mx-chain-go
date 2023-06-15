@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -54,14 +55,14 @@ func TestDelegation_Upgrade(t *testing.T) {
 	require.Nil(t, err)
 	account, err := context.Accounts.GetExistingAccount(context.ScAddress)
 	require.Nil(t, err)
-	codeHashA := account.(common.UserAccountHandler).GetCodeHash()
+	codeHashA := account.(state.UserAccountHandler).GetCodeHash()
 
 	context.GasLimit = 21700000
 	err = context.UpgradeSC(delegationWasmPathB, delegationUpgradeParams)
 	require.Nil(t, err)
 	account, err = context.Accounts.GetExistingAccount(context.ScAddress)
 	require.Nil(t, err)
-	codeHashB := account.(common.UserAccountHandler).GetCodeHash()
+	codeHashB := account.(state.UserAccountHandler).GetCodeHash()
 
 	require.NotEqual(t, codeHashA, codeHashB)
 }

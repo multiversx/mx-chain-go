@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -767,7 +766,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	}
 
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
-	userAcc, _ := acc.(common.UserAccountHandler)
+	userAcc, _ := acc.(state.UserAccountHandler)
 	_ = userAcc.SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	_ = args.UserAccountsDB.SaveAccount(userAcc)
 

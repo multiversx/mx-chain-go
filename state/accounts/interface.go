@@ -1,7 +1,9 @@
 package accounts
 
-import "github.com/multiversx/mx-chain-go/common"
+import (
+	"github.com/multiversx/mx-chain-go/state"
+)
 
 type dataTrieInteractor interface {
-	common.DataTrieTracker
+	state.DataTrieTracker
 }

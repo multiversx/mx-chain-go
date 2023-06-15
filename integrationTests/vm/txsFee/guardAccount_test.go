@@ -19,13 +19,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/guardian"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonIntegrationTests "github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -169,7 +169,7 @@ func getGuardiansData(tb testing.TB, testContext *vm.VMTestContext, address []by
 	accnt, err := testContext.Accounts.GetExistingAccount(address)
 	require.Nil(tb, err)
 
-	userAccnt := accnt.(common.UserAccountHandler)
+	userAccnt := accnt.(state.UserAccountHandler)
 	guardedAccount, err := guardian.NewGuardedAccount(
 		testContext.Marshalizer,
 		testContext.EpochNotifier,

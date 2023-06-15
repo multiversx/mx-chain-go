@@ -10,10 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	testBlock "github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -312,7 +312,7 @@ func verifyRewardsForMetachain(
 
 		expectedBalance := big.NewInt(0).SetUint64(uint64(numOfTimesRewarded))
 		expectedBalance.Mul(expectedBalance, rewardValue)
-		assert.Equal(t, expectedBalance, acc.(common.UserAccountHandler).GetBalance())
+		assert.Equal(t, expectedBalance, acc.(state.UserAccountHandler).GetBalance())
 	}
 }
 
@@ -342,7 +342,7 @@ func verifyRewardsForShards(
 
 			expectedBalance.Add(expectedBalance, totalFees)
 			fmt.Printf("checking account %s has balance %d\n", acc.AddressBytes(), expectedBalance)
-			assert.Equal(t, expectedBalance, acc.(common.UserAccountHandler).GetBalance())
+			assert.Equal(t, expectedBalance, acc.(state.UserAccountHandler).GetBalance())
 		}
 	}
 }

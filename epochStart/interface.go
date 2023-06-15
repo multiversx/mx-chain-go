@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -96,7 +95,7 @@ type ValidatorStatisticsProcessorHandler interface {
 
 // ValidatorInfoCreator defines the methods to create a validator info
 type ValidatorInfoCreator interface {
-	PeerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo
+	PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
 	IsInterfaceNil() bool
 }
 

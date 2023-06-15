@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -365,7 +366,7 @@ func (n *Node) GetGuardianData(address string, options api.AccountQueryOptions) 
 }
 
 func (n *Node) getPendingAndActiveGuardians(
-	userAccount common.UserAccountHandler,
+	userAccount state.UserAccountHandler,
 ) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
 	var active, pending *guardians.Guardian
 	gah := n.bootstrapComponents.GuardedAccountHandler()
@@ -672,13 +673,13 @@ func (n *Node) decodeAddressToPubKey(address string) ([]byte, error) {
 	return pubKey, nil
 }
 
-func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (common.UserAccountHandler, error) {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, error) {
 	if check.IfNil(ah) {
 		log.Error("node.castAccountToUserAccount(): unexpected nil account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
 	}
 
-	account, ok := ah.(common.UserAccountHandler)
+	account, ok := ah.(state.UserAccountHandler)
 	if !ok {
 		log.Error("node.castAccountToUserAccount(): unexpected type of account")
 		return nil, ErrCannotCastAccountHandlerToUserAccountHandler
@@ -1404,7 +1405,7 @@ func (n *Node) getAccountRootHashAndVal(address []byte, accBytes []byte, key []b
 		return nil, nil, err
 	}
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, nil, fmt.Errorf("the address does not belong to a user account")
 	}

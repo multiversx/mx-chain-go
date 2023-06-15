@@ -17,7 +17,7 @@ import (
 var log = logger.GetOrCreate("trieIterators")
 
 // TrieAccountIteratorHandler represents a type that maps a handler for the trie's accounts iterator
-type TrieAccountIteratorHandler func(account common.UserAccountHandler) error
+type TrieAccountIteratorHandler func(account state.UserAccountHandler) error
 
 type trieAccountsIterator struct {
 	marshaller marshal.Marshalizer
@@ -81,7 +81,7 @@ func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.Trie
 			return err
 		}
 
-		userAccount, ok := acc.(common.UserAccountHandler)
+		userAccount, ok := acc.(state.UserAccountHandler)
 		if !ok {
 			continue
 		}

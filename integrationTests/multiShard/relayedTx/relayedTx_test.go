@@ -9,12 +9,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -406,7 +406,7 @@ func CheckAddressHasTokens(
 	assert.Equal(t, esdtData.Value.Cmp(value), 0)
 }
 
-func getESDTDataFromKey(userAcnt common.UserAccountHandler, key []byte) (*esdt.ESDigitalToken, error) {
+func getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*esdt.ESDigitalToken, error) {
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	marshaledData, _, err := userAcnt.RetrieveValue(key)
 	if err != nil {

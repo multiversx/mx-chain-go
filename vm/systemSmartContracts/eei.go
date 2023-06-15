@@ -735,7 +735,7 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, castOk := acc.(common.PeerAccountHandler)
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
 		return false
 	}
@@ -753,7 +753,7 @@ func (host *vmContext) StatusFromValidatorStatistics(blsKey []byte) string {
 		return string(common.InactiveList)
 	}
 
-	validatorAccount, castOk := acc.(common.PeerAccountHandler)
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
 		return string(common.InactiveList)
 	}
@@ -768,7 +768,7 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, castOk := acc.(common.PeerAccountHandler)
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
 		return false
 	}
@@ -783,7 +783,7 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, castOk := acc.(common.PeerAccountHandler)
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
 	if !castOk {
 		return false
 	}

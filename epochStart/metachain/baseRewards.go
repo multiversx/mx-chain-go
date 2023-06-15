@@ -326,7 +326,7 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 		return false
 	}
 
-	userAcc, ok := acc.(common.UserAccountHandler)
+	userAcc, ok := acc.(state.UserAccountHandler)
 	if !ok {
 		return false
 	}

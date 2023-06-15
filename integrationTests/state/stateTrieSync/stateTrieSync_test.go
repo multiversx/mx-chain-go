@@ -380,7 +380,7 @@ func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, tr common.T
 	}
 }
 
-func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc common.UserAccountHandler, numVals int, valSize int) []byte {
+func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.UserAccountHandler, numVals int, valSize int) []byte {
 	for i := 0; i < numVals; i++ {
 		keyRandBytes := integrationTests.CreateRandomBytes(32)
 		valRandBytes := integrationTests.CreateRandomBytes(valSize)
@@ -548,7 +548,7 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 	for i := 0; i < numAccounts; i++ {
 		address := integrationTests.CreateAccount(accState, 1, big.NewInt(100))
 		account, _ := accState.LoadAccount(address)
-		userAcc, ok := account.(common.UserAccountHandler)
+		userAcc, ok := account.(state.UserAccountHandler)
 		assert.True(t, ok)
 
 		rootHash := addValuesToDataTrie(t, accState, userAcc, numDataTrieLeaves, valSize)

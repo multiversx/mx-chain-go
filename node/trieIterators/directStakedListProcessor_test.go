@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -146,7 +147,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)
 }
 
-func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) common.UserAccountHandler {
+func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
 	dtt := &trieMock.DataTrieTrackerStub{
 		DataTrieCalled: func() common.Trie {
 			return &trieMock.TrieStub{

@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -479,11 +480,11 @@ func (pr *ProcessorRunner) AddBalanceToAccount(tb testing.TB, address []byte, ba
 }
 
 // GetUserAccount will return the user account for the provided address
-func (pr *ProcessorRunner) GetUserAccount(tb testing.TB, address []byte) common.UserAccountHandler {
+func (pr *ProcessorRunner) GetUserAccount(tb testing.TB, address []byte) state.UserAccountHandler {
 	acc, err := pr.StateComponents.AccountsAdapter().LoadAccount(address)
 	require.Nil(tb, err)
 
-	userAccount, ok := acc.(common.UserAccountHandler)
+	userAccount, ok := acc.(state.UserAccountHandler)
 	require.True(tb, ok)
 
 	return userAccount
@@ -537,7 +538,7 @@ func (pr *ProcessorRunner) saveNewTokenOnSystemAccount(tb testing.TB, tokenKey [
 	sysAccount, err := pr.StateComponents.AccountsAdapter().LoadAccount(core.SystemAccountAddress)
 	require.Nil(tb, err)
 
-	sysUserAccount, ok := sysAccount.(common.UserAccountHandler)
+	sysUserAccount, ok := sysAccount.(state.UserAccountHandler)
 	require.True(tb, ok)
 
 	err = sysUserAccount.SaveKeyValue(tokenKey, esdtDataBytes)

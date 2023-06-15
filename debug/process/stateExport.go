@@ -35,7 +35,7 @@ func getCodeAndData(accountsDB state.AccountsAdapter, address []byte) (code []by
 			err, hex.EncodeToString(address))
 	}
 
-	userAccount := account.(common.UserAccountHandler)
+	userAccount := account.(state.UserAccountHandler)
 	codeHash := userAccount.GetCodeHash()
 	if len(codeHash) > 0 {
 		code, err = getCode(accountsDB, codeHash)
@@ -64,7 +64,7 @@ func getCode(accountsDB state.AccountsAdapter, codeHash []byte) ([]byte, error) 
 	return code, nil
 }
 
-func getData(account common.UserAccountHandler) ([]string, error) {
+func getData(account state.UserAccountHandler) ([]string, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    errChan.NewErrChanWrapper(),

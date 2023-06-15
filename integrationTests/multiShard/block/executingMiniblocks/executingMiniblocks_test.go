@@ -14,11 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -227,7 +227,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 				continue
 			}
 
-			account, _ := accWrp.(common.UserAccountHandler)
+			account, _ := accWrp.(state.UserAccountHandler)
 			assert.Equal(t, expectedBalance, account.GetBalance())
 		}
 	}
@@ -338,7 +338,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 				continue
 			}
 
-			account, _ := accWrp.(common.UserAccountHandler)
+			account, _ := accWrp.(state.UserAccountHandler)
 			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
@@ -347,7 +347,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			continue
 		}
 
-		account, _ := accWrp.(common.UserAccountHandler)
+		account, _ := accWrp.(state.UserAccountHandler)
 		assert.Equal(t, expectedReceiverValue, account.GetBalance())
 	}
 }
@@ -509,7 +509,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	// test sender account decreased its balance with gasPrice * gasLimit
 	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerPk)
 	assert.Nil(t, err)
-	ownerAccnt := accnt.(common.UserAccountHandler)
+	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
 	tx := &transaction.Transaction{GasPrice: gasPrice, GasLimit: gasLimit, Data: []byte(txData)}
 	txCost := consensusNodes[shardId0][0].EconomicsData.ComputeTxFee(tx)

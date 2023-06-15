@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TxExecutionProcessorStub -
@@ -26,7 +26,7 @@ func (teps *TxExecutionProcessorStub) ExecuteTransaction(nonce uint64, sndAddr [
 }
 
 // GetAccount -
-func (teps *TxExecutionProcessorStub) GetAccount(address []byte) (common.UserAccountHandler, bool) {
+func (teps *TxExecutionProcessorStub) GetAccount(address []byte) (state.UserAccountHandler, bool) {
 	if teps.AccountExistsCalled != nil {
 		return nil, teps.AccountExistsCalled(address)
 	}

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createUserAcc(address []byte) common.UserAccountHandler {
+func createUserAcc(address []byte) state.UserAccountHandler {
 	acc, _ := accounts.NewUserAccount(address, &testTrie.DataTrieTrackerStub{}, &testTrie.TrieLeafParserStub{})
 	return acc
 }

@@ -7,12 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type journalEntryCode struct {
-	oldCodeEntry *accounts.CodeEntry
+	oldCodeEntry *CodeEntry
 	oldCodeHash  []byte
 	newCodeHash  []byte
 	trie         Updater
@@ -21,7 +20,7 @@ type journalEntryCode struct {
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
 func NewJournalEntryCode(
-	oldCodeEntry *accounts.CodeEntry,
+	oldCodeEntry *CodeEntry,
 	oldCodeHash []byte,
 	newCodeHash []byte,
 	trie Updater,

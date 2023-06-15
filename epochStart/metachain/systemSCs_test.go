@@ -263,7 +263,7 @@ func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorIn
 	require.Nil(t, err)
 
 	var buff []byte
-	systemScAccount, ok := account.(common.UserAccountHandler)
+	systemScAccount, ok := account.(state.UserAccountHandler)
 	require.True(t, ok)
 	for _, nodeInfo := range nodes {
 		buff, _, err = systemScAccount.RetrieveValue(nodeInfo.PublicKey)
@@ -530,14 +530,14 @@ func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB st
 	saveOutputAccounts(t, accountsDB, vmOutput)
 }
 
-func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) common.UserAccountHandler {
+func loadSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	acc, _ := accountsDB.LoadAccount(address)
-	stakingSCAcc := acc.(common.UserAccountHandler)
+	stakingSCAcc := acc.(state.UserAccountHandler)
 
 	return stakingSCAcc
 }
 
-func createEligibleNodes(numNodes int, stakingSCAcc common.UserAccountHandler, marshalizer marshal.Marshalizer) {
+func createEligibleNodes(numNodes int, stakingSCAcc state.UserAccountHandler, marshalizer marshal.Marshalizer) {
 	for i := 0; i < numNodes; i++ {
 		stakedData := &systemSmartContracts.StakedDataV2_0{
 			Waiting:       false,
@@ -552,7 +552,7 @@ func createEligibleNodes(numNodes int, stakingSCAcc common.UserAccountHandler, m
 	}
 }
 
-func createJailedNodes(numNodes int, stakingSCAcc common.UserAccountHandler, userAccounts state.AccountsAdapter, peerAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
+func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, userAccounts state.AccountsAdapter, peerAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
 	validatorInfos := make([]*state.ValidatorInfo, 0)
 
 	for i := 0; i < numNodes; i++ {
@@ -640,7 +640,7 @@ func addValidatorDataWithUnStakedKey(
 	_ = accountsDB.SaveAccount(stakingAccount)
 }
 
-func createWaitingNodes(numNodes int, stakingSCAcc common.UserAccountHandler, userAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
+func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, userAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
 	validatorInfos := make([]*state.ValidatorInfo, 0)
 	waitingKeyInList := []byte("waiting")
 	for i := 0; i < numNodes; i++ {
@@ -1146,7 +1146,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
 	assert.Nil(t, err)
 
-	userAcc, _ := acc.(common.UserAccountHandler)
+	userAcc, _ := acc.(state.UserAccountHandler)
 	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
 	assert.NotNil(t, userAcc.GetCodeMetadata())
 }

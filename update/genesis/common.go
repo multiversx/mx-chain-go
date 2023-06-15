@@ -43,7 +43,7 @@ func getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (common.PeerAccountHandler, error) {
+func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
 	peerAccount := accounts.NewEmptyPeerAccount()
 	err := marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
@@ -52,7 +52,7 @@ func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (common.PeerAccou
 	return peerAccount, nil
 }
 
-func peerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.ValidatorInfo {
+func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.AddressBytes(),
 		ShardId:                    peerAccount.GetShardId(),
@@ -74,7 +74,7 @@ func peerAccountToValidatorInfo(peerAccount common.PeerAccountHandler) *state.Va
 	}
 }
 
-func getActualList(peerAccount common.PeerAccountHandler) string {
+func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == common.DefaultUnstakedEpoch {
 		if savedList == string(common.InactiveList) {

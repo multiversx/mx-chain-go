@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // GetClosableComponentName -
@@ -49,7 +50,7 @@ func (n *Node) SetTxGuardianData(guardian string, guardianSigHex string, tx *tra
 }
 
 func (n *Node) GetPendingAndActiveGuardians(
-	userAccount common.UserAccountHandler,
+	userAccount state.UserAccountHandler,
 ) (activeGuardian *api.Guardian, pendingGuardian *api.Guardian, err error) {
 	return n.getPendingAndActiveGuardians(userAccount)
 }

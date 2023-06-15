@@ -20,11 +20,11 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -1173,9 +1173,9 @@ func verifyUserUndelegatedList(
 	}
 }
 
-func getAsUserAccount(node *integrationTests.TestProcessorNode, address []byte) common.UserAccountHandler {
+func getAsUserAccount(node *integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
 	acc, _ := node.AccntState.GetExistingAccount(address)
-	userAcc, _ := acc.(common.UserAccountHandler)
+	userAcc, _ := acc.(state.UserAccountHandler)
 	return userAcc
 }
 

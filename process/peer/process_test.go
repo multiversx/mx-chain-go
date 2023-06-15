@@ -2467,7 +2467,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 	}
 }
 
-func compare(t *testing.T, peerAccount common.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
+func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
 	assert.Equal(t, peerAccount.GetShardId(), validatorInfo.ShardId)
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
@@ -2489,7 +2489,7 @@ func compare(t *testing.T, peerAccount common.PeerAccountHandler, validatorInfo 
 	assert.Equal(t, peerAccount.GetNumSelectedInSuccessBlocks(), validatorInfo.NumSelectedInSuccessBlocks)
 }
 
-func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (common.PeerAccountHandler, common.PeerAccountHandler) {
+func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAccountHandler, state.PeerAccountHandler) {
 	addr := addrBytes0
 	pa0, _ := accounts.NewPeerAccount(addr)
 	pa0.PeerAccountData = accounts.PeerAccountData{
@@ -2572,7 +2572,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 }
 
 func createUpdateTestArgs(consensusGroup map[string][]nodesCoordinator.Validator) peer.ArgValidatorStatisticsProcessor {
-	peerAccountsMap := make(map[string]common.PeerAccountHandler)
+	peerAccountsMap := make(map[string]state.PeerAccountHandler)
 	arguments := createMockArguments()
 
 	arguments.Rater = mock.GetNewMockRater()

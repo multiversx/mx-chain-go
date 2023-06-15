@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
@@ -22,7 +21,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAcco
 	for _, scenariosAcc := range scenariosAccounts {
 		accHandler, err := accAdapter.LoadAccount(scenariosAcc.GetAddress())
 		require.Nil(t, err)
-		account := accHandler.(common.UserAccountHandler)
+		account := accHandler.(state.UserAccountHandler)
 
 		require.Equal(t, scenariosAcc.GetBalance(), account.GetBalance())
 		require.Equal(t, scenariosAcc.GetNonce(), account.GetNonce())
@@ -44,7 +43,7 @@ func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAcco
 }
 
 // CheckStorage checks if the dataTrie of an account equals with the storage of the corresponding scenariosAccount
-func CheckStorage(t *testing.T, dataTrie common.UserAccountHandler, scenariosAccStorage map[string][]byte) {
+func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, scenariosAccStorage map[string][]byte) {
 	for key := range scenariosAccStorage {
 		dataTrieValue, _, err := dataTrie.RetrieveValue([]byte(key))
 		require.Nil(t, err)
@@ -157,7 +156,7 @@ func ProcessAllTransactions(testContext *vm.VMTestContext, transactions []*trans
 		if err != nil {
 			return err
 		}
-		sndrAcc := sndrAccHandler.(common.UserAccountHandler)
+		sndrAcc := sndrAccHandler.(state.UserAccountHandler)
 		tx.Nonce = sndrAcc.GetNonce()
 		returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 		if err != nil {

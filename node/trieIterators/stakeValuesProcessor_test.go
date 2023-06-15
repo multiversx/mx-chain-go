@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -38,7 +39,7 @@ func createMockArgs() ArgTrieIteratorProcessor {
 	}
 }
 
-func getAccountWithDataTrie(tr common.Trie) common.UserAccountHandler {
+func getAccountWithDataTrie(tr common.Trie) state.UserAccountHandler {
 	dtt := &trieMock.DataTrieTrackerStub{
 		DataTrieCalled: func() common.Trie {
 			return tr

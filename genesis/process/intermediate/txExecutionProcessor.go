@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -81,13 +80,13 @@ func (tep *txExecutionProcessor) GetNonce(senderBytes []byte) (uint64, error) {
 }
 
 // GetAccount returns if an account exists in the accounts DB
-func (tep *txExecutionProcessor) GetAccount(address []byte) (common.UserAccountHandler, bool) {
+func (tep *txExecutionProcessor) GetAccount(address []byte) (state.UserAccountHandler, bool) {
 	account, err := tep.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, false
 	}
 
-	userAcc, ok := account.(common.UserAccountHandler)
+	userAcc, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, false
 	}
@@ -102,7 +101,7 @@ func (tep *txExecutionProcessor) AddBalance(senderBytes []byte, value *big.Int) 
 		return err
 	}
 
-	userAccnt, ok := accnt.(common.UserAccountHandler)
+	userAccnt, ok := accnt.(state.UserAccountHandler)
 	if !ok {
 		return genesis.ErrWrongTypeAssertion
 	}

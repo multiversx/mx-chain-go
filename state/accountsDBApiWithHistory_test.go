@@ -286,7 +286,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 					rootHash := []byte(rootHashAsString)
 					options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
 					account, blockInfo, _ := accountsApiWithHistory.GetAccountWithBlockInfo([]byte("address"), options)
-					userAccount := account.(common.UserAccountHandler)
+					userAccount := account.(state.UserAccountHandler)
 
 					assert.Equal(t, rootHash, blockInfo.GetRootHash())
 					assert.Equal(t, uint64(rootHashAsInt), userAccount.GetBalance().Uint64())
@@ -306,7 +306,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 	}
 }
 
-func createDummyAccountWithBalanceString(balanceString string) common.UserAccountHandler {
+func createDummyAccountWithBalanceString(balanceString string) state.UserAccountHandler {
 	dummyAccount := &mockState.AccountWrapMock{
 		Balance: big.NewInt(0),
 	}

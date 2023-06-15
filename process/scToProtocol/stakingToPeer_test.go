@@ -62,7 +62,7 @@ func createBlockBody() *block.Body {
 	}
 }
 
-func createStakingScAccount() common.UserAccountHandler {
+func createStakingScAccount() state.UserAccountHandler {
 	dtt, _ := state.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})

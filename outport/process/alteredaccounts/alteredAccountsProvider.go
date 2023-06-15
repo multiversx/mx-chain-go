@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -137,7 +136,7 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc *alteredAccount.AlteredAccount, userAccount common.UserAccountHandler, markedAccount *markedAlteredAccount) {
+func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc *alteredAccount.AlteredAccount, userAccount state.UserAccountHandler, markedAccount *markedAlteredAccount) {
 	alteredAcc.AdditionalData = &alteredAccount.AdditionalAccountData{
 		IsSender:       markedAccount.isSender,
 		BalanceChanged: markedAccount.balanceChanged,
@@ -154,7 +153,7 @@ func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc
 	}
 }
 
-func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount common.UserAccountHandler) *alteredAccount.AlteredAccount {
+func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *alteredAccount.AlteredAccount {
 	return &alteredAccount.AlteredAccount{
 		Address: userEncodedAddress,
 		Balance: userAccount.GetBalance().String(),
@@ -162,7 +161,7 @@ func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncode
 	}
 }
 
-func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options shared.AlteredAccountsOptions) (common.UserAccountHandler, error) {
+func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options shared.AlteredAccountsOptions) (state.UserAccountHandler, error) {
 	var account vmcommon.AccountHandler
 	var err error
 
@@ -176,7 +175,7 @@ func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options
 		return nil, err
 	}
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, errCannotCastToUserAccountHandler
 	}
@@ -186,7 +185,7 @@ func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options
 
 func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	encodedAddress string,
-	userAccount common.UserAccountHandler,
+	userAccount state.UserAccountHandler,
 	markedAccountToken *markedAlteredAccountToken,
 	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 	options shared.AlteredAccountsOptions,

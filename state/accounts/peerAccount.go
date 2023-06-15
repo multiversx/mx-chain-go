@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
@@ -150,22 +151,22 @@ func (pa *peerAccount) IncreaseNonce(value uint64) {
 }
 
 // GetLeaderSuccessRate returns the leader success rate
-func (pa *peerAccount) GetLeaderSuccessRate() common.SignRate {
+func (pa *peerAccount) GetLeaderSuccessRate() state.SignRate {
 	return &pa.LeaderSuccessRate
 }
 
 // GetValidatorSuccessRate returns the validator success rate
-func (pa *peerAccount) GetValidatorSuccessRate() common.SignRate {
+func (pa *peerAccount) GetValidatorSuccessRate() state.SignRate {
 	return &pa.ValidatorSuccessRate
 }
 
 // GetTotalLeaderSuccessRate returns the total leader success rate
-func (pa *peerAccount) GetTotalLeaderSuccessRate() common.SignRate {
+func (pa *peerAccount) GetTotalLeaderSuccessRate() state.SignRate {
 	return &pa.TotalLeaderSuccessRate
 }
 
 // GetTotalValidatorSuccessRate returns the total validator success rate
-func (pa *peerAccount) GetTotalValidatorSuccessRate() common.SignRate {
+func (pa *peerAccount) GetTotalValidatorSuccessRate() state.SignRate {
 	return &pa.TotalValidatorSuccessRate
 }
 

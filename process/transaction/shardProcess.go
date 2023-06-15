@@ -266,7 +266,7 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 
 func (txProc *txProcessor) executingFailedTransaction(
 	tx *transaction.Transaction,
-	acntSnd common.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	txError error,
 ) error {
 	if check.IfNil(acntSnd) {
@@ -317,7 +317,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 func (txProc *txProcessor) createReceiptWithReturnedGas(
 	txHash []byte,
 	tx *transaction.Transaction,
-	acntSnd common.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	moveBalanceCost *big.Int,
 	totalProvided *big.Int,
 	destShardTxType process.TransactionType,
@@ -355,7 +355,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 
 func (txProc *txProcessor) processTxFee(
 	tx *transaction.Transaction,
-	acntSnd, acntDst common.UserAccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 	dstShardTxType process.TransactionType,
 	isUserTxOfRelayed bool,
 ) (*big.Int, *big.Int, error) {
@@ -430,7 +430,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
-	acntSrc, acntDst common.UserAccountHandler,
+	acntSrc, acntDst state.UserAccountHandler,
 	destShardTxType process.TransactionType,
 	originalTxHash []byte,
 	isUserTxOfRelayed bool,
@@ -502,21 +502,21 @@ func (txProc *txProcessor) processMoveBalance(
 
 func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
-	acntSrc common.UserAccountHandler,
+	acntSrc state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.scProcessor.DeploySmartContract(tx, acntSrc)
 }
 
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
-	acntSrc, acntDst common.UserAccountHandler,
+	acntSrc, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
 func (txProc *txProcessor) processBuiltInFunctionCall(
 	tx *transaction.Transaction,
-	acntSrc, acntDst common.UserAccountHandler,
+	acntSrc, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
 }
@@ -532,7 +532,7 @@ func makeUserTxFromRelayedTxV2Args(args [][]byte) *transaction.Transaction {
 }
 
 func (txProc *txProcessor) finishExecutionOfRelayedTx(
-	relayerAcnt, acntDst common.UserAccountHandler,
+	relayerAcnt, acntDst state.UserAccountHandler,
 	tx *transaction.Transaction,
 	userTx *transaction.Transaction,
 ) (vmcommon.ReturnCode, error) {
@@ -555,7 +555,7 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 }
 
 func (txProc *txProcessor) processTxAtRelayer(
-	relayerAcnt common.UserAccountHandler,
+	relayerAcnt state.UserAccountHandler,
 	totalFee *big.Int,
 	relayerFee *big.Int,
 	tx *transaction.Transaction,
@@ -588,7 +588,7 @@ func (txProc *txProcessor) processTxAtRelayer(
 	return txHash, nil
 }
 
-func (txProc *txProcessor) addFeeAndValueToDest(acntDst common.UserAccountHandler, tx *transaction.Transaction, remainingFee *big.Int) error {
+func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler, tx *transaction.Transaction, remainingFee *big.Int) error {
 	err := acntDst.AddToBalance(tx.GetValue())
 	if err != nil {
 		return err
@@ -604,7 +604,7 @@ func (txProc *txProcessor) addFeeAndValueToDest(acntDst common.UserAccountHandle
 
 func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
-	relayerAcnt, acntDst common.UserAccountHandler,
+	relayerAcnt, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	if !txProc.enableEpochsHandler.IsRelayedTransactionsV2FlagEnabled() {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
@@ -631,7 +631,7 @@ func (txProc *txProcessor) processRelayedTxV2(
 
 func (txProc *txProcessor) processRelayedTx(
 	tx *transaction.Transaction,
-	relayerAcnt, acntDst common.UserAccountHandler,
+	relayerAcnt, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 
 	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
@@ -721,7 +721,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
-	userAcc common.UserAccountHandler,
+	userAcc state.UserAccountHandler,
 	originalTxHash []byte,
 ) error {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)

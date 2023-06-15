@@ -83,7 +83,7 @@ func createContractCallInput(function string, sender, receiver []byte) *vmcommon
 	}
 }
 
-func createAccount(address []byte) common.UserAccountHandler {
+func createAccount(address []byte) state.UserAccountHandler {
 	account, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	return account
 }

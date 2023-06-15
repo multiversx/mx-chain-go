@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "state";
+option go_package = "accounts";
 option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
@@ -17,9 +17,4 @@ message UserAccountData {
     bytes   OwnerAddress    = 7 [(gogoproto.jsontag) = "ownerAddress,omitempty"];
     bytes   UserName        = 8 [(gogoproto.jsontag) = "userName,omitempty"];
     bytes   CodeMetadata    = 9 [(gogoproto.jsontag) = "codeMetadata,omitempty"];
-}
-
-message CodeEntry {
-    bytes   Code            = 1 [(gogoproto.jsontag) = "code,omitempty"];
-    uint32 NumReferences    = 2 [(gogoproto.jsontag) = "numReferences"];
 }

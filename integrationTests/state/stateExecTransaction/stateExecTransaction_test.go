@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
@@ -48,8 +47,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	balance.Sub(balance, big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit))
 
 	accountAfterExec, _ := accnts.LoadAccount(address)
-	assert.Equal(t, nonce+1, accountAfterExec.(common.UserAccountHandler).GetNonce())
-	assert.Equal(t, balance, accountAfterExec.(common.UserAccountHandler).GetBalance())
+	assert.Equal(t, nonce+1, accountAfterExec.(state.UserAccountHandler).GetNonce())
+	assert.Equal(t, balance, accountAfterExec.(state.UserAccountHandler).GetBalance())
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
@@ -84,8 +83,8 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	accountAfterExec, _ := accnts.LoadAccount(address)
-	assert.Equal(t, nonce, accountAfterExec.(common.UserAccountHandler).GetNonce())
-	assert.Equal(t, balance, accountAfterExec.(common.UserAccountHandler).GetBalance())
+	assert.Equal(t, nonce, accountAfterExec.(state.UserAccountHandler).GetNonce())
+	assert.Equal(t, balance, accountAfterExec.(state.UserAccountHandler).GetBalance())
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
@@ -150,11 +149,11 @@ func testExecTransactionsMoreTxWithRevert(
 	newAccount, _ := accnts.LoadAccount(receiver)
 	account, _ := accnts.LoadAccount(sender)
 
-	assert.Equal(t, account.(common.UserAccountHandler).GetBalance(), big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
-	assert.Equal(t, account.(common.UserAccountHandler).GetNonce(), uint64(txToGenerate)+initialNonce)
+	assert.Equal(t, account.(state.UserAccountHandler).GetBalance(), big.NewInt(initialBalance-int64(uint64(txToGenerate)*(gasPrice*gasLimit+value))))
+	assert.Equal(t, account.(state.UserAccountHandler).GetNonce(), uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.(common.UserAccountHandler).GetBalance(), big.NewInt(int64(txToGenerate)))
-	assert.Equal(t, newAccount.(common.UserAccountHandler).GetNonce(), uint64(0))
+	assert.Equal(t, newAccount.(state.UserAccountHandler).GetBalance(), big.NewInt(int64(txToGenerate)))
+	assert.Equal(t, newAccount.(state.UserAccountHandler).GetNonce(), uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
 
@@ -171,8 +170,8 @@ func testExecTransactionsMoreTxWithRevert(
 	receiver2, _ := accnts.GetExistingAccount(receiver)
 	account, _ = accnts.LoadAccount(sender)
 
-	assert.Equal(t, account.(common.UserAccountHandler).GetBalance(), big.NewInt(initialBalance))
-	assert.Equal(t, account.(common.UserAccountHandler).GetNonce(), initialNonce)
+	assert.Equal(t, account.(state.UserAccountHandler).GetBalance(), big.NewInt(initialBalance))
+	assert.Equal(t, account.(state.UserAccountHandler).GetNonce(), initialNonce)
 
 	assert.Nil(t, receiver2)
 

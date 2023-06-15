@@ -7,10 +7,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-var _ common.UserAccountHandler = (*UserAccountStub)(nil)
+var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
@@ -21,7 +22,7 @@ type UserAccountStub struct {
 	Address          []byte
 
 	AddToBalanceCalled       func(value *big.Int) error
-	DataTrieTrackerCalled    func() common.DataTrieTracker
+	DataTrieTrackerCalled    func() state.DataTrieTracker
 	IsGuardedCalled          func() bool
 	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)

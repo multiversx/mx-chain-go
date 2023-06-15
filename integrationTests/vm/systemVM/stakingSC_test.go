@@ -391,10 +391,10 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 	}
 }
 
-func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) common.UserAccountHandler {
+func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
 	sndrAcc, _ := accState.GetExistingAccount(address)
 
-	sndAccSt, _ := sndrAcc.(common.UserAccountHandler)
+	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
 
 	return sndAccSt
 }

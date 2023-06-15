@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // PeerAccountHandlerMock -
@@ -157,12 +158,12 @@ func (p *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() {
 }
 
 // GetLeaderSuccessRate -
-func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() common.SignRate {
+func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() state.SignRate {
 	return &SignRate{}
 }
 
 // GetValidatorSuccessRate -
-func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() common.SignRate {
+func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return &SignRate{}
 }
 
@@ -172,12 +173,12 @@ func (p *PeerAccountHandlerMock) GetValidatorIgnoredSignaturesRate() uint32 {
 }
 
 // GetTotalLeaderSuccessRate -
-func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() common.SignRate {
+func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
 	return &SignRate{}
 }
 
 // GetTotalValidatorSuccessRate -
-func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() common.SignRate {
+func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
 	return &SignRate{}
 }
 

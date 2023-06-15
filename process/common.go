@@ -18,8 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -679,7 +679,7 @@ func DisplayProcessTxDetails(
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
 	if !check.IfNil(accountHandler) {
-		account, ok := accountHandler.(common.UserAccountHandler)
+		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
 			log.Trace(message,
 				"nonce", account.GetNonce(),

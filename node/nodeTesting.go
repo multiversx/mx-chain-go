@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/txsSender"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 const maxGoRoutinesSendMessage = 30
@@ -180,7 +181,7 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 
-	acc, ok := senderAccount.(common.UserAccountHandler)
+	acc, ok := senderAccount.(state.UserAccountHandler)
 	if !ok {
 		return 0, nil, nil, 0, errors.New("wrong account type")
 	}
@@ -289,7 +290,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	}
 
 	newNonce := uint64(0)
-	acc, ok := senderAccount.(common.UserAccountHandler)
+	acc, ok := senderAccount.(state.UserAccountHandler)
 	if !ok {
 		return nil, errors.New("wrong account type")
 	}

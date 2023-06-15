@@ -1842,7 +1842,7 @@ func (bp *baseProcessor) unmarshalUserAccount(
 	accountCreator state.AccountFactory,
 	address []byte,
 	userAccountsBytes []byte,
-) (common.UserAccountHandler, error) {
+) (state.UserAccountHandler, error) {
 	account, err := accountCreator.CreateAccount(address)
 	if err != nil {
 		return nil, err
@@ -1852,7 +1852,7 @@ func (bp *baseProcessor) unmarshalUserAccount(
 		return nil, err
 	}
 
-	userAccount, ok := account.(common.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}

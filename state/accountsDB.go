@@ -1,3 +1,4 @@
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. codeEntry.proto
 package state
 
 import (
@@ -18,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -274,7 +274,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	var codeEntry accounts.CodeEntry
+	var codeEntry CodeEntry
 
 	startTime := time.Now()
 	defer func() {
@@ -416,7 +416,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*accounts.CodeEntry, error) {
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
 	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
@@ -426,7 +426,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*accounts.CodeEnt
 		return nil, nil
 	}
 
-	unmodifiedOldCodeEntry := &accounts.CodeEntry{
+	unmodifiedOldCodeEntry := &CodeEntry{
 		Code:          oldCodeEntry.Code,
 		NumReferences: oldCodeEntry.NumReferences,
 	}
@@ -460,7 +460,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 
 	if newCodeEntry == nil {
-		newCodeEntry = &accounts.CodeEntry{
+		newCodeEntry = &CodeEntry{
 			Code: newCode,
 		}
 	}
@@ -474,7 +474,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	return nil
 }
 
-func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*accounts.CodeEntry, error) {
+func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
 	val, _, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
@@ -484,7 +484,7 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 		return nil, nil
 	}
 
-	var codeEntry accounts.CodeEntry
+	var codeEntry CodeEntry
 	err = marshalizer.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil, err
@@ -493,7 +493,7 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 	return &codeEntry, nil
 }
 
-func saveCodeEntry(codeHash []byte, entry *accounts.CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
 	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
 		return err
@@ -807,7 +807,7 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return err
 	}
 
-	var codeEntry accounts.CodeEntry
+	var codeEntry CodeEntry
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return err
@@ -1047,7 +1047,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		leavesChannels,
 		context.Background(),
 		rootHash,
-		keyBuilder.NewDisabledKeyBuilder(),
+		keyBuilder.NewKeyBuilder(),
 		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
@@ -1060,20 +1060,30 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	}
 
 	for leaf := range leavesChannels.LeavesChan {
-		account := &accounts.UserAccountData{}
+		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		if err != nil {
+			return nil, err
+		}
+
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
 		}
 
-		if len(account.RootHash) > 0 {
-			dataTrie, errRecreate := mainTrie.Recreate(account.RootHash)
+		userAccount, ok := account.(UserAccountHandler)
+		if !ok {
+			continue
+		}
+
+		userAccountRootHash := userAccount.GetRootHash()
+		if len(userAccountRootHash) > 0 {
+			dataTrie, errRecreate := mainTrie.Recreate(userAccountRootHash)
 			if errRecreate != nil {
 				return nil, errRecreate
 			}
 
-			allTries[string(account.RootHash)] = dataTrie
+			allTries[string(userAccountRootHash)] = dataTrie
 		}
 	}
 
@@ -1341,14 +1351,26 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	epoch uint32,
 ) {
 	for leaf := range iteratorChannels.LeavesChan {
-		account := &accounts.UserAccountData{}
-		err := adb.marshaller.Unmarshal(account, leaf.Value())
+		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		if err != nil {
+			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+			return
+		}
+
+		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
 		}
 
-		if len(account.RootHash) == 0 {
+		userAccount, ok := account.(UserAccountHandler)
+		if !ok {
+			err = fmt.Errorf("could not cast account to UserAccountHandler: %T", account)
+			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+			return
+		}
+
+		if len(userAccount.GetRootHash()) == 0 {
 			continue
 		}
 
@@ -1359,12 +1381,12 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			address := adb.addressConverter.SilentEncode(account.Address, log)
-			adb.mainTrie.GetStorageManager().TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+			address := adb.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
 	}
 }
 
@@ -1455,7 +1477,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		iteratorChannels,
 		context.Background(),
 		rootHash,
-		keyBuilder.NewDisabledKeyBuilder(),
+		keyBuilder.NewKeyBuilder(),
 		parsers.NewMainTrieLeafParser(),
 	)
 	if err != nil {
@@ -1463,23 +1485,32 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	}
 
 	for leaf := range iteratorChannels.LeavesChan {
-		account := &accounts.UserAccountData{}
+		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		if err != nil {
+			return nil, err
+		}
+
 		err = adb.marshaller.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
 		}
 
-		if common.IsEmptyTrie(account.RootHash) {
+		userAccount, ok := account.(UserAccountHandler)
+		if !ok {
 			continue
 		}
 
-		accountAddress, err := adb.addressConverter.Encode(account.Address)
+		if common.IsEmptyTrie(userAccount.GetRootHash()) {
+			continue
+		}
+
+		accountAddress, err := adb.addressConverter.Encode(userAccount.AddressBytes())
 		if err != nil {
 			return nil, err
 		}
 
-		collectStats(tr, stats, account.RootHash, accountAddress, common.DataTrie)
+		collectStats(tr, stats, userAccount.GetRootHash(), accountAddress, common.DataTrie)
 	}
 
 	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()

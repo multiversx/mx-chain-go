@@ -382,7 +382,7 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return nil
 	}
 
-	peerAccount, ok := account.(common.PeerAccountHandler)
+	peerAccount, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
@@ -858,13 +858,13 @@ func switchJailedWithNewValidatorInMap(
 	}
 }
 
-func (s *systemSCProcessor) getUserAccount(address []byte) (common.UserAccountHandler, error) {
+func (s *systemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
 	acnt, err := s.userAccountsDB.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	stAcc, ok := acnt.(common.UserAccountHandler)
+	stAcc, ok := acnt.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -929,13 +929,13 @@ func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*st
 	return append(oldJailedValidators, newJailedValidators...)
 }
 
-func (s *systemSCProcessor) getPeerAccount(key []byte) (common.PeerAccountHandler, error) {
+func (s *systemSCProcessor) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
 	account, err := s.peerAccountsDB.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAcc, ok := account.(common.PeerAccountHandler)
+	peerAcc, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -1069,13 +1069,13 @@ func (s *systemSCProcessor) updateToGovernanceV2() error {
 	return nil
 }
 
-func (s *systemSCProcessor) getValidatorSystemAccount() (common.UserAccountHandler, error) {
+func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandler, error) {
 	validatorAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
 	if err != nil {
 		return nil, fmt.Errorf("%w when loading validator account", err)
 	}
 
-	userValidatorAccount, ok := validatorAccount.(common.UserAccountHandler)
+	userValidatorAccount, ok := validatorAccount.(state.UserAccountHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w when loading validator account", epochStart.ErrWrongTypeAssertion)
 	}
@@ -1087,7 +1087,7 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (common.UserAccountHandl
 	return userValidatorAccount, nil
 }
 
-func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount common.UserAccountHandler) ([][]byte, error) {
+func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 
 	leavesChannels := &common.TrieIteratorChannels{

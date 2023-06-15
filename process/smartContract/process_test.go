@@ -54,12 +54,12 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
-func createAccount(address []byte) common.UserAccountHandler {
+func createAccount(address []byte) state.UserAccountHandler {
 	acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	return acc
 }
 
-func createAccounts(tx data.TransactionHandler) (common.UserAccountHandler, common.UserAccountHandler) {
+func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state.UserAccountHandler) {
 	acntSrc := createAccount(tx.GetSndAddr())
 	_ = acntSrc.AddToBalance(tx.GetValue())
 	totalFee := big.NewInt(0)
@@ -1988,7 +1988,7 @@ func TestScProcessor_InitializeVMInputFromTx(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func createAccountsAndTransaction() (common.UserAccountHandler, common.UserAccountHandler, *transaction.Transaction) {
+func createAccountsAndTransaction() (state.UserAccountHandler, state.UserAccountHandler, *transaction.Transaction) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")

@@ -110,13 +110,13 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return nil
 }
 
-func (stp *stakingToPeer) getPeerAccount(key []byte) (common.PeerAccountHandler, error) {
+func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
 	account, err := stp.peerState.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAcc, ok := account.(common.PeerAccountHandler)
+	peerAcc, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -124,13 +124,13 @@ func (stp *stakingToPeer) getPeerAccount(key []byte) (common.PeerAccountHandler,
 	return peerAcc, nil
 }
 
-func (stp *stakingToPeer) getUserAccount(key []byte) (common.UserAccountHandler, error) {
+func (stp *stakingToPeer) getUserAccount(key []byte) (state.UserAccountHandler, error) {
 	account, err := stp.baseState.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
 
-	userAcc, ok := account.(common.UserAccountHandler)
+	userAcc, ok := account.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -138,7 +138,7 @@ func (stp *stakingToPeer) getUserAccount(key []byte) (common.UserAccountHandler,
 	return userAcc, nil
 }
 
-func (stp *stakingToPeer) getStorageFromAccount(userAcc common.UserAccountHandler, key []byte) []byte {
+func (stp *stakingToPeer) getStorageFromAccount(userAcc state.UserAccountHandler, key []byte) []byte {
 	value, _, err := userAcc.RetrieveValue(key)
 	if err != nil {
 		return nil

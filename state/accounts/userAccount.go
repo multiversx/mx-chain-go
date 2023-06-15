@@ -9,11 +9,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-var _ common.UserAccountHandler = (*userAccount)(nil)
+var _ state.UserAccountHandler = (*userAccount)(nil)
 
 // userAccount holds all the information about a user account
 type userAccount struct {
@@ -30,7 +31,7 @@ var zero = big.NewInt(0)
 // NewUserAccount creates a new instance of user account
 func NewUserAccount(
 	address []byte,
-	trackableDataTrie common.DataTrieTracker,
+	trackableDataTrie state.DataTrieTracker,
 	trieLeafParser common.TrieLeafParser,
 ) (*userAccount, error) {
 	if len(address) == 0 {

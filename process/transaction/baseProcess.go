@@ -33,9 +33,9 @@ type baseTxProcessor struct {
 
 func (txProc *baseTxProcessor) getAccounts(
 	adrSrc, adrDst []byte,
-) (common.UserAccountHandler, common.UserAccountHandler, error) {
+) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
-	var acntSrc, acntDst common.UserAccountHandler
+	var acntSrc, acntDst state.UserAccountHandler
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -54,7 +54,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntWrp.(common.UserAccountHandler)
+		account, ok := acntWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -68,7 +68,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntSrcWrp.(common.UserAccountHandler)
+		account, ok := acntSrcWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -82,7 +82,7 @@ func (txProc *baseTxProcessor) getAccounts(
 			return nil, nil, err
 		}
 
-		account, ok := acntDstWrp.(common.UserAccountHandler)
+		account, ok := acntDstWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -93,7 +93,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	return acntSrc, acntDst, nil
 }
 
-func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (common.UserAccountHandler, error) {
+func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserAccountHandler, error) {
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
@@ -105,7 +105,7 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (common.User
 		return nil, err
 	}
 
-	userAcc, ok := acnt.(common.UserAccountHandler)
+	userAcc, ok := acnt.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -115,7 +115,7 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (common.User
 
 func (txProc *baseTxProcessor) checkTxValues(
 	tx *transaction.Transaction,
-	acntSnd, acntDst common.UserAccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
 	err := txProc.verifyGuardian(tx, acntSnd)
@@ -172,7 +172,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
-func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst common.UserAccountHandler) error {
+func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
 	isUserNameWrong := len(tx.SndUserName) > 0 &&
 		!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
 	if isUserNameWrong {
@@ -248,7 +248,7 @@ func (txProc *baseTxProcessor) CheckSetGuardianExecutable(tx data.TransactionHan
 	return nil
 }
 
-func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *transaction.Transaction, account common.UserAccountHandler) error {
+func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	err := txProc.checkOperationAllowedToBypassGuardian(tx)
 	if err != nil {
 		return err
@@ -263,7 +263,7 @@ func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *tran
 	return nil
 }
 
-func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account common.UserAccountHandler) error {
+func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
 	}

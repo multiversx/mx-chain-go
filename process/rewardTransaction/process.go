@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -45,7 +44,7 @@ func NewRewardTxProcessor(
 	}, nil
 }
 
-func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (common.UserAccountHandler, error) {
+func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
 	shardForCurrentNode := rtp.shardCoordinator.SelfId()
 	shardForAddr := rtp.shardCoordinator.ComputeId(address)
 	if shardForCurrentNode != shardForAddr {
@@ -57,7 +56,7 @@ func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (common.User
 		return nil, err
 	}
 
-	userAcnt, ok := acnt.(common.UserAccountHandler)
+	userAcnt, ok := acnt.(state.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -107,7 +106,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 	rtx *rewardTx.RewardTx,
-	userAccount common.UserAccountHandler,
+	userAccount state.UserAccountHandler,
 ) error {
 	if !core.IsSmartContractAddress(rtx.RcvAddr) {
 		return nil

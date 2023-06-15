@@ -11,11 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/state"
 	vmAddr "github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -40,7 +40,7 @@ const delegationManagementKey = "delegationManagement"
 
 func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 	acc, _ := testContext.Accounts.LoadAccount(vmAddr.DelegationManagerSCAddress)
-	userAcc, _ := acc.(common.UserAccountHandler)
+	userAcc, _ := acc.(state.UserAccountHandler)
 
 	managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
 	marshaledData, _ := testContext.Marshalizer.Marshal(managementData)
@@ -284,7 +284,7 @@ func saveNodesConfig(t *testing.T, testContext *vm.VMTestContext, stakedNodes, m
 
 	account, err := testContext.Accounts.LoadAccount(vmAddr.StakingSCAddress)
 	require.Nil(t, err)
-	userAccount, _ := account.(common.UserAccountHandler)
+	userAccount, _ := account.(state.UserAccountHandler)
 
 	nodesConfigData := &systemSmartContracts.StakingNodesConfig{
 		StakedNodes: stakedNodes,

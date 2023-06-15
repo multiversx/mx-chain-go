@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -21,7 +22,7 @@ func getTrieAccountsIteratorArgs() ArgsTrieAccountsIterator {
 	}
 }
 
-func dummyIterator(_ common.UserAccountHandler) error {
+func dummyIterator(_ state.UserAccountHandler) error {
 	return nil
 }
 
@@ -251,10 +252,10 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 	t.Run("one handler returns error, should error", func(t *testing.T) {
 		t.Parallel()
 
-		handler1 := func(account common.UserAccountHandler) error {
+		handler1 := func(account state.UserAccountHandler) error {
 			return nil
 		}
-		handler2 := func(account common.UserAccountHandler) error {
+		handler2 := func(account state.UserAccountHandler) error {
 			return expectedErr
 		}
 		args := getTrieAccountsIteratorArgs()
@@ -285,11 +286,11 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 		t.Parallel()
 
 		handlersReceived := make(map[int]struct{})
-		handler1 := func(account common.UserAccountHandler) error {
+		handler1 := func(account state.UserAccountHandler) error {
 			handlersReceived[0] = struct{}{}
 			return nil
 		}
-		handler2 := func(account common.UserAccountHandler) error {
+		handler2 := func(account state.UserAccountHandler) error {
 			handlersReceived[1] = struct{}{}
 			return nil
 		}
