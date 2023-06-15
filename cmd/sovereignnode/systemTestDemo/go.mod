@@ -3,6 +3,8 @@ module github.com/multiversx/mx-chain-go/cmd/sovereignnode/sovereignChecker
 go 1.17
 
 require (
+	github.com/multiversx/mx-chain-communication-go v1.0.1
+	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230510143029-ab37792342df
 	github.com/multiversx/mx-chain-crypto-go v1.2.5
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-sdk-go v1.2.7
@@ -17,10 +19,11 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/mx-chain-core-go v1.1.33 // indirect
 	github.com/multiversx/mx-chain-go v1.4.15 // indirect
 	github.com/multiversx/mx-chain-p2p-go v1.0.10 // indirect
 	github.com/multiversx/mx-chain-storage-go v1.0.7 // indirect

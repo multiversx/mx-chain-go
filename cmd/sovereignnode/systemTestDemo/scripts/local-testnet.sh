@@ -7,8 +7,13 @@ VARIABLES_PATH=$SCRIPTS_DIR/variables.sh
 OBSERVERS_PATH=$SCRIPTS_DIR/include/observers.sh
 VALIDATORS_PATH=$SCRIPTS_DIR/include/validators.sh
 ENABLE_EPOCH_DIR=$TESTNET_DIR/mx-chain-go/cmd/node/config/enableEpochs.toml
+EXTERNAL_CONFIG_DIR=$TESTNET_DIR/mx-chain-go/cmd/node/config/external.toml
 CONFIG_DIR=$TESTNET_DIR/mx-chain-go/cmd/node/config/config.toml
 SYSTEM_SC_CONFIG_DIR=$TESTNET_DIR/mx-chain-go/cmd/node/config/systemSmartContractsConfig.toml
+
+# Possible values: "server"/"client"
+OBSERVER_MODE="client"
+
 SANDBOX_NAME=sandbox
 
 cloneDependencies(){
@@ -19,12 +24,16 @@ cloneDependencies(){
   mkdir "$TESTNET_DIR"
 
   git clone https://github.com/multiversx/mx-chain-go "$TESTNET_DIR/mx-chain-go"
-  cd $TESTNET_DIR/mx-chain-go
-  git checkout 8743a639ce1287f7637fd42c6e984b38f57337a0
-  cd ../..
+  checkoutStableVersion mx-chain-go 954bae92b09c62317391c5f8af5831921ab2ff67
 
   git clone https://github.com/multiversx/mx-chain-deploy-go "$TESTNET_DIR/mx-chain-deploy-go"
   git clone https://github.com/multiversx/mx-chain-proxy-go "$TESTNET_DIR/mx-chain-proxy-go"
+}
+
+checkoutStableVersion(){
+    cd $TESTNET_DIR/$1
+    git checkout $2
+    cd ../..
 }
 
 testnetRemove(){

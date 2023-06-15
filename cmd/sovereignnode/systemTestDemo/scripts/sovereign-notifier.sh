@@ -5,6 +5,9 @@ SANDBOX_PATH=$CURRENT_DIR/testnet/testnet-local/sandbox
 KEY_GENERATOR_PATH=$CURRENT_DIR/testnet/mx-chain-go/cmd/keygenerator
 EXTERNAL_CONFIG_DIR=$CURRENT_DIR/sovereignNotifier/config/external.toml
 
+# Possible values: "server"/"client"
+OBSERVER_MODE="server"
+
 createObserverKey(){
   pushd $CURRENT_DIR
 
@@ -30,7 +33,11 @@ setupSovereignNotifier(){
   mv $KEY_GENERATOR_PATH/validatorKey.pem config/
 
   sed -i 's/DestinationShardAsObserver =.*/DestinationShardAsObserver = "0"/' $SOVEREIGN_OBSERVER_PATH/config/prefs.toml
-  sed -i '/WebSocketConnector\]/!b;n;n;c\    Enabled = true' "$EXTERNAL_CONFIG_DIR"
+
+  sed -i '/HostDriverConfig\]/!b;n;n;c\    Enabled = true' "$EXTERNAL_CONFIG_DIR"
+  sed -i "s@Mode =.*@Mode = \"$OBSERVER_MODE\"@" "$EXTERNAL_CONFIG_DIR"
+  sed -i 's/MarshallerType =.*/MarshallerType = "json"/' "$EXTERNAL_CONFIG_DIR"
+  sed -i 's/BlockingAckOnError =.*/BlockingAckOnError = false/' "$EXTERNAL_CONFIG_DIR"
 
   ./node --log-level *:DEBUG
 }
