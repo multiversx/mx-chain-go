@@ -261,6 +261,17 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger Debugger) error
+}
+
+// DebuggerBlockProcessor is the interface for block execution engine with debugger
+type DebuggerBlockProcessor interface {
+	BlockProcessor
+	ProcessDebuggerSetter
+}
+
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
 type ScheduledBlockProcessor interface {
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error

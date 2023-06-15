@@ -350,6 +350,7 @@ type StatusComponentsHandler interface {
 // RunTypeComponentsHolder holds the runType components
 type RunTypeComponentsHolder struct {
 	BlockChainHookFactoryHandler hooks.BlockChainHookFactoryHandler
+	BlockProcessorFactoryHandler BlockProcessorFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -548,4 +549,9 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// BlockProcessorFactoryHandler defines the block processor factory handler
+type BlockProcessorFactoryHandler interface {
+	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
 }

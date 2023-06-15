@@ -671,6 +671,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
 			BlockChainHookFactoryHandler: &factory2.SovereignBlockChainHookFactory{},
+			BlockProcessorFactoryHandler: &factory2.SovereignBlockProcessorFactory{},
 		},
 	}
 

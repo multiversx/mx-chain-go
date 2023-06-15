@@ -397,7 +397,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
-	argumentsBaseProcessor := block.ArgBaseProcessor{
+	argumentsBaseProcessor := mainFactory.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
 		BootstrapComponents:          pcf.bootstrapComponents,
@@ -428,9 +428,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ReceiptsRepository:           receiptsRepository,
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, validatorStatisticsProcessor)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -460,34 +461,20 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(
-	argumentsBaseProcessor block.ArgBaseProcessor,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	argumentsBaseProcessor mainFactory.ArgBaseProcessor,
 ) (process.BlockProcessor, error) {
-	argShardProcessor := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
 
-	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
+	blockProcessor, err := pcf.runTypeComponents.BlockProcessorFactoryHandler.CreateBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, errors.New("could not create shard block processor: " + err.Error())
 	}
 
-	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
+	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
 	if err != nil {
 		return nil, err
 	}
 
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return shardProcessor, nil
-	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainBlockProcessor(
-			shardProcessor,
-			validatorStatisticsProcessor,
-		)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
+	return blockProcessor, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
@@ -853,7 +840,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
-	argumentsBaseProcessor := block.ArgBaseProcessor{
+	argumentsBaseProcessor := mainFactory.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
 		BootstrapComponents:          pcf.bootstrapComponents,

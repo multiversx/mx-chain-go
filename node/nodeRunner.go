@@ -1237,7 +1237,11 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
-		ChainRunType:           common.ChainRunTypeRegular,
+		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
+			BlockChainHookFactoryHandler: &hooks.BlockChainHookFactory{},
+			BlockProcessorFactoryHandler: &processComp.ShardBlockProcessorFactory{},
+		},
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

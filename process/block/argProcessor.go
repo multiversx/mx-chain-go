@@ -8,16 +8,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 type coreComponentsHolder interface {
@@ -56,53 +52,16 @@ type statusCoreComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// ArgBaseProcessor holds all dependencies required by the process data factory in order to create
-// new instances
-type ArgBaseProcessor struct {
-	CoreComponents       coreComponentsHolder
-	DataComponents       dataComponentsHolder
-	BootstrapComponents  bootstrapComponentsHolder
-	StatusComponents     statusComponentsHolder
-	StatusCoreComponents statusCoreComponentsHolder
-
-	Config                         config.Config
-	PrefsConfig                    config.Preferences
-	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector                   process.ForkDetector
-	NodesCoordinator               nodesCoordinator.NodesCoordinator
-	FeeHandler                     process.TransactionFeeHandler
-	RequestHandler                 process.RequestHandler
-	BlockChainHook                 process.BlockChainHookHandler
-	TxCoordinator                  process.TransactionCoordinator
-	EpochStartTrigger              process.EpochStartTriggerHandler
-	HeaderValidator                process.HeaderConstructionValidator
-	BootStorer                     process.BootStorer
-	BlockTracker                   process.BlockTracker
-	BlockSizeThrottler             process.BlockSizeThrottler
-	Version                        string
-	HistoryRepository              dblookupext.HistoryRepository
-	EnableRoundsHandler            process.EnableRoundsHandler
-	VMContainersFactory            process.VirtualMachinesContainerFactory
-	VmContainer                    process.VirtualMachinesContainer
-	GasHandler                     gasConsumedProvider
-	OutportDataProvider            outport.DataProviderOutport
-	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
-	ScheduledMiniBlocksEnableEpoch uint32
-	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	ReceiptsRepository             receiptsRepository
-	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
-}
-
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
-	ArgBaseProcessor
+	factory.ArgBaseProcessor
 }
 
 // ArgMetaProcessor holds all dependencies required by the process data factory in order to create
 // new instances of meta processor
 type ArgMetaProcessor struct {
-	ArgBaseProcessor
+	factory.ArgBaseProcessor
 	PendingMiniBlocksHandler     process.PendingMiniBlocksHandler
 	SCToProtocol                 process.SmartContractToProtocolHandler
 	EpochStartDataCreator        process.EpochStartDataCreator

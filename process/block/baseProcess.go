@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/factory"
 	"math/big"
 	"sort"
 	"sync"
@@ -427,7 +428,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 }
 
 // checkProcessorParameters will check the input parameters values
-func checkProcessorParameters(arguments ArgBaseProcessor) error {
+func checkProcessorParameters(arguments factory.ArgBaseProcessor) error {
 
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {

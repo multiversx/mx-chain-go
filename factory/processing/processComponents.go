@@ -156,6 +156,7 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	ChainRunType         common.ChainRunType
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type processComponentsFactory struct {
@@ -189,6 +190,7 @@ type processComponentsFactory struct {
 	statusComponents     factory.StatusComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	chainRunType         common.ChainRunType
+	runTypeComponents    factory.RunTypeComponentsHolder
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -225,6 +227,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:   args.StatusCoreComponents,
 		flagsConfig:            args.FlagsConfig,
 		chainRunType:           args.ChainRunType,
+		runTypeComponents:      args.RunTypeComponents,
 	}, nil
 }
 
@@ -2030,7 +2033,10 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.StatusCoreComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStatusCoreComponents)
 	}
-
+	//TODO: check if all components are not nil
+	//if check.IfNil(args.RunTypeComponents) {
+	//
+	//}
 	return nil
 }
 
