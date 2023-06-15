@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	factory2 "github.com/multiversx/mx-chain-go/sovereignnode/factory"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -60,7 +61,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -670,7 +670,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
-			BlockChainHookFactoryHandler: &hooks.SovereignBlockChainHookFactory{},
+			BlockChainHookFactoryHandler: &factory2.SovereignBlockChainHookFactory{},
 		},
 	}
 
@@ -1190,8 +1190,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
-
-		ChainRunType: common.ChainRunTypeSovereign,
+		ChainRunType:           common.ChainRunTypeSovereign,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
