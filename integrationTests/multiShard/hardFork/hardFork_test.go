@@ -73,7 +73,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.MainMessenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	round := uint64(0)
@@ -144,7 +144,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.MainMessenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)

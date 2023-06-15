@@ -32,9 +32,9 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards)
 
 	defer func() {
-		_ = resolverNode.MainMessenger.Close()
-		_ = maliciousNode.MainMessenger.Close()
-		_ = requesterNode.MainMessenger.Close()
+		resolverNode.Close()
+		maliciousNode.Close()
+		requesterNode.Close()
 	}()
 
 	time.Sleep(time.Second)

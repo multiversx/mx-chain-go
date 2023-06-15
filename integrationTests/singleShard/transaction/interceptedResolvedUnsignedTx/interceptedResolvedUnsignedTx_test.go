@@ -38,8 +38,8 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
