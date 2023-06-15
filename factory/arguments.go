@@ -1,13 +1,18 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
@@ -46,4 +51,20 @@ type ArgBaseProcessor struct {
 	ReceiptsRepository             ReceiptsRepository
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
+}
+
+// ResolverRequestArgs holds all dependencies required by the process data factory to create components
+type ResolverRequestArgs struct {
+	RequestersFinder      dataRetriever.RequestersFinder
+	RequestedItemsHandler dataRetriever.RequestedItemsHandler
+	WhiteListHandler      process.WhiteListHandler
+	ShardId               uint32
+}
+
+// ScheduledTxsExecutionFactoryArgs holds all dependencies required by the process data factory to create components
+type ScheduledTxsExecutionFactoryArgs struct {
+	Storer           storage.Storer
+	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
+	ShardCoordinator sharding.Coordinator
 }

@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"math/big"
 	"time"
 
@@ -349,8 +350,11 @@ type StatusComponentsHandler interface {
 
 // RunTypeComponentsHolder holds the runType components
 type RunTypeComponentsHolder struct {
-	BlockChainHookFactoryHandler hooks.BlockChainHookFactoryHandler
-	BlockProcessorFactoryHandler BlockProcessorFactoryHandler
+	BlockChainHookFactoryHandler         BlockChainHookFactoryHandler
+	BlockProcessorFactoryHandler         BlockProcessorFactoryHandler
+	TransactionCoordinatorFactoryHandler TransactionCoordinatorFactoryHandler
+	ResolverRequestFactoryHandler        ResolverRequestFactoryHandler
+	ScheduledTxsExecutionFactoryHandler  ScheduledTxsExecutionFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -551,7 +555,27 @@ type PersistentStatusHandler interface {
 	SetStorage(store storage.Storer) error
 }
 
+// BlockChainHookFactoryHandler defines the blockchain hook factory handler
+type BlockChainHookFactoryHandler interface {
+	CreateBlockChainHook(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error)
+}
+
 // BlockProcessorFactoryHandler defines the block processor factory handler
 type BlockProcessorFactoryHandler interface {
 	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+}
+
+// TransactionCoordinatorFactoryHandler defines the transaction coordinator factory handler
+type TransactionCoordinatorFactoryHandler interface {
+	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
+}
+
+// TransactionProcessorFactoryHandler defines the transaction processor factory handler
+type ResolverRequestFactoryHandler interface {
+	CreateResolverRequestHandler(resolverRequestArgs ResolverRequestArgs) (process.RequestHandler, error)
+}
+
+// ScheduledTxsExecutionFactoryHandler defines the transaction processor factory handler
+type ScheduledTxsExecutionFactoryHandler interface {
+	CreateScheduledTxsExecutionHandler(args ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 }

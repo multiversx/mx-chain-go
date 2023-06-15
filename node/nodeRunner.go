@@ -1238,8 +1238,11 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
 		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
-			BlockChainHookFactoryHandler: &hooks.BlockChainHookFactory{},
-			BlockProcessorFactoryHandler: &processComp.ShardBlockProcessorFactory{},
+			BlockChainHookFactoryHandler:         &hooks.BlockChainHookFactory{},
+			BlockProcessorFactoryHandler:         &processComp.ShardBlockProcessorFactory{},
+			TransactionCoordinatorFactoryHandler: &processComp.TransactionCoordinatorFactory{},
+			ResolverRequestFactoryHandler:        &processComp.ResolverRequestHandler{},
+			ScheduledTxsExecutionFactoryHandler:  &processComp.ScheduledTxsExecutionFactory{},
 		},
 		ChainRunType: common.ChainRunTypeRegular,
 	}

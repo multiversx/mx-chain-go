@@ -8,10 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-type BlockChainHookFactoryHandler interface {
-	CreateBlockChainHook(args ArgBlockChainHook) (process.BlockChainHookHandler, error)
-}
-
 // BlockChainHookFactory - factory for normal run
 type BlockChainHookFactory struct {
 }

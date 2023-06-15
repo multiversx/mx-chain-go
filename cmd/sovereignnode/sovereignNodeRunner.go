@@ -670,8 +670,10 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		RunTypeComponents: mainFactory.RunTypeComponentsHolder{
-			BlockChainHookFactoryHandler: &factory2.SovereignBlockChainHookFactory{},
-			BlockProcessorFactoryHandler: &factory2.SovereignBlockProcessorFactory{},
+			BlockChainHookFactoryHandler:        &factory2.SovereignBlockChainHookFactory{},
+			BlockProcessorFactoryHandler:        &factory2.SovereignBlockProcessorFactory{},
+			ResolverRequestFactoryHandler:       &factory2.SovereignResolverRequestHandler{},
+			ScheduledTxsExecutionFactoryHandler: &factory2.SovereignScheduledTxsExecutionFactory{},
 		},
 	}
 

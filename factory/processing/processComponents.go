@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	disabledResolversContainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer/disabled"
 	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -42,7 +41,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
-	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -716,49 +714,43 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 func (pcf *processComponentsFactory) createResolverRequestHandler(
 	requestersFinder dataRetriever.RequestersFinder,
 ) (process.RequestHandler, error) {
-	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		requestersFinder,
-		pcf.requestedItemsHandler,
-		pcf.whiteListHandler,
-		common.MaxTxsToRequest,
-		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
-		time.Second,
-	)
-	if err != nil {
-		return nil, err
+	args := factory.ResolverRequestArgs{
+		RequestersFinder:      requestersFinder,
+		RequestedItemsHandler: pcf.requestedItemsHandler,
+		WhiteListHandler:      pcf.whiteListHandler,
+		ShardId:               pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 	}
 
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return requestHandler, nil
-	case common.ChainRunTypeSovereign:
-		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
-	default:
-		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
+	return pcf.runTypeComponents.ResolverRequestFactoryHandler.CreateResolverRequestHandler(args)
+}
+
+type ScheduledTxsExecutionFactory struct {
+}
+
+func (stxef *ScheduledTxsExecutionFactory) CreateScheduledTxsExecutionHandler(args factory.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error) {
+	return preprocess.NewScheduledTxsExecution(
+		&disabled.TxProcessor{},
+		&disabled.TxCoordinator{},
+		args.Storer,
+		args.Marshalizer,
+		args.Hasher,
+		args.ShardCoordinator,
+	)
 }
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-		if err != nil {
-			return nil, err
-		}
-
-		return preprocess.NewScheduledTxsExecution(
-			&disabled.TxProcessor{},
-			&disabled.TxCoordinator{},
-			scheduledSCRSStorer,
-			pcf.coreData.InternalMarshalizer(),
-			pcf.coreData.Hasher(),
-			pcf.bootstrapComponents.ShardCoordinator(),
-		)
-	case common.ChainRunTypeSovereign:
-		return &processDisabled.ScheduledTxsExecutionHandler{}, nil
-	default:
-		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
+	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
+	if err != nil {
+		return nil, err
 	}
+	args := factory.ScheduledTxsExecutionFactoryArgs{
+		Storer:           scheduledSCRSStorer,
+		Marshalizer:      pcf.coreData.InternalMarshalizer(),
+		Hasher:           pcf.coreData.Hasher(),
+		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+	}
+
+	return pcf.runTypeComponents.ScheduledTxsExecutionFactoryHandler.CreateScheduledTxsExecutionHandler(args)
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {

@@ -12,7 +12,6 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -445,25 +444,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 func (pcf *processComponentsFactory) createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 ) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
-	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
+	return pcf.runTypeComponents.TransactionCoordinatorFactoryHandler.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor mainFactory.ArgBaseProcessor,
 ) (process.BlockProcessor, error) {
-
 	blockProcessor, err := pcf.runTypeComponents.BlockProcessorFactoryHandler.CreateBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, errors.New("could not create shard block processor: " + err.Error())
