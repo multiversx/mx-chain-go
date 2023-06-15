@@ -34,9 +34,9 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, p2p.NormalOperation)
 
 	defer func() {
-		_ = resolverNode.MainMessenger.Close()
-		_ = maliciousNode.MainMessenger.Close()
-		_ = requesterNode.MainMessenger.Close()
+		resolverNode.Close()
+		maliciousNode.Close()
+		requesterNode.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -125,12 +125,9 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 	regularNode := createNodeWithPeersRatingHandler(shardID, numOfShards, p2p.FullArchiveMode)
 
 	defer func() {
-		_ = resolverFullArchiveNode.MainMessenger.Close()
-		_ = resolverFullArchiveNode.FullArchiveMessenger.Close()
-		_ = requesterFullArchiveNode.MainMessenger.Close()
-		_ = requesterFullArchiveNode.FullArchiveMessenger.Close()
-		_ = regularNode.MainMessenger.Close()
-		_ = regularNode.FullArchiveMessenger.Close()
+		resolverFullArchiveNode.Close()
+		requesterFullArchiveNode.Close()
+		regularNode.Close()
 	}()
 
 	// all nodes are connected on main network, but only the full archive resolver and requester are connected on full archive network
