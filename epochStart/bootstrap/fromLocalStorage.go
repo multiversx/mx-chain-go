@@ -138,9 +138,13 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.interceptorContainer.Close()
+		errClose := e.mainInterceptorContainer.Close()
 		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		}
+		errClose = e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
 	}()
 
@@ -163,11 +167,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	err = e.fullArchiveMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

@@ -475,11 +475,11 @@ func TestShardInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *tes
 
 	testCreateShardTopicShouldFailOnAllMessenger(t, "generateValidatorInfoInterceptor", common.ValidatorInfoTopic, "")
 
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateHeartbeatInterceptor", common.HeartbeatV2Topic, "")
+
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generatePeerShardIntercepto", common.ConnectionTopic, "")
+
 	t.Run("generatePeerAuthenticationInterceptor_main", testCreateShardTopicShouldFail(common.PeerAuthenticationTopic, ""))
-	t.Run("generateHeartbeatInterceptor_main", testCreateShardTopicShouldFail(common.HeartbeatV2Topic, ""))
-	t.Run("generateHeartbeatInterceptor_full_archive", testCreateShardTopicShouldFail(common.FullArchiveTopicPrefix+common.HeartbeatV2Topic, ""))
-	t.Run("generatePeerShardInterceptor_main", testCreateShardTopicShouldFail(common.ConnectionTopic, ""))
-	t.Run("generatePeerShardInterceptor_full_archive", testCreateShardTopicShouldFail(common.FullArchiveTopicPrefix+common.ConnectionTopic, ""))
 }
 func testCreateShardTopicShouldFailOnAllMessenger(t *testing.T, testNamePrefix string, matchStrToErrOnCreate string, matchStrToErrOnRegister string) {
 	t.Run(testNamePrefix+"main messenger", testCreateShardTopicShouldFail(matchStrToErrOnCreate, matchStrToErrOnRegister))
@@ -500,9 +500,10 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 		}
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		container, err := icf.Create()
+		mainContainer, fullArchiveContainer, err := icf.Create()
 
-		assert.Nil(t, container)
+		assert.Nil(t, mainContainer)
+		assert.Nil(t, fullArchiveContainer)
 		assert.Equal(t, errExpected, err)
 	}
 }
@@ -560,9 +561,10 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-	container, err := icf.Create()
+	mainContainer, fullArchiveContainer, err := icf.Create()
 
-	assert.NotNil(t, container)
+	assert.NotNil(t, mainContainer)
+	assert.NotNil(t, fullArchiveContainer)
 	assert.Nil(t, err)
 }
 
@@ -594,7 +596,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		container, err := icf.Create()
+		mainContainer, fullArchiveContainer, err := icf.Create()
 
 		numInterceptorTxs := noOfShards + 1
 		numInterceptorsUnsignedTxs := numInterceptorTxs
@@ -612,7 +614,8 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, container.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, 0, fullArchiveContainer.Len())
 	})
 
 	t.Run("full archive mode", func(t *testing.T) {
@@ -641,7 +644,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
-		container, err := icf.Create()
+		mainContainer, fullArchiveContainer, err := icf.Create()
 
 		numInterceptorTxs := noOfShards + 1
 		numInterceptorsUnsignedTxs := numInterceptorTxs
@@ -651,15 +654,16 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorMetachainHeaders := 1
 		numInterceptorTrieNodes := 1
 		numInterceptorPeerAuth := 1
-		numInterceptorHeartbeat := 2           // one for full archive
-		numInterceptorsShardValidatorInfo := 2 // one for full archive
+		numInterceptorHeartbeat := 1
+		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
 			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
 
 		assert.Nil(t, err)
-		assert.Equal(t, totalInterceptors, container.Len())
+		assert.Equal(t, totalInterceptors, mainContainer.Len())
+		assert.Equal(t, totalInterceptors-1, fullArchiveContainer.Len()) // no peerAuthentication needed
 	})
 }
 

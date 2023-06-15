@@ -46,21 +46,21 @@ type ArgsEpochStartInterceptorContainer struct {
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
-func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
+func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, epochStart.ErrNilCoreComponentsHolder
+		return nil, nil, epochStart.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, epochStart.ErrNilCryptoComponentsHolder
+		return nil, nil, epochStart.ErrNilCryptoComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, epochStart.ErrNilPubkeyConverter
+		return nil, nil, epochStart.ErrNilPubkeyConverter
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
 	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	nodesCoordinator := disabled.NewNodesCoordinator()
@@ -108,22 +108,30 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		MainPeerShardMapper:          peerShardMapper,
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		NodeOperationMode:            args.NodeOperationMode,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	container, err := interceptorsContainerFactory.Create()
+	mainContainer, fullArchiveContainer, err := interceptorsContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(container)
+	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(mainContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return container, nil
+	if args.NodeOperationMode == p2p.FullArchiveMode {
+		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mainContainer, fullArchiveContainer, nil
 }

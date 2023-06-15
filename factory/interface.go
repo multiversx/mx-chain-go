@@ -270,6 +270,7 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
+	FullArchiveInterceptorsContainer() process.InterceptorsContainer
 	ResolversContainer() dataRetriever.ResolversContainer
 	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler

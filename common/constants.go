@@ -75,9 +75,6 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
-// FullArchiveTopicPrefix is the topic prefix used for specific topics that have different interceptors on full archive network
-const FullArchiveTopicPrefix = "full_archive_"
-
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 

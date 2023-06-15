@@ -19,6 +19,7 @@ type ProcessComponentsMock struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
+	FullArchiveIntContainer              process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -85,6 +86,11 @@ func (pcm *ProcessComponentsMock) ShardCoordinator() sharding.Coordinator {
 // InterceptorsContainer -
 func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsContainer {
 	return pcm.IntContainer
+}
+
+// FullArchiveInterceptorsContainer -
+func (pcm *ProcessComponentsMock) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcm.FullArchiveIntContainer
 }
 
 // ResolversContainer -
