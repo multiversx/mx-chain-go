@@ -79,6 +79,7 @@ sovereignReset(){
     ./mx-chain-go/scripts/testnet/clean.sh && \
       ./mx-chain-go/scripts/testnet/config.sh
      ./mx-chain-go/scripts/testnet/sovereignStart.sh \
+
 }
 
 echoOptions(){

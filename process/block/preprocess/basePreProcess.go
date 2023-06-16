@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -514,7 +515,13 @@ func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionIn
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {
-	for _, miniBlockHeader := range headerHandler.GetMiniBlockHeaderHandlers() {
+	_, isSovHeader := headerHandler.(data.SovereignChainHeaderHandler)
+	log.Info("getMiniBlockHeaderOfMiniBlock", "isSovHeader", isSovHeader,
+		"headerType", fmt.Sprintf("%T", headerHandler))
+
+	miniblocks := headerHandler.GetMiniBlockHeaderHandlers()
+
+	for _, miniBlockHeader := range miniblocks {
 		if bytes.Equal(miniBlockHeader.GetHash(), miniBlockHash) {
 			return miniBlockHeader, nil
 		}

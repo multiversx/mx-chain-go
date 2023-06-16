@@ -3,7 +3,7 @@
     SCDeployEnableEpoch = 0
 
     # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-    BuiltInFunctionsEnableEpoch = 1
+    BuiltInFunctionsEnableEpoch = 0
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
     RelayedTransactionsEnableEpoch = 1
@@ -23,7 +23,7 @@
 
     # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
     # signed with the hash of transaction
-    TransactionSignedWithTxHashEnableEpoch = 1
+    TransactionSignedWithTxHashEnableEpoch = 0
 
     # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
     MetaProtectionEnableEpoch = 1
@@ -98,13 +98,13 @@
     IncrementSCRNonceInMultiTransferEnableEpoch = 1
 
     # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
-    ESDTMultiTransferEnableEpoch = 1
+    ESDTMultiTransferEnableEpoch = 0
 
     # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
-    GlobalMintBurnDisableEpoch = 1
+    GlobalMintBurnDisableEpoch = 0
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
-    ESDTTransferRoleEnableEpoch = 1
+    ESDTTransferRoleEnableEpoch = 0
 
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 1000000
@@ -119,16 +119,16 @@
     BackwardCompSaveKeyValueEnableEpoch = 1
 
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation is enabled on multiple shards
-    ESDTNFTCreateOnMultiShardEnableEpoch = 1
+    ESDTNFTCreateOnMultiShardEnableEpoch = 0
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    MetaESDTSetEnableEpoch = 1
+    MetaESDTSetEnableEpoch = 0
 
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
     AddTokensToDelegationEnableEpoch = 1
 
     # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
-    MultiESDTTransferFixOnCallBackOnEnableEpoch = 1
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 0
 
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
     OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 1
@@ -170,7 +170,7 @@
     TransformToMultiShardCreateEnableEpoch = 1
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 1
+    ESDTRegisterAndSetAllRolesEnableEpoch = 0
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
     ScheduledMiniBlocksEnableEpoch = 0
@@ -210,7 +210,7 @@
     CheckExecuteOnReadOnlyEnableEpoch = 1
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 0
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
     MiniBlockPartialExecutionEnableEpoch = 1

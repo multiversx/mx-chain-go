@@ -54,6 +54,11 @@ type nonceAndHashInfo struct {
 	nonce uint64
 }
 
+type headerData struct {
+	*nonceAndHashInfo
+	header data.HeaderHandler
+}
+
 type hdrInfo struct {
 	usedInBlock bool
 	hdr         data.HeaderHandler

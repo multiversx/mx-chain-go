@@ -15,6 +15,7 @@ type extendedHeaderProcessor struct {
 }
 
 func createExtendedHeader(headerV2 *block.HeaderV2, scrs []*scrInfo) *block.ShardHeaderExtended {
+
 	return &block.ShardHeaderExtended{
 		Header:             headerV2,
 		IncomingMiniBlocks: createIncomingMb(scrs),

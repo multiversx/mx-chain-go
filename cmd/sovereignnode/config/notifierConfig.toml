@@ -5,7 +5,7 @@ SubscribedEvents = [
 [WebSocket]
     Url = "localhost:22111"
     # Possible values: json, gogo protobuf. Should be compatible with mx-chain-node outport driver config
-    MarshallerType = "json"
+    MarshallerType = "gogo protobuf"
     # Retry duration (receive/send ack signal) in seconds
     RetryDuration = 5
     # Signals if in case of data payload processing error, we should send the ack signal or not

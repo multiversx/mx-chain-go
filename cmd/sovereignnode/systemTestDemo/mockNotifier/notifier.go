@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -60,9 +60,14 @@ func main() {
 		return
 	}
 
-	var prevHash []byte
-	hasher := keccak.NewKeccak()
-	nonce := uint64(0)
+	prevHash, err := hex.DecodeString("c6d5b27501261f1e871214ab5faaba8b7770a185c5b7e146882dbfc8fca9b2ef")
+	log.LogIfError(err)
+
+	prevRandSeed, err := hex.DecodeString("e400abed092753418b3c23411dfa4b05abd082180a817fccf3dd2e5d669d1e3f")
+	log.LogIfError(err)
+
+	hasher := blake2b.NewBlake2b()
+	nonce := uint64(10)
 	for {
 		pubKeyConverter, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 		log.LogIfError(err)
@@ -92,13 +97,19 @@ func main() {
 		}
 		outportBlock.BlockData.HeaderType = string(core.ShardHeaderV2)
 
+		randSeed, err := core.CalculateHash(marshaller, hasher, &outport.OutportBlock{HighestFinalBlockNonce: nonce})
+		log.LogIfError(err)
+
 		headerV2 := &block.HeaderV2{
 			Header: &block.Header{
-				PrevHash: prevHash,
-				Nonce:    nonce,
-				Round:    nonce,
+				PrevHash:     prevHash,
+				Nonce:        nonce,
+				Round:        nonce,
+				RandSeed:     randSeed,
+				PrevRandSeed: prevRandSeed,
 			},
 		}
+
 		headerBytes, err := marshaller.Marshal(headerV2)
 		log.LogIfError(err)
 
@@ -111,13 +122,21 @@ func main() {
 		outportBlockBytes, err := marshaller.Marshal(outportBlock)
 		log.LogIfError(err)
 
+		log.Info("sending block",
+			"nonce", nonce,
+			"hash", hex.EncodeToString(outportBlock.BlockData.HeaderHash),
+			"prev hash", prevHash,
+			"rand seed", randSeed,
+			"prev rand seed", prevRandSeed)
+
 		err = wsServer.Send(outportBlockBytes, outport.TopicSaveBlock)
 		log.LogIfError(err)
 
-		time.Sleep(3000 * time.Millisecond)
+		time.Sleep(6000 * time.Millisecond)
 
 		nonce++
 		prevHash = outportBlock.BlockData.HeaderHash //core.CalculateHash(marshaller, hasher, outportBlock)
+		prevRandSeed = randSeed
 
 		finalizedBlock := &outport.FinalizedBlock{
 			HeaderHash: prevHash,
@@ -128,6 +147,5 @@ func main() {
 		err = wsServer.Send(finalizeedBlockBytes, outport.TopicFinalizedBlock)
 		log.LogIfError(err)
 
-		log.Info("sending block", "nonce", nonce, "hash", hex.EncodeToString(prevHash))
 	}
 }

@@ -1664,7 +1664,7 @@ func createSovereignWsReceiver(
 
 	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
 		HeadersPool: dataPool.Headers(),
-		TxPool:      dataPool.Transactions(),
+		TxPool:      dataPool.UnsignedTransactions(),
 		Marshaller:  marshaller,
 		Hasher:      hasher,
 	}
