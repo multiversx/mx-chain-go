@@ -69,6 +69,7 @@ func createEEIWithBlockchainHook(blockchainHook vm.BlockchainHook) vm.ContextHan
 		CryptoHook:          hooks.NewVMCryptoHook(),
 		InputParser:         &mock.ArgumentParserMock{},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})

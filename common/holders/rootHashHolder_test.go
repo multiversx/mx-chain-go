@@ -35,3 +35,13 @@ func TestNewRootHashHolder_String(t *testing.T) {
 	expectedString := "root hash rootHash, epoch 5, has value true"
 	assert.Equal(t, expectedString, holder.String())
 }
+
+func TestNewRootHashHolder_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var holder *rootHashHolder
+	require.True(t, holder.IsInterfaceNil())
+
+	holder = NewRootHashHolder([]byte("rootHash"), core.OptionalUint32{})
+	require.False(t, holder.IsInterfaceNil())
+}

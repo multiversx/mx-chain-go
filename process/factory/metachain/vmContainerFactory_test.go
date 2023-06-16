@@ -65,6 +65,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -155,6 +156,18 @@ func TestNewVMContainerFactory_NilValidatorAccountsDB(t *testing.T) {
 
 	assert.True(t, check.IfNil(vmf))
 	assert.True(t, errors.Is(err, vm.ErrNilValidatorAccountsDB))
+}
+
+func TestNewVMContainerFactory_NilUserAccountsDB(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.UserAccountsDB = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilUserAccountsDB))
 }
 
 func TestNewVMContainerFactory_NilChanceComputer(t *testing.T) {
@@ -343,6 +356,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

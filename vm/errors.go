@@ -130,6 +130,9 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
 
+// ErrNilUserAccountsDB signals that nil user accounts DB was provided
+var ErrNilUserAccountsDB = errors.New("nil user accounts DB")
+
 // ErrInvalidStartEndVoteEpoch signals that invalid arguments where passed for start or end vote epoch
 var ErrInvalidStartEndVoteEpoch = errors.New("invalid start/end vote epoch")
 
@@ -252,3 +255,12 @@ var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
 
 // ErrNotEnoughVotingPower signals that there is not enough voting power to cast the vote
 var ErrNotEnoughVotingPower = errors.New("not enough voting power to cast this vote")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred.
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrWrongNewOwnerAddress signals that a wrong new owner address was provided
+var ErrWrongNewOwnerAddress = errors.New("wrong new owner address")
+
+// ErrInternalErrorWhileSettingNewOwner signals that an error occurred when setting the new contract owner
+var ErrInternalErrorWhileSettingNewOwner = errors.New("internal error when setting new contract owner")
