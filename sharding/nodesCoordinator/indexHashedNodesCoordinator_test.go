@@ -1762,6 +1762,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        1,
 	}
+	ihnc.bootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(1)
 
 	body := createBlockBodyFromNodesCoordinator(ihnc, 0, ihnc.validatorInfoCacher)
 	ihnc.EpochStartPrepare(header, body)
@@ -1773,6 +1774,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        2,
 	}
+	ihnc.bootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(2)
 	ihnc.EpochStartPrepare(header, body)
 	ihnc.EpochStartAction(header)
 
@@ -1782,6 +1784,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        3,
 	}
+	ihnc.bootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(3)
 	ihnc.EpochStartPrepare(header, body)
 	ihnc.EpochStartAction(header)
 
@@ -1791,6 +1794,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
 		Epoch:        4,
 	}
+	ihnc.bootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(4)
 	ihnc.EpochStartPrepare(header, body)
 	ihnc.EpochStartAction(header)
 
@@ -2586,9 +2590,13 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		ihnc, _ := NewIndexHashedNodesCoordinator(args)
 
 		eligibleMap := createDummyNodesMap(10, 3, "eligible")
+		args.BootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(1)
 		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 1)
+		args.BootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(2)
 		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+		args.BootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(3)
 		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 3)
+		args.BootStorer.(*genericMocks.StorerMock).SetCurrentEpoch(4)
 		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 4)
 
 		epochNodesConfig, ok := ihnc.getNodesConfig(1)
