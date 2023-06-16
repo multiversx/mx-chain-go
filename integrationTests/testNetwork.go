@@ -330,7 +330,7 @@ func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
 	return address
 }
 
-// GetAccountHandler retrieves the `common.UserAccountHandler` instance for the
+// GetAccountHandler retrieves the `state.UserAccountHandler` instance for the
 // specified address by querying a node belonging to the shard of the address.
 func (net *TestNetwork) GetAccountHandler(address Address) state.UserAccountHandler {
 	node := net.firstNodeInShardOfAddress(address)

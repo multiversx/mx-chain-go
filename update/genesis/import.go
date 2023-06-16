@@ -404,12 +404,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, common.Trie, error) {
-	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactory state.AccountFactory) (state.AccountsDBImporter, common.Trie, error) {
 	currentTrie, err := si.getTrie(shardID, accType)
 	if err != nil {
 		return nil, nil, err
@@ -473,7 +468,12 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return si.importDataTrie(identifier, shId, keys)
 	}
 
-	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId)
+	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId, accountFactory)
 	if err != nil {
 		return err
 	}
@@ -521,7 +521,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 			break
 		}
 
-		err = si.unMarshalAndSaveAccount(accType, address, marshaledData, accountsDB, mainTrie)
+		err = si.unMarshalAndSaveAccount(address, accountFactory, marshaledData, accountsDB, mainTrie)
 		if err != nil {
 			break
 		}
@@ -535,12 +535,13 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 }
 
 func (si *stateImport) unMarshalAndSaveAccount(
-	accType Type,
-	address, buffer []byte,
+	address []byte,
+	accountCreator state.AccountFactory,
+	buffer []byte,
 	accountsDB state.AccountsDBImporter,
 	mainTrie common.Trie,
 ) error {
-	account, err := NewEmptyAccount(accType, address, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	account, err := accountCreator.CreateAccount(address)
 	if err != nil {
 		return err
 	}

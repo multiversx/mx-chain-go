@@ -1060,19 +1060,11 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	}
 
 	for leaf := range leavesChannels.LeavesChan {
-		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
 		if err != nil {
 			return nil, err
 		}
-
-		err = adb.marshaller.Unmarshal(account, leaf.Value())
-		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
-			continue
-		}
-
-		userAccount, ok := account.(UserAccountHandler)
-		if !ok {
+		if skipAccount {
 			continue
 		}
 
@@ -1093,6 +1085,26 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	}
 
 	return allTries, nil
+}
+
+func (adb *AccountsDB) getUserAccountFromBytes(address []byte, accountBytes []byte) (UserAccountHandler, bool, error) {
+	account, err := adb.accountFactory.CreateAccount(address)
+	if err != nil {
+		return nil, true, err
+	}
+
+	err = adb.marshaller.Unmarshal(account, accountBytes)
+	if err != nil {
+		log.Trace("this must be a leaf with code", "err", err)
+		return nil, true, nil
+	}
+
+	userAccount, ok := account.(UserAccountHandler)
+	if !ok {
+		return nil, true, nil
+	}
+
+	return userAccount, false, nil
 }
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
@@ -1351,23 +1363,13 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 	epoch uint32,
 ) {
 	for leaf := range iteratorChannels.LeavesChan {
-		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
 		if err != nil {
 			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 			return
 		}
-
-		err = adb.marshaller.Unmarshal(account, leaf.Value())
-		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
+		if skipAccount {
 			continue
-		}
-
-		userAccount, ok := account.(UserAccountHandler)
-		if !ok {
-			err = fmt.Errorf("could not cast account to UserAccountHandler: %T", account)
-			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
-			return
 		}
 
 		if len(userAccount.GetRootHash()) == 0 {
@@ -1485,19 +1487,11 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	}
 
 	for leaf := range iteratorChannels.LeavesChan {
-		account, err := adb.accountFactory.CreateAccount(leaf.Key())
+		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
 		if err != nil {
 			return nil, err
 		}
-
-		err = adb.marshaller.Unmarshal(account, leaf.Value())
-		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
-			continue
-		}
-
-		userAccount, ok := account.(UserAccountHandler)
-		if !ok {
+		if skipAccount {
 			continue
 		}
 
