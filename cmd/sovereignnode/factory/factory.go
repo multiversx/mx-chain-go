@@ -8,8 +8,12 @@ import (
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"time"
 )
 
@@ -79,4 +83,79 @@ type SovereignScheduledTxsExecutionFactory struct {
 
 func (stxef *SovereignScheduledTxsExecutionFactory) CreateScheduledTxsExecutionHandler(_ factory.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error) {
 	return &processDisabled.ScheduledTxsExecutionHandler{}, nil
+}
+
+type SovereignValidatorStatisticsFactory struct {
+}
+
+func (vsf *SovereignValidatorStatisticsFactory) CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
+	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
+}
+
+type SovereignHeaderValidatorFactory struct {
+}
+
+func (hvf *SovereignHeaderValidatorFactory) CreateHeaderValidator(args factory.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
+	headerValidator, err := block.NewHeaderValidator(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return block.NewSovereignChainHeaderValidator(headerValidator)
+}
+
+type SovereignBlockTrackerFactory struct {
+}
+
+func (btf *SovereignBlockTrackerFactory) CreateShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
+	arguments := track.ArgShardTracker{
+		ArgBaseTracker: argBaseTracker,
+	}
+	blockTracker, err := track.NewShardBlockTrack(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return track.NewSovereignChainShardBlockTrack(blockTracker)
+}
+
+type SovereignShardForkDetectorFactory struct {
+}
+
+func (sfd *SovereignShardForkDetectorFactory) CreateShardForkDetector(args factory.ShardForkDetectorFactoryArgs) (process.ForkDetector, error) {
+	forkDetector, err := sync.NewShardForkDetector(args.RoundHandler, args.HeaderBlackList, args.BlockTracker, args.GenesisTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return sync.NewSovereignChainShardForkDetector(forkDetector)
+}
+
+type SovereignPreProcessorsFactory struct {
+}
+
+func (ppcf *SovereignPreProcessorsFactory) CreatePreProcessor(args process.PreProcessorsFactoryArgs) (process.PreProcessor, error) {
+	// TODO: refactor this: 	ppcf.requestHandler.RequestUnsignedTransactions
+	return preprocess.NewSmartContractResultPreprocessor(
+		args.UnsignedTransactions,
+		args.Store,
+		args.Hasher,
+		args.Marshaller,
+		args.ScResultProcessor,
+		args.ShardCoordinator,
+		args.Accounts,
+		args.RequestHandler.RequestUnsignedTransactions,
+		args.GasHandler,
+		args.EconomicsFee,
+		args.PubkeyConverter,
+		args.BlockSizeComputation,
+		args.BalanceComputation,
+		args.EnableEpochsHandler,
+		args.ProcessedMiniBlocksTracker,
+	)
 }

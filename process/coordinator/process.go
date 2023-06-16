@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -56,8 +55,8 @@ type ArgTransactionCoordinator struct {
 	InterProcessors              process.IntermediateProcessorContainer
 	GasHandler                   process.GasHandler
 	FeeHandler                   process.TransactionFeeHandler
-	BlockSizeComputation         preprocess.BlockSizeComputationHandler
-	BalanceComputation           preprocess.BalanceComputationHandler
+	BlockSizeComputation         process.BlockSizeComputationHandler
+	BalanceComputation           process.BalanceComputationHandler
 	EconomicsFee                 process.FeeHandler
 	TxTypeHandler                process.TxTypeHandler
 	TransactionsLogProcessor     process.TransactionLogProcessor
@@ -88,8 +87,8 @@ type transactionCoordinator struct {
 	onRequestMiniBlock           func(shardId uint32, mbHash []byte)
 	gasHandler                   process.GasHandler
 	feeHandler                   process.TransactionFeeHandler
-	blockSizeComputation         preprocess.BlockSizeComputationHandler
-	balanceComputation           preprocess.BalanceComputationHandler
+	blockSizeComputation         process.BlockSizeComputationHandler
+	balanceComputation           process.BalanceComputationHandler
 	requestedItemsHandler        process.TimeCacher
 	economicsFee                 process.FeeHandler
 	txTypeHandler                process.TxTypeHandler

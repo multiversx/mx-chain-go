@@ -1193,7 +1193,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
-		ChainRunType:           common.ChainRunTypeSovereign,
+		//ChainRunType:           common.ChainRunTypeSovereign,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

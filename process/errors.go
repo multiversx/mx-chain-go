@@ -1131,6 +1131,9 @@ var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not 
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 
+// ErrNilPreProcessorsFactoryHandler signals that a nil pre processors factory handler has been provided
+var ErrNilPreProcessorsFactoryHandler = errors.New("nil pre processors factory handler")
+
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 

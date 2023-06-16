@@ -32,7 +32,7 @@ type validatorInfoPreprocessor struct {
 func NewValidatorInfoPreprocessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-	blockSizeComputation BlockSizeComputationHandler,
+	blockSizeComputation process.BlockSizeComputationHandler,
 	validatorsInfoPool dataRetriever.ShardedDataCacherNotifier,
 	store dataRetriever.StorageService,
 	enableEpochsHandler common.EnableEpochsHandler,

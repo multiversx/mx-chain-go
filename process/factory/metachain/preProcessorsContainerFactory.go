@@ -31,8 +31,8 @@ type preProcessorsContainerFactory struct {
 	gasHandler                   process.GasHandler
 	blockTracker                 preprocess.BlockTracker
 	pubkeyConverter              core.PubkeyConverter
-	blockSizeComputation         preprocess.BlockSizeComputationHandler
-	balanceComputation           preprocess.BalanceComputationHandler
+	blockSizeComputation         process.BlockSizeComputationHandler
+	balanceComputation           process.BalanceComputationHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
@@ -54,8 +54,8 @@ type ArgPreProcessorsContainerFactory struct {
 	GasHandler                   process.GasHandler
 	BlockTracker                 preprocess.BlockTracker
 	PubkeyConverter              core.PubkeyConverter
-	BlockSizeComputation         preprocess.BlockSizeComputationHandler
-	BalanceComputation           preprocess.BalanceComputationHandler
+	BlockSizeComputation         process.BlockSizeComputationHandler
+	BalanceComputation           process.BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler

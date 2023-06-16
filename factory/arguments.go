@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -67,4 +68,18 @@ type ScheduledTxsExecutionFactoryArgs struct {
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
 	ShardCoordinator sharding.Coordinator
+}
+
+// ArgsHeaderValidator are the arguments needed to create a new header validator
+type ArgsHeaderValidator struct {
+	Hasher      hashing.Hasher
+	Marshalizer marshal.Marshalizer
+}
+
+// ShardForkDetectorFactoryArgs are the arguments needed to create a new fork detector
+type ShardForkDetectorFactoryArgs struct {
+	RoundHandler    consensus.RoundHandler
+	HeaderBlackList process.TimeCacher
+	BlockTracker    process.BlockTracker
+	GenesisTime     int64
 }

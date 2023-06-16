@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"time"
 )
 
@@ -46,4 +48,28 @@ func (rrh *ResolverRequestHandler) CreateResolverRequestHandler(resolverRequestA
 		resolverRequestArgs.ShardId,
 		time.Second,
 	)
+}
+
+type ValidatorStatisticsFactory struct {
+}
+
+func (vsf *ValidatorStatisticsFactory) CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
+	return peer.NewValidatorStatisticsProcessor(args)
+}
+
+type HeaderValidatorFactory struct {
+}
+
+func (hvf *HeaderValidatorFactory) CreateHeaderValidator(args factory.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
+	return block.NewHeaderValidator(args)
+}
+
+type BlockTrackerFactory struct {
+}
+
+func (btf *BlockTrackerFactory) CreateShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
+	arguments := track.ArgShardTracker{
+		ArgBaseTracker: argBaseTracker,
+	}
+	return track.NewShardBlockTrack(arguments)
 }

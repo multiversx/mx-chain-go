@@ -42,8 +42,8 @@ func NewRewardTxPreprocessor(
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	pubkeyConverter core.PubkeyConverter,
-	blockSizeComputation BlockSizeComputationHandler,
-	balanceComputation BalanceComputationHandler,
+	blockSizeComputation process.BlockSizeComputationHandler,
+	balanceComputation process.BalanceComputationHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*rewardTxPreprocessor, error) {
 

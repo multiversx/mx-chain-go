@@ -3,6 +3,8 @@ package factory
 import (
 	"context"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"math/big"
 	"time"
 
@@ -355,6 +357,10 @@ type RunTypeComponentsHolder struct {
 	TransactionCoordinatorFactoryHandler TransactionCoordinatorFactoryHandler
 	ResolverRequestFactoryHandler        ResolverRequestFactoryHandler
 	ScheduledTxsExecutionFactoryHandler  ScheduledTxsExecutionFactoryHandler
+	ValidatorStatisticsFactoryHandler    ValidatorStatisticsFactoryHandler
+	HeaderValidatorFactoryHandler        HeaderValidatorFactoryHandler
+	BlockTrackerFactoryHandler           BlockTrackerFactoryHandler
+	ShardForkDetectorFactoryHandler      ShardForkDetectorFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -570,7 +576,7 @@ type TransactionCoordinatorFactoryHandler interface {
 	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
 }
 
-// TransactionProcessorFactoryHandler defines the transaction processor factory handler
+// ResolverRequestFactoryHandler defines the resolver requester factory handler
 type ResolverRequestFactoryHandler interface {
 	CreateResolverRequestHandler(resolverRequestArgs ResolverRequestArgs) (process.RequestHandler, error)
 }
@@ -578,4 +584,24 @@ type ResolverRequestFactoryHandler interface {
 // ScheduledTxsExecutionFactoryHandler defines the transaction processor factory handler
 type ScheduledTxsExecutionFactoryHandler interface {
 	CreateScheduledTxsExecutionHandler(args ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
+}
+
+// ValidatorStatisticsFactoryHandler defines the validator statistics factory handler
+type ValidatorStatisticsFactoryHandler interface {
+	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
+}
+
+// HeaderValidatorFactoryHandler defines the header validator factory handler
+type HeaderValidatorFactoryHandler interface {
+	CreateHeaderValidator(args ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+}
+
+// BlockTrackerFactoryHandler defines the block tracker factory handler
+type BlockTrackerFactoryHandler interface {
+	CreateShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error)
+}
+
+// ShardForkDetectorFactoryHandler defines the shard fork detector factory handler
+type ShardForkDetectorFactoryHandler interface {
+	CreateShardForkDetector(args ShardForkDetectorFactoryArgs) (process.ForkDetector, error)
 }

@@ -45,8 +45,8 @@ func NewSmartContractResultPreprocessor(
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
 	pubkeyConverter core.PubkeyConverter,
-	blockSizeComputation BlockSizeComputationHandler,
-	balanceComputation BalanceComputationHandler,
+	blockSizeComputation process.BlockSizeComputationHandler,
+	balanceComputation process.BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 ) (*smartContractResults, error) {

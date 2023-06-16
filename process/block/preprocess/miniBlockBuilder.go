@@ -23,8 +23,8 @@ type miniBlocksBuilderArgs struct {
 	gasTracker                gasTracker
 	accounts                  state.AccountsAdapter
 	accountTxsShards          *accountTxsShards
-	blockSizeComputation      BlockSizeComputationHandler
-	balanceComputationHandler BalanceComputationHandler
+	blockSizeComputation      process.BlockSizeComputationHandler
+	balanceComputationHandler process.BalanceComputationHandler
 	haveTime                  func() bool
 	isShardStuck              func(uint32) bool
 	isMaxBlockSizeReached     func(int, int) bool
@@ -51,8 +51,8 @@ type miniBlocksBuilder struct {
 	gasTracker
 	accounts                   state.AccountsAdapter
 	accountTxsShards           *accountTxsShards
-	balanceComputationHandler  BalanceComputationHandler
-	blockSizeComputation       BlockSizeComputationHandler
+	balanceComputationHandler  process.BalanceComputationHandler
+	blockSizeComputation       process.BlockSizeComputationHandler
 	gasConsumedInReceiverShard map[uint32]uint64
 	gasInfo                    gasConsumedInfo
 	prevGasInfo                gasConsumedInfo

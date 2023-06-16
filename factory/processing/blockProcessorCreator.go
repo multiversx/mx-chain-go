@@ -337,7 +337,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ChainRunType:                 pcf.chainRunType,
+		//ChainRunType:                 pcf.chainRunType,
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {

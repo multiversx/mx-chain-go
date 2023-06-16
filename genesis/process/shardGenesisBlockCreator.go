@@ -435,7 +435,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(arg.ChainRunType, argsHook)
+	blockChainHookImpl, err := arg.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -618,7 +618,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
-		ChainRunType:                 arg.ChainRunType,
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -661,7 +660,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
-	txCoordinator, err := createTransactionCoordinator(argsTransactionCoordinator, arg.ChainRunType)
+
+	txCoordinator, err := arg.TransactionCoordinatorFactoryHandler.CreateTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}

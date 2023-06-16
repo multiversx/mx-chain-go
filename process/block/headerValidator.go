@@ -8,16 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.HeaderConstructionValidator = (*headerValidator)(nil)
-
-// ArgsHeaderValidator are the arguments needed to create a new header validator
-type ArgsHeaderValidator struct {
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
-}
 
 type headerValidator struct {
 	hasher                  hashing.Hasher
@@ -26,7 +21,7 @@ type headerValidator struct {
 }
 
 // NewHeaderValidator returns a new header validator
-func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
+func NewHeaderValidator(args factory.ArgsHeaderValidator) (*headerValidator, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}

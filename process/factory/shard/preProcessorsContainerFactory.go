@@ -1,8 +1,6 @@
 package shard
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -10,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -36,13 +33,13 @@ type preProcessorsContainerFactory struct {
 	economicsFee                 process.FeeHandler
 	gasHandler                   process.GasHandler
 	blockTracker                 preprocess.BlockTracker
-	blockSizeComputation         preprocess.BlockSizeComputationHandler
-	balanceComputation           preprocess.BalanceComputationHandler
+	blockSizeComputation         process.BlockSizeComputationHandler
+	balanceComputation           process.BalanceComputationHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	chainRunType                 common.ChainRunType
+	PreProcessorsFactoryHandler  PreProcessorsFactoryHandler
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -62,13 +59,13 @@ type ArgPreProcessorsContainerFactory struct {
 	EconomicsFee                 process.FeeHandler
 	GasHandler                   process.GasHandler
 	BlockTracker                 preprocess.BlockTracker
-	BlockSizeComputation         preprocess.BlockSizeComputationHandler
-	BalanceComputation           preprocess.BalanceComputationHandler
+	BlockSizeComputation         process.BlockSizeComputationHandler
+	BalanceComputation           process.BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	ChainRunType                 common.ChainRunType
+	PreProcessorsFactoryHandler  PreProcessorsFactoryHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -100,7 +97,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
-		chainRunType:                 args.ChainRunType,
+		PreProcessorsFactoryHandler:  args.PreProcessorsFactoryHandler,
 	}, nil
 }
 
@@ -177,33 +174,55 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 	return preprocess.NewTransactionPreprocessor(args)
 }
 
-func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
-	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
-		ppcf.dataPool.UnsignedTransactions(),
-		ppcf.store,
-		ppcf.hasher,
-		ppcf.marshaller,
-		ppcf.scResultProcessor,
-		ppcf.shardCoordinator,
-		ppcf.accounts,
-		ppcf.requestHandler.RequestUnsignedTransactions,
-		ppcf.gasHandler,
-		ppcf.economicsFee,
-		ppcf.pubkeyConverter,
-		ppcf.blockSizeComputation,
-		ppcf.balanceComputation,
-		ppcf.enableEpochsHandler,
-		ppcf.processedMiniBlocksTracker,
-	)
+type PreProcessorsFactoryHandler interface {
+	CreatePreProcessor(args process.PreProcessorsFactoryArgs) (process.PreProcessor, error)
+	//IsInterfaceNil() bool
+}
 
-	switch ppcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return scrPreprocessor, err
-	case common.ChainRunTypeSovereign:
-		return preprocess.NewSovereignChainIncomingSCR(scrPreprocessor)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, ppcf.chainRunType)
+type PreProcessorsFactory struct {
+}
+
+func (ppcf *PreProcessorsFactory) CreatePreProcessor(args process.PreProcessorsFactoryArgs) (process.PreProcessor, error) {
+	// TODO: refactor this: 	ppcf.requestHandler.RequestUnsignedTransactions
+	return preprocess.NewSmartContractResultPreprocessor(
+		args.UnsignedTransactions,
+		args.Store,
+		args.Hasher,
+		args.Marshaller,
+		args.ScResultProcessor,
+		args.ShardCoordinator,
+		args.Accounts,
+		args.RequestHandler.RequestUnsignedTransactions,
+		args.GasHandler,
+		args.EconomicsFee,
+		args.PubkeyConverter,
+		args.BlockSizeComputation,
+		args.BalanceComputation,
+		args.EnableEpochsHandler,
+		args.ProcessedMiniBlocksTracker,
+	)
+}
+
+func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
+	args := process.PreProcessorsFactoryArgs{
+		UnsignedTransactions:       ppcf.dataPool.UnsignedTransactions(),
+		Store:                      ppcf.store,
+		Hasher:                     ppcf.hasher,
+		Marshaller:                 ppcf.marshaller,
+		ScResultProcessor:          ppcf.scResultProcessor,
+		ShardCoordinator:           ppcf.shardCoordinator,
+		Accounts:                   ppcf.accounts,
+		RequestHandler:             ppcf.requestHandler,
+		GasHandler:                 ppcf.gasHandler,
+		EconomicsFee:               ppcf.economicsFee,
+		PubkeyConverter:            ppcf.pubkeyConverter,
+		BlockSizeComputation:       ppcf.blockSizeComputation,
+		BalanceComputation:         ppcf.balanceComputation,
+		EnableEpochsHandler:        ppcf.enableEpochsHandler,
+		ProcessedMiniBlocksTracker: ppcf.processedMiniBlocksTracker,
 	}
+
+	return ppcf.PreProcessorsFactoryHandler.CreatePreProcessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
@@ -308,6 +327,10 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
 	}
+	// TODO: checkIfNil
+	//if check.IfNil(args.PreProcessorsFactoryHandler) {
+	//	return process.ErrNilPreProcessorsFactoryHandler
+	//}
 
 	return nil
 }

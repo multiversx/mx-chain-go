@@ -1244,7 +1244,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 			ResolverRequestFactoryHandler:        &processComp.ResolverRequestHandler{},
 			ScheduledTxsExecutionFactoryHandler:  &processComp.ScheduledTxsExecutionFactory{},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		//ChainRunType: common.ChainRunTypeRegular,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

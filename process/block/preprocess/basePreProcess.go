@@ -116,8 +116,8 @@ type basePreProcess struct {
 	gasTracker
 	hasher                     hashing.Hasher
 	marshalizer                marshal.Marshalizer
-	blockSizeComputation       BlockSizeComputationHandler
-	balanceComputation         BalanceComputationHandler
+	blockSizeComputation       process.BlockSizeComputationHandler
+	balanceComputation         process.BalanceComputationHandler
 	accounts                   state.AccountsAdapter
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker

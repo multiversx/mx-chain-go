@@ -87,8 +87,8 @@ type ArgsTransactionPreProcessor struct {
 	BlockTracker                 BlockTracker
 	BlockType                    block.Type
 	PubkeyConverter              core.PubkeyConverter
-	BlockSizeComputation         BlockSizeComputationHandler
-	BalanceComputation           BalanceComputationHandler
+	BlockSizeComputation         process.BlockSizeComputationHandler
+	BalanceComputation           process.BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
