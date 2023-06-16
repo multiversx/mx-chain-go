@@ -1327,6 +1327,19 @@ func deployNewSc(
 	return []byte{}
 }
 
+func changeOwner(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	ownerAddress []byte,
+	newAddress []byte,
+	scAddress []byte,
+) {
+	txData := "changeOwner@" + hex.EncodeToString(newAddress)
+	returnedCode, err := processTransaction(tpn, ownerAddress, scAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+}
+
 func viewFuncSingleResult(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,

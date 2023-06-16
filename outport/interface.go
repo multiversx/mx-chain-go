@@ -17,6 +17,8 @@ type Driver interface {
 	SaveAccounts(accounts *outportcore.Accounts) error
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) error
 	GetMarshaller() marshal.Marshalizer
+	SetCurrentSettings(config outportcore.OutportConfig) error
+	RegisterHandler(handlerFunction func() error, topic string) error
 	Close() error
 	IsInterfaceNil() bool
 }

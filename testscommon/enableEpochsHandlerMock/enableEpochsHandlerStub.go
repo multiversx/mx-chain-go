@@ -124,6 +124,7 @@ type EnableEpochsHandlerStub struct {
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
+	FixDelegationChangeOwnerOnAccountEnabledField                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1075,6 +1076,14 @@ func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAutoBalanceDataTriesEnabledField
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixDelegationChangeOwnerOnAccountEnabledField
 }
 
 // IsInterfaceNil -

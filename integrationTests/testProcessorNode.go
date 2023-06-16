@@ -892,6 +892,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
+			UserAccountsDB:      tpn.AccntState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
@@ -1798,6 +1799,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			},
 		},
 		ValidatorAccountsDB: tpn.PeerState,
+		UserAccountsDB:      tpn.AccntState,
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
@@ -2434,6 +2436,10 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		return "", err
 	}
 
+	guardianAddress := ""
+	if len(tx.GuardianAddr) == TestAddressPubkeyConverter.Len() {
+		guardianAddress = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
+	}
 	txArgsLocal := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
@@ -2448,7 +2454,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 		Options:          tx.Options,
-		Guardian:         TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log),
+		Guardian:         guardianAddress,
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
 	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
