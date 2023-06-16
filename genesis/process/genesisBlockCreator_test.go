@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -151,7 +152,7 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -180,7 +181,7 @@ func createMockArgument(
 			return nil
 		},
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewEmptyPeerAccount(), nil
+			return accounts.NewEmptyPeerAccount(), nil
 		},
 	}
 

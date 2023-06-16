@@ -8,11 +8,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -100,12 +98,8 @@ func TestVmContext_GetBalance(t *testing.T) {
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	account, _ := state.NewUserAccount([]byte("123"), argsAccCreation)
+
+	account, _ := accounts.NewUserAccount([]byte("123"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	_ = account.AddToBalance(balance)
 
 	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {
@@ -250,7 +244,7 @@ func TestVmContext_IsValidator(t *testing.T) {
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				assert.Equal(t, blsKey, address)
 
-				acnt := state.NewEmptyPeerAccount()
+				acnt := accounts.NewEmptyPeerAccount()
 				acnt.List = string(tio.peerType)
 
 				return acnt, nil

@@ -689,7 +689,7 @@ func TestTxProcessor_ProcessWithWrongAssertionShouldErr(t *testing.T) {
 	args := createArgsForTxProcessor()
 	args.Accounts = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return &mock.PeerAccountHandlerMock{}, nil
+			return &stateMock.PeerAccountHandlerMock{}, nil
 		},
 	}
 

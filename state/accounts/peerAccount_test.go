@@ -1,18 +1,19 @@
-package state_test
+package accounts_test
 
 import (
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewEmptyPeerAccount(t *testing.T) {
 	t.Parallel()
 
-	acc := state.NewEmptyPeerAccount()
+	acc := accounts.NewEmptyPeerAccount()
 
 	assert.NotNil(t, acc)
 	assert.Equal(t, big.NewInt(0), acc.AccumulatedFees)
@@ -21,15 +22,15 @@ func TestNewEmptyPeerAccount(t *testing.T) {
 func TestNewPeerAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(nil)
+	acc, err := accounts.NewPeerAccount(nil)
 	assert.True(t, check.IfNil(acc))
-	assert.Equal(t, state.ErrNilAddress, err)
+	assert.Equal(t, errors.ErrNilAddress, err)
 }
 
 func TestNewPeerAccount_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(make([]byte, 32))
+	acc, err := accounts.NewPeerAccount(make([]byte, 32))
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
 }
@@ -37,17 +38,17 @@ func TestNewPeerAccount_OkParamsShouldWork(t *testing.T) {
 func TestPeerAccount_SetInvalidBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	pubKey := []byte("")
 
 	err := acc.SetBLSPublicKey(pubKey)
-	assert.Equal(t, state.ErrNilBLSPublicKey, err)
+	assert.Equal(t, errors.ErrNilBLSPublicKey, err)
 }
 
 func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	pubKey := []byte("BLSpubKey")
 
 	err := acc.SetBLSPublicKey(pubKey)
@@ -58,16 +59,16 @@ func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 func TestPeerAccount_SetRewardAddressInvalidAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 
 	err := acc.SetRewardAddress([]byte{})
-	assert.Equal(t, state.ErrEmptyAddress, err)
+	assert.Equal(t, errors.ErrEmptyAddress, err)
 }
 
 func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	addr := []byte("reward address")
 
 	_ = acc.SetRewardAddress(addr)
@@ -77,7 +78,7 @@ func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	fees := big.NewInt(10)
 
 	acc.AddToAccumulatedFees(fees)
@@ -87,35 +88,35 @@ func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	increaseVal := uint32(5)
 	decreaseVal := uint32(3)
 
 	acc.IncreaseLeaderSuccessRate(increaseVal)
-	assert.Equal(t, increaseVal, acc.GetLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, increaseVal, acc.GetLeaderSuccessRate().GetNumSuccess())
 
 	acc.DecreaseLeaderSuccessRate(decreaseVal)
-	assert.Equal(t, decreaseVal, acc.GetLeaderSuccessRate().NumFailure)
+	assert.Equal(t, decreaseVal, acc.GetLeaderSuccessRate().GetNumFailure())
 }
 
 func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	increaseVal := uint32(5)
 	decreaseVal := uint32(3)
 
 	acc.IncreaseValidatorSuccessRate(increaseVal)
-	assert.Equal(t, increaseVal, acc.GetValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, increaseVal, acc.GetValidatorSuccessRate().GetNumSuccess())
 
 	acc.DecreaseValidatorSuccessRate(decreaseVal)
-	assert.Equal(t, decreaseVal, acc.GetValidatorSuccessRate().NumFailure)
+	assert.Equal(t, decreaseVal, acc.GetValidatorSuccessRate().GetNumFailure())
 }
 
 func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 
 	acc.IncreaseNumSelectedInSuccessBlocks()
 	assert.Equal(t, uint32(1), acc.GetNumSelectedInSuccessBlocks())
@@ -124,7 +125,7 @@ func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
 func TestPeerAccount_SetAndGetRating(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	rating := uint32(10)
 
 	acc.SetRating(rating)
@@ -134,7 +135,7 @@ func TestPeerAccount_SetAndGetRating(t *testing.T) {
 func TestPeerAccount_SetAndGetTempRating(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	rating := uint32(10)
 
 	acc.SetTempRating(rating)
@@ -144,7 +145,7 @@ func TestPeerAccount_SetAndGetTempRating(t *testing.T) {
 func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	acc.AddToAccumulatedFees(big.NewInt(15))
 	tempRating := uint32(5)
 	acc.SetTempRating(tempRating)
@@ -158,10 +159,10 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	acc.ResetAtNewEpoch()
 	assert.Equal(t, big.NewInt(0), acc.GetAccumulatedFees())
 	assert.Equal(t, tempRating, acc.GetRating())
-	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumSuccess)
-	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumFailure)
-	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumSuccess)
-	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().GetNumSuccess())
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().GetNumFailure())
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().GetNumSuccess())
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().GetNumFailure())
 	assert.Equal(t, uint32(0), acc.GetNumSelectedInSuccessBlocks())
 	assert.Equal(t, uint32(7), acc.GetConsecutiveProposerMisses())
 }
@@ -169,7 +170,7 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 func TestPeerAccount_IncreaseAndGetNonce(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
+	acc, _ := accounts.NewPeerAccount(make([]byte, 32))
 	nonce := uint64(5)
 
 	acc.IncreaseNonce(nonce)
@@ -180,7 +181,7 @@ func TestPeerAccount_AddressBytes(t *testing.T) {
 	t.Parallel()
 
 	address := []byte("address bytes")
-	acc, _ := state.NewPeerAccount(address)
+	acc, _ := accounts.NewPeerAccount(address)
 
 	assert.Equal(t, address, acc.AddressBytes())
 

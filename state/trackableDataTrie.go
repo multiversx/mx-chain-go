@@ -32,7 +32,6 @@ type trackableDataTrie struct {
 // NewTrackableDataTrie returns an instance of trackableDataTrie
 func NewTrackableDataTrie(
 	identifier []byte,
-	tr common.Trie,
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
@@ -48,7 +47,7 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                  tr,
+		tr:                  nil,
 		hasher:              hasher,
 		marshaller:          marshaller,
 		dirtyData:           make(map[string]dirtyData),

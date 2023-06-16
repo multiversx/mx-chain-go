@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -497,15 +498,15 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
 		RewardAddress:                   peerAccount.GetRewardAddress(),
-		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().NumFailure,
+		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().GetNumSuccess(),
+		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().GetNumFailure(),
+		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().GetNumSuccess(),
+		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().GetNumFailure(),
 		ValidatorIgnoredSignatures:      peerAccount.GetValidatorIgnoredSignaturesRate(),
-		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().GetNumSuccess(),
+		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().GetNumFailure(),
+		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().GetNumSuccess(),
+		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().GetNumFailure(),
 		TotalValidatorIgnoredSignatures: peerAccount.GetTotalValidatorIgnoredSignaturesRate(),
 		NumSelectedInSuccessBlocks:      peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:                 big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
@@ -548,7 +549,7 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
-	peerAccount := state.NewEmptyPeerAccount()
+	peerAccount := accounts.NewEmptyPeerAccount()
 	err := vs.marshalizer.Unmarshal(peerAccount, pa)
 	if err != nil {
 		return nil, err
@@ -1143,11 +1144,11 @@ func (vs *validatorStatistics) display(validatorKey string) {
 
 	log.Trace("validator statistics",
 		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.AddressBytes())),
-		"leader fail", peerAcc.GetLeaderSuccessRate().NumFailure,
-		"leader success", peerAcc.GetLeaderSuccessRate().NumSuccess,
-		"val success", peerAcc.GetValidatorSuccessRate().NumSuccess,
+		"leader fail", peerAcc.GetLeaderSuccessRate().GetNumFailure(),
+		"leader success", peerAcc.GetLeaderSuccessRate().GetNumSuccess(),
+		"val success", peerAcc.GetValidatorSuccessRate().GetNumSuccess(),
 		"val ignored sigs", peerAcc.GetValidatorIgnoredSignaturesRate(),
-		"val fail", peerAcc.GetValidatorSuccessRate().NumFailure,
+		"val fail", peerAcc.GetValidatorSuccessRate().GetNumFailure(),
 		"temp rating", peerAcc.GetTempRating(),
 		"rating", peerAcc.GetRating(),
 	)

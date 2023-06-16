@@ -919,7 +919,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, stateMock.GetStorageManagerOptions())
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

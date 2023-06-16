@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -212,7 +213,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return state.NewEmptyPeerAccount(), nil
+				return accounts.NewEmptyPeerAccount(), nil
 			},
 		}
 		tai, _ := NewTrieAccountsIterator(args)

@@ -551,7 +551,7 @@ func TestGetPeerAccountAndReturnIfNew(t *testing.T) {
 
 		adb := &testState.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return &mock.PeerAccountHandlerMock{}, nil
+				return &testState.PeerAccountHandlerMock{}, nil
 			},
 		}
 
@@ -569,7 +569,7 @@ func TestGetPeerAccountAndReturnIfNew(t *testing.T) {
 				return nil, errors.New("account does not exist")
 			},
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return &mock.PeerAccountHandlerMock{}, nil
+				return &testState.PeerAccountHandlerMock{}, nil
 			},
 		}
 

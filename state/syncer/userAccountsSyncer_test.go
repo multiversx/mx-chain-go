@@ -15,13 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -36,14 +36,6 @@ func getDefaultUserAccountsSyncerArgs() syncer.ArgsNewUserAccountsSyncer {
 		ShardId:                   1,
 		Throttler:                 &mock.ThrottlerStub{},
 		AddressPubKeyConverter:    &testscommon.PubkeyConverterStub{},
-	}
-}
-
-func getDefaultArgsAccountCreation() state.ArgsAccountCreation {
-	return state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -247,7 +239,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 		tr := emptyTrie()
 
-		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice, getDefaultArgsAccountCreation())
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 		require.Nil(t, err)
 		account.SetRootHash(key)
 
@@ -304,7 +296,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 		tr := emptyTrie()
 
-		account, err := state.NewUserAccount(testscommon.TestPubKeyAlice, getDefaultArgsAccountCreation())
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 		require.Nil(t, err)
 		account.SetRootHash(key)
 
