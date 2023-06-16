@@ -254,7 +254,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	go func() {
 		// sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
-		_ = nResolver.MainMessenger.Close()
+		nResolver.Close()
 		log.Info("resolver node closed, the requester should soon fail in error")
 	}()
 

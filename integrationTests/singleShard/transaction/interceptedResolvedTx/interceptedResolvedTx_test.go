@@ -40,8 +40,8 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
@@ -136,8 +136,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.MainMessenger.Close()
-		_ = nResolver.MainMessenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
