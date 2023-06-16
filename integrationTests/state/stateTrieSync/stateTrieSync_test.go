@@ -53,7 +53,7 @@ func createTestProcessorNodeAndTrieStorage(
 		TrieStore:            mainStorer,
 		GasScheduleMap:       createTestGasMap(),
 	})
-	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
+	_ = node.MainMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
 }
@@ -86,8 +86,8 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -207,8 +207,8 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -254,7 +254,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	go func() {
 		// sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
-		_ = nResolver.Messenger.Close()
+		nResolver.Close()
 		log.Info("resolver node closed, the requester should soon fail in error")
 	}()
 
@@ -315,8 +315,8 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)

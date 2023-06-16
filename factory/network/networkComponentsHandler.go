@@ -15,6 +15,11 @@ var _ factory.ComponentHandler = (*managedNetworkComponents)(nil)
 var _ factory.NetworkComponentsHolder = (*managedNetworkComponents)(nil)
 var _ factory.NetworkComponentsHandler = (*managedNetworkComponents)(nil)
 
+const (
+	errorOnMainNetworkString        = "on main network"
+	errorOnFullArchiveNetworkString = "on full archive network"
+)
+
 // managedNetworkComponents creates the data components handler that can create, close and access the data components
 type managedNetworkComponents struct {
 	*networkComponents
@@ -75,23 +80,25 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 		return errors.ErrNilNetworkComponents
 	}
 	if check.IfNil(mnc.mainNetworkHolder.netMessenger) {
-		return fmt.Errorf("%w for main", errors.ErrNilMessenger)
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnMainNetworkString)
 	}
 	if check.IfNil(mnc.mainNetworkHolder.peersRatingHandler) {
-		return fmt.Errorf("%w for main", errors.ErrNilPeersRatingHandler)
+		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingHandler, errorOnMainNetworkString)
 	}
 	if check.IfNil(mnc.mainNetworkHolder.peersRatingMonitor) {
-		return fmt.Errorf("%w for main", errors.ErrNilPeersRatingMonitor)
+		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingMonitor, errorOnMainNetworkString)
 	}
+
 	if check.IfNil(mnc.fullArchiveNetworkHolder.netMessenger) {
-		return fmt.Errorf("%w for full archive", errors.ErrNilMessenger)
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnFullArchiveNetworkString)
 	}
 	if check.IfNil(mnc.fullArchiveNetworkHolder.peersRatingHandler) {
-		return fmt.Errorf("%w for full archive", errors.ErrNilPeersRatingHandler)
+		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingHandler, errorOnFullArchiveNetworkString)
 	}
 	if check.IfNil(mnc.fullArchiveNetworkHolder.peersRatingMonitor) {
-		return fmt.Errorf("%w for full archive", errors.ErrNilPeersRatingMonitor)
+		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingMonitor, errorOnFullArchiveNetworkString)
 	}
+
 	if check.IfNil(mnc.inputAntifloodHandler) {
 		return errors.ErrNilInputAntiFloodHandler
 	}

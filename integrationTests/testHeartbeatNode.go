@@ -86,7 +86,8 @@ var TestThrottler = &processMock.InterceptorThrottlerStub{
 type TestHeartbeatNode struct {
 	ShardCoordinator                     sharding.Coordinator
 	NodesCoordinator                     nodesCoordinator.NodesCoordinator
-	PeerShardMapper                      process.NetworkShardingCollector
+	MainPeerShardMapper                  process.NetworkShardingCollector
+	FullArchivePeerShardMapper           process.NetworkShardingCollector
 	MainMessenger                        p2p.Messenger
 	FullArchiveMessenger                 p2p.Messenger
 	NodeKeys                             *TestNodeKeys
@@ -186,13 +187,14 @@ func NewTestHeartbeatNode(
 		MainMessenger:                messenger,
 		FullArchiveMessenger:         &p2pmocks.MessengerStub{}, // TODO[Sorin]: inject a proper messenger when all pieces are done to test this network as well
 		PeerSigHandler:               peerSigHandler,
-		PeerShardMapper:              peerShardMapper,
+		MainPeerShardMapper:          peerShardMapper,
+		FullArchivePeerShardMapper:   &mock.PeerShardMapperStub{},
 		heartbeatExpiryTimespanInSec: heartbeatExpiryTimespanInSec,
 	}
 
 	localId := thn.MainMessenger.ID()
 	pkBytes, _ := pk.ToByteArray()
-	thn.PeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
+	thn.MainPeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
 	thn.NodeKeys = &TestNodeKeys{
 		MainKey: &TestKeyPair{
@@ -260,13 +262,14 @@ func NewTestHeartbeatNodeWithCoordinator(
 		MainMessenger:                messenger,
 		FullArchiveMessenger:         &p2pmocks.MessengerStub{},
 		PeerSigHandler:               peerSigHandler,
-		PeerShardMapper:              peerShardMapper,
+		MainPeerShardMapper:          peerShardMapper,
+		FullArchivePeerShardMapper:   &mock.PeerShardMapperStub{},
 		Interceptor:                  NewCountInterceptor(),
 		heartbeatExpiryTimespanInSec: 30,
 	}
 
 	localId := thn.MainMessenger.ID()
-	thn.PeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
+	thn.MainPeerShardMapper.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
 
 	thn.NodeKeys = keys
 
@@ -454,7 +457,6 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshaller)
 
 	_ = thn.MainMessenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
-	_ = thn.FullArchiveMessenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
@@ -574,7 +576,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
 	args := interceptorsProcessor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
-		PeerShardMapper:          thn.PeerShardMapper,
+		PeerShardMapper:          thn.MainPeerShardMapper,
 		Marshaller:               TestMarshaller,
 		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
@@ -587,7 +589,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 	args := interceptorsProcessor.ArgHeartbeatInterceptorProcessor{
 		HeartbeatCacher:  thn.DataPool.Heartbeats(),
 		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.PeerShardMapper,
+		PeerShardMapper:  thn.MainPeerShardMapper,
 	}
 	hbProcessor, _ := interceptorsProcessor.NewHeartbeatInterceptorProcessor(args)
 	hbFactory, _ := interceptorFactory.NewInterceptedHeartbeatDataFactory(argsFactory)
@@ -597,7 +599,7 @@ func (thn *TestHeartbeatNode) createHeartbeatInterceptor(argsFactory interceptor
 
 func (thn *TestHeartbeatNode) createPeerShardInterceptor(argsFactory interceptorFactory.ArgInterceptedDataFactory) {
 	args := interceptorsProcessor.ArgPeerShardInterceptorProcessor{
-		PeerShardMapper: thn.PeerShardMapper,
+		PeerShardMapper: thn.MainPeerShardMapper,
 	}
 	dciProcessor, _ := interceptorsProcessor.NewPeerShardInterceptorProcessor(args)
 	dciFactory, _ := interceptorFactory.NewInterceptedPeerShardFactory(argsFactory)
@@ -687,7 +689,7 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 	argsDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
 		TimeToReadDirectConnections: 5 * time.Second,
 		Messenger:                   thn.MainMessenger,
-		PeerShardMapper:             thn.PeerShardMapper,
+		PeerShardMapper:             thn.MainPeerShardMapper,
 		ShardCoordinator:            thn.ShardCoordinator,
 		BaseIntraShardTopic:         ShardTopic,
 		BaseCrossShardTopic:         ShardTopic,
@@ -700,7 +702,7 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 	argsDirectConnectionProcessor = processor.ArgsDirectConnectionProcessor{
 		TimeToReadDirectConnections: 5 * time.Second,
 		Messenger:                   thn.FullArchiveMessenger,
-		PeerShardMapper:             thn.PeerShardMapper, // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:             thn.FullArchivePeerShardMapper,
 		ShardCoordinator:            thn.ShardCoordinator,
 		BaseIntraShardTopic:         ShardTopic,
 		BaseCrossShardTopic:         ShardTopic,
@@ -713,7 +715,7 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
 	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
 		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.PeerShardMapper,
+		PeerShardMapper:  thn.MainPeerShardMapper,
 	}
 	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
 	require.Nil(tb, err)
@@ -723,7 +725,7 @@ func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
 
 	argsCrossShardPeerTopicNotifier = monitor.ArgsCrossShardPeerTopicNotifier{
 		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.PeerShardMapper, // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:  thn.FullArchivePeerShardMapper,
 	}
 	crossShardPeerTopicNotifier, err = monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
 	require.Nil(tb, err)

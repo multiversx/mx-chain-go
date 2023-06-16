@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/debug/antiflood"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
@@ -144,50 +143,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		}
 	}()
 
-	var antiFloodComponents *antifloodFactory.AntiFloodComponents
-	antiFloodComponents, err = antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, mainNetworkComp.netMessenger.ID())
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
-	if ncf.mainConfig.Debug.Antiflood.Enabled {
-		var debugger process.AntifloodDebugger
-		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
-		if err != nil {
-			return nil, err
-		}
-
-		err = antiFloodComponents.AntiFloodHandler.SetDebugger(debugger)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(factory.P2PAntifloodHandler)
-	if !ok {
-		err = errors.ErrWrongTypeAssertion
-		return nil, fmt.Errorf("%w when casting input antiflood handler to P2PAntifloodHandler", err)
-	}
-
-	var outAntifloodHandler process.P2PAntifloodHandler
-	outAntifloodHandler, err = antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	outputAntifloodHandler, ok := outAntifloodHandler.(factory.P2PAntifloodHandler)
-	if !ok {
-		err = errors.ErrWrongTypeAssertion
-		return nil, fmt.Errorf("%w when casting output antiflood handler to P2PAntifloodHandler", err)
-	}
-
-	var peerHonestyHandler consensus.PeerHonestyHandler
-	peerHonestyHandler, err = ncf.createPeerHonestyHandler(
-		&ncf.mainConfig,
-		ncf.ratingsConfig,
-		antiFloodComponents.PubKeysCacher,
-	)
+	antiFloodComponents, inputAntifloodHandler, outputAntifloodHandler, peerHonestyHandler, err := ncf.createAntifloodComponents(ctx, mainNetworkComp.netMessenger.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +174,47 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peersHolder:              peersHolder,
 		closeFunc:                cancelFunc,
 	}, nil
+}
+
+func (ncf *networkComponentsFactory) createAntifloodComponents(
+	ctx context.Context,
+	currentPid core.PeerID,
+) (*antifloodFactory.AntiFloodComponents, factory.P2PAntifloodHandler, factory.P2PAntifloodHandler, consensus.PeerHonestyHandler, error) {
+	var antiFloodComponents *antifloodFactory.AntiFloodComponents
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, currentPid)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(factory.P2PAntifloodHandler)
+	if !ok {
+		err = errors.ErrWrongTypeAssertion
+		return nil, nil, nil, nil, fmt.Errorf("%w when casting input antiflood handler to P2PAntifloodHandler", err)
+	}
+
+	var outAntifloodHandler process.P2PAntifloodHandler
+	outAntifloodHandler, err = antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	outputAntifloodHandler, ok := outAntifloodHandler.(factory.P2PAntifloodHandler)
+	if !ok {
+		err = errors.ErrWrongTypeAssertion
+		return nil, nil, nil, nil, fmt.Errorf("%w when casting output antiflood handler to P2PAntifloodHandler", err)
+	}
+
+	var peerHonestyHandler consensus.PeerHonestyHandler
+	peerHonestyHandler, err = ncf.createPeerHonestyHandler(
+		&ncf.mainConfig,
+		ncf.ratingsConfig,
+		antiFloodComponents.PubKeysCacher,
+	)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return antiFloodComponents, inputAntifloodHandler, outputAntifloodHandler, peerHonestyHandler, nil
 }
 
 func (ncf *networkComponentsFactory) createPeerHonestyHandler(
@@ -322,9 +319,6 @@ func (nc *networkComponents) Close() error {
 		log.LogIfError(nc.inputAntifloodHandler.Close())
 	}
 	if !check.IfNil(nc.outputAntifloodHandler) {
-		log.LogIfError(nc.outputAntifloodHandler.Close())
-	}
-	if !check.IfNil(nc.topicFloodPreventer) {
 		log.LogIfError(nc.outputAntifloodHandler.Close())
 	}
 	if !check.IfNil(nc.peerHonestyHandler) {

@@ -32,9 +32,9 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards)
 
 	defer func() {
-		_ = resolverNode.Messenger.Close()
-		_ = maliciousNode.Messenger.Close()
-		_ = requesterNode.Messenger.Close()
+		resolverNode.Close()
+		maliciousNode.Close()
+		requesterNode.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -47,9 +47,9 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 
 	// Broadcasts should not be considered for peers rating
 	topic := factory.ShardBlocksTopic + resolverNode.ShardCoordinator.CommunicationIdentifier(requesterNode.ShardCoordinator.SelfId())
-	resolverNode.Messenger.Broadcast(topic, hdrBuff)
+	resolverNode.MainMessenger.Broadcast(topic, hdrBuff)
 	time.Sleep(time.Second)
-	maliciousNode.Messenger.Broadcast(topic, hdrBuff)
+	maliciousNode.MainMessenger.Broadcast(topic, hdrBuff)
 	time.Sleep(time.Second)
 	// check that broadcasts were successful
 	_, err := requesterNode.DataPool.Headers().GetHeaderByHash(hdrHash)
@@ -67,12 +67,12 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 
 	peerRatingsMap := getRatingsMap(t, requesterNode)
 	// resolver node should have received and responded to numOfRequests
-	initialResolverRating, exists := peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
+	initialResolverRating, exists := peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	initialResolverExpectedRating := fmt.Sprintf("%d", numOfRequests*(decreaseFactor+increaseFactor))
 	assert.Equal(t, initialResolverExpectedRating, initialResolverRating)
 	// malicious node should have only received numOfRequests
-	initialMaliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
+	initialMaliciousRating, exists := peerRatingsMap[maliciousNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	initialMaliciousExpectedRating := fmt.Sprintf("%d", numOfRequests*decreaseFactor)
 	assert.Equal(t, initialMaliciousExpectedRating, initialMaliciousRating)
@@ -83,12 +83,12 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 
 	peerRatingsMap = getRatingsMap(t, requesterNode)
 	// Resolver should have reached max limit and timestamps still update
-	initialResolverRating, exists = peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
+	initialResolverRating, exists = peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	assert.Equal(t, "100", initialResolverRating)
 
 	// Malicious should have reached min limit and timestamps still update
-	initialMaliciousRating, exists = peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
+	initialMaliciousRating, exists = peerRatingsMap[maliciousNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	assert.Equal(t, "-100", initialMaliciousRating)
 
@@ -100,12 +100,12 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 
 	peerRatingsMap = getRatingsMap(t, requesterNode)
 	// resolver node should have the max rating + numOfRequests that didn't answer to
-	resolverRating, exists := peerRatingsMap[resolverNode.Messenger.ID().Pretty()]
+	resolverRating, exists := peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	finalResolverExpectedRating := fmt.Sprintf("%d", 100+decreaseFactor*numOfRequests)
 	assert.Equal(t, finalResolverExpectedRating, resolverRating)
 	// malicious node should have the min rating + numOfRequests that received and responded to
-	maliciousRating, exists := peerRatingsMap[maliciousNode.Messenger.ID().Pretty()]
+	maliciousRating, exists := peerRatingsMap[maliciousNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
 	finalMaliciousExpectedRating := fmt.Sprintf("%d", -100+numOfRequests*increaseFactor+(numOfRequests-1)*decreaseFactor)
 	assert.Equal(t, finalMaliciousExpectedRating, maliciousRating)

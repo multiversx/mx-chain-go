@@ -73,7 +73,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	round := uint64(0)
@@ -144,7 +144,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -585,7 +585,8 @@ func createHardForkExporter(
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			Messenger:            node.Messenger,
+			MainMessenger:        node.MainMessenger,
+			FullArchiveMessenger: node.FullArchiveMessenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
@@ -602,21 +603,22 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: exportConfig,
-			ExportStateKeysConfig:    keysConfig,
-			MaxTrieLevelInMemory:     uint(5),
-			WhiteListHandler:         node.WhiteListHandler,
-			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:    node.InterceptorsContainer,
-			ExistingResolvers:        node.ResolversContainer,
-			ExistingRequesters:       node.RequestersContainer,
-			NodesCoordinator:         node.NodesCoordinator,
-			HeaderSigVerifier:        node.HeaderSigVerifier,
-			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
-			ValidityAttester:         node.BlockTracker,
-			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			RoundHandler:             &mock.RoundHandlerMock{},
+			ExportStateStorageConfig:         exportConfig,
+			ExportStateKeysConfig:            keysConfig,
+			MaxTrieLevelInMemory:             uint(5),
+			WhiteListHandler:                 node.WhiteListHandler,
+			WhiteListerVerifiedTxs:           node.WhiteListerVerifiedTxs,
+			MainInterceptorsContainer:        node.MainInterceptorsContainer,
+			FullArchiveInterceptorsContainer: node.FullArchiveInterceptorsContainer,
+			ExistingResolvers:                node.ResolversContainer,
+			ExistingRequesters:               node.RequestersContainer,
+			NodesCoordinator:                 node.NodesCoordinator,
+			HeaderSigVerifier:                node.HeaderSigVerifier,
+			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
+			ValidityAttester:                 node.BlockTracker,
+			OutputAntifloodHandler:           &mock.NilAntifloodHandler{},
+			InputAntifloodHandler:            &mock.NilAntifloodHandler{},
+			RoundHandler:                     &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,
@@ -631,6 +633,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			NodeOperationMode:         node.NodeOperationMode,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

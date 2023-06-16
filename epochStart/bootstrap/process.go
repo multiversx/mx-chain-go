@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/heartbeat/sender"
-	disabledP2P "github.com/multiversx/mx-chain-go/p2p/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -93,7 +93,8 @@ type epochStartBootstrap struct {
 	destinationShardAsObserver uint32
 	coreComponentsHolder       process.CoreComponentsHolder
 	cryptoComponentsHolder     process.CryptoComponentsHolder
-	messenger                  Messenger
+	mainMessenger              Messenger
+	fullArchiveMessenger       Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
 	flagsConfig                config.ContextFlagsConfig
@@ -117,24 +118,25 @@ type epochStartBootstrap struct {
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
-
+	nodeOperationMode          p2p.NodeOperation
 	// created components
-	requestHandler            process.RequestHandler
-	interceptorContainer      process.InterceptorsContainer
-	dataPool                  dataRetriever.PoolsHolder
-	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
-	headersSyncer             epochStart.HeadersByHashSyncer
-	txSyncerForScheduled      update.TransactionsSyncHandler
-	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
-	nodesConfigHandler        StartOfEpochNodesConfigHandler
-	whiteListHandler          update.WhiteListHandler
-	whiteListerVerifiedTxs    update.WhiteListHandler
-	storageOpenerHandler      storage.UnitOpenerHandler
-	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	argumentsParser           process.ArgumentsParser
-	dataSyncerFactory         types.ScheduledDataSyncerCreator
-	dataSyncerWithScheduled   types.ScheduledDataSyncer
-	storageService            dataRetriever.StorageService
+	requestHandler                  process.RequestHandler
+	mainInterceptorContainer        process.InterceptorsContainer
+	fullArchiveInterceptorContainer process.InterceptorsContainer
+	dataPool                        dataRetriever.PoolsHolder
+	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
+	headersSyncer                   epochStart.HeadersByHashSyncer
+	txSyncerForScheduled            update.TransactionsSyncHandler
+	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
+	nodesConfigHandler              StartOfEpochNodesConfigHandler
+	whiteListHandler                update.WhiteListHandler
+	whiteListerVerifiedTxs          update.WhiteListHandler
+	storageOpenerHandler            storage.UnitOpenerHandler
+	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
+	argumentsParser                 process.ArgumentsParser
+	dataSyncerFactory               types.ScheduledDataSyncerCreator
+	dataSyncerWithScheduled         types.ScheduledDataSyncer
+	storageService                  dataRetriever.StorageService
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -162,7 +164,8 @@ type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
 	DestinationShardAsObserver uint32
-	Messenger                  Messenger
+	MainMessenger              Messenger
+	FullArchiveMessenger       Messenger
 	GeneralConfig              config.Config
 	PrefsConfig                config.PreferencesConfig
 	FlagsConfig                config.ContextFlagsConfig
@@ -201,7 +204,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider := &epochStartBootstrap{
 		coreComponentsHolder:       args.CoreComponentsHolder,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
-		messenger:                  args.Messenger,
+		mainMessenger:              args.MainMessenger,
+		fullArchiveMessenger:       args.FullArchiveMessenger,
 		generalConfig:              args.GeneralConfig,
 		prefsConfig:                args.PrefsConfig,
 		flagsConfig:                args.FlagsConfig,
@@ -228,6 +232,11 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
+		nodeOperationMode:          p2p.NormalOperation,
+	}
+
+	if epochStartProvider.prefsConfig.FullArchive {
+		epochStartProvider.nodeOperationMode = p2p.FullArchiveMode
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -371,9 +380,14 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.interceptorContainer.Close()
+		errClose := e.mainInterceptorContainer.Close()
 		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		}
+
+		errClose = e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
 	}()
 
@@ -418,10 +432,16 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 
 func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
 	log.Debug("unregistering all message processor and un-joining all topics")
-	errMessenger := e.messenger.UnregisterAllMessageProcessors()
+	errMessenger := e.mainMessenger.UnregisterAllMessageProcessors()
 	log.LogIfError(errMessenger)
 
-	errMessenger = e.messenger.UnJoinAllTopics()
+	errMessenger = e.mainMessenger.UnJoinAllTopics()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.fullArchiveMessenger.UnregisterAllMessageProcessors()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.fullArchiveMessenger.UnJoinAllTopics()
 	log.LogIfError(errMessenger)
 
 	e.closeTrieNodes()
@@ -511,7 +531,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 
 	epochStartConfig := e.generalConfig.EpochStartConfig
 	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
-		e.messenger,
+		e.mainMessenger,
 		e.requestHandler,
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
@@ -527,7 +547,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
 		RequestHandler:          e.requestHandler,
-		Messenger:               e.messenger,
+		Messenger:               e.mainMessenger,
 		ShardCoordinator:        e.shardCoordinator,
 		EconomicsData:           e.economicsData,
 		WhitelistHandler:        e.whiteListHandler,
@@ -550,17 +570,19 @@ func (e *epochStartBootstrap) createSyncers() error {
 		CryptoComponents:        e.cryptoComponentsHolder,
 		Config:                  e.generalConfig,
 		ShardCoordinator:        e.shardCoordinator,
-		Messenger:               e.messenger,
+		MainMessenger:           e.mainMessenger,
+		FullArchiveMessenger:    e.fullArchiveMessenger,
 		DataPool:                e.dataPool,
 		WhiteListHandler:        e.whiteListHandler,
 		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
 		ArgumentsParser:         e.argumentsParser,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		RequestHandler:          e.requestHandler,
-		SignaturesHandler:       e.messenger,
+		SignaturesHandler:       e.mainMessenger,
+		NodeOperationMode:       e.nodeOperationMode,
 	}
 
-	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
 	if err != nil {
 		return err
 	}
@@ -672,7 +694,8 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	err = e.mainMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1191,7 +1214,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.messenger,
+		Messenger:                  e.mainMessenger,
 		Store:                      storageService,
 		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                  e.dataPool,
@@ -1222,7 +1245,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
 		RequesterConfig:             e.generalConfig.Requesters,
 		ShardCoordinator:            e.shardCoordinator,
-		Messenger:                   e.messenger,
+		Messenger:                   e.mainMessenger,
 		Marshaller:                  e.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
@@ -1293,8 +1316,15 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	}
 
 	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	if !e.messenger.HasTopic(heartbeatTopic) {
-		err = e.messenger.CreateTopic(heartbeatTopic, true)
+	if !e.mainMessenger.HasTopic(heartbeatTopic) {
+		err = e.mainMessenger.CreateTopic(heartbeatTopic, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !e.fullArchiveMessenger.HasTopic(heartbeatTopic) {
+		err = e.fullArchiveMessenger.CreateTopic(heartbeatTopic, true)
 		if err != nil {
 			return err
 		}
@@ -1306,8 +1336,8 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 	}
 	heartbeatCfg := e.generalConfig.HeartbeatV2
 	argsHeartbeatSender := sender.ArgBootstrapSender{
-		MainMessenger:                      e.messenger,
-		FullArchiveMessenger:               disabledP2P.NewNetworkMessenger(), // TODO[Sorin]: pass full archive messenger
+		MainMessenger:                      e.mainMessenger,
+		FullArchiveMessenger:               e.fullArchiveMessenger,
 		Marshaller:                         e.coreComponentsHolder.InternalMarshalizer(),
 		HeartbeatTopic:                     heartbeatTopic,
 		HeartbeatTimeBetweenSends:          time.Second * time.Duration(heartbeatCfg.HeartbeatTimeBetweenSendsDuringBootstrapInSec),

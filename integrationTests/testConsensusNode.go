@@ -313,7 +313,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
-	processComponents.PeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.MainPeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.FullArchivePeerMapper = mock.NewNetworkShardingCollectorMock()
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}

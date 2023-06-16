@@ -879,7 +879,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMbRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterHdrRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMetaRcv)),
-				fmt.Sprintf("%d", len(n.Messenger.ConnectedPeers())),
+				fmt.Sprintf("%d", len(n.MainMessenger.ConnectedPeers())),
 			},
 		)
 	}

@@ -270,6 +270,7 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
+	FullArchiveInterceptorsContainer() process.InterceptorsContainer
 	ResolversContainer() dataRetriever.ResolversContainer
 	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
@@ -289,6 +290,7 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
+	FullArchivePeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
 	TransactionSimulatorProcessor() TransactionSimulatorProcessor
 	WhiteListHandler() process.WhiteListHandler

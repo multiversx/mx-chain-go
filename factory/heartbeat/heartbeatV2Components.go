@@ -251,7 +251,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		Messenger:                   hcf.networkComponents.NetworkMessenger(),
 		PeerShardMapper:             hcf.processComponents.PeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
-		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 	mainDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsMainDirectConnectionProcessor)
@@ -262,9 +262,9 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 	argsFullArchiveDirectConnectionProcessor := processor.ArgsDirectConnectionProcessor{
 		TimeToReadDirectConnections: time.Second * time.Duration(cfg.TimeToReadDirectConnectionsInSec),
 		Messenger:                   hcf.networkComponents.FullArchiveNetworkMessenger(),
-		PeerShardMapper:             hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:             hcf.processComponents.FullArchivePeerShardMapper(),
 		ShardCoordinator:            hcf.processComponents.ShardCoordinator(),
-		BaseIntraShardTopic:         common.ConsensusTopic,
+		BaseIntraShardTopic:         common.HeartbeatV2Topic,
 		BaseCrossShardTopic:         processFactory.MiniBlocksTopic,
 	}
 	fullArchiveDirectConnectionProcessor, err := processor.NewDirectConnectionProcessor(argsFullArchiveDirectConnectionProcessor)
@@ -287,7 +287,7 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 
 	argsFullArchiveCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
 		ShardCoordinator: hcf.processComponents.ShardCoordinator(),
-		PeerShardMapper:  hcf.processComponents.PeerShardMapper(), // TODO[Sorin]: replace this with the full archive psm
+		PeerShardMapper:  hcf.processComponents.FullArchivePeerShardMapper(),
 	}
 	fullArchiveCrossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsFullArchiveCrossShardPeerTopicNotifier)
 	if err != nil {

@@ -3752,7 +3752,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	pid2 := "pid2"
 
 	processComponents := getDefaultProcessComponents()
-	processComponents.PeerMapper = &p2pmocks.NetworkShardingCollectorStub{
+	processComponents.MainPeerMapper = &p2pmocks.NetworkShardingCollectorStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			return core.P2PPeerInfo{
 				PeerType: 0,
@@ -5130,7 +5130,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		ReqHandler:                           &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                        &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:             &mock.HeaderValidatorStub{},
-		PeerMapper:                           &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerMapper:                       &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerMapper:                &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal:       &testscommon.WhiteListHandlerStub{},
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},

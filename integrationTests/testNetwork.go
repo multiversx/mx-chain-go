@@ -441,7 +441,7 @@ func (net *TestNetwork) initDefaults() {
 
 func (net *TestNetwork) closeNodes() {
 	for _, node := range net.Nodes {
-		err := node.Messenger.Close()
+		err := node.MainMessenger.Close()
 		net.handleOrBypassError(err)
 		_ = node.VMContainer.Close()
 	}
