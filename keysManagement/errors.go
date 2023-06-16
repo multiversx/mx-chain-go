@@ -28,3 +28,9 @@ var ErrEmptyPeerID = errors.New("empty peer ID")
 
 // ErrNilP2PKeyConverter signals that a nil p2p key converter has been provided
 var ErrNilP2PKeyConverter = errors.New("nil p2p key converter")
+
+// ErrNilNodesCoordinator signals that a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNilShardProvider signals that a nil shard provider has been provided
+var ErrNilShardProvider = errors.New("nil shard provider")
