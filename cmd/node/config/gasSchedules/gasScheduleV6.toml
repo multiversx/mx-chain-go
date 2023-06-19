@@ -106,7 +106,7 @@
     SetAsyncContextCallback = 100000
     GetCallbackClosure   = 10000
     GetCodeMetadata      = 10000
-	IsBuiltinFunction    = 10000
+    IsBuiltinFunction    = 10000
     
 [EthAPICost]
     UseGas              = 100

@@ -1779,6 +1779,16 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 
 // CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig -
 func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32, enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(selfShardID, enableEpochsConfig, roundsConfig, createDefaultVMConfig())
+}
+
+// CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig -
+func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
+	selfShardID uint32,
+	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	vmConfig *config.VirtualMachineConfig,
+) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
@@ -1800,7 +1810,6 @@ func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
 	} else {
-		vmConfig := createDefaultVMConfig()
 		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(
 			accounts,
 			nil,
