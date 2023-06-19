@@ -188,7 +188,7 @@ func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAcc
 
 // Revert applies undo operation
 func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, error) {
-	trie, ok := jedtu.account.DataTrie().(dataTrie)
+	trie, ok := jedtu.account.DataTrie().(DataTrie)
 	if !ok {
 		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
 	}

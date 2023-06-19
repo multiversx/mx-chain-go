@@ -1,4 +1,4 @@
-package state
+package trackableDataTrie
 
 import (
 	"fmt"
@@ -10,9 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+var log = logger.GetOrCreate("state/trackableDataTrie")
 
 type dirtyData struct {
 	value      []byte
@@ -37,13 +41,13 @@ func NewTrackableDataTrie(
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
-		return nil, ErrNilHasher
+		return nil, state.ErrNilHasher
 	}
 	if check.IfNil(marshaller) {
-		return nil, ErrNilMarshalizer
+		return nil, state.ErrNilMarshalizer
 	}
 	if check.IfNil(enableEpochsHandler) {
-		return nil, ErrNilEnableEpochsHandler
+		return nil, state.ErrNilEnableEpochsHandler
 	}
 
 	return &trackableDataTrie{
@@ -68,7 +72,7 @@ func (tdaw *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error)
 
 	// ok, not in cache, retrieve from trie
 	if check.IfNil(tdaw.tr) {
-		return nil, 0, ErrNilTrie
+		return nil, 0, state.ErrNilTrie
 	}
 	trieValue, depth, err := tdaw.retrieveValueFromTrie(key)
 	if err != nil {
@@ -104,13 +108,13 @@ func (tdaw *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 // MigrateDataTrieLeaves migrates the data trie leaves from oldVersion to newVersion
 func (tdaw *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	if check.IfNil(tdaw.tr) {
-		return ErrNilTrie
+		return state.ErrNilTrie
 	}
 	if check.IfNil(args.TrieMigrator) {
 		return errorsCommon.ErrNilTrieMigrator
 	}
 
-	dtr, ok := tdaw.tr.(dataTrie)
+	dtr, ok := tdaw.tr.(state.DataTrie)
 	if !ok {
 		return fmt.Errorf("invalid trie, type is %T", tdaw.tr)
 	}
@@ -206,7 +210,7 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieD
 		tdaw.tr = newDataTrie
 	}
 
-	dtr, ok := tdaw.tr.(dataTrie)
+	dtr, ok := tdaw.tr.(state.DataTrie)
 	if !ok {
 		return nil, fmt.Errorf("invalid trie, type is %T", tdaw.tr)
 	}
@@ -214,7 +218,7 @@ func (tdaw *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieD
 	return tdaw.updateTrie(dtr)
 }
 
-func (tdaw *trackableDataTrie) updateTrie(dtr dataTrie) ([]core.TrieData, error) {
+func (tdaw *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdaw.dirtyData))
 
 	index := 0
@@ -329,7 +333,7 @@ func (tdaw *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirt
 	return nil
 }
 
-func (tdaw *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr dataTrie) error {
+func (tdaw *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) error {
 	if len(dataEntry.value) == 0 {
 		return tdaw.deleteFromTrie(oldVal, key, dtr)
 	}
@@ -344,7 +348,7 @@ func (tdaw *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVa
 	return dtr.UpdateWithVersion(newKey, value, version)
 }
 
-func (tdaw *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr dataTrie) error {
+func (tdaw *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) error {
 	if len(oldVal.Value) == 0 {
 		return nil
 	}

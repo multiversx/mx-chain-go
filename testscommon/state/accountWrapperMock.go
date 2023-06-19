@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -40,7 +41,7 @@ var errInsufficientBalance = fmt.Errorf("insufficient balance")
 
 // NewAccountWrapMock -
 func NewAccountWrapMock(adr []byte) *AccountWrapMock {
-	tdt, _ := state.NewTrackableDataTrie(
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
 		[]byte("identifier"),
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},

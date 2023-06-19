@@ -144,7 +144,8 @@ type AccountsAdapterAPI interface {
 	GetCodeWithBlockInfo(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
 }
 
-type dataTrie interface {
+// DataTrie defines the behavior of a data trie
+type DataTrie interface {
 	common.Trie
 
 	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
