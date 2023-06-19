@@ -25,7 +25,7 @@ func getValidatorDataFromLeaves(
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
 	for pa := range leavesChannels.LeavesChan {
-		peerAccount, err := unmarshalPeer(pa.Value(), marshalizer)
+		peerAccount, err := unmarshalPeer(pa, marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -43,9 +43,12 @@ func getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
-	peerAccount := accounts.NewEmptyPeerAccount()
-	err := marshalizer.Unmarshal(peerAccount, pa)
+func unmarshalPeer(peerAccountData core.KeyValueHolder, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
+	peerAccount, err := accounts.NewPeerAccount(peerAccountData.Key())
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(peerAccount, peerAccountData.Value())
 	if err != nil {
 		return nil, err
 	}

@@ -127,7 +127,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return nil
 				},
 				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-					return accounts.NewEmptyPeerAccount(), nil
+					return accounts.NewPeerAccount(address)
 				},
 			}
 		},

@@ -213,7 +213,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return accounts.NewEmptyPeerAccount(), nil
+				return accounts.NewPeerAccount(addressContainer)
 			},
 		}
 		tai, _ := NewTrieAccountsIterator(args)

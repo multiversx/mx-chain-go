@@ -244,7 +244,7 @@ func TestVmContext_IsValidator(t *testing.T) {
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				assert.Equal(t, blsKey, address)
 
-				acnt := accounts.NewEmptyPeerAccount()
+				acnt, _ := accounts.NewPeerAccount(address)
 				acnt.List = string(tio.peerType)
 
 				return acnt, nil
