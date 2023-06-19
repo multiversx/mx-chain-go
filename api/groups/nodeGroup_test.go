@@ -68,6 +68,20 @@ type epochStartResponse struct {
 	generalResponse
 }
 
+type managedKeysCountResponse struct {
+	Data struct {
+		Count int `json:"count"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedKeysResponse struct {
+	Data struct {
+		Keys []string `json:"keys"`
+	} `json:"data"`
+	generalResponse
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
@@ -651,6 +665,191 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestNodeGroup_ManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	providedCount := 1000
+	facade := mock.FacadeStub{
+		GetManagedKeysCountCalled: func() int {
+			return providedCount
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys/count", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysCountResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedCount, response.Data.Count)
+}
+
+func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		nodeGroup, err := groups.NewNodeGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible/invalid", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrBadUrlParams.Error()))
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func(epoch uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible/0", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func(epoch uint32) ([]string, error) {
+				assert.Equal(t, uint32(10), epoch)
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible/10", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
+}
+
+func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		nodeGroup, err := groups.NewNodeGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting/invalid", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrBadUrlParams.Error()))
+	})
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func(epoch uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting/0", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func(epoch uint32) ([]string, error) {
+				assert.Equal(t, uint32(10), epoch)
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting/10", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
+}
+
 func TestNodeGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 
@@ -758,6 +957,9 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
 					{Name: "/connected-peers-ratings", Open: true},
+					{Name: "/managed-keys/count", Open: true},
+					{Name: "/managed-keys/eligible/:epoch", Open: true},
+					{Name: "/managed-keys/waiting/:epoch", Open: true},
 				},
 			},
 		},

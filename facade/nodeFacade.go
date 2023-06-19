@@ -590,6 +590,21 @@ func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.Account
 	return nf.node.IsDataTrieMigrated(address, options)
 }
 
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetManagedKeysCount() int {
+	return nf.apiResolver.GetManagedKeysCount()
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetEligibleManagedKeys(epoch uint32) ([]string, error) {
+	return nf.apiResolver.GetEligibleManagedKeys(epoch)
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetWaitingManagedKeys(epoch uint32) ([]string, error) {
+	return nf.apiResolver.GetWaitingManagedKeys(epoch)
+}
+
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {

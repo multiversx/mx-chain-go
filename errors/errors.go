@@ -532,8 +532,8 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
-// ErrEmptyPeerID signals that an empty peer ID has been provided
-var ErrEmptyPeerID = errors.New("empty peer ID")
+// ErrNilManagedPeersMonitor signals that a nil managed peers monitor has been provided
+var ErrNilManagedPeersMonitor = errors.New("nil managed peers monitor")
 
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")

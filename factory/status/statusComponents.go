@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/outport"
 	outportDriverFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,11 +27,12 @@ import (
 )
 
 type statusComponents struct {
-	nodesCoordinator nodesCoordinator.NodesCoordinator
-	statusHandler    core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	softwareVersion  statistics.SoftwareVersionChecker
-	cancelFunc       func()
+	nodesCoordinator    nodesCoordinator.NodesCoordinator
+	statusHandler       core.AppStatusHandler
+	outportHandler      outport.OutportHandler
+	softwareVersion     statistics.SoftwareVersionChecker
+	managedPeersMonitor common.ManagedPeersMonitor
+	cancelFunc          func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
@@ -45,6 +47,7 @@ type StatusComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StateComponents      factory.StateComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
 }
 
@@ -60,6 +63,7 @@ type statusComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	stateComponents      factory.StateComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
 }
 
@@ -88,6 +92,9 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponents
+	}
 
 	return &statusComponentsFactory{
 		config:               args.Config,
@@ -101,6 +108,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		networkComponents:    args.NetworkComponents,
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
+		cryptoComponents:     args.CryptoComponents,
 	}, nil
 }
 
@@ -134,14 +142,25 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
+	managedPeersMonitorArgs := keysManagement.ArgManagedPeersMonitor{
+		ManagedPeersHolder: scf.cryptoComponents.ManagedPeersHolder(),
+		NodesCoordinator:   scf.nodesCoordinator,
+		ShardProvider:      scf.shardCoordinator,
+	}
+	managedPeersMonitor, err := keysManagement.NewManagedPeersMonitor(managedPeersMonitorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	_, cancelFunc := context.WithCancel(context.Background())
 
 	statusComponentsInstance := &statusComponents{
-		nodesCoordinator: scf.nodesCoordinator,
-		softwareVersion:  softwareVersionChecker,
-		outportHandler:   outportHandler,
-		statusHandler:    scf.statusCoreComponents.AppStatusHandler(),
-		cancelFunc:       cancelFunc,
+		nodesCoordinator:    scf.nodesCoordinator,
+		softwareVersion:     softwareVersionChecker,
+		outportHandler:      outportHandler,
+		statusHandler:       scf.statusCoreComponents.AppStatusHandler(),
+		managedPeersMonitor: managedPeersMonitor,
+		cancelFunc:          cancelFunc,
 	}
 
 	if scf.shardCoordinator.SelfId() == core.MetachainShardId {

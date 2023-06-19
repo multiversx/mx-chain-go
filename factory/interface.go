@@ -334,6 +334,7 @@ type StateComponentsHolder interface {
 type StatusComponentsHolder interface {
 	OutportHandler() outport.OutportHandler
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 	IsInterfaceNil() bool
 }
 
@@ -344,6 +345,7 @@ type StatusComponentsHandler interface {
 	// SetForkDetector should be set before starting Polling for updates
 	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages

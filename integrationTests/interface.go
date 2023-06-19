@@ -111,5 +111,8 @@ type Facade interface {
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
+	GetManagedKeysCount() int
+	GetEligibleManagedKeys(epoch uint32) ([]string, error)
+	GetWaitingManagedKeys(epoch uint32) ([]string, error)
 	IsInterfaceNil() bool
 }
