@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -71,6 +72,11 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 		}
 
 		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
+		log.Info("CheckIfIndexesAreOutOfBound", "indexes", fmt.Sprintf("indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
+			indexOfFirstTxToBeProcessed,
+			pi.indexOfLastTxProcessedByProposer,
+			int32(len(miniBlock.TxHashes))-1,
+		))
 		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
 			log.Error("sovereignChainIncomingSCR.ProcessBlockTransactions  CheckIfIndexesAreOutOfBound err", "error", err)

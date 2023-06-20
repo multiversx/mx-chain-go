@@ -973,6 +973,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	shardID uint32,
 	noncesToPrevFinal uint64,
 ) {
+	shardID = core.SovereignChainShardId
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 	if err != nil {
 		displayCleanupErrorMessage("cleanupPoolsForCrossShard",
@@ -1103,6 +1104,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
+	shardID = core.SovereignChainShardId
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
 		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",

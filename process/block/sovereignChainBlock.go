@@ -140,6 +140,15 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		return nil, nil, err
 	}
 
+	//for _, crossMb := range crossMiniblocks {
+	//	miniBlockHash, errHash := core.CalculateHash(scbp.marshalizer, scbp.hasher, crossMb)
+	//	if errHash != nil {
+	//		return nil, nil, errHash
+	//	}
+	//
+	//	scbp.dataPool.MiniBlocks().Put(miniBlockHash, crossMb, crossMb.Size())
+	//}
+
 	err = sovereignChainHeaderHandler.SetExtendedShardHeaderHashes(extendedShardHeaderHashes)
 	if err != nil {
 		return nil, nil, err

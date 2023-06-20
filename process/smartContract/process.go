@@ -791,6 +791,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 }
 
 func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
+	//return scrs
 	if sc.shardCoordinator.SelfId() == core.MetachainShardId || len(scrs) == 0 {
 		return scrs
 	}

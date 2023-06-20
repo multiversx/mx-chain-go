@@ -45,9 +45,11 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 		}
 
 		scr := &smartContractResult.SmartContractResult{
+			// original tx hash + nonce
 			RcvAddr: topics[0],
 			SndAddr: core.ESDTSCAddress,
 			Data:    createSCRData(topics),
+			Value:   big.NewInt(0),
 		}
 
 		hash, err := core.CalculateHash(sp.marshaller, sp.hasher, scr)
@@ -69,7 +71,6 @@ func createSCRData(topics [][]byte) []byte {
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(topics[0]) + // topics[0] = address
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
 	for idx := 1; idx < len(topics[1:]); idx += 3 {

@@ -194,6 +194,9 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
 			continue
 		}
+		if mb.ReceiverShardID == core.SovereignChainShardId && mb.SenderShardID == core.MainChainShardId {
+			continue
+		}
 
 		receivedCrossShard++
 		err := irp.verifyMiniBlock(createdMapMbs, mb)
