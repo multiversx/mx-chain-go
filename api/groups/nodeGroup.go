@@ -27,6 +27,9 @@ const (
 	epochStartDataForEpoch    = "/epoch-start/:epoch"
 	bootstrapStatusPath       = "/bootstrapstatus"
 	connectedPeersRatingsPath = "/connected-peers-ratings"
+	managedKeysCount          = "/managed-keys/count"
+	eligibleManagedKeys       = "/managed-keys/eligible"
+	waitingManagedKeys        = "/managed-keys/waiting"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -37,6 +40,9 @@ type nodeFacadeHandler interface {
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetConnectedPeersRatings() string
+	GetManagedKeysCount() int
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -108,6 +114,21 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    connectedPeersRatingsPath,
 			Method:  http.MethodGet,
 			Handler: ng.connectedPeersRatings,
+		},
+		{
+			Path:    managedKeysCount,
+			Method:  http.MethodGet,
+			Handler: ng.managedKeysCount,
+		},
+		{
+			Path:    eligibleManagedKeys,
+			Method:  http.MethodGet,
+			Handler: ng.managedKeysEligible,
+		},
+		{
+			Path:    waitingManagedKeys,
+			Method:  http.MethodGet,
+			Handler: ng.managedKeysWaiting,
 		},
 	}
 	ng.endpoints = endpoints
@@ -332,6 +353,55 @@ func (ng *nodeGroup) connectedPeersRatings(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"ratings": ratings},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// managedKeysCount returns the node's number of managed keys
+func (ng *nodeGroup) managedKeysCount(c *gin.Context) {
+	count := ng.getFacade().GetManagedKeysCount()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"count": count},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// managedKeysEligible returns the node's eligible managed keys
+func (ng *nodeGroup) managedKeysEligible(c *gin.Context) {
+	keys, err := ng.getFacade().GetEligibleManagedKeys()
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetEligibleManagedKeys, err)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"eligibleKeys": keys},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// managedKeysWaiting returns the node's waiting managed keys
+func (ng *nodeGroup) managedKeysWaiting(c *gin.Context) {
+	keys, err := ng.getFacade().GetWaitingManagedKeys()
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetWaitingManagedKeys, err)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"waitingKeys": keys},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

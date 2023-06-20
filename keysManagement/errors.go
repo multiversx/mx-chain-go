@@ -34,3 +34,6 @@ var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
 // ErrNilShardProvider signals that a nil shard provider has been provided
 var ErrNilShardProvider = errors.New("nil shard provider")
+
+// ErrNilEpochProvider signals that a nil epoch provider has been provided
+var ErrNilEpochProvider = errors.New("nil epoch provider")
