@@ -13,12 +13,14 @@ type ArgManagedPeersMonitor struct {
 	ManagedPeersHolder common.ManagedPeersHolder
 	NodesCoordinator   NodesCoordinator
 	ShardProvider      ShardProvider
+	EpochProvider      CurrentEpochProvider
 }
 
 type managedPeersMonitor struct {
 	managedPeersHolder common.ManagedPeersHolder
 	nodesCoordinator   NodesCoordinator
 	shardProvider      ShardProvider
+	epochProvider      CurrentEpochProvider
 }
 
 // NewManagedPeersMonitor returns a new instance of managedPeersMonitor
@@ -32,6 +34,7 @@ func NewManagedPeersMonitor(args ArgManagedPeersMonitor) (*managedPeersMonitor, 
 		managedPeersHolder: args.ManagedPeersHolder,
 		nodesCoordinator:   args.NodesCoordinator,
 		shardProvider:      args.ShardProvider,
+		epochProvider:      args.EpochProvider,
 	}, nil
 }
 
@@ -45,6 +48,9 @@ func checkArgs(args ArgManagedPeersMonitor) error {
 	if check.IfNil(args.ShardProvider) {
 		return ErrNilShardProvider
 	}
+	if check.IfNil(args.EpochProvider) {
+		return ErrNilEpochProvider
+	}
 
 	return nil
 }
@@ -54,8 +60,9 @@ func (monitor *managedPeersMonitor) GetManagedKeysCount() int {
 	return len(monitor.managedPeersHolder.GetManagedKeysByCurrentNode())
 }
 
-// GetEligibleManagedKeys returns eligible keys that are managed by the current node
-func (monitor *managedPeersMonitor) GetEligibleManagedKeys(epoch uint32) ([][]byte, error) {
+// GetEligibleManagedKeys returns eligible keys that are managed by the current node in the current epoch
+func (monitor *managedPeersMonitor) GetEligibleManagedKeys() ([][]byte, error) {
+	epoch := monitor.epochProvider.CurrentEpoch()
 	eligibleValidators, err := monitor.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err
@@ -65,7 +72,8 @@ func (monitor *managedPeersMonitor) GetEligibleManagedKeys(epoch uint32) ([][]by
 }
 
 // GetWaitingManagedKeys returns waiting keys that are managed by the current node
-func (monitor *managedPeersMonitor) GetWaitingManagedKeys(epoch uint32) ([][]byte, error) {
+func (monitor *managedPeersMonitor) GetWaitingManagedKeys() ([][]byte, error) {
+	epoch := monitor.epochProvider.CurrentEpoch()
 	waitingValidators, err := monitor.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		return nil, err

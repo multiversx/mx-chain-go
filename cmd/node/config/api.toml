@@ -38,7 +38,16 @@
         { Name = "/bootstrapstatus", Open = true },
 
         # /node/connected-peers-ratings will return the peers ratings
-        { Name = "/connected-peers-ratings", Open = true }
+        { Name = "/connected-peers-ratings", Open = true },
+
+        # /node/managed-keys/count will return the number of keys managed by the node
+        { Name = "/managed-keys/count", Open = true },
+
+        # /node/managed-keys/eligible will return the eligible keys managed by the node on the current epoch
+        { Name = "/managed-keys/eligible", Open = true },
+
+        # /node/managed-keys/waiting will return the waiting keys managed by the node on the current epoch
+        { Name = "/managed-keys/waiting", Open = true }
     ]
 
 [APIPackages.address]

@@ -405,6 +405,21 @@ func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOpt
 	return false, errNodeStarting
 }
 
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inf *initialNodeFacade) IsInterfaceNil() bool {
 	return inf == nil
