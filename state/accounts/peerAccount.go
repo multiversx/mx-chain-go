@@ -14,18 +14,6 @@ type peerAccount struct {
 	PeerAccountData
 }
 
-// TODO: replace NewEmptyPeerAccount with GetPeerAccountFromBytes
-
-// NewEmptyPeerAccount returns an empty peerAccount
-func NewEmptyPeerAccount() *peerAccount {
-	return &peerAccount{
-		PeerAccountData: PeerAccountData{
-			AccumulatedFees: big.NewInt(0),
-			UnStakedEpoch:   common.DefaultUnstakedEpoch,
-		},
-	}
-}
-
 // NewPeerAccount creates a new instance of peerAccount
 func NewPeerAccount(address []byte) (*peerAccount, error) {
 	if len(address) == 0 {

@@ -52,6 +52,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
@@ -932,7 +933,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := state.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 

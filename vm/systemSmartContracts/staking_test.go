@@ -643,7 +643,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 		JailedRound:   math.MaxUint64,
 	}
 
-	peerAccount := accounts.NewEmptyPeerAccount()
+	peerAccount, _ := accounts.NewPeerAccount([]byte("validator"))
 	peerAccount.List = string(common.EligibleList)
 	stakeValue := big.NewInt(100)
 	marshalizedRegData, _ := json.Marshal(&registrationData)
@@ -1627,7 +1627,7 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
-	peerAccount := accounts.NewEmptyPeerAccount()
+	peerAccount, _ := accounts.NewPeerAccount(stakerAddress)
 	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
@@ -1683,7 +1683,7 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
-	peerAccount := accounts.NewEmptyPeerAccount()
+	peerAccount, _ := accounts.NewPeerAccount(stakerAddress)
 	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}

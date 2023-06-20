@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -47,7 +48,7 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 
 // CreateAccount calls the new Account creator and returns the result
 func (ac *accountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	trackableDataTrie, err := state.NewTrackableDataTrie(address, ac.hasher, ac.marshaller, ac.enableEpochsHandler)
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, ac.hasher, ac.marshaller, ac.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (ac *accountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler
 		return nil, err
 	}
 
-	return accounts.NewUserAccount(address, trackableDataTrie, dataTrieLeafParser)
+	return accounts.NewUserAccount(address, tdt, dataTrieLeafParser)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

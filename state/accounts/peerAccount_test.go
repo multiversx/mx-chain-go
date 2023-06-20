@@ -10,15 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewEmptyPeerAccount(t *testing.T) {
-	t.Parallel()
-
-	acc := accounts.NewEmptyPeerAccount()
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, big.NewInt(0), acc.AccumulatedFees)
-}
-
 func TestNewPeerAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 

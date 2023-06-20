@@ -443,7 +443,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
 	for pa := range leavesChannels.LeavesChan {
-		peerAccount, err := vs.unmarshalPeer(pa.Value())
+		peerAccount, err := vs.unmarshalPeer(pa)
 		if err != nil {
 			return nil, err
 		}
@@ -548,9 +548,12 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
 }
 
-func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
-	peerAccount := accounts.NewEmptyPeerAccount()
-	err := vs.marshalizer.Unmarshal(peerAccount, pa)
+func (vs *validatorStatistics) unmarshalPeer(peerAccountData core.KeyValueHolder) (state.PeerAccountHandler, error) {
+	peerAccount, err := accounts.NewPeerAccount(peerAccountData.Key())
+	if err != nil {
+		return nil, err
+	}
+	err = vs.marshalizer.Unmarshal(peerAccount, peerAccountData.Value())
 	if err != nil {
 		return nil, err
 	}

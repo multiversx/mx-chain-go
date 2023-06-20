@@ -12,9 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	coreEsdt "github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -196,7 +196,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		dtt, _ := state.NewTrackableDataTrie([]byte("addr"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		dtt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("addr"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)
 		userAcc.SetRootHash([]byte("rootHash"))

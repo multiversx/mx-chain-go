@@ -2420,7 +2420,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 		UnStakedEpoch:              common.DefaultUnstakedEpoch,
 	}
 
-	peerAccount := accounts.NewEmptyPeerAccount()
+	peerAccount, _ := accounts.NewPeerAccount([]byte("mock address"))
 	peerAccount.PeerAccountData = pad
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -2611,7 +2611,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 	arguments.PeerAdapter = peerAdapter
 
 	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		peerAcc := accounts.NewEmptyPeerAccount()
+		peerAcc, _ := accounts.NewPeerAccount(address)
 		peerAcc.List = string(common.LeavingList)
 		return peerAcc, nil
 	}
@@ -2630,7 +2630,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 	assert.True(t, nodeForcedToRemain)
 
 	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return accounts.NewEmptyPeerAccount(), nil
+		return accounts.NewPeerAccount(address)
 	}
 	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
 	assert.Nil(t, err)
