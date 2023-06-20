@@ -411,12 +411,12 @@ func (inf *initialNodeFacade) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys returns nil and error
-func (inf *initialNodeFacade) GetEligibleManagedKeys(_ uint32) ([]string, error) {
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
 }
 
 // GetWaitingManagedKeys returns nil and error
-func (inf *initialNodeFacade) GetWaitingManagedKeys(_ uint32) ([]string, error) {
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
 }
 

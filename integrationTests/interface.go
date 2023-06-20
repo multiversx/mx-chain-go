@@ -112,7 +112,7 @@ type Facade interface {
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
-	GetEligibleManagedKeys(epoch uint32) ([]string, error)
-	GetWaitingManagedKeys(epoch uint32) ([]string, error)
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
 }

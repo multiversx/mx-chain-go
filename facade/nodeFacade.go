@@ -596,13 +596,13 @@ func (nf *nodeFacade) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
-func (nf *nodeFacade) GetEligibleManagedKeys(epoch uint32) ([]string, error) {
-	return nf.apiResolver.GetEligibleManagedKeys(epoch)
+func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetEligibleManagedKeys()
 }
 
 // GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
-func (nf *nodeFacade) GetWaitingManagedKeys(epoch uint32) ([]string, error) {
-	return nf.apiResolver.GetWaitingManagedKeys(epoch)
+func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetWaitingManagedKeys()
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

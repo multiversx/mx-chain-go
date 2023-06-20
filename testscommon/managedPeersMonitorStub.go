@@ -3,8 +3,8 @@ package testscommon
 // ManagedPeersMonitorStub -
 type ManagedPeersMonitorStub struct {
 	GetManagedKeysCountCalled    func() int
-	GetEligibleManagedKeysCalled func(epoch uint32) ([][]byte, error)
-	GetWaitingManagedKeysCalled  func(epoch uint32) ([][]byte, error)
+	GetEligibleManagedKeysCalled func() ([][]byte, error)
+	GetWaitingManagedKeysCalled  func() ([][]byte, error)
 }
 
 // GetManagedKeysCount -
@@ -16,21 +16,22 @@ func (stub *ManagedPeersMonitorStub) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys -
-func (stub *ManagedPeersMonitorStub) GetEligibleManagedKeys(epoch uint32) ([][]byte, error) {
+func (stub *ManagedPeersMonitorStub) GetEligibleManagedKeys() ([][]byte, error) {
 	if stub.GetEligibleManagedKeysCalled != nil {
-		return stub.GetEligibleManagedKeysCalled(epoch)
+		return stub.GetEligibleManagedKeysCalled()
 	}
 	return make([][]byte, 0), nil
 }
 
 // GetWaitingManagedKeys -
-func (stub *ManagedPeersMonitorStub) GetWaitingManagedKeys(epoch uint32) ([][]byte, error) {
+func (stub *ManagedPeersMonitorStub) GetWaitingManagedKeys() ([][]byte, error) {
 	if stub.GetWaitingManagedKeysCalled != nil {
-		return stub.GetWaitingManagedKeysCalled(epoch)
+		return stub.GetWaitingManagedKeysCalled()
 	}
 	return make([][]byte, 0), nil
 }
 
+// IsInterfaceNil -
 func (stub *ManagedPeersMonitorStub) IsInterfaceNil() bool {
 	return stub == nil
 }

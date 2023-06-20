@@ -128,7 +128,7 @@ type FacadeHandler interface {
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
-	GetEligibleManagedKeys(epoch uint32) ([]string, error)
-	GetWaitingManagedKeys(epoch uint32) ([]string, error)
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
 }

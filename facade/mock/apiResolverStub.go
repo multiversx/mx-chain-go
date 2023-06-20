@@ -43,8 +43,8 @@ type ApiResolverStub struct {
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
-	GetEligibleManagedKeysCalled                func(epoch uint32) ([]string, error)
-	GetWaitingManagedKeysCalled                 func(epoch uint32) ([]string, error)
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
 
 // GetTransaction -
@@ -290,17 +290,17 @@ func (ars *ApiResolverStub) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys -
-func (ars *ApiResolverStub) GetEligibleManagedKeys(epoch uint32) ([]string, error) {
+func (ars *ApiResolverStub) GetEligibleManagedKeys() ([]string, error) {
 	if ars.GetEligibleManagedKeysCalled != nil {
-		return ars.GetEligibleManagedKeysCalled(epoch)
+		return ars.GetEligibleManagedKeysCalled()
 	}
 	return make([]string, 0), nil
 }
 
 // GetWaitingManagedKeys -
-func (ars *ApiResolverStub) GetWaitingManagedKeys(epoch uint32) ([]string, error) {
+func (ars *ApiResolverStub) GetWaitingManagedKeys() ([]string, error) {
 	if ars.GetWaitingManagedKeysCalled != nil {
-		return ars.GetWaitingManagedKeysCalled(epoch)
+		return ars.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
 }

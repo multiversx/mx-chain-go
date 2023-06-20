@@ -705,14 +705,14 @@ func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
-			GetEligibleManagedKeysCalled: func(epoch uint32) ([][]byte, error) {
+			GetEligibleManagedKeysCalled: func() ([][]byte, error) {
 				return nil, expectedErr
 			},
 		}
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
-		keys, err := nar.GetEligibleManagedKeys(0)
+		keys, err := nar.GetEligibleManagedKeys()
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, keys)
 	})
@@ -729,7 +729,7 @@ func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 		}
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
-			GetEligibleManagedKeysCalled: func(epoch uint32) ([][]byte, error) {
+			GetEligibleManagedKeysCalled: func() ([][]byte, error) {
 				return providedKeys, nil
 			},
 		}
@@ -741,7 +741,7 @@ func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
-		keys, err := nar.GetEligibleManagedKeys(0)
+		keys, err := nar.GetEligibleManagedKeys()
 		require.NoError(t, err)
 		require.Equal(t, expectedKeys, keys)
 	})
@@ -755,14 +755,14 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
-			GetWaitingManagedKeysCalled: func(epoch uint32) ([][]byte, error) {
+			GetWaitingManagedKeysCalled: func() ([][]byte, error) {
 				return nil, expectedErr
 			},
 		}
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
-		keys, err := nar.GetWaitingManagedKeys(0)
+		keys, err := nar.GetWaitingManagedKeys()
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, keys)
 	})
@@ -779,7 +779,7 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 		}
 		args := createMockArgs()
 		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
-			GetWaitingManagedKeysCalled: func(epoch uint32) ([][]byte, error) {
+			GetWaitingManagedKeysCalled: func() ([][]byte, error) {
 				return providedKeys, nil
 			},
 		}
@@ -791,7 +791,7 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 		nar, err := external.NewNodeApiResolver(args)
 		require.NoError(t, err)
 
-		keys, err := nar.GetWaitingManagedKeys(0)
+		keys, err := nar.GetWaitingManagedKeys()
 		require.NoError(t, err)
 		require.Equal(t, expectedKeys, keys)
 	})

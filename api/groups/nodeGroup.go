@@ -28,8 +28,8 @@ const (
 	bootstrapStatusPath       = "/bootstrapstatus"
 	connectedPeersRatingsPath = "/connected-peers-ratings"
 	managedKeysCount          = "/managed-keys/count"
-	eligibleManagedKeys       = "/managed-keys/eligible/:epoch"
-	waitingManagedKeys        = "/managed-keys/waiting/:epoch"
+	eligibleManagedKeys       = "/managed-keys/eligible"
+	waitingManagedKeys        = "/managed-keys/waiting"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -41,8 +41,8 @@ type nodeFacadeHandler interface {
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetConnectedPeersRatings() string
 	GetManagedKeysCount() int
-	GetEligibleManagedKeys(epoch uint32) ([]string, error)
-	GetWaitingManagedKeys(epoch uint32) ([]string, error)
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -374,13 +374,7 @@ func (ng *nodeGroup) managedKeysCount(c *gin.Context) {
 
 // managedKeysEligible returns the node's eligible managed keys
 func (ng *nodeGroup) managedKeysEligible(c *gin.Context) {
-	epoch, err := getQueryParamEpoch(c)
-	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
-		return
-	}
-
-	keys, err := ng.getFacade().GetEligibleManagedKeys(epoch)
+	keys, err := ng.getFacade().GetEligibleManagedKeys()
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetEligibleManagedKeys, err)
 		return
@@ -389,7 +383,7 @@ func (ng *nodeGroup) managedKeysEligible(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"keys": keys},
+			Data:  gin.H{"eligibleKeys": keys},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -398,13 +392,7 @@ func (ng *nodeGroup) managedKeysEligible(c *gin.Context) {
 
 // managedKeysWaiting returns the node's waiting managed keys
 func (ng *nodeGroup) managedKeysWaiting(c *gin.Context) {
-	epoch, err := getQueryParamEpoch(c)
-	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
-		return
-	}
-
-	keys, err := ng.getFacade().GetWaitingManagedKeys(epoch)
+	keys, err := ng.getFacade().GetWaitingManagedKeys()
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetWaitingManagedKeys, err)
 		return
@@ -413,7 +401,7 @@ func (ng *nodeGroup) managedKeysWaiting(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"keys": keys},
+			Data:  gin.H{"waitingKeys": keys},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

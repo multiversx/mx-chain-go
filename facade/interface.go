@@ -139,8 +139,8 @@ type ApiResolver interface {
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetGasConfigs() map[string]map[string]uint64
 	GetManagedKeysCount() int
-	GetEligibleManagedKeys(epoch uint32) ([]string, error)
-	GetWaitingManagedKeys(epoch uint32) ([]string, error)
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	Close() error
 	IsInterfaceNil() bool
 }

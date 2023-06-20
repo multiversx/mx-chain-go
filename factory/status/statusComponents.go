@@ -146,6 +146,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		ManagedPeersHolder: scf.cryptoComponents.ManagedPeersHolder(),
 		NodesCoordinator:   scf.nodesCoordinator,
 		ShardProvider:      scf.shardCoordinator,
+		EpochProvider:      scf.coreComponents.EpochNotifier(),
 	}
 	managedPeersMonitor, err := keysManagement.NewManagedPeersMonitor(managedPeersMonitorArgs)
 	if err != nil {

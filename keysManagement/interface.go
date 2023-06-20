@@ -12,3 +12,9 @@ type ShardProvider interface {
 	SelfId() uint32
 	IsInterfaceNil() bool
 }
+
+// CurrentEpochProvider defines a component able to provide current epoch
+type CurrentEpochProvider interface {
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}

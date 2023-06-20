@@ -89,8 +89,8 @@ type FacadeStub struct {
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCountCalled                   func() int
-	GetEligibleManagedKeysCalled                func(epoch uint32) ([]string, error)
-	GetWaitingManagedKeysCalled                 func(epoch uint32) ([]string, error)
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
 
 // GetTokenSupply -
@@ -585,17 +585,17 @@ func (f *FacadeStub) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys -
-func (f *FacadeStub) GetEligibleManagedKeys(epoch uint32) ([]string, error) {
+func (f *FacadeStub) GetEligibleManagedKeys() ([]string, error) {
 	if f.GetEligibleManagedKeysCalled != nil {
-		return f.GetEligibleManagedKeysCalled(epoch)
+		return f.GetEligibleManagedKeysCalled()
 	}
 	return make([]string, 0), nil
 }
 
 // GetWaitingManagedKeys -
-func (f *FacadeStub) GetWaitingManagedKeys(epoch uint32) ([]string, error) {
+func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
 	if f.GetWaitingManagedKeysCalled != nil {
-		return f.GetWaitingManagedKeysCalled(epoch)
+		return f.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
 }

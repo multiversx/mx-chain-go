@@ -334,8 +334,8 @@ func (nar *nodeApiResolver) GetManagedKeysCount() int {
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
-func (nar *nodeApiResolver) GetEligibleManagedKeys(epoch uint32) ([]string, error) {
-	eligibleKeys, err := nar.managedPeersMonitor.GetEligibleManagedKeys(epoch)
+func (nar *nodeApiResolver) GetEligibleManagedKeys() ([]string, error) {
+	eligibleKeys, err := nar.managedPeersMonitor.GetEligibleManagedKeys()
 	if err != nil {
 		return nil, err
 	}
@@ -344,8 +344,8 @@ func (nar *nodeApiResolver) GetEligibleManagedKeys(epoch uint32) ([]string, erro
 }
 
 // GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
-func (nar *nodeApiResolver) GetWaitingManagedKeys(epoch uint32) ([]string, error) {
-	waitingKeys, err := nar.managedPeersMonitor.GetWaitingManagedKeys(epoch)
+func (nar *nodeApiResolver) GetWaitingManagedKeys() ([]string, error) {
+	waitingKeys, err := nar.managedPeersMonitor.GetWaitingManagedKeys()
 	if err != nil {
 		return nil, err
 	}

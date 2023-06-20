@@ -7,6 +7,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -18,6 +19,7 @@ func createMockArgManagedPeersMonitor() ArgManagedPeersMonitor {
 		ManagedPeersHolder: &testscommon.ManagedPeersHolderStub{},
 		NodesCoordinator:   &shardingMocks.NodesCoordinatorStub{},
 		ShardProvider:      &testscommon.ShardsCoordinatorMock{},
+		EpochProvider:      &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -49,6 +51,15 @@ func TestNewManagedPeersMonitor(t *testing.T) {
 		args.ShardProvider = nil
 		monitor, err := NewManagedPeersMonitor(args)
 		require.Equal(t, ErrNilShardProvider, err)
+		require.Nil(t, monitor)
+	})
+	t.Run("nil EpochProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgManagedPeersMonitor()
+		args.EpochProvider = nil
+		monitor, err := NewManagedPeersMonitor(args)
+		require.Equal(t, ErrNilEpochProvider, err)
 		require.Nil(t, monitor)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -106,7 +117,7 @@ func TestManagedPeersMonitor_GetEligibleManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetEligibleManagedKeys(0)
+		keys, err := monitor.GetEligibleManagedKeys()
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, keys)
 	})
@@ -122,7 +133,7 @@ func TestManagedPeersMonitor_GetEligibleManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetEligibleManagedKeys(0)
+		keys, err := monitor.GetEligibleManagedKeys()
 		require.True(t, errors.Is(err, ErrInvalidValue))
 		require.Nil(t, keys)
 	})
@@ -163,7 +174,7 @@ func TestManagedPeersMonitor_GetEligibleManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetEligibleManagedKeys(0)
+		keys, err := monitor.GetEligibleManagedKeys()
 		require.NoError(t, err)
 
 		require.Equal(t, [][]byte{[]byte("managed 1"), []byte("managed 2")}, keys)
@@ -185,7 +196,7 @@ func TestManagedPeersMonitor_GetGetWaitingManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetWaitingManagedKeys(0)
+		keys, err := monitor.GetWaitingManagedKeys()
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, keys)
 	})
@@ -201,7 +212,7 @@ func TestManagedPeersMonitor_GetGetWaitingManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetWaitingManagedKeys(0)
+		keys, err := monitor.GetWaitingManagedKeys()
 		require.True(t, errors.Is(err, ErrInvalidValue))
 		require.Nil(t, keys)
 	})
@@ -242,7 +253,7 @@ func TestManagedPeersMonitor_GetGetWaitingManagedKeys(t *testing.T) {
 		monitor, err := NewManagedPeersMonitor(args)
 		require.NoError(t, err)
 
-		keys, err := monitor.GetWaitingManagedKeys(0)
+		keys, err := monitor.GetWaitingManagedKeys()
 		require.NoError(t, err)
 
 		require.Equal(t, [][]byte{[]byte("managed 1"), []byte("managed 2")}, keys)
