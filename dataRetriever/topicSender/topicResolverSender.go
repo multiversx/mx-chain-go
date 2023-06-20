@@ -31,6 +31,7 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
 func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
+	// TODO[Sorin]: add a new field on MessageP2P for the network the message should be on
 	if trs.fullArchiveMessenger.IsConnected(peer) {
 		return trs.sendToConnectedPeer(trs.topicName, buff, peer, trs.fullArchiveMessenger, fullArchiveNetwork, trs.fullArchivePreferredPeersHolderHandler)
 	}

@@ -20,7 +20,7 @@ func (holder *preferredPeersHolder) PutConnectionAddress(_ core.PeerID, _ string
 func (holder *preferredPeersHolder) PutShardID(_ core.PeerID, _ uint32) {
 }
 
-// Get does nothing as it is disabled
+// Get returns an empty map as it is disabled
 func (holder *preferredPeersHolder) Get() map[uint32][]core.PeerID {
 	return make(map[uint32][]core.PeerID)
 }

@@ -1385,19 +1385,18 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
-		MainP2pConfig:                   *nr.configs.MainP2pConfig,
-		FullArchiveP2pConfig:            *nr.configs.FullArchiveP2pConfig,
-		MainConfig:                      *nr.configs.GeneralConfig,
-		RatingsConfig:                   *nr.configs.RatingsConfig,
-		StatusHandler:                   statusCoreComponents.AppStatusHandler(),
-		Marshalizer:                     coreComponents.InternalMarshalizer(),
-		Syncer:                          coreComponents.SyncTimer(),
-		MainPreferredPeersSlices:        nr.configs.PreferencesConfig.Preferences.PreferredConnections,
-		FullArchivePreferredPeersSlices: nr.configs.PreferencesConfig.Preferences.PreferredFullArchiveConnections,
-		BootstrapWaitTime:               common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:               p2p.NormalOperation,
-		ConnectionWatcherType:           nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
-		CryptoComponents:                cryptoComponents,
+		MainP2pConfig:         *nr.configs.MainP2pConfig,
+		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
+		MainConfig:            *nr.configs.GeneralConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		StatusHandler:         statusCoreComponents.AppStatusHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		Syncer:                coreComponents.SyncTimer(),
+		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
+		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
+		NodeOperationMode:     p2p.NormalOperation,
+		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
+		CryptoComponents:      cryptoComponents,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0

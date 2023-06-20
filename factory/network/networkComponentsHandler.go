@@ -268,7 +268,7 @@ func (mnc *managedNetworkComponents) FullArchivePreferredPeersHolderHandler() fa
 		return nil
 	}
 
-	return mnc.mainNetworkHolder.preferredPeersHolder
+	return mnc.fullArchiveNetworkHolder.preferredPeersHolder
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil
