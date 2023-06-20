@@ -426,3 +426,11 @@ type StateSyncNotifierSubscriber interface {
 	MissingDataTrieNodeFound(hash []byte)
 	IsInterfaceNil() bool
 }
+
+// ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
+type ManagedPeersMonitor interface {
+	GetManagedKeysCount() int
+	GetEligibleManagedKeys(epoch uint32) ([][]byte, error)
+	GetWaitingManagedKeys(epoch uint32) ([][]byte, error)
+	IsInterfaceNil() bool
+}
