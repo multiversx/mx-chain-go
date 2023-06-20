@@ -284,6 +284,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
+	runTypeComponents := mainFactory.RunTypeComponentsHolder{}
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -317,7 +319,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, runTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1310,19 +1312,21 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *snr.configs.GeneralConfig,
-		PrefConfig:           *snr.configs.PreferencesConfig,
-		ImportDbConfig:       *snr.configs.ImportDbConfig,
-		FlagsConfig:          *snr.configs.FlagsConfig,
-		WorkingDir:           snr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeSovereign,
+		Config:                               *snr.configs.GeneralConfig,
+		PrefConfig:                           *snr.configs.PreferencesConfig,
+		ImportDbConfig:                       *snr.configs.ImportDbConfig,
+		FlagsConfig:                          *snr.configs.FlagsConfig,
+		WorkingDir:                           snr.configs.FlagsConfig.DbDir,
+		CoreComponents:                       coreComponents,
+		CryptoComponents:                     cryptoComponents,
+		NetworkComponents:                    networkComponents,
+		StatusCoreComponents:                 statusCoreComponents,
+		EpochStartBootstrapperFactoryHandler: runTypeComponents.EpochStartBootstrapperFactoryHandler,
+		ChainRunType:                         common.ChainRunTypeSovereign,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

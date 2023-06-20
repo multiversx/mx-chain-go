@@ -361,6 +361,7 @@ type RunTypeComponentsHolder struct {
 	HeaderValidatorFactoryHandler        HeaderValidatorFactoryHandler
 	BlockTrackerFactoryHandler           BlockTrackerFactoryHandler
 	ShardForkDetectorFactoryHandler      ShardForkDetectorFactoryHandler
+	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -604,4 +605,9 @@ type BlockTrackerFactoryHandler interface {
 // ShardForkDetectorFactoryHandler defines the shard fork detector factory handler
 type ShardForkDetectorFactoryHandler interface {
 	CreateShardForkDetector(args ShardForkDetectorFactoryArgs) (process.ForkDetector, error)
+}
+
+// EpochStartBootstrapperFactoryHandler defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperFactoryHandler interface {
+	CreateEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
 }

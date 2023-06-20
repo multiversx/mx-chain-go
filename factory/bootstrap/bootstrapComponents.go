@@ -30,30 +30,32 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config               config.Config
-	RoundConfig          config.RoundConfig
-	PrefConfig           config.Preferences
-	ImportDbConfig       config.ImportDbConfig
-	FlagsConfig          config.ContextFlagsConfig
-	WorkingDir           string
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	ChainRunType         common.ChainRunType
+	Config                               config.Config
+	RoundConfig                          config.RoundConfig
+	PrefConfig                           config.Preferences
+	ImportDbConfig                       config.ImportDbConfig
+	FlagsConfig                          config.ContextFlagsConfig
+	WorkingDir                           string
+	CoreComponents                       factory.CoreComponentsHolder
+	CryptoComponents                     factory.CryptoComponentsHolder
+	NetworkComponents                    factory.NetworkComponentsHolder
+	StatusCoreComponents                 factory.StatusCoreComponentsHolder
+	EpochStartBootstrapperFactoryHandler factory.EpochStartBootstrapperFactoryHandler
+	ChainRunType                         common.ChainRunType
 }
 
 type bootstrapComponentsFactory struct {
-	config               config.Config
-	prefConfig           config.Preferences
-	importDbConfig       config.ImportDbConfig
-	flagsConfig          config.ContextFlagsConfig
-	workingDir           string
-	coreComponents       factory.CoreComponentsHolder
-	cryptoComponents     factory.CryptoComponentsHolder
-	networkComponents    factory.NetworkComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
-	chainRunType         common.ChainRunType
+	config                               config.Config
+	prefConfig                           config.Preferences
+	importDbConfig                       config.ImportDbConfig
+	flagsConfig                          config.ContextFlagsConfig
+	workingDir                           string
+	coreComponents                       factory.CoreComponentsHolder
+	cryptoComponents                     factory.CryptoComponentsHolder
+	networkComponents                    factory.NetworkComponentsHolder
+	statusCoreComponents                 factory.StatusCoreComponentsHolder
+	epochStartBootstrapperFactoryHandler factory.EpochStartBootstrapperFactoryHandler
+	chainRunType                         common.ChainRunType
 }
 
 type bootstrapComponents struct {
@@ -90,18 +92,20 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
+	// TODO: check if nil epochStartBootstrapperFactoryHandler
 
 	return &bootstrapComponentsFactory{
-		config:               args.Config,
-		prefConfig:           args.PrefConfig,
-		importDbConfig:       args.ImportDbConfig,
-		flagsConfig:          args.FlagsConfig,
-		workingDir:           args.WorkingDir,
-		coreComponents:       args.CoreComponents,
-		cryptoComponents:     args.CryptoComponents,
-		networkComponents:    args.NetworkComponents,
-		statusCoreComponents: args.StatusCoreComponents,
-		chainRunType:         args.ChainRunType,
+		config:                               args.Config,
+		prefConfig:                           args.PrefConfig,
+		importDbConfig:                       args.ImportDbConfig,
+		flagsConfig:                          args.FlagsConfig,
+		workingDir:                           args.WorkingDir,
+		coreComponents:                       args.CoreComponents,
+		cryptoComponents:                     args.CryptoComponents,
+		networkComponents:                    args.NetworkComponents,
+		statusCoreComponents:                 args.StatusCoreComponents,
+		epochStartBootstrapperFactoryHandler: args.EpochStartBootstrapperFactoryHandler,
+		chainRunType:                         args.ChainRunType,
 	}, nil
 }
 

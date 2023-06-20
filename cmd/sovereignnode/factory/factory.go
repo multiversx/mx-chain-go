@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory"
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -158,4 +159,16 @@ func (ppcf *SovereignPreProcessorsFactory) CreatePreProcessor(args process.PrePr
 		args.EnableEpochsHandler,
 		args.ProcessedMiniBlocksTracker,
 	)
+}
+
+type SovereignEpochStartBootstrapperFactory struct {
+}
+
+func (bcf *SovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (factory.EpochStartBootstrapper, error) {
+	epochStartBootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)
 }
