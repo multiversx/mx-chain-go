@@ -44,10 +44,10 @@
         { Name = "/managed-keys/count", Open = true },
 
         # /node/managed-keys/eligible will return the eligible keys managed by the node
-        { Name = "/managed-keys/eligible", Open = true },
+        { Name = "/managed-keys/eligible/:epoch", Open = true },
 
         # /node/managed-keys/waiting will return the waiting keys managed by the node
-        { Name = "/managed-keys/waiting", Open = true }
+        { Name = "/managed-keys/waiting/:epoch", Open = true }
     ]
 
 [APIPackages.address]
