@@ -19,6 +19,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+const leaderIndex = 0
+
 func getMetricsFromMetaHeader(
 	header *block.MetaBlock,
 	marshalizer marshal.Marshalizer,
@@ -130,7 +132,7 @@ func incrementMetricCountConsensusAcceptedBlocks(
 	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
-		core.MetachainShardId,
+		header.GetShardID(),
 		epoch,
 	)
 	if err != nil {
@@ -141,16 +143,13 @@ func incrementMetricCountConsensusAcceptedBlocks(
 	ownPublicKey := nodesCoordinator.GetOwnPublicKey()
 
 	for index, publicKey := range pubKeys {
-		if index == 0 {
+		if index == leaderIndex {
 			continue
 		}
 
-		if bytes.Equal([]byte(publicKey), ownPublicKey) {
-			appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
-			continue
-		}
-
-		if managedPeersHolder.IsKeyManagedByCurrentNode([]byte(publicKey)) {
+		isOwnKey := bytes.Equal([]byte(publicKey), ownPublicKey)
+		isManagedByCurrentNode := managedPeersHolder.IsKeyManagedByCurrentNode([]byte(publicKey))
+		if isOwnKey || isManagedByCurrentNode {
 			appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
 		}
 	}
