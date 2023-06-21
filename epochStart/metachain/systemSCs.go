@@ -789,7 +789,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if isNew {
+	if !isNew {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
 		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
