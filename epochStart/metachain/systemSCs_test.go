@@ -1949,3 +1949,54 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 		assert.Equal(t, peerAcc.GetList(), string(common.LeavingList))
 	}
 }
+
+func TestSystemSCProcessor_ProcessSystemSmartContractSwapJailedWithWaiting(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("jailedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
+	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
+	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	vInfo := &state.ValidatorInfo{
+		PublicKey:       []byte("jailedPubKey0"),
+		ShardId:         0,
+		List:            string(common.JailedList),
+		TempRating:      1,
+		RewardAddress:   []byte("address"),
+		AccumulatedFees: big.NewInt(0),
+	}
+	validatorInfos[0] = append(validatorInfos[0], vInfo)
+
+	vInfo1 := &state.ValidatorInfo{
+		PublicKey: []byte("waitingPubKey"),
+		ShardId:   0,
+		List:      string(common.WaitingList),
+	}
+	validatorInfos[0] = append(validatorInfos[0], vInfo1)
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 2, len(validatorInfos[0]))
+	newValidatorInfo := validatorInfos[0][0]
+	assert.Equal(t, newValidatorInfo.List, string(common.NewList))
+}
