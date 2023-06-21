@@ -83,9 +83,6 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	}
 
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
-
-	log.Info("incomingHeaderProcessor added header", "hash", hex.EncodeToString(headerHash))
-
 	return nil
 }
 
