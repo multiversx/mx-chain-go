@@ -107,6 +107,7 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
+	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	GetBaseTrieStorageManager() StorageManager
@@ -388,6 +389,7 @@ type EnableEpochsHandler interface {
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
 }

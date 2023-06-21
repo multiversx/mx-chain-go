@@ -24,4 +24,9 @@ func TestIsEmptyTrie(t *testing.T) {
 
 		assert.True(t, IsEmptyTrie(EmptyTrieHash))
 	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		assert.False(t, IsEmptyTrie([]byte("hash")))
+	})
 }

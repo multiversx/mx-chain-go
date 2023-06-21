@@ -150,7 +150,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		EpochNotifier:             tpn.EpochNotifier,
 		EnableEpochsHandler:       tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler: tpn.GuardedAccountHandler,
+		GuardedAccountHandler:     tpn.GuardedAccountHandler,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

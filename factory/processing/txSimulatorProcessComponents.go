@@ -365,6 +365,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxLogsProcessor:     txLogsProcessor,
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)

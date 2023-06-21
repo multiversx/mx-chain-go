@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
@@ -40,19 +40,25 @@ func TestNewGasScheduleNotifierConstructorErrors(t *testing.T) {
 	args.GasScheduleConfig = config.GasScheduleConfig{}
 	g, err := NewGasScheduleNotifier(args)
 	assert.Equal(t, err, core.ErrInvalidGasScheduleConfig)
-	assert.True(t, check.IfNil(g))
+	assert.Nil(t, g)
 
 	args = createGasScheduleNotifierArgs()
 	args.EpochNotifier = nil
 	g, err = NewGasScheduleNotifier(args)
 	assert.Equal(t, err, core.ErrNilEpochStartNotifier)
-	assert.True(t, check.IfNil(g))
+	assert.Nil(t, g)
 
 	args = createGasScheduleNotifierArgs()
 	args.ConfigDir = ""
 	g, err = NewGasScheduleNotifier(args)
 	assert.NotNil(t, err)
-	assert.True(t, check.IfNil(g))
+	assert.Nil(t, g)
+
+	args = createGasScheduleNotifierArgs()
+	args.WasmVMChangeLocker = nil
+	g, err = NewGasScheduleNotifier(args)
+	assert.Equal(t, err, common.ErrNilWasmChangeLocker)
+	assert.Nil(t, g)
 }
 
 func TestNewGasScheduleNotifier(t *testing.T) {
@@ -61,7 +67,7 @@ func TestNewGasScheduleNotifier(t *testing.T) {
 	args := createGasScheduleNotifierArgs()
 	g, err := NewGasScheduleNotifier(args)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(g))
+	assert.NotNil(t, g)
 }
 
 func TestGasScheduleNotifier_RegisterNotifyHandlerNilHandlerShouldNotAdd(t *testing.T) {
@@ -154,7 +160,8 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, newEpoch, g.currentEpoch)
-	assert.Equal(t, g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"], uint64(300))
+	assert.Equal(t, uint64(300), g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"])
+	assert.Equal(t, uint64(300), g.LatestGasScheduleCopy()["BaseOperationCost"]["AoTPreparePerByte"])
 }
 
 func TestGasScheduleNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
@@ -218,4 +225,14 @@ func testGasScheduleNotifierDeadlock(t *testing.T) {
 	case <-time.After(time.Second):
 		require.Fail(t, "deadlock detected in EpochConfirmed function")
 	}
+}
+
+func TestGasScheduleNotifier_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var g *gasScheduleNotifier
+	require.True(t, g.IsInterfaceNil())
+
+	g, _ = NewGasScheduleNotifier(createGasScheduleNotifierArgs())
+	require.False(t, g.IsInterfaceNil())
 }

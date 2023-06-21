@@ -851,7 +851,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:       pcf.config.Hardfork,
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
-		ImportStartHandler:   pcf.importStartHandler,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,

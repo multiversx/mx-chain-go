@@ -907,6 +907,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
+			UserAccountsDB:      tpn.AccntState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
@@ -1626,6 +1627,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)
@@ -1817,6 +1819,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			},
 		},
 		ValidatorAccountsDB: tpn.PeerState,
+		UserAccountsDB:      tpn.AccntState,
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
@@ -2458,7 +2461,11 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		return "", err
 	}
 
-	txArgsLocal := &external.ArgsCreateTransaction{
+	guardianAddress := ""
+	if len(tx.GuardianAddr) == TestAddressPubkeyConverter.Len() {
+		guardianAddress = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
+	}
+	createTxArgs := &external.ArgsCreateTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         encodedRcvAddr,
@@ -2472,14 +2479,10 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 		Options:          tx.Options,
+		Guardian:         guardianAddress,
+		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
 	}
-
-	if len(tx.GuardianAddr) > 0 {
-		txArgsLocal.Guardian = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
-		txArgsLocal.GuardianSigHex = hex.EncodeToString(tx.GuardianSignature)
-	}
-
-	tx, txHash, err := tpn.Node.CreateTransaction(txArgsLocal)
+	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {
 		return "", err
 	}
