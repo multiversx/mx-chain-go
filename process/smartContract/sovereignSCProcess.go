@@ -17,7 +17,7 @@ type sovereignSCProcessor struct {
 
 // TODO: use scrProcessorV2 when feat/vm1.5 is merged into feat/chain-sdk-go
 
-// NewSovereignSCRProcessor creates a sovereign scr p.rocessor
+// NewSovereignSCRProcessor creates a sovereign scr processor
 func NewSovereignSCRProcessor(scrProc *scProcessor) (*sovereignSCProcessor, error) {
 	if check.IfNil(scrProc) {
 		return nil, process.ErrNilSmartContractResultProcessor
@@ -34,7 +34,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return 0, process.ErrNilSmartContractResult
 	}
 
-	log.Info("sovereignSCProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
+	log.Debug("sovereignSCProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
 
 	var err error
 	returnCode := vmcommon.UserError
@@ -55,7 +55,6 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		log.Info("sovereignSCProcessor.ProcessSmartContractResult().ExecuteBuiltInFunction()")
 		return sc.ExecuteBuiltInFunction(scr, nil, scrData.destination)
 	default:
 		err = process.ErrWrongTransaction

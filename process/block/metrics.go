@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -74,13 +73,7 @@ func getMetricsFromHeader(
 	appStatusHandler core.AppStatusHandler,
 ) {
 	headerSize := uint64(0)
-	marshalizedHeader, err := json.Marshal(header)
-	log.LogIfError(err)
-	log.Debug("marshalized header", "header bytes", string(marshalizedHeader))
-	log.Debug("header value bytes", "#val", fmt.Sprintf("%#v", header))
-	log.Debug("header value bytes", "+val", fmt.Sprintf("%+v", header))
-
-	marshalizedHeader, err = marshalizer.Marshal(header.ShallowClone())
+	marshalizedHeader, err := marshalizer.Marshal(header.ShallowClone())
 	if err == nil {
 		headerSize = uint64(len(marshalizedHeader))
 	}

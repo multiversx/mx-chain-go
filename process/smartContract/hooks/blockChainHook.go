@@ -3,7 +3,6 @@ package hooks
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"path"
@@ -482,17 +481,10 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
-	log.Info("BlockChainHookImpl.ProcessBuiltInFunction before", "function", input.Function)
-
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
 		return nil, err
 	}
-
-	vmoutput, _ := json.Marshal(vmOutput)
-
-	log.Info("BlockChainHookImpl.ProcessBuiltInFunction after", "function", input.Function,
-		"vmoutput", string(vmoutput))
 
 	if !check.IfNil(sndAccount) {
 		err = bh.accounts.SaveAccount(sndAccount)

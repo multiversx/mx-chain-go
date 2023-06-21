@@ -39,8 +39,9 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 	vmInput.CallerAddr = tx.GetSndAddr()
 
 	callValue := big.NewInt(0)
-	if tx.GetValue() != nil {
-		callValue = new(big.Int).Set(tx.GetValue())
+	txValue := tx.GetValue()
+	if txValue != nil {
+		callValue = new(big.Int).Set(txValue)
 	}
 
 	vmInput.CallValue = callValue

@@ -75,8 +75,6 @@ func (scbp *sovereignChainBlockProcessor) processReceivedHeader(headerHandler da
 		return
 	}
 
-	log.Info("sovereignChainBlockProcessor.processReceivedHeader")
-
 	scbp.doJobOnReceivedHeader(headerHandler.GetShardID())
 }
 

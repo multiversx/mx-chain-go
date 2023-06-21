@@ -106,7 +106,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	extendedShardHeaderHash []byte,
 ) {
 
-	log.Info("received extended shard header from network in block tracker",
+	log.Debug("received extended shard header from network in block tracker",
 		"shard", extendedShardHeaderHandler.GetShardID(),
 		"epoch", extendedShardHeaderHandler.GetEpoch(),
 		"round", extendedShardHeaderHandler.GetRound(),
@@ -117,17 +117,16 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	// TODO: This condition will permit to the sovereign chain to follow the main chain headers starting with a header
 	// having a nonce higher than nonce 1 (the first block after genesis)
 	if scsbt.isGenesisLastCrossNotarizedHeader() {
-		log.Info("received extended shard header", "isGenesisLastCrossNotarizedHeader", false)
 		scsbt.crossNotarizer.AddNotarizedHeader(core.SovereignChainShardId, extendedShardHeaderHandler, extendedShardHeaderHash)
 	}
 
 	if !scsbt.shouldAddExtendedShardHeader(extendedShardHeaderHandler) {
-		log.Info("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Error("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 
 	if !scsbt.addHeader(extendedShardHeaderHandler, extendedShardHeaderHash, core.SovereignChainShardId) {
-		log.Info("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Error("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 
@@ -140,8 +139,6 @@ func (scsbt *sovereignChainShardBlockTrack) isGenesisLastCrossNotarizedHeader() 
 
 	isGenesisLastCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
 		lastNotarizedHeader != nil && lastNotarizedHeader.GetNonce() == 0
-
-	log.Info("sovereignChainShardBlockTrack.isGenesisLastCrossNotarizedHeader", "isGenesisLastCrossNotarizedHeader", isGenesisLastCrossNotarizedHeader)
 
 	return isGenesisLastCrossNotarizedHeader
 }
@@ -195,11 +192,6 @@ func (scsbt *sovereignChainShardBlockTrack) isExtendedShardHeaderOutOfRange(exte
 	}
 
 	isExtendedShardHeaderOutOfRange := extendedShardHeaderHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
-
-	log.Info("sovereignChainShardBlockTrack.isExtendedShardHeaderOutOfRange", "isExtendedShardHeaderOutOfRange", isExtendedShardHeaderOutOfRange,
-		"extendedShardHeaderHandler.GetNonce()", extendedShardHeaderHandler.GetNonce(),
-		"lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance", lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance,
-	)
 	return isExtendedShardHeaderOutOfRange
 }
 
