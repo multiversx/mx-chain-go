@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"math/big"
 	"time"
@@ -353,18 +354,19 @@ type StatusComponentsHandler interface {
 
 // RunTypeComponentsHolder holds the runType components
 type RunTypeComponentsHolder struct {
-	BlockChainHookFactoryHandler         BlockChainHookFactoryHandler
-	BlockProcessorFactoryHandler         BlockProcessorFactoryHandler
-	TransactionCoordinatorFactoryHandler TransactionCoordinatorFactoryHandler
-	ResolverRequestFactoryHandler        ResolverRequestFactoryHandler
-	ScheduledTxsExecutionFactoryHandler  ScheduledTxsExecutionFactoryHandler
-	ValidatorStatisticsFactoryHandler    ValidatorStatisticsFactoryHandler
-	HeaderValidatorFactoryHandler        HeaderValidatorFactoryHandler
-	BlockTrackerFactoryHandler           BlockTrackerFactoryHandler
-	ShardForkDetectorFactoryHandler      ShardForkDetectorFactoryHandler
-	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperFactoryHandler
-	SCRProcessorFactoryHandler           SCRProcessorFactoryHandler
-	ShardBootstrapFactoryHandler         ShardBootstrapFactoryHandler
+	BlockChainHookFactoryHandler           BlockChainHookFactoryHandler
+	BlockProcessorFactoryHandler           BlockProcessorFactoryHandler
+	TransactionCoordinatorFactoryHandler   TransactionCoordinatorFactoryHandler
+	ResolverRequestFactoryHandler          ResolverRequestFactoryHandler
+	ScheduledTxsExecutionFactoryHandler    ScheduledTxsExecutionFactoryHandler
+	ValidatorStatisticsFactoryHandler      ValidatorStatisticsFactoryHandler
+	HeaderValidatorFactoryHandler          HeaderValidatorFactoryHandler
+	BlockTrackerFactoryHandler             BlockTrackerFactoryHandler
+	ShardForkDetectorFactoryHandler        ShardForkDetectorFactoryHandler
+	EpochStartBootstrapperFactoryHandler   EpochStartBootstrapperFactoryHandler
+	SCRProcessorFactoryHandler             SCRProcessorFactoryHandler
+	ShardBootstrapFactoryHandler           ShardBootstrapFactoryHandler
+	ShardStorageBootstrapperFactoryHandler ShardStorageBootstrapperFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -623,4 +625,9 @@ type SCRProcessorFactoryHandler interface {
 // ShardBootstrapFactoryHandler defines the operations supported by a shard bootstrap factory
 type ShardBootstrapFactoryHandler interface {
 	CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
+}
+
+// ShardStorageBootstrapperFactoryHandler defines the operations supported by a shard storage bootstrapper factory
+type ShardStorageBootstrapperFactoryHandler interface {
+	CreateShardStorageBootstrapper(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
 }

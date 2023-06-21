@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"time"
 )
@@ -192,4 +193,16 @@ func (sbf *SovereignShardBootstrapFactory) CreateShardBootstrapFactory(argsBaseB
 	}
 
 	return sync.NewSovereignChainShardBootstrap(bootstrapper)
+}
+
+type SovereignShardStorageBootstrapperFactory struct {
+}
+
+func (ssbf *SovereignShardStorageBootstrapperFactory) CreateShardStorageBootstrapper(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return storageBootstrap.NewSovereignChainShardStorageBootstrapper(shardStorageBootstrapper)
 }

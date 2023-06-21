@@ -520,20 +520,7 @@ func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseSt
 		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
 	}
 
-	return storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
-	//shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//switch ccf.chainRunType {
-	//case common.ChainRunTypeRegular:
-	//	return shardStorageBootstrapper, nil
-	//case common.ChainRunTypeSovereign:
-	//	return storageBootstrap.NewSovereignChainShardStorageBootstrapper(shardStorageBootstrapper)
-	//default:
-	//	return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
-	//}
+	return ccf.runTypeComponents.ShardStorageBootstrapperFactoryHandler.CreateShardStorageBootstrapper(argsShardStorageBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
