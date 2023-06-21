@@ -78,6 +78,8 @@ func NewSovereignChainBlockProcessor(
 	headersPool.RegisterHandler(scbp.receivedExtendedShardHeader)
 
 	scbp.requestMissingHeadersFunc = scbp.requestMissingHeaders
+	scbp.cleanupPoolsForCrossShardFunc = scbp.cleanupPoolsForCrossShard
+	scbp.cleanupBlockTrackerPoolsForShardFunc = scbp.cleanupBlockTrackerPoolsForShard
 
 	return scbp, nil
 }
@@ -1409,6 +1411,14 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 
 	scbp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
 	scbp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, header.GetRootHash())
+}
+
+func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupBlockTrackerPoolsForShard(core.SovereignChainShardId, noncesToPrevFinal)
+}
+
+func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupPoolsForCrossShard(core.SovereignChainShardId, noncesToPrevFinal)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

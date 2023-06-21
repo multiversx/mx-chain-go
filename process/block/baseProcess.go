@@ -119,9 +119,11 @@ type baseProcessor struct {
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
 
-	mutNonceOfFirstCommittedBlock sync.RWMutex
-	nonceOfFirstCommittedBlock    core.OptionalUint64
-	requestMissingHeadersFunc     func(missingNonces []uint64, shardID uint32)
+	mutNonceOfFirstCommittedBlock        sync.RWMutex
+	nonceOfFirstCommittedBlock           core.OptionalUint64
+	requestMissingHeadersFunc            func(missingNonces []uint64, shardID uint32)
+	cleanupBlockTrackerPoolsForShardFunc func(shardID uint32, noncesToPrevFinal uint64)
+	cleanupPoolsForCrossShardFunc        func(shardID uint32, noncesToPrevFinal uint64)
 }
 
 type bootStorerDataArgs struct {
@@ -962,10 +964,10 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-			bp.cleanupPoolsForCrossShard(shardID, noncesToPrevFinal)
+			bp.cleanupPoolsForCrossShardFunc(shardID, noncesToPrevFinal)
 		}
 	} else {
-		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
+		bp.cleanupPoolsForCrossShardFunc(core.MetachainShardId, noncesToPrevFinal)
 	}
 }
 
@@ -973,7 +975,13 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	shardID uint32,
 	noncesToPrevFinal uint64,
 ) {
-	shardID = core.SovereignChainShardId
+	bp.baseCleanupPoolsForCrossShard(shardID, noncesToPrevFinal)
+}
+
+func (bp *baseProcessor) baseCleanupPoolsForCrossShard(
+	shardID uint32,
+	noncesToPrevFinal uint64,
+) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 	if err != nil {
 		displayCleanupErrorMessage("cleanupPoolsForCrossShard",
@@ -1092,19 +1100,22 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
-	bp.cleanupBlockTrackerPoolsForShard(bp.shardCoordinator.SelfId(), noncesToPrevFinal)
+	bp.cleanupBlockTrackerPoolsForShardFunc(bp.shardCoordinator.SelfId(), noncesToPrevFinal)
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-			bp.cleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
+			bp.cleanupBlockTrackerPoolsForShardFunc(shardID, noncesToPrevFinal)
 		}
 	} else {
-		bp.cleanupBlockTrackerPoolsForShard(core.MetachainShardId, noncesToPrevFinal)
+		bp.cleanupBlockTrackerPoolsForShardFunc(core.MetachainShardId, noncesToPrevFinal)
 	}
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
-	shardID = core.SovereignChainShardId
+	bp.baseCleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
+}
+
+func (bp *baseProcessor) baseCleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
 		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
@@ -1115,7 +1126,6 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	}
 
 	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
-
 	crossNotarizedNonce := uint64(0)
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)

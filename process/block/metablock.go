@@ -174,6 +174,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.shardsHeadersNonce = &sync.Map{}
 	mp.requestMissingHeadersFunc = mp.requestMissingHeaders
+	mp.cleanupBlockTrackerPoolsForShardFunc = mp.cleanupBlockTrackerPoolsForShard
+	mp.cleanupPoolsForCrossShardFunc = mp.cleanupPoolsForCrossShard
 
 	return &mp, nil
 }
