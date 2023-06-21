@@ -2,7 +2,6 @@ package factory
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -17,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
-	"time"
 )
 
 // SovereignBlockChainHookFactory - factory for sovereign run
@@ -70,9 +68,9 @@ func (rrh *SovereignResolverRequestHandler) CreateResolverRequestHandler(resolve
 		resolverRequestArgs.RequestersFinder,
 		resolverRequestArgs.RequestedItemsHandler,
 		resolverRequestArgs.WhiteListHandler,
-		common.MaxTxsToRequest,
-		resolverRequestArgs.ShardId,
-		time.Second,
+		resolverRequestArgs.MaxTxsToRequest,
+		resolverRequestArgs.ShardID,
+		resolverRequestArgs.RequestInterval,
 	)
 	if err != nil {
 		return nil, err

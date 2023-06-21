@@ -714,7 +714,9 @@ func (pcf *processComponentsFactory) createResolverRequestHandler(
 		RequestersFinder:      requestersFinder,
 		RequestedItemsHandler: pcf.requestedItemsHandler,
 		WhiteListHandler:      pcf.whiteListHandler,
-		ShardId:               pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		MaxTxsToRequest:       common.MaxTxsToRequest,
+		ShardID:               pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		RequestInterval:       time.Second,
 	}
 
 	return pcf.runTypeComponents.ResolverRequestFactoryHandler.CreateResolverRequestHandler(args)

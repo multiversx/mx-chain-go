@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
@@ -59,7 +61,9 @@ type ResolverRequestArgs struct {
 	RequestersFinder      dataRetriever.RequestersFinder
 	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 	WhiteListHandler      process.WhiteListHandler
-	ShardId               uint32
+	MaxTxsToRequest       int
+	ShardID               uint32
+	RequestInterval       time.Duration
 }
 
 // ScheduledTxsExecutionFactoryArgs holds all dependencies required by the process data factory to create components
