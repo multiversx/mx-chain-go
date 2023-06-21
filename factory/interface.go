@@ -250,6 +250,7 @@ type NetworkComponentsHolder interface {
 	FullArchiveNetworkMessenger() p2p.Messenger
 	FullArchivePeersRatingHandler() p2p.PeersRatingHandler
 	FullArchivePeersRatingMonitor() p2p.PeersRatingMonitor
+	FullArchivePreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 

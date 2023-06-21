@@ -22,15 +22,26 @@ func TestNewMetaRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testi
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewMetaRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilMainMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.Messenger = nil
+	args.MainMessenger = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
+}
+
+func TestNewMetaRequestersContainerFactory_NilFullArchiveMessengerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.FullArchiveMessenger = nil
+	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
 }
 
 func TestNewMetaRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T) {
@@ -56,26 +67,48 @@ func TestNewMetaRequestersContainerFactory_NilMarshallerAndSizeCheckShouldErr(t 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
-func TestNewMetaRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilMainPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.PreferredPeersHolder = nil
+	args.MainPreferredPeersHolder = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 }
 
-func TestNewMetaRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
+func TestNewMetaRequestersContainerFactory_NilFullArchivePreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.PeersRatingHandler = nil
+	args.FullArchivePreferredPeersHolder = nil
 	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
+}
+
+func TestNewMetaRequestersContainerFactory_NilMainPeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.MainPeersRatingHandler = nil
+	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
+}
+
+func TestNewMetaRequestersContainerFactory_NilFullArchivePeersRatingHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.FullArchivePeersRatingHandler = nil
+	rcf, err := requesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
 }
 
 func TestNewMetaRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {

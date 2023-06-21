@@ -18,6 +18,7 @@ type NetworkComponentsMock struct {
 	FullArchiveNetworkMessengerField   p2p.Messenger
 	FullArchivePeersRatingHandlerField p2p.PeersRatingHandler
 	FullArchivePeersRatingMonitorField p2p.PeersRatingMonitor
+	FullArchivePreferredPeersHolder    factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -93,6 +94,11 @@ func (ncm *NetworkComponentsMock) FullArchivePeersRatingHandler() p2p.PeersRatin
 // FullArchivePeersRatingMonitor -
 func (ncm *NetworkComponentsMock) FullArchivePeersRatingMonitor() p2p.PeersRatingMonitor {
 	return ncm.FullArchivePeersRatingMonitorField
+}
+
+// FullArchivePreferredPeersHolderHandler -
+func (ncm *NetworkComponentsMock) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncm.FullArchivePreferredPeersHolder
 }
 
 // IsInterfaceNil -

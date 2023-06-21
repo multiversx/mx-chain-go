@@ -135,7 +135,7 @@ func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes 
 		for j := i + 1; j < interactingNodes; j++ {
 			src := nodes[i]
 			dst := nodes[j]
-			_ = src.ConnectTo(dst)
+			_ = src.ConnectOnMain(dst)
 		}
 	}
 }
@@ -143,7 +143,6 @@ func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes 
 func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, maxMessageAgeAllowed time.Duration) {
 	numOfNodes := len(nodes)
 	for i := 0; i < numOfNodes; i++ {
-		// TODO[Sorin]: check also the full archive cachers
 		paCache := nodes[i].DataPool.PeerAuthentications()
 		hbCache := nodes[i].DataPool.Heartbeats()
 

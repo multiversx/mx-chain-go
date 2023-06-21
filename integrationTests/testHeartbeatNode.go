@@ -461,7 +461,8 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
-		Messenger:                thn.MainMessenger,
+		MainMessenger:            thn.MainMessenger,
+		FullArchiveMessenger:     thn.FullArchiveMessenger,
 		Store:                    thn.Storage,
 		Marshalizer:              TestMarshaller,
 		DataPools:                thn.DataPool,
@@ -472,12 +473,13 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
-		PayloadValidator:           payloadValidator,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:      10,
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                payloadValidator,
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
@@ -485,15 +487,18 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3},
-		ShardCoordinator:            thn.ShardCoordinator,
-		Messenger:                   thn.MainMessenger,
-		Marshaller:                  TestMarshaller,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		SizeCheckDelta:              0,
+		ShardCoordinator:                thn.ShardCoordinator,
+		MainMessenger:                   thn.MainMessenger,
+		FullArchiveMessenger:            thn.FullArchiveMessenger,
+		Marshaller:                      TestMarshaller,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider:     &mock.CurrentNetworkEpochProviderStub{},
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		MainPeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
+		FullArchivePeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:                  0,
 	}
 
 	if thn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -735,22 +740,40 @@ func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
 
 }
 
-// ConnectTo will try to initiate a connection to the provided parameter
-func (thn *TestHeartbeatNode) ConnectTo(connectable Connectable) error {
+// ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
+func (thn *TestHeartbeatNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return thn.MainMessenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return thn.MainMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
-// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
-func (thn *TestHeartbeatNode) GetConnectableAddress() string {
+// ConnectOnFullArchive will try to initiate a connection to the provided parameter on the full archive messenger
+func (thn *TestHeartbeatNode) ConnectOnFullArchive(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return thn.FullArchiveMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
+}
+
+// GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (thn *TestHeartbeatNode) GetMainConnectableAddress() string {
 	if thn == nil {
 		return "nil"
 	}
 
 	return GetConnectableAddress(thn.MainMessenger)
+}
+
+// GetFullArchiveConnectableAddress returns a non circuit, non windows default connectable p2p address of the full archive network
+func (thn *TestHeartbeatNode) GetFullArchiveConnectableAddress() string {
+	if thn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(thn.FullArchiveMessenger)
 }
 
 // MakeDisplayTableForHeartbeatNodes returns a string containing counters for received messages for all provided test nodes

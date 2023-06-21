@@ -22,30 +22,35 @@ const EmptyExcludePeersOnTopic = ""
 var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 
 type baseResolversContainerFactory struct {
-	container                dataRetriever.ResolversContainer
-	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.PoolsHolder
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	dataPacker               dataRetriever.DataPacker
-	triesContainer           common.TriesHolder
-	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
-	throttler                dataRetriever.ResolverThrottler
-	intraShardTopic          string
-	isFullHistoryNode        bool
-	preferredPeersHolder     dataRetriever.PreferredPeersHolderHandler
-	payloadValidator         dataRetriever.PeerAuthenticationPayloadValidator
+	container                       dataRetriever.ResolversContainer
+	shardCoordinator                sharding.Coordinator
+	mainMessenger                   dataRetriever.TopicMessageHandler
+	fullArchiveMessenger            dataRetriever.TopicMessageHandler
+	store                           dataRetriever.StorageService
+	marshalizer                     marshal.Marshalizer
+	dataPools                       dataRetriever.PoolsHolder
+	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
+	dataPacker                      dataRetriever.DataPacker
+	triesContainer                  common.TriesHolder
+	inputAntifloodHandler           dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
+	throttler                       dataRetriever.ResolverThrottler
+	intraShardTopic                 string
+	isFullHistoryNode               bool
+	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
+	payloadValidator                dataRetriever.PeerAuthenticationPayloadValidator
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
 	if check.IfNil(brcf.shardCoordinator) {
 		return dataRetriever.ErrNilShardCoordinator
 	}
-	if check.IfNil(brcf.messenger) {
-		return dataRetriever.ErrNilMessenger
+	if check.IfNil(brcf.mainMessenger) {
+		return fmt.Errorf("%w for main network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(brcf.fullArchiveMessenger) {
+		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(brcf.store) {
 		return dataRetriever.ErrNilStore
@@ -74,8 +79,11 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	if check.IfNil(brcf.throttler) {
 		return dataRetriever.ErrNilThrottler
 	}
-	if check.IfNil(brcf.preferredPeersHolder) {
-		return dataRetriever.ErrNilPreferredPeersHolder
+	if check.IfNil(brcf.mainPreferredPeersHolder) {
+		return fmt.Errorf("%w for main network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
+		return fmt.Errorf("%w for full archive network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
 
 	return nil
@@ -155,7 +163,12 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +250,12 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), common.DefaultResolversIdentifier, txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +287,12 @@ func (brcf *baseResolversContainerFactory) generatePeerAuthenticationResolver() 
 		return err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(peerAuthResolver.RequestTopic(), common.DefaultResolversIdentifier, peerAuthResolver)
 	if err != nil {
 		return err
 	}
@@ -288,11 +311,13 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 
 	arg := topicsender.ArgTopicResolverSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			Messenger:            brcf.messenger,
-			TopicName:            topic,
-			OutputAntiflooder:    brcf.outputAntifloodHandler,
-			PreferredPeersHolder: brcf.preferredPeersHolder,
-			TargetShardId:        targetShardId,
+			MainMessenger:                   brcf.mainMessenger,
+			FullArchiveMessenger:            brcf.fullArchiveMessenger,
+			TopicName:                       topic,
+			OutputAntiflooder:               brcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,
+			FullArchivePreferredPeersHolder: brcf.fullArchivePreferredPeersHolder,
+			TargetShardId:                   targetShardId,
 		},
 	}
 	// TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
@@ -334,7 +359,12 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +400,12 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 		return err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	err = brcf.mainMessenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(validatorInfoResolver.RequestTopic(), common.DefaultResolversIdentifier, validatorInfoResolver)
 	if err != nil {
 		return err
 	}

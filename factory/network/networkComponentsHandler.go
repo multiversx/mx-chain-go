@@ -187,7 +187,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() factory.PeerHonestyHan
 	return mnc.networkComponents.peerHonestyHandler
 }
 
-// PreferredPeersHolderHandler returns the preferred peers holder
+// PreferredPeersHolderHandler returns the preferred peers holder of the main network
 func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -196,7 +196,7 @@ func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() factory.Prefe
 		return nil
 	}
 
-	return mnc.networkComponents.peersHolder
+	return mnc.mainNetworkHolder.preferredPeersHolder
 }
 
 // PeersRatingHandler returns the peers rating handler of the main network
@@ -257,6 +257,18 @@ func (mnc *managedNetworkComponents) FullArchivePeersRatingMonitor() p2p.PeersRa
 	}
 
 	return mnc.fullArchiveNetworkHolder.peersRatingMonitor
+}
+
+// FullArchivePreferredPeersHolderHandler returns the preferred peers holder of the full archive network
+func (mnc *managedNetworkComponents) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.fullArchiveNetworkHolder.preferredPeersHolder
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil

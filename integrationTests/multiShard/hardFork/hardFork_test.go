@@ -576,17 +576,23 @@ func createHardForkExporter(
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		}
 
+		networkComponents := integrationTests.GetDefaultNetworkComponents()
+		networkComponents.Messenger = node.MainMessenger
+		networkComponents.FullArchiveNetworkMessengerField = node.FullArchiveMessenger
+		networkComponents.PeersRatingHandlerField = node.MainPeersRatingHandler
+		networkComponents.FullArchivePeersRatingHandlerField = node.FullArchivePeersRatingHandler
+		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,
+			NetworkComponents:    networkComponents,
 			HeaderValidator:      node.HeaderValidator,
 			DataPool:             node.DataPool,
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			MainMessenger:        node.MainMessenger,
-			FullArchiveMessenger: node.FullArchiveMessenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
@@ -616,8 +622,6 @@ func createHardForkExporter(
 			HeaderSigVerifier:                node.HeaderSigVerifier,
 			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
 			ValidityAttester:                 node.BlockTracker,
-			OutputAntifloodHandler:           &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:            &mock.NilAntifloodHandler{},
 			RoundHandler:                     &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
@@ -631,7 +635,6 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
-			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
 			NodeOperationMode:         node.NodeOperationMode,
 		}

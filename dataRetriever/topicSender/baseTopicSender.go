@@ -18,73 +18,95 @@ var log = logger.GetOrCreate("dataretriever/topicsender")
 const (
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
+	mainNetwork        = "main"
+	fullArchiveNetwork = "full archive"
 )
 
 // ArgBaseTopicSender is the base DTO used to create a new topic sender instance
 type ArgBaseTopicSender struct {
-	Messenger            dataRetriever.MessageHandler
-	TopicName            string
-	OutputAntiflooder    dataRetriever.P2PAntifloodHandler
-	PreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
-	TargetShardId        uint32
+	MainMessenger                   dataRetriever.MessageHandler
+	FullArchiveMessenger            dataRetriever.MessageHandler
+	TopicName                       string
+	OutputAntiflooder               dataRetriever.P2PAntifloodHandler
+	MainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	FullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
+	TargetShardId                   uint32
 }
 
 type baseTopicSender struct {
-	messenger                   dataRetriever.MessageHandler
-	topicName                   string
-	outputAntiflooder           dataRetriever.P2PAntifloodHandler
-	mutDebugHandler             sync.RWMutex
-	debugHandler                dataRetriever.DebugHandler
-	preferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
-	targetShardId               uint32
+	mainMessenger                          dataRetriever.MessageHandler
+	fullArchiveMessenger                   dataRetriever.MessageHandler
+	topicName                              string
+	outputAntiflooder                      dataRetriever.P2PAntifloodHandler
+	mutDebugHandler                        sync.RWMutex
+	debugHandler                           dataRetriever.DebugHandler
+	mainPreferredPeersHolderHandler        dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolderHandler dataRetriever.PreferredPeersHolderHandler
+	targetShardId                          uint32
 }
 
 func createBaseTopicSender(args ArgBaseTopicSender) *baseTopicSender {
 	return &baseTopicSender{
-		messenger:                   args.Messenger,
-		topicName:                   args.TopicName,
-		outputAntiflooder:           args.OutputAntiflooder,
-		debugHandler:                handler.NewDisabledInterceptorDebugHandler(),
-		preferredPeersHolderHandler: args.PreferredPeersHolder,
-		targetShardId:               args.TargetShardId,
+		mainMessenger:                          args.MainMessenger,
+		fullArchiveMessenger:                   args.FullArchiveMessenger,
+		topicName:                              args.TopicName,
+		outputAntiflooder:                      args.OutputAntiflooder,
+		debugHandler:                           handler.NewDisabledInterceptorDebugHandler(),
+		mainPreferredPeersHolderHandler:        args.MainPreferredPeersHolder,
+		fullArchivePreferredPeersHolderHandler: args.FullArchivePreferredPeersHolder,
+		targetShardId:                          args.TargetShardId,
 	}
 }
 
 func checkBaseTopicSenderArgs(args ArgBaseTopicSender) error {
-	if check.IfNil(args.Messenger) {
-		return dataRetriever.ErrNilMessenger
+	if check.IfNil(args.MainMessenger) {
+		return fmt.Errorf("%w on main network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(args.OutputAntiflooder) {
 		return dataRetriever.ErrNilAntifloodHandler
 	}
-	if check.IfNil(args.PreferredPeersHolder) {
-		return dataRetriever.ErrNilPreferredPeersHolder
+	if check.IfNil(args.MainPreferredPeersHolder) {
+		return fmt.Errorf("%w on main network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(args.FullArchivePreferredPeersHolder) {
+		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
 	return nil
 }
 
-func (baseSender *baseTopicSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
+func (baseSender *baseTopicSender) sendToConnectedPeer(
+	topic string,
+	buff []byte,
+	peer core.PeerID,
+	messenger dataRetriever.MessageHandler,
+	network string,
+	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
+) error {
 	msg := &factory.Message{
 		DataField:  buff,
 		PeerField:  peer,
 		TopicField: topic,
 	}
 
-	shouldAvoidAntiFloodCheck := baseSender.preferredPeersHolderHandler.Contains(peer)
+	shouldAvoidAntiFloodCheck := preferredPeersHolder.Contains(peer)
 	if shouldAvoidAntiFloodCheck {
-		return baseSender.messenger.SendToConnectedPeer(topic, buff, peer)
+		return messenger.SendToConnectedPeer(topic, buff, peer)
 	}
 
 	err := baseSender.outputAntiflooder.CanProcessMessage(msg, peer)
 	if err != nil {
-		return fmt.Errorf("%w while sending %d bytes to peer %s",
+		return fmt.Errorf("%w while sending %d bytes to peer %s on network %s",
 			err,
 			len(buff),
 			p2p.PeerIdToShortString(peer),
+			network,
 		)
 	}
 
-	return baseSender.messenger.SendToConnectedPeer(topic, buff, peer)
+	return messenger.SendToConnectedPeer(topic, buff, peer)
 }
 
 // DebugHandler returns the debug handler used in resolvers

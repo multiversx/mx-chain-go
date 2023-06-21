@@ -252,8 +252,10 @@ type CryptoParams struct {
 // Connectable defines the operations for a struct to become connectable by other struct
 // In other words, all instances that implement this interface are able to connect with each other
 type Connectable interface {
-	ConnectTo(connectable Connectable) error
-	GetConnectableAddress() string
+	ConnectOnMain(connectable Connectable) error
+	ConnectOnFullArchive(connectable Connectable) error
+	GetMainConnectableAddress() string
+	GetFullArchiveConnectableAddress() string
 	IsInterfaceNil() bool
 }
 
@@ -285,6 +287,7 @@ type ArgTestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
+	NodeOperationMode       p2p.NodeOperation
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -356,6 +359,7 @@ type TestProcessorNode struct {
 
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
+	EpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
 
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
@@ -390,12 +394,14 @@ type TestProcessorNode struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor process.TransactionLogProcessor
-	PeersRatingHandler      p2p.PeersRatingHandler
-	PeersRatingMonitor      p2p.PeersRatingMonitor
-	HardforkTrigger         node.HardforkTrigger
-	AppStatusHandler        core.AppStatusHandler
-	StatusMetrics           external.StatusMetricsHandler
+	TransactionLogProcessor       process.TransactionLogProcessor
+	MainPeersRatingHandler        p2p.PeersRatingHandler
+	FullArchivePeersRatingHandler p2p.PeersRatingHandler
+	MainPeersRatingMonitor        p2p.PeersRatingMonitor
+	FullArchivePeersRatingMonitor p2p.PeersRatingMonitor
+	HardforkTrigger               node.HardforkTrigger
+	AppStatusHandler              core.AppStatusHandler
+	StatusMetrics                 external.StatusMetricsHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -441,6 +447,10 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
 	topRatedCache := testscommon.NewCacherMock()
 	badRatedCache := testscommon.NewCacherMock()
+	var fullArchivePeersRatingHandler p2p.PeersRatingHandler
+	fullArchivePeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
+	fullArchiveTopRatedCache := testscommon.NewCacherMock()
+	fullArchiveBadRatedCache := testscommon.NewCacherMock()
 	if args.WithPeersRatingHandler {
 		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
 			p2pFactory.ArgPeersRatingHandler{
@@ -448,18 +458,35 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 				BadRatedCache: badRatedCache,
 				Logger:        &testscommon.LoggerStub{},
 			})
+
+		fullArchivePeersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
+			p2pFactory.ArgPeersRatingHandler{
+				TopRatedCache: fullArchiveTopRatedCache,
+				BadRatedCache: fullArchiveBadRatedCache,
+				Logger:        &testscommon.LoggerStub{},
+			})
 	}
 
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler)
+	p2pKey := mock.NewPrivateKeyMock()
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
+	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(fullArchivePeersRatingHandler, p2pKey)
 
 	var peersRatingMonitor p2p.PeersRatingMonitor
 	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
+	var fullArchivePeersRatingMonitor p2p.PeersRatingMonitor
+	fullArchivePeersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
 	if args.WithPeersRatingHandler {
 		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
 			p2pFactory.ArgPeersRatingMonitor{
 				TopRatedCache:       topRatedCache,
 				BadRatedCache:       badRatedCache,
 				ConnectionsProvider: messenger,
+			})
+		fullArchivePeersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache:       fullArchiveTopRatedCache,
+				BadRatedCache:       fullArchiveBadRatedCache,
+				ConnectionsProvider: fullArchiveMessenger,
 			})
 	}
 
@@ -470,34 +497,42 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
+	nodeOperationMode := p2p.NormalOperation
+	if len(args.NodeOperationMode) != 0 {
+		nodeOperationMode = args.NodeOperationMode
+	}
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
-		ShardCoordinator:           shardCoordinator,
-		MainMessenger:              messenger,
-		FullArchiveMessenger:       &p2pmocks.MessengerStub{}, // TODO[Sorin]: inject a proper messenger when all pieces are done to test this network as well,
-		NodeOperationMode:          p2p.NormalOperation,
-		NodesCoordinator:           nodesCoordinatorInstance,
-		ChainID:                    ChainID,
-		MinTransactionVersion:      MinTransactionVersion,
-		NodesSetup:                 nodesSetup,
-		HistoryRepository:          &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:              genericEpochNotifier,
-		EnableEpochsHandler:        enableEpochsHandler,
-		WasmVMChangeLocker:         &sync.RWMutex{},
-		TransactionLogProcessor:    logsProcessor,
-		Bootstrapper:               mock.NewTestBootstrapperMock(),
-		PeersRatingHandler:         peersRatingHandler,
-		MainPeerShardMapper:        mock.NewNetworkShardingCollectorMock(),
-		FullArchivePeerShardMapper: mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:               *epochsConfig,
-		UseValidVmBlsSigVerifier:   args.WithBLSSigVerifier,
-		StorageBootstrapper:        &mock.StorageBootstrapperMock{},
-		BootstrapStorer:            &mock.BoostrapStorerMock{},
-		RatingsData:                args.RatingsData,
-		EpochStartNotifier:         args.EpochStartSubscriber,
-		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
-		AppStatusHandler:           appStatusHandler,
-		PeersRatingMonitor:         peersRatingMonitor,
+		ShardCoordinator:              shardCoordinator,
+		MainMessenger:                 messenger,
+		FullArchiveMessenger:          fullArchiveMessenger,
+		NodeOperationMode:             nodeOperationMode,
+		NodesCoordinator:              nodesCoordinatorInstance,
+		ChainID:                       ChainID,
+		MinTransactionVersion:         MinTransactionVersion,
+		NodesSetup:                    nodesSetup,
+		HistoryRepository:             &dblookupextMock.HistoryRepositoryStub{},
+		EpochNotifier:                 genericEpochNotifier,
+		EnableEpochsHandler:           enableEpochsHandler,
+		EpochProvider:                 &mock.CurrentNetworkEpochProviderStub{},
+		WasmVMChangeLocker:            &sync.RWMutex{},
+		TransactionLogProcessor:       logsProcessor,
+		Bootstrapper:                  mock.NewTestBootstrapperMock(),
+		MainPeersRatingHandler:        peersRatingHandler,
+		FullArchivePeersRatingHandler: fullArchivePeersRatingHandler,
+		MainPeerShardMapper:           mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:                  *epochsConfig,
+		UseValidVmBlsSigVerifier:      args.WithBLSSigVerifier,
+		StorageBootstrapper:           &mock.StorageBootstrapperMock{},
+		BootstrapStorer:               &mock.BoostrapStorerMock{},
+		RatingsData:                   args.RatingsData,
+		EpochStartNotifier:            args.EpochStartSubscriber,
+		GuardedAccountHandler:         &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:              appStatusHandler,
+		MainPeersRatingMonitor:        peersRatingMonitor,
+		FullArchivePeersRatingMonitor: fullArchivePeersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -548,22 +583,40 @@ func NewTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	return tpn
 }
 
-// ConnectTo will try to initiate a connection to the provided parameter
-func (tpn *TestProcessorNode) ConnectTo(connectable Connectable) error {
+// ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
+func (tpn *TestProcessorNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return tpn.MainMessenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return tpn.MainMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
-// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
-func (tpn *TestProcessorNode) GetConnectableAddress() string {
+// ConnectOnFullArchive will try to initiate a connection to the provided parameter on the full archive messenger
+func (tpn *TestProcessorNode) ConnectOnFullArchive(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tpn.FullArchiveMessenger.ConnectToPeer(connectable.GetFullArchiveConnectableAddress())
+}
+
+// GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address main network
+func (tpn *TestProcessorNode) GetMainConnectableAddress() string {
 	if tpn == nil {
 		return "nil"
 	}
 
 	return GetConnectableAddress(tpn.MainMessenger)
+}
+
+// GetFullArchiveConnectableAddress returns a non circuit, non windows default connectable p2p address of the full archive network
+func (tpn *TestProcessorNode) GetFullArchiveConnectableAddress() string {
+	if tpn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tpn.FullArchiveMessenger)
 }
 
 // Close -
@@ -1349,25 +1402,30 @@ func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
-	_ = tpn.MainMessenger.CreateTopic(common.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
+	consensusTopic := common.ConsensusTopic + tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId())
+	_ = tpn.MainMessenger.CreateTopic(consensusTopic, true)
+	_ = tpn.FullArchiveMessenger.CreateTopic(consensusTopic, true)
 	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
 	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
+	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           tpn.ShardCoordinator,
-		Messenger:                  tpn.MainMessenger,
-		Store:                      tpn.Storage,
-		Marshalizer:                TestMarshalizer,
-		DataPools:                  tpn.DataPool,
-		Uint64ByteSliceConverter:   TestUint64Converter,
-		DataPacker:                 dataPacker,
-		TriesContainer:             tpn.TrieContainer,
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
-		PreferredPeersHolder:       preferredPeersHolder,
-		PayloadValidator:           payloadValidator,
+		ShardCoordinator:                tpn.ShardCoordinator,
+		MainMessenger:                   tpn.MainMessenger,
+		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		Store:                           tpn.Storage,
+		Marshalizer:                     TestMarshalizer,
+		DataPools:                       tpn.DataPool,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		DataPacker:                      dataPacker,
+		TriesContainer:                  tpn.TrieContainer,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:      10,
+		MainPreferredPeersHolder:        preferredPeersHolder,
+		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
+		PayloadValidator:                payloadValidator,
 	}
 
 	var err error
@@ -1391,15 +1449,18 @@ func (tpn *TestProcessorNode) initRequesters() {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		ShardCoordinator:            tpn.ShardCoordinator,
-		Messenger:                   tpn.MainMessenger,
-		Marshaller:                  TestMarshaller,
-		Uint64ByteSliceConverter:    TestUint64Converter,
-		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          tpn.PeersRatingHandler,
-		SizeCheckDelta:              0,
+		ShardCoordinator:                tpn.ShardCoordinator,
+		MainMessenger:                   tpn.MainMessenger,
+		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		Marshaller:                      TestMarshaller,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		CurrentNetworkEpochProvider:     tpn.EpochProvider,
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		MainPeersRatingHandler:          tpn.MainPeersRatingHandler,
+		FullArchivePeersRatingHandler:   tpn.FullArchivePeersRatingHandler,
+		SizeCheckDelta:                  0,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -2405,8 +2466,10 @@ func (tpn *TestProcessorNode) initNode() {
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.MainMessenger
 	networkComponents.FullArchiveNetworkMessengerField = tpn.FullArchiveMessenger
-	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
-	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
+	networkComponents.PeersRatingHandlerField = tpn.MainPeersRatingHandler
+	networkComponents.FullArchivePeersRatingHandlerField = tpn.FullArchivePeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.MainPeersRatingMonitor
+	networkComponents.FullArchivePeersRatingMonitorField = tpn.FullArchivePeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -3256,12 +3319,16 @@ func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 // GetDefaultNetworkComponents -
 func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	return &mock.NetworkComponentsStub{
-		Messenger:               &p2pmocks.MessengerStub{},
-		InputAntiFlood:          &mock.P2PAntifloodHandlerStub{},
-		OutputAntiFlood:         &mock.P2PAntifloodHandlerStub{},
-		PeerBlackList:           &mock.PeerBlackListCacherStub{},
-		PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
-		PeersRatingMonitorField: &p2pmocks.PeersRatingMonitorStub{},
+		Messenger:                          &p2pmocks.MessengerStub{},
+		InputAntiFlood:                     &mock.P2PAntifloodHandlerStub{},
+		OutputAntiFlood:                    &mock.P2PAntifloodHandlerStub{},
+		PeerBlackList:                      &mock.PeerBlackListCacherStub{},
+		PeersRatingHandlerField:            &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField:            &p2pmocks.PeersRatingMonitorStub{},
+		FullArchiveNetworkMessengerField:   &p2pmocks.MessengerStub{},
+		FullArchivePeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+		PreferredPeersHolder:               &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 	}
 }
 
