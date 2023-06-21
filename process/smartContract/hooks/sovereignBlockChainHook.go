@@ -12,6 +12,7 @@ type sovereignBlockChainHook struct {
 	*BlockChainHookImpl
 }
 
+// NewSovereignBlockChainHook creates a sovereign blockchain hook
 func NewSovereignBlockChainHook(blockChainHook *BlockChainHookImpl) (*sovereignBlockChainHook, error) {
 	if check.IfNil(blockChainHook) {
 		return nil, ErrNilBlockChainHook
