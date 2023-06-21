@@ -880,7 +880,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 		ConsensusModel:        consensus.ConsensusModelV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents:     mainFactory.RunTypeComponentsHolder{},
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

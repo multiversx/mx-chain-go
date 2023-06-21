@@ -41,8 +41,6 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
 
-		pcf.SetChainRunType(common.ChainRunTypeRegular)
-
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
@@ -71,12 +69,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeSovereign)
 
 		_, err = pcf.Create()
 		require.NoError(t, err)
@@ -106,15 +101,12 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
 
 		_, err = pcf.Create()
 		require.NoError(t, err)
-
-		pcf.SetChainRunType("invalid")
 
 		bp, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},

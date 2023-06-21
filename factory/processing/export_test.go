@@ -52,8 +52,3 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 func (pcf *processComponentsFactory) CreateTxSimulatorProcessor() (factory.TransactionSimulatorProcessor, process.VirtualMachinesContainerFactory, error) {
 	return pcf.createTxSimulatorProcessor()
 }
-
-// SetChainRunType -
-func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRunType) {
-	pcf.chainRunType = chainRunType
-}

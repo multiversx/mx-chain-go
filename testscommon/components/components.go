@@ -131,6 +131,7 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
+	runTypeComponents := GetRunTypeComponents()
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
@@ -173,8 +174,12 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		StatusCoreComponents: GetStatusCoreComponents(),
 		ScheduledProcessor:   scheduledProcessor,
 		ConsensusModel:       consensus.ConsensusModelV1,
-		ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    runTypeComponents,
 	}
+}
+
+func GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	return factory.RunTypeComponentsHolder{}
 }
 
 // GetCryptoArgs -
@@ -561,7 +566,6 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
 

@@ -471,6 +471,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		runTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -812,6 +813,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -839,7 +841,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        snr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
 		ConsensusModel:        consensus.ConsensusModelV2,
-		ChainRunType:          common.ChainRunTypeSovereign,
+		RunTypeComponents:     runTypeComponents,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

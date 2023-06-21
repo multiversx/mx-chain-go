@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"math/big"
 	"time"
@@ -363,6 +364,7 @@ type RunTypeComponentsHolder struct {
 	ShardForkDetectorFactoryHandler      ShardForkDetectorFactoryHandler
 	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperFactoryHandler
 	SCRProcessorFactoryHandler           SCRProcessorFactoryHandler
+	ShardBootstrapFactoryHandler         ShardBootstrapFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -616,4 +618,9 @@ type EpochStartBootstrapperFactoryHandler interface {
 // SCRProcessorFactoryHandler defines the operations supported by a smart contract processor factory
 type SCRProcessorFactoryHandler interface {
 	CreateSCRProcessor(args process.ArgsNewSmartContractProcessor) (process.SCRProcessorHandler, error)
+}
+
+// ShardBootstrapFactoryHandler defines the operations supported by a shard bootstrap factory
+type ShardBootstrapFactoryHandler interface {
+	CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
 }

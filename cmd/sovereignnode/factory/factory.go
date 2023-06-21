@@ -181,3 +181,15 @@ func (s *SovereignSCRProcessorFactory) CreateSCRProcessor(args process.ArgsNewSm
 	scrProc, _ := smartContract.NewSmartContractProcessor(args)
 	return smartContract.NewSovereignSCRProcessor(scrProc)
 }
+
+type SovereignShardBootstrapFactory struct {
+}
+
+func (sbf *SovereignShardBootstrapFactory) CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+	bootstrapper, err := sync.NewShardBootstrap(argsBaseBootstrapper)
+	if err != nil {
+		return nil, err
+	}
+
+	return sync.NewSovereignChainShardBootstrap(bootstrapper)
+}
