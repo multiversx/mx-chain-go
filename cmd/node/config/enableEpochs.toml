@@ -243,7 +243,7 @@
     RuntimeCodeSizeFixEnableEpoch = 1
 
     # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
-    RelayedNonceFixEnableEpoch = 2
+    RelayedNonceFixEnableEpoch = 1
 
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 2

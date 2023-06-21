@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
@@ -326,6 +327,7 @@ func executeRelayedTransaction(
 	senderAddress []byte,
 	expectedReturnCode vmcommon.ReturnCode,
 ) {
+	testContext.TxsLogsProcessor.Clean()
 	relayerAccount := getAccount(tb, testContext, relayerAddress)
 	gasLimit := 1 + userTx.GasLimit + uint64(len(userTxPrepared))
 
@@ -335,4 +337,16 @@ func executeRelayedTransaction(
 
 	_, err := testContext.Accounts.Commit()
 	require.Nil(tb, err)
+
+	relayedTxHash, _ := core.CalculateHash(testContext.Marshalizer, integrationtests.TestHasher, relayedTx)
+
+	if expectedReturnCode == vmcommon.Ok {
+		return
+	}
+
+	logs, err := testContext.TxsLogsProcessor.GetLog(relayedTxHash)
+	assert.Nil(tb, err)
+	events := logs.GetLogEvents()
+	assert.Equal(tb, 1, len(events))
+	assert.Equal(tb, core.SignalErrorOperation, string(events[0].GetIdentifier()))
 }

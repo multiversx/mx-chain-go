@@ -582,6 +582,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    arg.Core.TxVersionChecker(),
 		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
+		TxLogsProcessor:     arg.TxLogsProcessor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
