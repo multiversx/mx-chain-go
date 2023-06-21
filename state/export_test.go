@@ -2,13 +2,14 @@ package state
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
-const LastSnapshotStarted = lastSnapshotStarted
+const LastSnapshotStarted = lastSnapshot
 
 // NewEmptyBaseAccount -
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
@@ -16,6 +17,11 @@ func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 		address:         address,
 		dataTrieTracker: tracker,
 	}
+}
+
+// IsSnapshotInProgress -
+func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
+	return &adb.isSnapshotInProgress
 }
 
 // LoadCode -

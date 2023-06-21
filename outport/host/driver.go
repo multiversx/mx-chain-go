@@ -18,10 +18,11 @@ type ArgsHostDriver struct {
 }
 
 type hostDriver struct {
-	marshaller marshal.Marshalizer
-	senderHost SenderHost
-	isClosed   atomic.Flag
-	log        core.Logger
+	marshaller  marshal.Marshalizer
+	senderHost  SenderHost
+	isClosed    atomic.Flag
+	log         core.Logger
+	payloadProc payloadProcessorHandler
 }
 
 // NewHostDriver will create a new instance of hostDriver
@@ -36,11 +37,22 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 		return nil, core.ErrNilLogger
 	}
 
+	payloadProc, err := newPayloadProcessor(args.Log)
+	if err != nil {
+		return nil, err
+	}
+
+	err = args.SenderHost.SetPayloadHandler(payloadProc)
+	if err != nil {
+		return nil, err
+	}
+
 	return &hostDriver{
-		marshaller: args.Marshaller,
-		senderHost: args.SenderHost,
-		log:        args.Log,
-		isClosed:   atomic.Flag{},
+		marshaller:  args.Marshaller,
+		senderHost:  args.SenderHost,
+		log:         args.Log,
+		isClosed:    atomic.Flag{},
+		payloadProc: payloadProc,
 	}, nil
 }
 
@@ -100,6 +112,16 @@ func (o *hostDriver) handleAction(args interface{}, topic string) error {
 	}
 
 	return nil
+}
+
+// RegisterHandler will register the handler function for the provided topic
+func (o *hostDriver) RegisterHandler(handlerFunction func() error, topic string) error {
+	return o.payloadProc.SetHandlerFuncForTopic(handlerFunction, topic)
+}
+
+// SetCurrentSettings will send the current settings
+func (o *hostDriver) SetCurrentSettings(config outport.OutportConfig) error {
+	return o.handleAction(&config, outport.TopicSettings)
 }
 
 // Close will handle the closing of the outport driver web socket sender

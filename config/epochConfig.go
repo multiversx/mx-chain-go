@@ -101,6 +101,7 @@ type EnableEpochs struct {
 	ChangeUsernameEnableEpoch                         uint32
 	AutoBalanceDataTriesEnableEpoch                   uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
+	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

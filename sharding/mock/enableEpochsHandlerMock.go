@@ -608,6 +608,11 @@ func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
 	return false
 }
 
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

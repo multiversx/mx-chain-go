@@ -626,6 +626,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

@@ -476,11 +476,6 @@ func hardForkImport(
 			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
-			ImportStartHandler: &mock.ImportStartHandlerStub{
-				ShouldStartImportCalled: func() bool {
-					return true
-				},
-			},
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					BuiltInFunctionsEnableEpoch:        0,

@@ -167,17 +167,11 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Data.StorageService()) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(arg.Data.Blockchain()) {
-		return process.ErrNilBlockChain
-	}
 	if check.IfNil(arg.Core.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(arg.Core.Hasher()) {
 		return process.ErrNilHasher
-	}
-	if check.IfNil(arg.Core.Uint64ByteSliceConverter()) {
-		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
@@ -188,29 +182,17 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
-	if check.IfNil(arg.TxLogsProcessor) {
-		return process.ErrNilTxLogsProcessor
-	}
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}
-	if check.IfNil(arg.ImportStartHandler) {
-		return update.ErrNilImportStartHandler
-	}
-	if check.IfNil(arg.Core.TxMarshalizer()) {
-		return process.ErrNilMarshalizer
-	}
-	if arg.RoundConfig == nil {
-		return genesis.ErrNilRoundConfig
-	}
 	if arg.EpochConfig == nil {
 		return genesis.ErrNilEpochConfig
 	}
-	if arg.GasSchedule == nil {
-		return genesis.ErrNilGasSchedule
+	if arg.RoundConfig == nil {
+		return genesis.ErrNilRoundConfig
 	}
 
 	return nil
