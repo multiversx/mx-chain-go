@@ -431,7 +431,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		return nil, err
 	}
 
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           integrationtests.TestHasher,
@@ -825,7 +825,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              integrationtests.TestHasher,

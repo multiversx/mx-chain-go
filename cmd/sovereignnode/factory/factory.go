@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -171,4 +172,12 @@ func (bcf *SovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(
 	}
 
 	return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)
+}
+
+type SovereignSCRProcessorFactory struct {
+}
+
+func (s *SovereignSCRProcessorFactory) CreateSCRProcessor(args process.ArgsNewSmartContractProcessor) (process.SCRProcessorHandler, error) {
+	scrProc, _ := smartContract.NewSmartContractProcessor(args)
+	return smartContract.NewSovereignSCRProcessor(scrProc)
 }

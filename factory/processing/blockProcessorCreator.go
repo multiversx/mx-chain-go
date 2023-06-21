@@ -230,7 +230,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -253,7 +253,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
-	scProcessor, err := smartContract.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
+
+	scProcessor, err := pcf.runTypeComponents.SCRProcessorFactoryHandler.CreateSCRProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +566,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	enableEpochs := pcf.epochConfig.EnableEpochs
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -1001,7 +1002,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		MissingTrieNodesNotifier: notifier,
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1052,7 +1053,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if err != nil {
 		return nil, err
 	}

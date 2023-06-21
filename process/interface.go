@@ -1318,3 +1318,9 @@ type Debugger interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// SCRProcessorHandler defines a scr processor handler
+type SCRProcessorHandler interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
+}

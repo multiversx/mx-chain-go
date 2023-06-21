@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"math/big"
 	"strconv"
 	"sync"
@@ -1564,7 +1565,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -1643,7 +1644,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	fact, _ := shard.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -1826,7 +1826,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -2073,7 +2073,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
-	argumentsBase := block.ArgBaseProcessor{
+	argumentsBase := mainFactory.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		BootstrapComponents:  bootstrapComponents,
@@ -2903,7 +2903,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 }
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
-	argsHeaderValidator := block.ArgsHeaderValidator{
+	argsHeaderValidator := mainFactory.ArgsHeaderValidator{
 		Hasher:      TestHasher,
 		Marshalizer: TestMarshalizer,
 	}

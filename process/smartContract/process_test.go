@@ -60,7 +60,7 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 	return acntSrc, acntDst
 }
 
-func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
+func createMockSmartContractProcessorArguments() process.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
 	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
@@ -68,7 +68,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
-	return ArgsNewSmartContractProcessor{
+	return process.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
@@ -4222,7 +4222,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 }
 

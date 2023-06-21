@@ -144,7 +144,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		return args, nil, err
 	}
 
-	scProcArgs := smartContract.ArgsNewSmartContractProcessor{
+	scProcArgs := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              pcf.coreData.Hasher(),
@@ -314,7 +314,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 
 	argsParser := smartContract.NewArgumentParser()
 
-	scProcArgs := smartContract.ArgsNewSmartContractProcessor{
+	scProcArgs := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -338,7 +338,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		IsGenesisProcessing: false,
 	}
 
-	scProcessor, err := smartContract.CreateSCRProcessor(pcf.chainRunType, scProcArgs)
+	scProcessor, err := pcf.runTypeComponents.SCRProcessorFactoryHandler.CreateSCRProcessor(scProcArgs)
 	if err != nil {
 		return args, nil, err
 	}

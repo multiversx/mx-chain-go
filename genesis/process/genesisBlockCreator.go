@@ -455,7 +455,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHook, err := gbc.arg.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
+	blockChainHook, err := gbc.arg.RunTypeComponentsHolder.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -435,7 +434,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := arg.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
+	blockChainHookImpl, err := arg.RunTypeComponentsHolder.BlockChainHookFactoryHandler.CreateBlockChainHook(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +527,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              arg.Core.Hasher(),
@@ -551,7 +550,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
-	scProcessor, err := smartContract.CreateSCRProcessor(arg.ChainRunType, argsNewScProcessor)
+
+	scProcessor, err := arg.RunTypeComponentsHolder.SCRProcessorFactoryHandler.CreateSCRProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -661,7 +661,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
 
-	txCoordinator, err := arg.TransactionCoordinatorFactoryHandler.CreateTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := arg.RunTypeComponentsHolder.TransactionCoordinatorFactoryHandler.CreateTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -692,25 +692,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		vmContainersFactory: vmFactoryImpl,
 		vmContainer:         vmContainer,
 	}, nil
-}
-
-func createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-	chainRunType common.ChainRunType,
-) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	switch chainRunType {
-	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
-	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
-	}
 }
 
 func deployInitialSmartContracts(

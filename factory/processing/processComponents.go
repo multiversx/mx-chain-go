@@ -185,7 +185,6 @@ type processComponentsFactory struct {
 	bootstrapComponents  factory.BootstrapComponentsHolder
 	statusComponents     factory.StatusComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
-	chainRunType         common.ChainRunType
 	runTypeComponents    factory.RunTypeComponentsHolder
 }
 
@@ -876,30 +875,29 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		Core:                                 pcf.coreData,
-		Data:                                 pcf.data,
-		GenesisTime:                          uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		StartEpochNum:                        pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-		Accounts:                             pcf.state.AccountsAdapter(),
-		InitialNodesSetup:                    pcf.coreData.GenesisNodesSetup(),
-		Economics:                            pcf.coreData.EconomicsData(),
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		AccountsParser:                       pcf.accountsParser,
-		SmartContractParser:                  pcf.smartContractParser,
-		ValidatorAccounts:                    pcf.state.PeerAccounts(),
-		GasSchedule:                          pcf.gasSchedule,
-		VirtualMachineConfig:                 genesisVmConfig,
-		TxLogsProcessor:                      pcf.txLogsProcessor,
-		HardForkConfig:                       pcf.config.Hardfork,
-		TrieStorageManagers:                  pcf.state.TrieStorageManagers(),
-		SystemSCConfig:                       *pcf.systemSCConfig,
-		ImportStartHandler:                   pcf.importStartHandler,
-		BlockSignKeyGen:                      pcf.crypto.BlockSignKeyGen(),
-		GenesisString:                        pcf.config.GeneralSettings.GenesisString,
-		GenesisNodePrice:                     genesisNodePrice,
-		EpochConfig:                          &pcf.epochConfig,
-		BlockChainHookFactoryHandler:         pcf.runTypeComponents.BlockChainHookFactoryHandler,
-		TransactionCoordinatorFactoryHandler: pcf.runTypeComponents.TransactionCoordinatorFactoryHandler,
+		Core:                    pcf.coreData,
+		Data:                    pcf.data,
+		GenesisTime:             uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		StartEpochNum:           pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+		Accounts:                pcf.state.AccountsAdapter(),
+		InitialNodesSetup:       pcf.coreData.GenesisNodesSetup(),
+		Economics:               pcf.coreData.EconomicsData(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		AccountsParser:          pcf.accountsParser,
+		SmartContractParser:     pcf.smartContractParser,
+		ValidatorAccounts:       pcf.state.PeerAccounts(),
+		GasSchedule:             pcf.gasSchedule,
+		VirtualMachineConfig:    genesisVmConfig,
+		TxLogsProcessor:         pcf.txLogsProcessor,
+		HardForkConfig:          pcf.config.Hardfork,
+		TrieStorageManagers:     pcf.state.TrieStorageManagers(),
+		SystemSCConfig:          *pcf.systemSCConfig,
+		ImportStartHandler:      pcf.importStartHandler,
+		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
+		GenesisString:           pcf.config.GeneralSettings.GenesisString,
+		GenesisNodePrice:        genesisNodePrice,
+		EpochConfig:             &pcf.epochConfig,
+		RunTypeComponentsHolder: pcf.runTypeComponents,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

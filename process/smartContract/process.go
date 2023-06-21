@@ -87,33 +87,8 @@ type scProcessor struct {
 	isGenesisProcessing bool
 }
 
-// ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
-type ArgsNewSmartContractProcessor struct {
-	VmContainer         process.VirtualMachinesContainer
-	ArgsParser          process.ArgumentsParser
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	AccountsDB          state.AccountsAdapter
-	BlockChainHook      process.BlockChainHookHandler
-	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
-	PubkeyConv          core.PubkeyConverter
-	ShardCoordinator    sharding.Coordinator
-	ScrForwarder        process.IntermediateTransactionHandler
-	TxFeeHandler        process.TransactionFeeHandler
-	EconomicsFee        process.FeeHandler
-	TxTypeHandler       process.TxTypeHandler
-	GasHandler          process.GasHandler
-	GasSchedule         core.GasScheduleNotifier
-	TxLogsProcessor     process.TransactionLogProcessor
-	EnableEpochsHandler common.EnableEpochsHandler
-	BadTxForwarder      process.IntermediateTransactionHandler
-	VMOutputCacher      storage.Cacher
-	WasmVMChangeLocker  common.Locker
-	IsGenesisProcessing bool
-}
-
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
-func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
+func NewSmartContractProcessor(args process.ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
 	}
@@ -2590,9 +2565,10 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
-// 	(1) the account as found in the State
+//
+//	(1) the account as found in the State
 //	(2) the account as returned in VM Output
-// 	(3) the transaction that, upon execution, produced the VM Output
+//	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,

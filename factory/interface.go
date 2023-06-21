@@ -362,6 +362,7 @@ type RunTypeComponentsHolder struct {
 	BlockTrackerFactoryHandler           BlockTrackerFactoryHandler
 	ShardForkDetectorFactoryHandler      ShardForkDetectorFactoryHandler
 	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperFactoryHandler
+	SCRProcessorFactoryHandler           SCRProcessorFactoryHandler
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -610,4 +611,9 @@ type ShardForkDetectorFactoryHandler interface {
 // EpochStartBootstrapperFactoryHandler defines the epoch start bootstrapper factory handler
 type EpochStartBootstrapperFactoryHandler interface {
 	CreateEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
+}
+
+// SCRProcessorFactoryHandler defines the operations supported by a smart contract processor factory
+type SCRProcessorFactoryHandler interface {
+	CreateSCRProcessor(args process.ArgsNewSmartContractProcessor) (process.SCRProcessorHandler, error)
 }

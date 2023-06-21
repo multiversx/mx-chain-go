@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-vm-common-go"
 	"math/big"
 )
 
@@ -49,4 +51,29 @@ type BalanceComputationHandler interface {
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
 	IsInterfaceNil() bool
+}
+
+// ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
+type ArgsNewSmartContractProcessor struct {
+	VmContainer         VirtualMachinesContainer
+	ArgsParser          ArgumentsParser
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	AccountsDB          state.AccountsAdapter
+	BlockChainHook      BlockChainHookHandler
+	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
+	PubkeyConv          core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
+	ScrForwarder        IntermediateTransactionHandler
+	TxFeeHandler        TransactionFeeHandler
+	EconomicsFee        FeeHandler
+	TxTypeHandler       TxTypeHandler
+	GasHandler          GasHandler
+	GasSchedule         core.GasScheduleNotifier
+	TxLogsProcessor     TransactionLogProcessor
+	EnableEpochsHandler common.EnableEpochsHandler
+	BadTxForwarder      IntermediateTransactionHandler
+	VMOutputCacher      storage.Cacher
+	WasmVMChangeLocker  common.Locker
+	IsGenesisProcessing bool
 }

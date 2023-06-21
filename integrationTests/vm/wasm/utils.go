@@ -346,7 +346,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := process.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           hasher,
