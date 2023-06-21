@@ -1,7 +1,6 @@
 package heartbeatV2
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -166,15 +165,15 @@ func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {
 			}
 
 			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
-			assert.Equal(t, core.UnknownPeer, peerInfo.PeerType)
+			assert.Equal(t, core.UnknownPeer, peerInfo.PeerType) // nodes not connected on this network
 
 			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
 			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
-			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType) // on main network they are all validators, but on full archive peerAuthentication message is not sent
+			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType) // on main network they are all validators
 		}
 	}
 
-	// connect nodes on full archive as well network only
+	// connect nodes on full archive network as well
 	for i := 0; i < interactingNodes-1; i++ {
 		for j := i + 1; j < interactingNodes; j++ {
 			src := nodes[i]
@@ -196,12 +195,10 @@ func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {
 
 			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
 			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfo.ShardID)
-			println(fmt.Sprintf("main %s - %d", nodes[j].MainMessenger.ID(), peerInfo.ShardID))
-			assert.Equal(t, core.ObserverPeer, peerInfo.PeerType)
+			assert.Equal(t, core.ObserverPeer, peerInfo.PeerType) // observers because the peerAuth is not sent on this network
 
 			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
 			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
-			println(fmt.Sprintf("main %s - %d", nodes[j].MainMessenger.ID(), peerInfoMain.ShardID))
 			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType)
 		}
 	}
