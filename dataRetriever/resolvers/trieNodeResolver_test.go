@@ -183,7 +183,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	arg := createMockArgTrieNodeResolver()
 	arg.TrieDataGetter = tr
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -297,7 +297,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			assert.Fail(t, "should have not called send")
 			return nil
 		},
@@ -337,7 +337,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 	var receivedNodes [][]byte
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			b := &batch.Batch{}
 			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
@@ -392,7 +392,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 	var receivedNodes [][]byte
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			b := &batch.Batch{}
 			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
@@ -449,7 +449,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 	var receivedNodes [][]byte
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			b := &batch.Batch{}
 			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)
@@ -519,7 +519,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 	sendWasCalled := false
 	arg := createMockArgTrieNodeResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			b := &batch.Batch{}
 			err := arg.Marshaller.Unmarshal(b, buff)
 			require.Nil(t, err)

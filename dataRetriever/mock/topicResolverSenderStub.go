@@ -4,11 +4,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendCalled          func(buff []byte, peer core.PeerID) error
+	SendCalled          func(buff []byte, peer core.PeerID, network p2p.Network) error
 	TargetShardIDCalled func() uint32
 	debugHandler        dataRetriever.DebugHandler
 }
@@ -19,9 +20,9 @@ func (trss *TopicResolverSenderStub) RequestTopic() string {
 }
 
 // Send -
-func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID) error {
+func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID, network p2p.Network) error {
 	if trss.SendCalled != nil {
-		return trss.SendCalled(buff, peer)
+		return trss.SendCalled(buff, peer, network)
 	}
 
 	return nil

@@ -207,7 +207,7 @@ func TestHeaderResolver_ProcessReceivedMessageEpochTypeUnknownEpochShouldWork(t 
 	}
 	wasSent := false
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},
@@ -272,7 +272,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -309,7 +309,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	arg := createMockArgHeaderResolver()
 	arg.IsFullHistoryNode = true
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -352,7 +352,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			return nil
 		},
 	}
@@ -391,7 +391,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},
@@ -460,7 +460,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},
@@ -514,7 +514,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},
@@ -575,7 +575,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSend = true
 			return nil
 		},
@@ -625,7 +625,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			assert.Fail(t, "should not have been called")
 			return nil
 		},
@@ -679,7 +679,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	}
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSend = true
 			return nil
 		},
@@ -729,7 +729,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			return nil
 		},
 		TargetShardIDCalled: func() uint32 {

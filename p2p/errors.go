@@ -14,3 +14,6 @@ var ErrNilPreferredPeersHolder = p2p.ErrNilPreferredPeersHolder
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
+
+// ErrUnknownNetwork signals that an unknown network has been provided
+var ErrUnknownNetwork = errors.New("unknown network")

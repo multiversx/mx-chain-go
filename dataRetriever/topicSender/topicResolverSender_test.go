@@ -115,7 +115,7 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 	}
 	trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	err := trs.Send(buffToSend, pID1)
+	err := trs.Send(buffToSend, pID1, p2p.MainNetwork)
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -148,7 +148,7 @@ func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.
 	}
 	trs, _ := topicsender.NewTopicResolverSender(arg)
 
-	err := trs.Send(buffToSend, pID1)
+	err := trs.Send(buffToSend, pID1, p2p.MainNetwork)
 	require.NoError(t, err)
 	require.True(t, sendWasCalled)
 }
@@ -185,7 +185,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		}
 		trs, _ := topicsender.NewTopicResolverSender(arg)
 
-		err := trs.Send(buffToSend, pID1)
+		err := trs.Send(buffToSend, pID1, p2p.MainNetwork)
 
 		assert.Nil(t, err)
 		assert.True(t, sentToPid1)
@@ -216,7 +216,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		}
 		trs, _ := topicsender.NewTopicResolverSender(arg)
 
-		err := trs.Send(buffToSend, pID1)
+		err := trs.Send(buffToSend, pID1, p2p.FullArchiveNetwork)
 
 		assert.Nil(t, err)
 		assert.True(t, sentToPid1)

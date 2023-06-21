@@ -272,7 +272,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshMock.Unmarshal(b, buff)
@@ -311,7 +311,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshMock.Unmarshal(b, buff)
@@ -431,7 +431,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				return expectedErr
 			},
 		}
@@ -466,7 +466,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshMock.Unmarshal(b, buff)
@@ -524,7 +524,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		numOfCallsSend := 0
 		args.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				marshMock := marshallerMock.MarshalizerMock{}
 				b := &batch.Batch{}
 				_ = marshMock.Unmarshal(b, buff)

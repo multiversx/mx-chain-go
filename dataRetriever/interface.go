@@ -50,7 +50,7 @@ type HeaderRequester interface {
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	Send(buff []byte, peer core.PeerID) error
+	Send(buff []byte, peer core.PeerID, network p2p.Network) error
 	RequestTopic() string
 	TargetShardID() uint32
 	SetDebugHandler(handler DebugHandler) error

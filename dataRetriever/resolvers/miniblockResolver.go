@@ -93,9 +93,9 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch)
+		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch, message.Network())
 	case dataRetriever.HashArrayType:
-		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch)
+		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, message.Network())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -107,7 +107,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	return err
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID, epoch uint32) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID, epoch uint32, network p2p.Network) error {
 	mb, err := mbRes.fetchMbAsByteSlice(hash, epoch)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.Pee
 		return err
 	}
 
-	return mbRes.Send(buffToSend, pid)
+	return mbRes.Send(buffToSend, pid, network)
 }
 
 func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([]byte, error) {
@@ -146,7 +146,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 	return buff, nil
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID, epoch uint32) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID, epoch uint32, network p2p.Network) error {
 	b := batch.Batch{}
 	err := mbRes.marshalizer.Unmarshal(&b, mbBuff)
 	if err != nil {
@@ -177,7 +177,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 	}
 
 	for _, buff := range buffsToSend {
-		errSend := mbRes.Send(buff, pid)
+		errSend := mbRes.Send(buff, pid, network)
 		if errSend != nil {
 			return errSend
 		}

@@ -91,7 +91,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 
 	switch rd.Type {
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, message.Peer())
+		return res.resolveMultipleHashesRequest(rd.Value, message.Peer(), message.Network())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -103,7 +103,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request
-func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff []byte, pid core.PeerID) error {
+func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff []byte, pid core.PeerID, network p2p.Network) error {
 	b := batch.Batch{}
 	err := res.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -116,18 +116,18 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %x", err, hashesBuff)
 	}
 
-	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid)
+	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid, network)
 }
 
 // sendPeerAuthsForHashes sends multiple peer authentication messages for specific hashes
-func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, pid core.PeerID) error {
+func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, pid core.PeerID, network p2p.Network) error {
 	buffsToSend, err := res.dataPacker.PackDataInChunks(dataBuff, maxBuffToSendPeerAuthentications)
 	if err != nil {
 		return err
 	}
 
 	for _, buff := range buffsToSend {
-		err = res.Send(buff, pid)
+		err = res.Send(buff, pid, network)
 		if err != nil {
 			return err
 		}

@@ -206,7 +206,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -342,7 +342,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -432,7 +432,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 	sendWasCalled := false
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -488,7 +488,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	sendWasCalled := false
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -585,7 +585,7 @@ func TestTxResolver_ProcessReceivedMessageHashArraySendFails(t *testing.T) {
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			return expectedErr
 		},
 	}

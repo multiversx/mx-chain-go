@@ -18,8 +18,6 @@ var log = logger.GetOrCreate("dataretriever/topicsender")
 const (
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
-	mainNetwork        = "main"
-	fullArchiveNetwork = "full archive"
 )
 
 // ArgBaseTopicSender is the base DTO used to create a new topic sender instance
@@ -82,13 +80,14 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 	buff []byte,
 	peer core.PeerID,
 	messenger dataRetriever.MessageHandler,
-	network string,
+	network p2p.Network,
 	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) error {
 	msg := &factory.Message{
-		DataField:  buff,
-		PeerField:  peer,
-		TopicField: topic,
+		DataField:    buff,
+		PeerField:    peer,
+		TopicField:   topic,
+		NetworkField: network,
 	}
 
 	shouldAvoidAntiFloodCheck := preferredPeersHolder.Contains(peer)

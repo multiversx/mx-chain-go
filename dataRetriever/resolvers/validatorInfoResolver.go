@@ -105,26 +105,26 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer)
+		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, message.Network())
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer)
+		return res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, message.Network())
 	}
 
 	return fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 }
 
 // resolveHashRequest sends the response for a hash request
-func (res *validatorInfoResolver) resolveHashRequest(hash []byte, epoch uint32, pid core.PeerID) error {
+func (res *validatorInfoResolver) resolveHashRequest(hash []byte, epoch uint32, pid core.PeerID, network p2p.Network) error {
 	data, err := res.fetchValidatorInfoByteSlice(hash, epoch)
 	if err != nil {
 		return err
 	}
 
-	return res.marshalAndSend(data, pid)
+	return res.marshalAndSend(data, pid, network)
 }
 
 // resolveMultipleHashesRequest sends the response for a hash array type request
-func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte, epoch uint32, pid core.PeerID) error {
+func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte, epoch uint32, pid core.PeerID, network p2p.Network) error {
 	b := batch.Batch{}
 	err := res.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -141,17 +141,17 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte
 		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, outputHashes)
 	}
 
-	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid)
+	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid, network)
 }
 
-func (res *validatorInfoResolver) sendValidatorInfoForHashes(validatorInfoForHashes [][]byte, pid core.PeerID) error {
+func (res *validatorInfoResolver) sendValidatorInfoForHashes(validatorInfoForHashes [][]byte, pid core.PeerID, network p2p.Network) error {
 	buffsToSend, err := res.dataPacker.PackDataInChunks(validatorInfoForHashes, maxBuffToSendValidatorsInfo)
 	if err != nil {
 		return err
 	}
 
 	for _, buff := range buffsToSend {
-		err = res.Send(buff, pid)
+		err = res.Send(buff, pid, network)
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch
 	return buff, nil
 }
 
-func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) error {
+func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID, network p2p.Network) error {
 	b := &batch.Batch{
 		Data: [][]byte{data},
 	}
@@ -206,7 +206,7 @@ func (res *validatorInfoResolver) marshalAndSend(data []byte, pid core.PeerID) e
 		return err
 	}
 
-	return res.Send(buff, pid)
+	return res.Send(buff, pid, network)
 }
 
 // SetDebugHandler sets a debug handler

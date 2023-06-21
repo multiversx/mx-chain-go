@@ -228,6 +228,7 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 func (ncf *networkComponentsFactory) createNetworkHolder(
 	p2pConfig p2pConfig.P2PConfig,
 	logger p2p.Logger,
+	network p2p.Network,
 ) (networkComponentsHolder, error) {
 
 	peersHolder, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
@@ -267,6 +268,7 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 		P2pSingleSigner:       ncf.cryptoComponents.P2pSingleSigner(),
 		P2pKeyGenerator:       ncf.cryptoComponents.P2pKeyGen(),
 		Logger:                logger,
+		Network:               network,
 	}
 	networkMessenger, err := p2pFactory.NewNetworkMessenger(argsMessenger)
 	if err != nil {
@@ -293,7 +295,7 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 
 func (ncf *networkComponentsFactory) createMainNetworkHolder() (networkComponentsHolder, error) {
 	loggerInstance := logger.GetOrCreate("main/p2p")
-	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, p2p.MainNetwork)
 }
 
 func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder() (networkComponentsHolder, error) {
@@ -308,7 +310,7 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder() (networkCo
 
 	loggerInstance := logger.GetOrCreate("full-archive/p2p")
 
-	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, p2p.FullArchiveNetwork)
 }
 
 // Close closes all underlying components that need closing

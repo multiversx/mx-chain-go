@@ -241,7 +241,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg.PeerAuthenticationPool = cache
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				wasSent = true
 				return nil
 			},
@@ -270,7 +270,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg.PeerAuthenticationPool = cache
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				wasSent = true
 				return nil
 			},
@@ -306,7 +306,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg.PeerAuthenticationPool = cache
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				wasSent = true
 				return nil
 			},
@@ -360,7 +360,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg.PeerAuthenticationPool = cache
 		wasSent := false
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				b := &batch.Batch{}
 				err = arg.Marshaller.Unmarshal(b, buff)
 				assert.Nil(t, err)
@@ -426,7 +426,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		arg := createMockArgPeerAuthenticationResolver()
 		arg.PeerAuthenticationPool = cache
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				return expectedErr
 			},
 		}
@@ -463,7 +463,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		messagesSent := 0
 		hashesReceived := 0
 		arg.SenderResolver = &mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer core.PeerID) error {
+			SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 				b := &batch.Batch{}
 				err := arg.Marshaller.Unmarshal(b, buff)
 				assert.Nil(t, err)

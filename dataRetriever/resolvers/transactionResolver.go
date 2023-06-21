@@ -98,9 +98,9 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch)
+		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch, message.Network())
 	case dataRetriever.HashArrayType:
-		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch)
+		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, message.Network())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -112,7 +112,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	return err
 }
 
-func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32) error {
+func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32, network p2p.Network) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	tx, err := txRes.fetchTxAsByteSlice(hash, epoch)
 	if err != nil {
@@ -127,7 +127,7 @@ func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, ep
 		return err
 	}
 
-	return txRes.Send(buff, pid)
+	return txRes.Send(buff, pid, network)
 }
 
 func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, error) {
@@ -152,7 +152,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 	return buff, nil
 }
 
-func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32) error {
+func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32, network p2p.Network) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	b := batch.Batch{}
 	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
@@ -186,7 +186,7 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 	}
 
 	for _, buff := range buffsToSend {
-		errSend := txRes.Send(buff, pid)
+		errSend := txRes.Send(buff, pid, network)
 		if errSend != nil {
 			return errSend
 		}

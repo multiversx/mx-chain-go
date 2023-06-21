@@ -184,7 +184,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},
@@ -386,7 +386,7 @@ func TestMiniblockResolver_ProcessReceivedMessageSendFails(t *testing.T) {
 	}
 	arg.Marshaller = goodMarshalizer
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			return expectedErr
 		},
 	}
@@ -428,7 +428,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSend = true
 			return nil
 		},
@@ -474,7 +474,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			assert.Fail(t, "should have not been called")
 			return nil
 		},
@@ -523,7 +523,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer core.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID, network p2p.Network) error {
 			wasSent = true
 			return nil
 		},

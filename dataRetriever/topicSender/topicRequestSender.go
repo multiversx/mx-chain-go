@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
@@ -135,7 +136,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger,
 			trs.mainPeersRatingHandler,
-			mainNetwork,
+			p2p.MainNetwork,
 			trs.mainPreferredPeersHolderHandler)
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
@@ -149,7 +150,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger,
 			trs.mainPeersRatingHandler,
-			mainNetwork,
+			p2p.MainNetwork,
 			trs.mainPreferredPeersHolderHandler)
 	} else {
 		preferredPeer := trs.getPreferredFullArchivePeer()
@@ -164,7 +165,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.FullHistoryPeer.String(),
 			trs.fullArchiveMessenger,
 			trs.fullArchivePeersRatingHandler,
-			fullArchiveNetwork,
+			p2p.FullArchiveNetwork,
 			trs.fullArchivePreferredPeersHolderHandler)
 	}
 
@@ -207,7 +208,7 @@ func (trs *topicRequestSender) sendOnTopic(
 	peerType string,
 	messenger dataRetriever.MessageHandler,
 	peersRatingHandler dataRetriever.PeersRatingHandler,
-	network string,
+	network p2p.Network,
 	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {

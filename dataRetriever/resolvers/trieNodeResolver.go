@@ -214,7 +214,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 		return err
 	}
 
-	return tnRes.Send(buff, message.Peer())
+	return tnRes.Send(buff, message.Peer(), message.Network())
 }
 
 func (tnRes *TrieNodeResolver) sendLargeMessage(
@@ -248,7 +248,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 		return err
 	}
 
-	return tnRes.Send(buff, message.Peer())
+	return tnRes.Send(buff, message.Peer(), message.Network())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

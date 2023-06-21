@@ -468,8 +468,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 
 	p2pKey := mock.NewPrivateKeyMock()
-	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
-	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(fullArchivePeersRatingHandler, p2pKey)
+	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey, p2p.MainNetwork)
+	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(fullArchivePeersRatingHandler, p2pKey, p2p.FullArchiveNetwork)
 
 	var peersRatingMonitor p2p.PeersRatingMonitor
 	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
