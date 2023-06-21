@@ -435,7 +435,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := hooks.CreateBlockChainHook(arg.ChainRunType, argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -551,7 +551,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	scProcessor, err := smartContract.CreateSCRProcessor(arg.ChainRunType, argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}

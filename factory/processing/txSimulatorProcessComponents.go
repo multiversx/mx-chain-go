@@ -338,7 +338,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		IsGenesisProcessing: false,
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	scProcessor, err := smartContract.CreateSCRProcessor(pcf.chainRunType, scProcArgs)
 	if err != nil {
 		return args, nil, err
 	}
