@@ -279,6 +279,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
+	runTypeComponents := mainFactory.RunTypeComponentsHolder{}
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -312,7 +314,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, runTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1359,6 +1361,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1371,7 +1374,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

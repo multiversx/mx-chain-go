@@ -1318,17 +1318,16 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                               *snr.configs.GeneralConfig,
-		PrefConfig:                           *snr.configs.PreferencesConfig,
-		ImportDbConfig:                       *snr.configs.ImportDbConfig,
-		FlagsConfig:                          *snr.configs.FlagsConfig,
-		WorkingDir:                           snr.configs.FlagsConfig.DbDir,
-		CoreComponents:                       coreComponents,
-		CryptoComponents:                     cryptoComponents,
-		NetworkComponents:                    networkComponents,
-		StatusCoreComponents:                 statusCoreComponents,
-		EpochStartBootstrapperFactoryHandler: runTypeComponents.EpochStartBootstrapperFactoryHandler,
-		ChainRunType:                         common.ChainRunTypeSovereign,
+		Config:               *snr.configs.GeneralConfig,
+		PrefConfig:           *snr.configs.PreferencesConfig,
+		ImportDbConfig:       *snr.configs.ImportDbConfig,
+		FlagsConfig:          *snr.configs.FlagsConfig,
+		WorkingDir:           snr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

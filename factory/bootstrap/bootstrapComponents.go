@@ -30,32 +30,30 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config                               config.Config
-	RoundConfig                          config.RoundConfig
-	PrefConfig                           config.Preferences
-	ImportDbConfig                       config.ImportDbConfig
-	FlagsConfig                          config.ContextFlagsConfig
-	WorkingDir                           string
-	CoreComponents                       factory.CoreComponentsHolder
-	CryptoComponents                     factory.CryptoComponentsHolder
-	NetworkComponents                    factory.NetworkComponentsHolder
-	StatusCoreComponents                 factory.StatusCoreComponentsHolder
-	EpochStartBootstrapperFactoryHandler factory.EpochStartBootstrapperFactoryHandler
-	ChainRunType                         common.ChainRunType
+	Config               config.Config
+	RoundConfig          config.RoundConfig
+	PrefConfig           config.Preferences
+	ImportDbConfig       config.ImportDbConfig
+	FlagsConfig          config.ContextFlagsConfig
+	WorkingDir           string
+	CoreComponents       factory.CoreComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
-	config                               config.Config
-	prefConfig                           config.Preferences
-	importDbConfig                       config.ImportDbConfig
-	flagsConfig                          config.ContextFlagsConfig
-	workingDir                           string
-	coreComponents                       factory.CoreComponentsHolder
-	cryptoComponents                     factory.CryptoComponentsHolder
-	networkComponents                    factory.NetworkComponentsHolder
-	statusCoreComponents                 factory.StatusCoreComponentsHolder
-	epochStartBootstrapperFactoryHandler factory.EpochStartBootstrapperFactoryHandler
-	chainRunType                         common.ChainRunType
+	config               config.Config
+	prefConfig           config.Preferences
+	importDbConfig       config.ImportDbConfig
+	flagsConfig          config.ContextFlagsConfig
+	workingDir           string
+	coreComponents       factory.CoreComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	runTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponents struct {
@@ -95,17 +93,16 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	// TODO: check if nil epochStartBootstrapperFactoryHandler
 
 	return &bootstrapComponentsFactory{
-		config:                               args.Config,
-		prefConfig:                           args.PrefConfig,
-		importDbConfig:                       args.ImportDbConfig,
-		flagsConfig:                          args.FlagsConfig,
-		workingDir:                           args.WorkingDir,
-		coreComponents:                       args.CoreComponents,
-		cryptoComponents:                     args.CryptoComponents,
-		networkComponents:                    args.NetworkComponents,
-		statusCoreComponents:                 args.StatusCoreComponents,
-		epochStartBootstrapperFactoryHandler: args.EpochStartBootstrapperFactoryHandler,
-		chainRunType:                         args.ChainRunType,
+		config:               args.Config,
+		prefConfig:           args.PrefConfig,
+		importDbConfig:       args.ImportDbConfig,
+		flagsConfig:          args.FlagsConfig,
+		workingDir:           args.WorkingDir,
+		coreComponents:       args.CoreComponents,
+		cryptoComponents:     args.CryptoComponents,
+		networkComponents:    args.NetworkComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		runTypeComponents:    args.RunTypeComponents,
 	}, nil
 }
 
@@ -224,7 +221,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ImportDbConfig:             bcf.importDbConfig,
 			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
-			ChainRunType:               bcf.chainRunType,
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
@@ -276,19 +272,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 }
 
 func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (factory.EpochStartBootstrapper, error) {
-	epochStartBootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
-	}
-
-	switch bcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return epochStartBootstrapper, nil
-	case common.ChainRunTypeSovereign:
-		return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, bcf.chainRunType)
-	}
+	return bcf.runTypeComponents.EpochStartBootstrapperFactoryHandler.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.HeaderVersionHandler, shardID uint32) (nodeFactory.VersionedHeaderFactory, error) {
