@@ -186,7 +186,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 	}
 
 	sender.mainMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
-	sender.fullArchiveMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk) // TODO[Sorin]: rethink if we need to send this
+	sender.fullArchiveMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
 
 	return nil
 }
