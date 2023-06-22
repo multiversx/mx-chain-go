@@ -420,7 +420,6 @@ func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBloc
 	}
 
 	return miniBlockHeaders, nil
-
 }
 
 // receivedExtendedShardHeader is a callback function when a new extended shard header was received

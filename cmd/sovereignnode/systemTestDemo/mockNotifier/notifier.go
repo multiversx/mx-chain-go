@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -16,12 +18,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/urfave/cli"
 )
 
 var (
-	marshaller, _ = factory.NewMarshalizer("gogo protobuf")
-	log           = logger.GetOrCreate("server")
-	url           = "localhost:22111"
+	marshaller, _      = factory.NewMarshalizer("gogo protobuf")
+	log                = logger.GetOrCreate("sovereign-mock-notifier")
+	hasher             = blake2b.NewBlake2b()
+	pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	url                = "localhost:22111"
+	subscribedAddress  = "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
 )
 
 func createEsdtMetaData(value *big.Int, nonce uint64, creator []byte) []byte {
@@ -43,14 +49,14 @@ func createEsdtMetaData(value *big.Int, nonce uint64, creator []byte) []byte {
 	return marshalledData
 }
 
-func createTransfer(addr []byte, ct int64, nftCreator []byte) [][]byte {
+func createTransfer(addr []byte, ct int64) [][]byte {
 	nftTransferNonce := big.NewInt(1 + ct)
 	nftTransferValue := big.NewInt(100 + ct)
 
 	transfer1 := [][]byte{
 		[]byte("ASH-a642d1"),
 		nftTransferNonce.Bytes(),
-		createEsdtMetaData(nftTransferValue, nftTransferNonce.Uint64(), nftCreator),
+		createEsdtMetaData(nftTransferValue, nftTransferNonce.Uint64(), addr),
 	}
 	transfer2 := [][]byte{
 		[]byte("WEGLD-bd4d79"),
@@ -63,7 +69,164 @@ func createTransfer(addr []byte, ct int64, nftCreator []byte) [][]byte {
 	return topic1
 }
 
+func createLogs(subscribedAddr []byte, ct int) []*outport.LogData {
+	return []*outport.LogData{
+		{
+			Log: &transaction.Log{
+				Address: nil,
+				Events: []*transaction.Event{
+					{
+						Address:    subscribedAddr,
+						Identifier: []byte("deposit"),
+						Topics:     createTransfer(subscribedAddr, int64(ct)),
+					},
+				},
+			},
+		},
+	}
+}
+
+func generateRandomHash() []byte {
+	randomBytes := make([]byte, 32)
+	_, _ = rand.Read(randomBytes)
+	return randomBytes
+}
+
 func main() {
+	app := cli.NewApp()
+	app.Name = "MultiversX sovereign chain notifier"
+	app.Usage = "This tool will communicate with an observer/light client connected to mx-chain via " +
+		"websocket outport driver and listen to incoming transaction to the specified sovereign chain. If such transactions" +
+		"are found, it will format them and forward them to the sovereign shard."
+	app.Flags = []cli.Flag{
+		logLevel,
+		logSaveFile,
+	}
+	app.Authors = []cli.Author{
+		{
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
+		},
+	}
+
+	app.Action = startNotifier
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+}
+
+func startNotifier(ctx *cli.Context) error {
+	wsServer, err := createWSHost()
+	if err != nil {
+		log.Error("cannot create WebSocket server", "error", err)
+		return err
+	}
+
+	prevHash := generateRandomHash()
+	prevRandSeed := generateRandomHash()
+	nonce := uint64(10)
+	subscribedAddr, err := pubKeyConverter.Decode(subscribedAddress)
+	log.LogIfError(err)
+
+	for {
+		headerV2 := createHeaderV2(nonce, prevHash, prevRandSeed)
+		outportBlock, err := createOutportBlock(headerV2, nonce, subscribedAddr)
+		if err != nil {
+			return err
+		}
+
+		outportBlockBytes, err := marshaller.Marshal(outportBlock)
+		if err != nil {
+			return err
+		}
+
+		log.Info("sending block",
+			"nonce", nonce,
+			"hash", hex.EncodeToString(outportBlock.BlockData.HeaderHash),
+			"prev hash", prevHash,
+			"rand seed", headerV2.GetRandSeed(),
+			"prev rand seed", prevRandSeed)
+
+		err = wsServer.Send(outportBlockBytes, outport.TopicSaveBlock)
+		log.LogIfError(err)
+
+		time.Sleep(3000 * time.Millisecond)
+
+		prevHash = outportBlock.BlockData.HeaderHash
+		err = sendFinalizedBlock(prevHash, wsServer)
+		log.LogIfError(err)
+
+		prevRandSeed = headerV2.GetRandSeed()
+		nonce++
+	}
+}
+
+func createOutportBlock(headerV2 *block.HeaderV2, nonce uint64, subscribedAddr []byte) (*outport.OutportBlock, error) {
+	logs := make([]*outport.LogData, 0)
+
+	if nonce%3 == 0 {
+		logs = createLogs(subscribedAddr, int(nonce))
+	}
+
+	blockData, err := createBlockData(headerV2)
+	if err != nil {
+		return nil, err
+	}
+
+	return &outport.OutportBlock{
+		BlockData: blockData,
+		TransactionPool: &outport.TransactionPool{
+			Logs: logs,
+		},
+	}, nil
+}
+
+func createBlockData(headerV2 *block.HeaderV2) (*outport.BlockData, error) {
+	headerBytes, err := marshaller.Marshal(headerV2)
+	if err != nil {
+		return nil, err
+	}
+
+	headerHash, err := core.CalculateHash(marshaller, hasher, headerV2)
+	if err != nil {
+		return nil, err
+	}
+
+	return &outport.BlockData{
+		HeaderBytes: headerBytes,
+		HeaderType:  string(core.ShardHeaderV2),
+		HeaderHash:  headerHash,
+	}, nil
+}
+
+func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.HeaderV2 {
+	return &block.HeaderV2{
+		Header: &block.Header{
+			PrevHash:     prevHash,
+			Nonce:        nonce,
+			Round:        nonce,
+			RandSeed:     generateRandomHash(),
+			PrevRandSeed: prevRandSeed,
+		},
+	}
+}
+
+func sendFinalizedBlock(hash []byte, wsServer factoryHost.FullDuplexHost) error {
+	finalizedBlock := &outport.FinalizedBlock{
+		HeaderHash: hash,
+	}
+	finalizedBlockBytes, err := marshaller.Marshal(finalizedBlock)
+	if err != nil {
+		return err
+	}
+
+	return wsServer.Send(finalizedBlockBytes, outport.TopicFinalizedBlock)
+}
+
+func createWSHost() (factoryHost.FullDuplexHost, error) {
 	args := factoryHost.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
 			URL:                        url,
@@ -77,107 +240,5 @@ func main() {
 		Log:        log,
 	}
 
-	wsServer, err := factoryHost.CreateWebSocketHost(args)
-	if err != nil {
-		log.Error("cannot create WebSocket server", "error", err)
-		return
-	}
-
-	prevHash, err := hex.DecodeString("c6d5b27501261f1e871214ab5faaba8b7770a185c5b7e146882dbfc8fca9b2ef")
-	log.LogIfError(err)
-
-	prevRandSeed, err := hex.DecodeString("e400abed092753418b3c23411dfa4b05abd082180a817fccf3dd2e5d669d1e3f")
-	log.LogIfError(err)
-
-	hasher := blake2b.NewBlake2b()
-	nonce := uint64(10)
-	ct := 0
-	for {
-		pubKeyConverter, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
-		log.LogIfError(err)
-
-		subscribedAddr, err := pubKeyConverter.Decode("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
-		log.LogIfError(err)
-
-		logs := make([]*outport.LogData, 0)
-
-		if ct%3 == 0 { //ct%3 == 0 {
-			logs = []*outport.LogData{
-				{
-					Log: &transaction.Log{
-						Address: nil,
-						Events: []*transaction.Event{
-							{
-								Address:    subscribedAddr,
-								Identifier: []byte("deposit"),
-								Topics:     createTransfer(subscribedAddr, int64(ct), subscribedAddr),
-							},
-						},
-					},
-				},
-			}
-		}
-
-		outportBlock := &outport.OutportBlock{
-			BlockData: &outport.BlockData{},
-
-			TransactionPool: &outport.TransactionPool{
-				Logs: logs,
-			},
-		}
-		outportBlock.BlockData.HeaderType = string(core.ShardHeaderV2)
-
-		randSeed, err := core.CalculateHash(marshaller, hasher, &outport.OutportBlock{HighestFinalBlockNonce: nonce})
-		log.LogIfError(err)
-
-		headerV2 := &block.HeaderV2{
-			Header: &block.Header{
-				PrevHash:     prevHash,
-				Nonce:        nonce,
-				Round:        nonce,
-				RandSeed:     randSeed,
-				PrevRandSeed: prevRandSeed,
-			},
-		}
-
-		headerBytes, err := marshaller.Marshal(headerV2)
-		log.LogIfError(err)
-
-		outportBlock.BlockData.HeaderBytes = headerBytes
-		headerHash, err := core.CalculateHash(marshaller, hasher, headerV2)
-		log.LogIfError(err)
-
-		outportBlock.BlockData.HeaderHash = headerHash
-
-		outportBlockBytes, err := marshaller.Marshal(outportBlock)
-		log.LogIfError(err)
-
-		log.Info("sending block",
-			"nonce", nonce,
-			"hash", hex.EncodeToString(outportBlock.BlockData.HeaderHash),
-			"prev hash", prevHash,
-			"rand seed", randSeed,
-			"prev rand seed", prevRandSeed)
-
-		err = wsServer.Send(outportBlockBytes, outport.TopicSaveBlock)
-		log.LogIfError(err)
-
-		time.Sleep(3000 * time.Millisecond)
-
-		nonce++
-		prevHash = outportBlock.BlockData.HeaderHash //core.CalculateHash(marshaller, hasher, outportBlock)
-		prevRandSeed = randSeed
-
-		finalizedBlock := &outport.FinalizedBlock{
-			HeaderHash: prevHash,
-		}
-		finalizeedBlockBytes, err := marshaller.Marshal(finalizedBlock)
-		log.LogIfError(err)
-
-		err = wsServer.Send(finalizeedBlockBytes, outport.TopicFinalizedBlock)
-		log.LogIfError(err)
-
-		ct++
-
-	}
+	return factoryHost.CreateWebSocketHost(args)
 }
