@@ -354,6 +354,32 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 	})
 }
 
+func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
+	t.Parallel()
+
+	RemoveFromAllActiveEpochsCalled := false
+	removeFromCheckpointCalled := false
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: testscommon.NewMemDbMock(),
+		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
+			RemoveFromAllActiveEpochsCalled = true
+			return nil
+		},
+	}
+	args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+		RemoveCalled: func(bytes []byte) {
+			removeFromCheckpointCalled = true
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	err := ts.RemoveFromAllActiveEpochs([]byte("key"))
+	assert.Nil(t, err)
+	assert.True(t, RemoveFromAllActiveEpochsCalled)
+	assert.True(t, removeFromCheckpointCalled)
+}
+
 func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 	t.Parallel()
 

@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -985,7 +986,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 	args := createDefaultShardStorageArgs()
 	expectedErr := fmt.Errorf("expected error")
 	// Simulate an error when writing to storage with a mock marshaller
-	args.marshalizer = &testscommon.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
+	args.marshalizer = &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
 		return nil, expectedErr
 	}}
 	shardStorage, _ := NewShardStorageHandler(

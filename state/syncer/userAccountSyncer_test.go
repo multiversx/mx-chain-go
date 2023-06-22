@@ -6,7 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -18,7 +20,7 @@ import (
 func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 	return ArgsNewBaseAccountsSyncer{
 		Hasher:                            &hashingMocks.HasherMock{},
-		Marshalizer:                       testscommon.MarshalizerMock{},
+		Marshalizer:                       marshallerMock.MarshalizerMock{},
 		TrieStorageManager:                &storageManager.StorageManagerStub{},
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		Timeout:                           time.Second,
@@ -29,6 +31,7 @@ func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 		MaxHardCapForMissingNodes:         100,
 		TrieSyncerVersion:                 2,
 		CheckNodesOnDisk:                  false,
+		EnableEpochsHandler:               &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -85,7 +88,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, 5)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

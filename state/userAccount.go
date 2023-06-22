@@ -3,8 +3,15 @@ package state
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -14,38 +21,95 @@ var _ UserAccountHandler = (*userAccount)(nil)
 type userAccount struct {
 	*baseAccount
 	UserAccountData
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 var zero = big.NewInt(0)
 
-// NewEmptyUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewEmptyUserAccount() *userAccount {
-	return &userAccount{
-		baseAccount: &baseAccount{},
-		UserAccountData: UserAccountData{
-			DeveloperReward: big.NewInt(0),
-			Balance:         big.NewInt(0),
-		},
-	}
+// ArgsAccountCreation holds the arguments needed to create a new instance of userAccount
+type ArgsAccountCreation struct {
+	Hasher              hashing.Hasher
+	Marshaller          marshal.Marshalizer
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
-// NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewUserAccount(address []byte) (*userAccount, error) {
+// NewUserAccount creates a new instance of userAccount
+func NewUserAccount(
+	address []byte,
+	args ArgsAccountCreation,
+) (*userAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
+	}
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	return &userAccount{
 		baseAccount: &baseAccount{
 			address:         address,
-			dataTrieTracker: NewTrackableDataTrie(address, nil),
+			dataTrieTracker: tdt,
 		},
 		UserAccountData: UserAccountData{
 			DeveloperReward: big.NewInt(0),
 			Balance:         big.NewInt(0),
 			Address:         address,
 		},
+		marshaller:          args.Marshaller,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
+}
+
+// NewUserAccountFromBytes creates a new instance of userAccount from the given bytes
+func NewUserAccountFromBytes(
+	accountBytes []byte,
+	args ArgsAccountCreation,
+) (*userAccount, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	acc := &userAccount{}
+	err = args.Marshaller.Unmarshal(acc, accountBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	acc.baseAccount = &baseAccount{
+		address:         acc.Address,
+		dataTrieTracker: tdt,
+	}
+	acc.marshaller = args.Marshaller
+	acc.enableEpochsHandler = args.EnableEpochsHandler
+
+	return acc, nil
+}
+
+func checkArgs(args ArgsAccountCreation) error {
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+
+	return nil
 }
 
 // SetUserName sets the users name
@@ -147,6 +211,39 @@ func (a *userAccount) IsGuarded() bool {
 	codeMetaDataBytes := a.GetCodeMetadata()
 	codeMetaData := vmcommon.CodeMetadataFromBytes(codeMetaDataBytes)
 	return codeMetaData.Guarded
+}
+
+// GetAllLeaves returns all the leaves of the account's data trie
+func (a *userAccount) GetAllLeaves(
+	leavesChannels *common.TrieIteratorChannels,
+	ctx context.Context,
+) error {
+	dataTrie := a.dataTrieTracker.DataTrie()
+	if check.IfNil(dataTrie) {
+		return ErrNilTrie
+	}
+
+	rootHash, err := dataTrie.RootHash()
+	if err != nil {
+		return err
+	}
+
+	tlp, err := parsers.NewDataTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
+}
+
+// IsDataTrieMigrated returns true if the data trie is migrated to the latest version
+func (a *userAccount) IsDataTrieMigrated() (bool, error) {
+	dt := a.dataTrieTracker.DataTrie()
+	if check.IfNil(dt) {
+		return false, ErrNilTrie
+	}
+
+	return dt.IsMigratedToLatestVersion()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

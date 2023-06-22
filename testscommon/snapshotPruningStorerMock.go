@@ -49,6 +49,11 @@ func (spsm *SnapshotPruningStorerMock) GetLatestStorageEpoch() (uint32, error) {
 	return 0, nil
 }
 
+// RemoveFromAllActiveEpochs -
+func (spsm *SnapshotPruningStorerMock) RemoveFromAllActiveEpochs(_ []byte) error {
+	return nil
+}
+
 // RemoveFromCurrentEpoch -
 func (spsm *SnapshotPruningStorerMock) RemoveFromCurrentEpoch(key []byte) error {
 	return spsm.Remove(key)

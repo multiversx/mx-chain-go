@@ -286,6 +286,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		TxLogsProcessor:     pcf.txLogsProcessor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -1095,6 +1096,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SystemSCConfig:      pcf.systemSCConfig,
 		ValidatorAccountsDB: pcf.state.PeerAccounts(),
+		UserAccountsDB:      pcf.state.AccountsAdapter(),
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),

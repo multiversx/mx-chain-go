@@ -91,10 +91,13 @@ type epochFlagsHolder struct {
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
+	relayedNonceFixFlag                         *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
 	changeUsernameFlag                          *atomic.Flag
 	consistentTokensValuesCheckFlag             *atomic.Flag
+	autoBalanceDataTriesFlag                    *atomic.Flag
+	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	consensusModelV2Flag                        *atomic.Flag
 }
 
@@ -186,10 +189,13 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
+		relayedNonceFixFlag:                         &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 		changeUsernameFlag:                          &atomic.Flag{},
+		autoBalanceDataTriesFlag:                    &atomic.Flag{},
+		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 		consensusModelV2Flag:                        &atomic.Flag{},
 	}
 }
@@ -677,6 +683,11 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
 }
 
+// IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
+func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
+	return holder.relayedNonceFixFlag.IsSet()
+}
+
 // IsConsistentTokensValuesLengthCheckEnabled returns true if consistentTokensValuesCheckFlag is enabled
 func (holder *epochFlagsHolder) IsConsistentTokensValuesLengthCheckEnabled() bool {
 	return holder.consistentTokensValuesCheckFlag.IsSet()
@@ -695,6 +706,16 @@ func (holder *epochFlagsHolder) IsMultiClaimOnDelegationEnabled() bool {
 // IsChangeUsernameEnabled returns true if changeUsernameFlag is enabled
 func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
 	return holder.changeUsernameFlag.IsSet()
+}
+
+// IsAutoBalanceDataTriesEnabled returns true if autoBalanceDataTriesFlag is enabled
+func (holder *epochFlagsHolder) IsAutoBalanceDataTriesEnabled() bool {
+	return holder.autoBalanceDataTriesFlag.IsSet()
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled returns true if the fix for the delegation change owner on account is enabled
+func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return holder.fixDelegationChangeOwnerOnAccountFlag.IsSet()
 }
 
 // IsConsensusModelV2Enabled returns true if consensusModelV2Flag is enabled

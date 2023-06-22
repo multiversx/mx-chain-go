@@ -1,6 +1,7 @@
 package enablers
 
 import (
+	"math"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,82 +20,89 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsEnableEpoch:                    3,
 		PenalizedTooMuchGasEnableEpoch:                    4,
 		SwitchJailWaitingEnableEpoch:                      5,
-		SwitchHysteresisForMinNodesEnableEpoch:            6,
-		BelowSignedThresholdEnableEpoch:                   7,
+		BelowSignedThresholdEnableEpoch:                   6,
+		SwitchHysteresisForMinNodesEnableEpoch:            7,
 		TransactionSignedWithTxHashEnableEpoch:            8,
 		MetaProtectionEnableEpoch:                         9,
 		AheadOfTimeGasUsageEnableEpoch:                    10,
 		GasPriceModifierEnableEpoch:                       11,
 		RepairCallbackEnableEpoch:                         12,
 		BlockGasAndFeesReCheckEnableEpoch:                 13,
-		StakingV2EnableEpoch:                              14,
-		StakeEnableEpoch:                                  15,
-		DoubleKeyProtectionEnableEpoch:                    16,
-		ESDTEnableEpoch:                                   17,
-		GovernanceEnableEpoch:                             18,
-		DelegationManagerEnableEpoch:                      19,
-		DelegationSmartContractEnableEpoch:                20,
-		CorrectLastUnjailedEnableEpoch:                    21,
-		BalanceWaitingListsEnableEpoch:                    22,
-		ReturnDataToLastTransferEnableEpoch:               23,
-		SenderInOutTransferEnableEpoch:                    24,
+		BalanceWaitingListsEnableEpoch:                    14,
+		ReturnDataToLastTransferEnableEpoch:               15,
+		SenderInOutTransferEnableEpoch:                    16,
+		StakeEnableEpoch:                                  17,
+		StakingV2EnableEpoch:                              18,
+		DoubleKeyProtectionEnableEpoch:                    19,
+		ESDTEnableEpoch:                                   20,
+		GovernanceEnableEpoch:                             21,
+		DelegationManagerEnableEpoch:                      22,
+		DelegationSmartContractEnableEpoch:                23,
+		CorrectLastUnjailedEnableEpoch:                    24,
 		RelayedTransactionsV2EnableEpoch:                  25,
 		UnbondTokensV2EnableEpoch:                         26,
 		SaveJailedAlwaysEnableEpoch:                       27,
-		ValidatorToDelegationEnableEpoch:                  28,
-		ReDelegateBelowMinCheckEnableEpoch:                29,
+		ReDelegateBelowMinCheckEnableEpoch:                28,
+		ValidatorToDelegationEnableEpoch:                  29,
 		WaitingListFixEnableEpoch:                         30,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       31,
-		ScheduledMiniBlocksEnableEpoch:                    32,
-		ESDTMultiTransferEnableEpoch:                      33,
-		GlobalMintBurnDisableEpoch:                        34,
-		ESDTTransferRoleEnableEpoch:                       35,
-		BuiltInFunctionOnMetaEnableEpoch:                  36,
-		ComputeRewardCheckpointEnableEpoch:                37,
-		SCRSizeInvariantCheckEnableEpoch:                  38,
-		BackwardCompSaveKeyValueEnableEpoch:               39,
-		ESDTNFTCreateOnMultiShardEnableEpoch:              40,
-		MetaESDTSetEnableEpoch:                            41,
-		AddTokensToDelegationEnableEpoch:                  42,
-		MultiESDTTransferFixOnCallBackOnEnableEpoch:       43,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       44,
-		CorrectFirstQueuedEpoch:                           45,
-		CorrectJailedNotUnstakedEmptyQueueEpoch:           46,
-		FixOOGReturnCodeEnableEpoch:                       47,
-		RemoveNonUpdatedStorageEnableEpoch:                48,
-		DeleteDelegatorAfterClaimRewardsEnableEpoch:       49,
-		OptimizeNFTStoreEnableEpoch:                       50,
-		CreateNFTThroughExecByCallerEnableEpoch:           51,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 52,
-		FrontRunningProtectionEnableEpoch:                 53,
-		IsPayableBySCEnableEpoch:                          54,
-		CleanUpInformativeSCRsEnableEpoch:                 55,
-		StorageAPICostOptimizationEnableEpoch:             56,
-		TransformToMultiShardCreateEnableEpoch:            57,
-		ESDTRegisterAndSetAllRolesEnableEpoch:             58,
+		ESDTMultiTransferEnableEpoch:                      32,
+		GlobalMintBurnDisableEpoch:                        33,
+		ESDTTransferRoleEnableEpoch:                       34,
+		BuiltInFunctionOnMetaEnableEpoch:                  35,
+		ComputeRewardCheckpointEnableEpoch:                36,
+		SCRSizeInvariantCheckEnableEpoch:                  37,
+		BackwardCompSaveKeyValueEnableEpoch:               38,
+		ESDTNFTCreateOnMultiShardEnableEpoch:              39,
+		MetaESDTSetEnableEpoch:                            40,
+		AddTokensToDelegationEnableEpoch:                  41,
+		MultiESDTTransferFixOnCallBackOnEnableEpoch:       42,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       43,
+		CorrectFirstQueuedEpoch:                           44,
+		DeleteDelegatorAfterClaimRewardsEnableEpoch:       45,
+		FixOOGReturnCodeEnableEpoch:                       46,
+		RemoveNonUpdatedStorageEnableEpoch:                47,
+		OptimizeNFTStoreEnableEpoch:                       48,
+		CreateNFTThroughExecByCallerEnableEpoch:           49,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
+		FrontRunningProtectionEnableEpoch:                 51,
+		IsPayableBySCEnableEpoch:                          52,
+		CleanUpInformativeSCRsEnableEpoch:                 53,
+		StorageAPICostOptimizationEnableEpoch:             54,
+		TransformToMultiShardCreateEnableEpoch:            55,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             56,
+		ScheduledMiniBlocksEnableEpoch:                    57,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           58,
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    59,
 		AddFailedRelayedTxToInvalidMBsDisableEpoch:        60,
 		SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
-		FailExecutionOnEveryAPIErrorEnableEpoch:           63,
-		MiniBlockPartialExecutionEnableEpoch:              64,
-		ManagedCryptoAPIsEnableEpoch:                      65,
-		ESDTMetadataContinuousCleanupEnableEpoch:          66,
-		DisableExecByCallerEnableEpoch:                    67,
-		RefactorContextEnableEpoch:                        68,
-		CheckFunctionArgumentEnableEpoch:                  69,
-		CheckExecuteOnReadOnlyEnableEpoch:                 70,
+		DisableExecByCallerEnableEpoch:                    63,
+		RefactorContextEnableEpoch:                        64,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           65,
+		ManagedCryptoAPIsEnableEpoch:                      66,
+		CheckFunctionArgumentEnableEpoch:                  67,
+		CheckExecuteOnReadOnlyEnableEpoch:                 68,
+		ESDTMetadataContinuousCleanupEnableEpoch:          69,
+		MiniBlockPartialExecutionEnableEpoch:              70,
 		FixAsyncCallBackArgsListEnableEpoch:               71,
 		FixOldTokenLiquidityEnableEpoch:                   72,
 		RuntimeMemStoreLimitEnableEpoch:                   73,
-		MaxBlockchainHookCountersEnableEpoch:              74,
-		WipeSingleNFTLiquidityDecreaseEnableEpoch:         75,
-		AlwaysSaveTokenMetaDataEnableEpoch:                76,
-		RuntimeCodeSizeFixEnableEpoch:                     77,
+		SetSenderInEeiOutputTransferEnableEpoch:           74,
+		RefactorPeersMiniBlocksEnableEpoch:                75,
+		MaxBlockchainHookCountersEnableEpoch:              76,
+		WipeSingleNFTLiquidityDecreaseEnableEpoch:         77,
 		ConsensusModelV2EnableEpoch:                       77,
-		MultiClaimOnDelegationEnableEpoch:                 78,
-		KeepExecOrderOnCreatedSCRsEnableEpoch:             79,
-		ChangeUsernameEnableEpoch:                         80,
+		AlwaysSaveTokenMetaDataEnableEpoch:                78,
+		RuntimeCodeSizeFixEnableEpoch:                     79,
+		RelayedNonceFixEnableEpoch:                        80,
+		SetGuardianEnableEpoch:                            81,
+		AutoBalanceDataTriesEnableEpoch:                   82,
+		KeepExecOrderOnCreatedSCRsEnableEpoch:             83,
+		MultiClaimOnDelegationEnableEpoch:                 84,
+		ChangeUsernameEnableEpoch:                         85,
+		ConsistentTokensValuesLengthCheckEnableEpoch:      86,
+		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 	}
 }
 
@@ -133,9 +141,8 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
 		require.False(t, check.IfNil(handler))
 
-		handler.EpochConfirmed(77, 0)
+		handler.EpochConfirmed(math.MaxUint32, 0)
 
-		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionsFlagEnabled())
 		assert.True(t, handler.IsRelayedTransactionsFlagEnabled())
@@ -203,30 +210,46 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
-		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
-		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
-		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
+		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
+		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
+		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.True(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
+		assert.True(t, handler.IsRefactorPeersMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
+		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsRelayedNonceFixEnabled())
+		assert.True(t, handler.IsSetGuardianEnabled())
+		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
+		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.True(t, handler.IsMultiClaimOnDelegationEnabled())
+		assert.True(t, handler.IsChangeUsernameEnabled())
 		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
-		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
-		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
-		assert.False(t, handler.IsChangeUsernameEnabled())
+		assert.True(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
+		assert.True(t, handler.IsSaveToSystemAccountFlagEnabled())
+		assert.True(t, handler.IsCheckFrozenCollectionFlagEnabled())
+		assert.True(t, handler.IsSendAlwaysFlagEnabled())
+		assert.True(t, handler.IsValueLengthCheckFlagEnabled())
+		assert.True(t, handler.IsCheckTransferFlagEnabled())
+		assert.True(t, handler.IsTransferToMetaFlagEnabled())
+		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.IsConsensusModelV2Enabled())
 	})
-	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
+	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
 
-		epoch := uint32(80)
+		epoch := uint32(math.MaxUint32)
 		cfg := createEnableEpochsConfig()
 		cfg.StakingV2EnableEpoch = epoch
 		cfg.ESDTEnableEpoch = epoch
@@ -238,7 +261,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 
 		handler.EpochConfirmed(epoch, 0)
 
-		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.True(t, handler.IsSCDeployFlagEnabled())
 		assert.True(t, handler.IsBuiltInFunctionsFlagEnabled())
 		assert.True(t, handler.IsRelayedTransactionsFlagEnabled())
@@ -306,24 +328,40 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.True(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.True(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
-		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
-		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
-		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.True(t, handler.IsRefactorContextFlagEnabled())
+		assert.True(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
+		assert.True(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.True(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.True(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.True(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.True(t, handler.IsChangeDelegationOwnerFlagEnabled())
+		assert.True(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.True(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.True(t, handler.IsFixOldTokenLiquidityEnabled())
 		assert.True(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.True(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
+		assert.True(t, handler.IsRefactorPeersMiniBlocksFlagEnabled())
 		assert.True(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.True(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.True(t, handler.IsRelayedNonceFixEnabled())
+		assert.True(t, handler.IsSetGuardianEnabled())
+		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.True(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.True(t, handler.IsChangeUsernameEnabled())
+		assert.True(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
+		assert.True(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
+		assert.True(t, handler.IsSaveToSystemAccountFlagEnabled())
+		assert.True(t, handler.IsCheckFrozenCollectionFlagEnabled())
+		assert.True(t, handler.IsSendAlwaysFlagEnabled())
+		assert.True(t, handler.IsValueLengthCheckFlagEnabled())
+		assert.True(t, handler.IsCheckTransferFlagEnabled())
+		assert.True(t, handler.IsTransferToMetaFlagEnabled())
+		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
+		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.IsConsensusModelV2Enabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
@@ -336,7 +374,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 
 		handler.EpochConfirmed(epoch, 0)
 
-		assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
 		assert.False(t, handler.IsSCDeployFlagEnabled())
 		assert.False(t, handler.IsBuiltInFunctionsFlagEnabled())
 		assert.False(t, handler.IsRelayedTransactionsFlagEnabled())
@@ -404,24 +441,78 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled())
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabled())
-		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
-		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
-		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
-		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.False(t, handler.IsDisableExecByCallerFlagEnabled())
 		assert.False(t, handler.IsRefactorContextFlagEnabled())
+		assert.False(t, handler.IsFailExecutionOnEveryAPIErrorFlagEnabled())
+		assert.False(t, handler.IsManagedCryptoAPIsFlagEnabled())
 		assert.False(t, handler.IsCheckFunctionArgumentFlagEnabled())
 		assert.False(t, handler.IsCheckExecuteOnReadOnlyFlagEnabled())
+		assert.False(t, handler.IsESDTMetadataContinuousCleanupFlagEnabled())
 		assert.False(t, handler.IsChangeDelegationOwnerFlagEnabled())
+		assert.False(t, handler.IsMiniBlockPartialExecutionFlagEnabled())
 		assert.False(t, handler.IsFixAsyncCallBackArgsListFlagEnabled())
 		assert.False(t, handler.IsFixOldTokenLiquidityEnabled())
 		assert.False(t, handler.IsRuntimeMemStoreLimitEnabled())
+		assert.False(t, handler.IsSetSenderInEeiOutputTransferFlagEnabled())
+		assert.False(t, handler.IsRefactorPeersMiniBlocksFlagEnabled())
 		assert.False(t, handler.IsMaxBlockchainHookCountersFlagEnabled())
 		assert.False(t, handler.IsWipeSingleNFTLiquidityDecreaseEnabled())
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
+		assert.False(t, handler.IsRelayedNonceFixEnabled())
+		assert.False(t, handler.IsSetGuardianEnabled())
+		assert.False(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
+		assert.False(t, handler.IsMultiClaimOnDelegationEnabled())
 		assert.False(t, handler.IsChangeUsernameEnabled())
+		assert.False(t, handler.IsConsistentTokensValuesLengthCheckEnabled())
+		assert.False(t, handler.IsFixAsyncCallbackCheckFlagEnabled())
+		assert.False(t, handler.IsSaveToSystemAccountFlagEnabled())
+		assert.False(t, handler.IsCheckFrozenCollectionFlagEnabled())
+		assert.False(t, handler.IsSendAlwaysFlagEnabled())
+		assert.False(t, handler.IsValueLengthCheckFlagEnabled())
+		assert.False(t, handler.IsCheckTransferFlagEnabled())
+		assert.False(t, handler.IsTransferToMetaFlagEnabled())
+		assert.False(t, handler.IsESDTNFTImprovementV1FlagEnabled())
+		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.False(t, handler.IsConsensusModelV2Enabled())
 	})
+}
+
+func TestNewEnableEpochsHandler_Getters(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	require.Equal(t, cfg.ScheduledMiniBlocksEnableEpoch, handler.ScheduledMiniBlocksEnableEpoch())
+	assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
+	require.Equal(t, cfg.StakingV2EnableEpoch, handler.StakingV2EnableEpoch())
+	require.Equal(t, cfg.SwitchJailWaitingEnableEpoch, handler.SwitchJailWaitingEnableEpoch())
+	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.BalanceWaitingListsEnableEpoch())
+	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.WaitingListFixEnableEpoch())
+	require.Equal(t, cfg.MultiESDTTransferFixOnCallBackOnEnableEpoch, handler.MultiESDTTransferAsyncCallBackEnableEpoch())
+	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.FixOOGReturnCodeEnableEpoch())
+	require.Equal(t, cfg.RemoveNonUpdatedStorageEnableEpoch, handler.RemoveNonUpdatedStorageEnableEpoch())
+	require.Equal(t, cfg.CreateNFTThroughExecByCallerEnableEpoch, handler.CreateNFTThroughExecByCallerEnableEpoch())
+	require.Equal(t, cfg.FailExecutionOnEveryAPIErrorEnableEpoch, handler.FixFailExecutionOnErrorEnableEpoch())
+	require.Equal(t, cfg.ManagedCryptoAPIsEnableEpoch, handler.ManagedCryptoAPIEnableEpoch())
+	require.Equal(t, cfg.DisableExecByCallerEnableEpoch, handler.DisableExecByCallerEnableEpoch())
+	require.Equal(t, cfg.RefactorContextEnableEpoch, handler.RefactorContextEnableEpoch())
+	require.Equal(t, cfg.CheckExecuteOnReadOnlyEnableEpoch, handler.CheckExecuteReadOnlyEnableEpoch())
+	require.Equal(t, cfg.StorageAPICostOptimizationEnableEpoch, handler.StorageAPICostOptimizationEnableEpoch())
+	require.Equal(t, cfg.MiniBlockPartialExecutionEnableEpoch, handler.MiniBlockPartialExecutionEnableEpoch())
+	require.Equal(t, cfg.RefactorPeersMiniBlocksEnableEpoch, handler.RefactorPeersMiniBlocksEnableEpoch())
+	require.Equal(t, cfg.RelayedNonceFixEnableEpoch, handler.RelayedNonceFixEnableEpoch())
+}
+
+func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var handler *enableEpochsHandler
+	require.True(t, handler.IsInterfaceNil())
+
+	handler, _ = NewEnableEpochsHandler(createEnableEpochsConfig(), &epochNotifier.EpochNotifierStub{})
+	require.False(t, handler.IsInterfaceNil())
 }

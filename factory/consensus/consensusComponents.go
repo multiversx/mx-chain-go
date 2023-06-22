@@ -568,6 +568,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               ccf.coreComponents.EnableEpochsHandler(),
 	}
 }
 

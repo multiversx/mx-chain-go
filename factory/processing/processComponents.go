@@ -66,6 +66,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/networksharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -925,7 +926,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:       pcf.config.Hardfork,
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
-		ImportStartHandler:   pcf.importStartHandler,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
@@ -962,7 +962,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash)
+	err = pcf.state.AccountsAdapter().GetAllLeaves(leavesChannels, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	if err != nil {
 		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
@@ -1006,7 +1006,12 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 }
 
 func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              pcf.coreData.Hasher(),
+		Marshaller:          pcf.coreData.InternalMarshalizer(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	userAccount, err := state.NewUserAccount(address, argsAccCreation)
 	if err != nil {
 		return nil, err
 	}
@@ -1637,6 +1642,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1666,6 +1672,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)

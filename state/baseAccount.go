@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -53,7 +54,7 @@ func (ba *baseAccount) SaveKeyValue(key []byte, value []byte) error {
 }
 
 // SaveDirtyData triggers SaveDirtyData form the underlying trackableDataTrie
-func (ba *baseAccount) SaveDirtyData(trie common.Trie) (map[string][]byte, error) {
+func (ba *baseAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
 	if check.IfNil(ba.dataTrieTracker) {
 		return nil, ErrNilTrackableDataTrie
 	}

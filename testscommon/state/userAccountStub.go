@@ -2,8 +2,10 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -169,7 +171,7 @@ func (u *UserAccountStub) IsGuarded() bool {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
 }
 
@@ -183,5 +185,10 @@ func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 	if u.AccountDataHandlerCalled != nil {
 		return u.AccountDataHandlerCalled()
 	}
+	return nil
+}
+
+// GetAllLeaves -
+func (u *UserAccountStub) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
 }

@@ -54,6 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -480,6 +481,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
 		GuardianChecker:     guardedAccountHandler,
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -504,7 +506,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		NilCompiledSCStore:       true,
 		ConfigSCStorage:          *defaultStorageConfig(),
 		EpochNotifier:            &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:      &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		GasSchedule:              CreateMockGasScheduleNotifier(),
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
@@ -613,9 +615,10 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 // CreateVMAndBlockchainHookMeta -
 func CreateVMAndBlockchainHookMeta(
-	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	gasSchedule core.GasScheduleNotifier,
 	shardCoordinator sharding.Coordinator,
+	userAccounts state.AccountsAdapter,
 	enableEpochsConfig config.EnableEpochs,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	if check.IfNil(gasSchedule) || gasSchedule.LatestGasSchedule() == nil {
@@ -637,7 +640,7 @@ func CreateVMAndBlockchainHookMeta(
 			string(dnsV2Decoded): {},
 		},
 		Marshalizer:               integrationtests.TestMarshalizer,
-		Accounts:                  accnts,
+		Accounts:                  validatorAccounts,
 		ShardCoordinator:          shardCoordinator,
 		EpochNotifier:             globalEpochNotifier,
 		EnableEpochsHandler:       enableEpochsHandler,
@@ -649,7 +652,7 @@ func CreateVMAndBlockchainHookMeta(
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:                 accnts,
+		Accounts:                 validatorAccounts,
 		PubkeyConv:               pubkeyConv,
 		StorageService:           &storageStubs.ChainStorerStub{},
 		BlockChain:               &testscommon.ChainHandlerStub{},
@@ -685,7 +688,8 @@ func CreateVMAndBlockchainHookMeta(
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
-		ValidatorAccountsDB: accnts,
+		ValidatorAccountsDB: validatorAccounts,
+		UserAccountsDB:      userAccounts,
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
@@ -872,6 +876,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
 		GuardianChecker:     guardianChecker,
+		TxLogsProcessor:     logProc,
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -1139,12 +1144,12 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
-	accounts := integrationtests.CreateAccountsDB(db)
+	epochNotifierInstance := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
+	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
 	vmConfig := createDefaultVMConfig()
 	wasmVMChangeLocker := &sync.RWMutex{}
 
-	epochNotifierInstance := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	chainHandler := &testscommon.ChainHandlerStub{}
 
 	var err error
@@ -1641,7 +1646,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochs
 	}
 
 	if selfShardID == core.MetachainShardId {
-		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, enableEpochsConfig)
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, accounts, enableEpochsConfig)
 	} else {
 		vmConfig := createDefaultVMConfig()
 		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(
