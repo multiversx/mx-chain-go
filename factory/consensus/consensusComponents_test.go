@@ -48,8 +48,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
 		CoreComponents: &mock.CoreComponentsMock{
-			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
-			IntMarsh:                 &marshallerMock.MarshalizerStub{},
+			IntMarsh: &marshallerMock.MarshalizerStub{},
 			Hash: &testscommon.HasherStub{
 				SizeCalled: func() int {
 					return 1
