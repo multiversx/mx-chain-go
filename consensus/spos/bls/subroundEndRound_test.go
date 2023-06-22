@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func initSubroundEndRoundWithContainer(
 
 func initSubroundEndRound(appStatusHandler core.AppStatusHandler) bls.SubroundEndRound {
 	container := mock.InitConsensusCore()
-	return initSubroundEndRoundWithContainer(container, appStatusHandler, &testscommon.EnableEpochsHandlerStub{})
+	return initSubroundEndRoundWithContainer(container, appStatusHandler, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T) {
@@ -101,7 +102,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockchain(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -136,7 +137,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -171,7 +172,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	sr.ConsensusState = nil
@@ -207,7 +208,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -242,7 +243,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -277,7 +278,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -312,7 +313,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -329,7 +330,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	signingHandler := &consensusMocks.SigningHandlerStub{
 		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
@@ -351,7 +352,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	blProcMock := mock.InitBlockProcessorMock(container.Marshalizer())
@@ -373,7 +374,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	remainingTime := time.Millisecond
@@ -405,7 +406,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{}
@@ -439,7 +440,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{}
@@ -474,7 +475,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{}
@@ -510,7 +511,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{}
@@ -531,7 +532,7 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{}
@@ -559,7 +560,7 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	sr.Header = &block.Header{Nonce: 5}
@@ -796,7 +797,7 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 		},
 	}
 	container.SetBroadcastMessenger(messenger)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	sr.Header = &block.Header{LeaderSignature: leaderSigInHdr}
 
 	sr.CreateAndBroadcastHeaderFinalInfo()
@@ -843,7 +844,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinal
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	cnsData := consensus.Message{
 		HeaderHash: []byte("X"),
 		PubKey:     []byte("A"),
@@ -875,7 +876,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 		return remainingTime
 	}}
 	container.SetRoundHandler(&roundHandler)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	sr.RoundTimeStamp = time.Now().AddDate(0, 0, -1)
 
@@ -898,7 +899,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
@@ -920,7 +921,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
@@ -942,7 +943,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
@@ -956,7 +957,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -978,7 +979,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1006,7 +1007,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
@@ -1037,7 +1038,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		sr.Header = &block.Header{}
 		sr.SetThreshold(bls.SrEndRound, 2)
 
@@ -1049,7 +1050,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1070,7 +1071,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1090,7 +1091,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
@@ -1108,7 +1109,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
@@ -1155,7 +1156,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
@@ -1208,7 +1209,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		sr.ConsensusState.Data = nil
 
 		cnsData := consensus.Message{
@@ -1225,7 +1226,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		cnsData := consensus.Message{
 			HeaderHash: []byte("X"),
@@ -1241,7 +1242,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		sr.SetSelfPubKey("A")
 
 		cnsData := consensus.Message{
@@ -1258,7 +1259,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		cnsData := consensus.Message{
 			HeaderHash: []byte("Y"),
@@ -1274,7 +1275,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		cnsData := consensus.Message{
 			HeaderHash: []byte("X"),
@@ -1291,7 +1292,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		cnsData := consensus.Message{
 			HeaderHash:     []byte("X"),
 			PubKey:         []byte("A"),
@@ -1315,7 +1316,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		container := mock.InitConsensusCore()
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		cnsData := consensus.Message{
 			HeaderHash:     []byte("X"),
 			PubKey:         []byte("A"),
@@ -1331,7 +1332,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		cnsData := consensus.Message{
 			HeaderHash:     []byte("X"),
@@ -1361,7 +1362,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		err := sr.VerifyInvalidSigners([]byte{})
 		require.Equal(t, expectedErr, err)
@@ -1390,7 +1391,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Equal(t, expectedErr, err)
@@ -1432,7 +1433,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
@@ -1460,7 +1461,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		messageSigningHandler := &mock.MessageSignerMock{}
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
@@ -1486,7 +1487,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(messenger)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
 
@@ -1513,7 +1514,7 @@ func TestGetFullMessagesForInvalidSigners(t *testing.T) {
 
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		invalidSigners := []string{"B", "C"}
 
 		invalidSignersBytes, err := sr.GetFullMessagesForInvalidSigners(invalidSigners)
@@ -1538,7 +1539,7 @@ func TestGetFullMessagesForInvalidSigners(t *testing.T) {
 
 		container.SetMessageSigningHandler(messageSigningHandler)
 
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &testscommon.EnableEpochsHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		sr.AddMessageWithSignature("B", &p2pmocks.P2PMessageMock{})
 		sr.AddMessageWithSignature("C", &p2pmocks.P2PMessageMock{})
 
@@ -1571,7 +1572,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -1619,7 +1620,7 @@ func TestSubroundEndRound_GetHeaderHashToVerifySigShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: false,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
@@ -1638,7 +1639,7 @@ func TestSubroundEndRound_GetHeaderHashToVerifySigShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: true,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
@@ -1661,7 +1662,7 @@ func TestSubroundEndRound_GenerateBitmapShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: false,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
@@ -1682,7 +1683,7 @@ func TestSubroundEndRound_GenerateBitmapShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: true,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
@@ -1712,7 +1713,7 @@ func TestSubroundEndRound_GetProcessedHeaderHashInSubroundEndRoundShouldWork(t *
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: false,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
@@ -1727,7 +1728,7 @@ func TestSubroundEndRound_GetProcessedHeaderHashInSubroundEndRoundShouldWork(t *
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &testscommon.EnableEpochsHandlerStub{
+		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsConsensusModelV2EnabledField: true,
 		}
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)

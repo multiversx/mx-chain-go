@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 		PublicKeySize:        PublicKeySize,
 		HeaderHashSize:       hasher.Size(),
 		ChainID:              chainID,
-		EnableEpochHandler:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -616,7 +616,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsConsensusModelV2EnabledField: true,
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
@@ -651,7 +651,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsNotEn
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsConsensusModelV2EnabledField: false,
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
@@ -677,7 +677,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsEnabl
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &testscommon.EnableEpochsHandlerStub{
+	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsConsensusModelV2EnabledField: true,
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
