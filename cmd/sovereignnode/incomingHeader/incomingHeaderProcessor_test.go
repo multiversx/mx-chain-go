@@ -20,6 +20,7 @@ import (
 	sovereignTests "github.com/multiversx/mx-chain-go/sovereignnode/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +28,7 @@ func createArgs() ArgsIncomingHeaderProcessor {
 	return ArgsIncomingHeaderProcessor{
 		HeadersPool: &mock.HeadersCacherStub{},
 		TxPool:      &testscommon.ShardedDataStub{},
-		Marshaller:  &testscommon.MarshalizerMock{},
+		Marshaller:  &marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
 }
@@ -105,7 +106,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		args := createArgs()
 
 		errMarshaller := errors.New("cannot marshal")
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, errMarshaller
 			},
@@ -177,7 +178,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		}
 
 		errMarshaller := errors.New("cannot marshal")
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				_, isSCR := obj.(*smartContractResult.SmartContractResult)
 				if isSCR {
