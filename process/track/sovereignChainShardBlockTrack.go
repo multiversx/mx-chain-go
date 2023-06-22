@@ -121,12 +121,12 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	}
 
 	if !scsbt.shouldAddExtendedShardHeader(extendedShardHeaderHandler) {
-		log.Error("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Trace("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 
 	if !scsbt.addHeader(extendedShardHeaderHandler, extendedShardHeaderHash, core.SovereignChainShardId) {
-		log.Error("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Trace("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 

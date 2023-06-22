@@ -41,6 +41,8 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 		return nil, process.ErrNilBlockBody
 	}
 
+	log.Debug("sovereignChainIncomingSCR.ProcessBlockTransactions")
+
 	createdMBs := make(block.MiniBlockSlice, 0)
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {

@@ -136,20 +136,11 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		return nil, nil, err
 	}
 
-	extendedShardHeaderHashes, _ := scbp.sortExtendedShardHeaderHashesForCurrentBlockByNonce()
-	crossMiniblockHeaders, err := scbp.getMiniBlockHeaderHandlers(crossMiniblocks)
+	extendedShardHeaderHashes := scbp.sortExtendedShardHeaderHashesForCurrentBlockByNonce()
+	crossMiniblockHeaders, err := scbp.createMiniBlockHeaderHandlers(crossMiniblocks)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	//for _, crossMb := range crossMiniblocks {
-	//	miniBlockHash, errHash := core.CalculateHash(scbp.marshalizer, scbp.hasher, crossMb)
-	//	if errHash != nil {
-	//		return nil, nil, errHash
-	//	}
-	//
-	//	scbp.dataPool.MiniBlocks().Put(miniBlockHash, crossMb, crossMb.Size())
-	//}
 
 	err = sovereignChainHeaderHandler.SetExtendedShardHeaderHashes(extendedShardHeaderHashes)
 	if err != nil {
@@ -383,20 +374,15 @@ func (scbp *sovereignChainBlockProcessor) requestExtendedShardHeadersIfNeeded(hd
 	//TODO: A request mechanism should be implemented if extended shard header(s) is(are) needed
 }
 
-func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeaderHashesForCurrentBlockByNonce() ([][]byte, []data.ShardHeaderExtendedHandler) {
-	hdrsForCurrentBlockInfo := make([]*headerData, 0)
+func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeaderHashesForCurrentBlockByNonce() [][]byte {
+	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
 
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for headerHash, headerInfo := range scbp.hdrsForCurrBlock.hdrHashAndInfo {
-		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo,
-			&headerData{
-				nonceAndHashInfo: &nonceAndHashInfo{
-					nonce: headerInfo.hdr.GetNonce(),
-					hash:  []byte(headerHash),
-				},
-				header: headerInfo.hdr,
-			},
-		)
+		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo, &nonceAndHashInfo{
+			nonce: headerInfo.hdr.GetNonce(),
+			hash:  []byte(headerHash),
+		})
 	}
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -407,27 +393,17 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeaderHashesForCurren
 	}
 
 	hdrsHashesForCurrentBlock := make([][]byte, len(hdrsForCurrentBlockInfo))
-	headersForCurrentBlock := make([]data.ShardHeaderExtendedHandler, len(hdrsForCurrentBlockInfo))
 	for index, hdrForCurrentBlockInfo := range hdrsForCurrentBlockInfo {
 		hdrsHashesForCurrentBlock[index] = hdrForCurrentBlockInfo.hash
-		extendedHeader, isExtendedHeader := hdrForCurrentBlockInfo.header.(data.ShardHeaderExtendedHandler)
-
-		if !isExtendedHeader {
-			log.Warn("sovereignChainBlockProcessor.sortExtendedShardHeaderHashesForCurrentBlockByNonce current hdrForCurrentBlockInfo is not of type ShardHeaderExtendedHandler")
-			continue
-		}
-
-		headersForCurrentBlock[index] = extendedHeader
 	}
 
-	return hdrsHashesForCurrentBlock, headersForCurrentBlock
+	return hdrsHashesForCurrentBlock
 }
 
-func (scbp *sovereignChainBlockProcessor) getMiniBlockHeaderHandlers(crossMiniblocks block.MiniBlockSlice) ([]data.MiniBlockHeaderHandler, error) {
+func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBlocks block.MiniBlockSlice) ([]data.MiniBlockHeaderHandler, error) {
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
-	for _, mb := range crossMiniblocks {
-
+	for _, mb := range miniBlocks {
 		hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
 		if err != nil {
 			return nil, err
