@@ -6,7 +6,7 @@ replace github.com/multiversx/mx-chain-go => /home/elrond/go/src/github.com/mult
 
 require (
 	github.com/google/gops v0.3.27
-	github.com/multiversx/mx-chain-core-go v1.2.6-0.20230606093138-83915b1489fc
+	github.com/multiversx/mx-chain-core-go v1.2.8-0.20230622123429-f38fc38f494e
 	github.com/multiversx/mx-chain-go v1.5.3-0.20230620084233-566c8e81310e
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230606084509-0d96d12686f3
@@ -124,7 +124,7 @@ require (
 	github.com/multiversx/mx-chain-crypto-go v1.2.6 // indirect
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.4 // indirect
 	github.com/multiversx/mx-chain-storage-go v1.0.10 // indirect
-	github.com/multiversx/mx-chain-vm-common-go v1.4.5 // indirect
+	github.com/multiversx/mx-chain-vm-common-go v1.4.10-0.20230622130622-77098dbf730b // indirect
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.55 // indirect
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.56 // indirect
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.82 // indirect

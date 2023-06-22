@@ -29,6 +29,7 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		TxPool:      &testscommon.ShardedDataStub{},
 		Marshaller:  &testscommon.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
+		SelfShardID: core.SovereignChainShardId,
 	}
 }
 

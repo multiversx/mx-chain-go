@@ -51,7 +51,7 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 			continue
 		}
 		// smart contract results are needed to be processed only at destination and only if they are cross shard
-		if miniBlock.ReceiverShardID != core.SovereignChainShardId {
+		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
 			continue
 		}
 		if miniBlock.SenderShardID != core.MainChainShardId {

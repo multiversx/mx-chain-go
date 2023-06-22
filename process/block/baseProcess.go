@@ -1121,6 +1121,7 @@ func (bp *baseProcessor) baseCleanupBlockTrackerPoolsForShard(shardID uint32, no
 	}
 
 	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
+
 	crossNotarizedNonce := uint64(0)
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)

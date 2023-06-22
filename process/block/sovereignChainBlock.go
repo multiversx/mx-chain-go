@@ -173,8 +173,9 @@ func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
 		return nil, nil, err
 	}
 
-	crossMiniBlocks := make(block.MiniBlockSlice, len(createIncomingMiniBlocksDestMeInfo.miniBlocks))
-	if len(createIncomingMiniBlocksDestMeInfo.miniBlocks) > 0 {
+	numCrossMbs := len(createIncomingMiniBlocksDestMeInfo.miniBlocks)
+	crossMiniBlocks := make(block.MiniBlockSlice, numCrossMbs)
+	if numCrossMbs > 0 {
 		miniBlocks = append(miniBlocks, createIncomingMiniBlocksDestMeInfo.miniBlocks...)
 
 		log.Debug("created mini blocks and txs with destination in self shard",
@@ -1388,12 +1389,12 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	scbp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, header.GetRootHash())
 }
 
-func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupBlockTrackerPoolsForShard(core.SovereignChainShardId, noncesToPrevFinal)
+func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
 }
 
-func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupPoolsForCrossShard(core.SovereignChainShardId, noncesToPrevFinal)
+func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(shardID uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupPoolsForCrossShard(shardID, noncesToPrevFinal)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

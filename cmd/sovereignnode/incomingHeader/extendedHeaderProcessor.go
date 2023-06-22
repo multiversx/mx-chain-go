@@ -12,16 +12,17 @@ type extendedHeaderProcessor struct {
 	headersPool HeadersPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
+	selfShardID uint32
 }
 
-func createExtendedHeader(headerV2 *block.HeaderV2, scrs []*scrInfo) *block.ShardHeaderExtended {
+func (ehp *extendedHeaderProcessor) createExtendedHeader(headerV2 *block.HeaderV2, scrs []*scrInfo) *block.ShardHeaderExtended {
 	return &block.ShardHeaderExtended{
 		Header:             headerV2,
-		IncomingMiniBlocks: createIncomingMb(scrs),
+		IncomingMiniBlocks: ehp.createIncomingMb(scrs),
 	}
 }
 
-func createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
+func (ehp *extendedHeaderProcessor) createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
 	if len(scrs) == 0 {
 		return make([]*block.MiniBlock, 0)
 	}
@@ -34,7 +35,7 @@ func createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
 	return []*block.MiniBlock{
 		{
 			TxHashes:        scrHashes,
-			ReceiverShardID: core.SovereignChainShardId,
+			ReceiverShardID: ehp.selfShardID,
 			SenderShardID:   core.MainChainShardId,
 			Type:            block.SmartContractResultBlock,
 		},
