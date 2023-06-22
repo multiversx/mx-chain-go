@@ -206,6 +206,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
+		ChainRunType:         common.ChainRunTypeRegular,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -432,6 +433,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		BootstrapComponents:    pr.BootstrapComponents,
 		StatusComponents:       pr.StatusComponents,
 		StatusCoreComponents:   pr.StatusCoreComponents,
+		ChainRunType:           common.ChainRunTypeRegular,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
