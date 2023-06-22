@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -26,8 +27,8 @@ const (
 
 type requestersContainerFactory struct {
 	shardCoordinator              sharding.Coordinator
-	mainMessenger                 dataRetriever.TopicMessageHandler
-	fullArchiveMessenger          dataRetriever.TopicMessageHandler
+	mainMessenger                 p2p.Messenger
+	fullArchiveMessenger          p2p.Messenger
 	marshaller                    marshal.Marshalizer
 	intRandomizer                 dataRetriever.IntRandomizer
 	container                     dataRetriever.RequestersContainer
@@ -39,8 +40,8 @@ type requestersContainerFactory struct {
 // ArgsRequestersContainerFactory defines the arguments for the requestersContainerFactory constructor
 type ArgsRequestersContainerFactory struct {
 	ShardCoordinator              sharding.Coordinator
-	MainMessenger                 dataRetriever.TopicMessageHandler
-	FullArchiveMessenger          dataRetriever.TopicMessageHandler
+	MainMessenger                 p2p.Messenger
+	FullArchiveMessenger          p2p.Messenger
 	Marshaller                    marshal.Marshalizer
 	ExistingRequesters            dataRetriever.RequestersContainer
 	OutputAntifloodHandler        dataRetriever.P2PAntifloodHandler

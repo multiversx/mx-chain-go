@@ -17,7 +17,6 @@ type P2PMessageMock struct {
 	PayloadField         []byte
 	TimestampField       int64
 	BroadcastMethodField p2p.BroadcastMethod
-	NetworkField         p2p.Network
 }
 
 // From -
@@ -68,11 +67,6 @@ func (msg *P2PMessageMock) Payload() []byte {
 // BroadcastMethod -
 func (msg *P2PMessageMock) BroadcastMethod() p2p.BroadcastMethod {
 	return msg.BroadcastMethodField
-}
-
-// Network -
-func (msg *P2PMessageMock) Network() p2p.Network {
-	return msg.NetworkField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

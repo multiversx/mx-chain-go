@@ -26,6 +26,9 @@ type Messenger = p2p.Messenger
 // MessageP2P defines what a p2p message can do (should return)
 type MessageP2P = p2p.MessageP2P
 
+// MessageHandler defines the behaviour of a component able to send and process messages
+type MessageHandler = p2p.MessageHandler
+
 // ChannelLoadBalancer defines what a load balancer that uses chans should do
 type ChannelLoadBalancer interface {
 	AddChannel(channel string) error

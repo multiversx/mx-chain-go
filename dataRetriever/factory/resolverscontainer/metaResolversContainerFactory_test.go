@@ -22,10 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
+func createStubMessengerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
+	stub := &p2pmocks.MessengerStub{}
 
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -36,7 +36,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -47,7 +47,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 		return nil
 	}
 
-	return tmhs
+	return stub
 }
 
 func createDataPoolsForMeta() dataRetriever.PoolsHolder {
@@ -261,7 +261,7 @@ func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainOnM
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.MainMessenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
+	args.MainMessenger = createStubMessengerForMeta("", factory.ShardBlocksTopic)
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -274,7 +274,7 @@ func TestMetaResolversContainerFactory_CreateRegisterShardHeadersForMetachainOnF
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForMeta("", factory.ShardBlocksTopic)
+	args.FullArchiveMessenger = createStubMessengerForMeta("", factory.ShardBlocksTopic)
 	rcf, _ := resolverscontainer.NewMetaResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -358,8 +358,8 @@ func TestMetaResolversContainerFactory_IsInterfaceNil(t *testing.T) {
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
 		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
-		MainMessenger:                   createStubTopicMessageHandlerForMeta("", ""),
-		FullArchiveMessenger:            createStubTopicMessageHandlerForMeta("", ""),
+		MainMessenger:                   createStubMessengerForMeta("", ""),
+		FullArchiveMessenger:            createStubMessengerForMeta("", ""),
 		Store:                           createStoreForMeta(),
 		Marshalizer:                     &mock.MarshalizerMock{},
 		DataPools:                       createDataPoolsForMeta(),

@@ -59,7 +59,7 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -75,15 +75,15 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message)
+		return tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
 	case dataRetriever.HashArrayType:
-		return tnRes.resolveMultipleHashes(rd.Value, message)
+		return tnRes.resolveMultipleHashes(rd.Value, message, source)
 	default:
 		return dataRetriever.ErrRequestTypeNotImplemented
 	}
 }
 
-func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P, source p2p.MessageHandler) error {
 	b := batch.Batch{}
 	err := tnRes.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -95,12 +95,12 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	nodes := make(map[string]struct{})
 	spaceUsed, usedAllSpace := tnRes.resolveOnlyRequestedHashes(hashes, nodes)
 	if usedAllSpace {
-		return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message)
+		return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message, source)
 	}
 
 	tnRes.resolveSubTries(hashes, nodes, spaceUsed)
 
-	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message)
+	return tnRes.sendResponse(convertMapToSlice(nodes), hashes, supportedChunkIndex, message, source)
 }
 
 func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
@@ -167,13 +167,13 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 	return buff
 }
 
-func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P) error {
+func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P, source p2p.MessageHandler) error {
 	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
 	}
 
-	return tnRes.sendResponse([][]byte{serializedNode}, [][]byte{hash}, chunkIndex, message)
+	return tnRes.sendResponse([][]byte{serializedNode}, [][]byte{hash}, chunkIndex, message, source)
 }
 
 func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
@@ -198,6 +198,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 	hashes [][]byte,
 	chunkIndex uint32,
 	message p2p.MessageP2P,
+	source p2p.MessageHandler,
 ) error {
 
 	if len(serializedNodes) == 0 {
@@ -206,7 +207,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 	}
 
 	if len(serializedNodes) == 1 && len(serializedNodes[0]) > core.MaxBufferSizeToSendTrieNodes {
-		return tnRes.sendLargeMessage(serializedNodes[0], hashes[0], int(chunkIndex), message)
+		return tnRes.sendLargeMessage(serializedNodes[0], hashes[0], int(chunkIndex), message, source)
 	}
 
 	buff, err := tnRes.marshalizer.Marshal(&batch.Batch{Data: serializedNodes})
@@ -214,7 +215,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 		return err
 	}
 
-	return tnRes.Send(buff, message.Peer(), message.Network())
+	return tnRes.Send(buff, message.Peer(), source)
 }
 
 func (tnRes *TrieNodeResolver) sendLargeMessage(
@@ -222,6 +223,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	reference []byte,
 	chunkIndex int,
 	message p2p.MessageP2P,
+	source p2p.MessageHandler,
 ) error {
 
 	logTrieNodes.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
@@ -248,7 +250,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 		return err
 	}
 
-	return tnRes.Send(buff, message.Peer(), message.Network())
+	return tnRes.Send(buff, message.Peer(), source)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

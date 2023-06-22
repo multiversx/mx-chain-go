@@ -136,7 +136,6 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger,
 			trs.mainPeersRatingHandler,
-			p2p.MainNetwork,
 			trs.mainPreferredPeersHolderHandler)
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
@@ -150,7 +149,6 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger,
 			trs.mainPeersRatingHandler,
-			p2p.MainNetwork,
 			trs.mainPreferredPeersHolderHandler)
 	} else {
 		preferredPeer := trs.getPreferredFullArchivePeer()
@@ -165,7 +163,6 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			core.FullHistoryPeer.String(),
 			trs.fullArchiveMessenger,
 			trs.fullArchivePeersRatingHandler,
-			p2p.FullArchiveNetwork,
 			trs.fullArchivePreferredPeersHolderHandler)
 	}
 
@@ -206,9 +203,8 @@ func (trs *topicRequestSender) sendOnTopic(
 	buff []byte,
 	maxToSend int,
 	peerType string,
-	messenger dataRetriever.MessageHandler,
+	messenger p2p.MessageHandler,
 	peersRatingHandler dataRetriever.PeersRatingHandler,
-	network p2p.Network,
 	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {
@@ -228,12 +224,10 @@ func (trs *topicRequestSender) sendOnTopic(
 		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
 	}
 
-	logData = append(logData, "network", network)
-
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
-		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger, network, preferredPeersHolder)
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger, preferredPeersHolder)
 		if err != nil {
 			continue
 		}
@@ -247,7 +241,7 @@ func (trs *topicRequestSender) sendOnTopic(
 		}
 	}
 	log.Trace("requests are sent to", logData...)
-	log.Trace("request peers histogram", "network", network, "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
+	log.Trace("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
 
 	return msgSentCounter
 }

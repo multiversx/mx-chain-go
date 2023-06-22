@@ -150,7 +150,7 @@ func NewTestHeartbeatNode(
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	p2pKey := mock.NewPrivateKeyMock()
-	messenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.MainNetwork)
+	messenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.RegularMessageHandler)
 	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -170,7 +170,7 @@ func NewTestHeartbeatNode(
 		log.Error("error setting NewPeerShardMapper in p2p messenger", "error", err)
 	}
 
-	fullArchiveMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.FullArchiveNetwork)
+	fullArchiveMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey, p2p.FullArchiveMessageHandler)
 	pidPkFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pkShardIdFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pidShardIdFullArch, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})

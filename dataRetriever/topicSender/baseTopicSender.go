@@ -22,8 +22,8 @@ const (
 
 // ArgBaseTopicSender is the base DTO used to create a new topic sender instance
 type ArgBaseTopicSender struct {
-	MainMessenger                   dataRetriever.MessageHandler
-	FullArchiveMessenger            dataRetriever.MessageHandler
+	MainMessenger                   p2p.Messenger
+	FullArchiveMessenger            p2p.Messenger
 	TopicName                       string
 	OutputAntiflooder               dataRetriever.P2PAntifloodHandler
 	MainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
@@ -32,8 +32,8 @@ type ArgBaseTopicSender struct {
 }
 
 type baseTopicSender struct {
-	mainMessenger                          dataRetriever.MessageHandler
-	fullArchiveMessenger                   dataRetriever.MessageHandler
+	mainMessenger                          p2p.Messenger
+	fullArchiveMessenger                   p2p.Messenger
 	topicName                              string
 	outputAntiflooder                      dataRetriever.P2PAntifloodHandler
 	mutDebugHandler                        sync.RWMutex
@@ -79,15 +79,13 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 	topic string,
 	buff []byte,
 	peer core.PeerID,
-	messenger dataRetriever.MessageHandler,
-	network p2p.Network,
+	messenger p2p.MessageHandler,
 	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) error {
 	msg := &factory.Message{
-		DataField:    buff,
-		PeerField:    peer,
-		TopicField:   topic,
-		NetworkField: network,
+		DataField:  buff,
+		PeerField:  peer,
+		TopicField: topic,
 	}
 
 	shouldAvoidAntiFloodCheck := preferredPeersHolder.Contains(peer)
@@ -97,11 +95,10 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 
 	err := baseSender.outputAntiflooder.CanProcessMessage(msg, peer)
 	if err != nil {
-		return fmt.Errorf("%w while sending %d bytes to peer %s on network %s",
+		return fmt.Errorf("%w while sending %d bytes to peer %s",
 			err,
 			len(buff),
 			p2p.PeerIdToShortString(peer),
-			network,
 		)
 	}
 

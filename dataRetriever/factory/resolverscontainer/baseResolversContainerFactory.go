@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -24,8 +25,8 @@ var log = logger.GetOrCreate("dataRetriever/factory/resolverscontainer")
 type baseResolversContainerFactory struct {
 	container                       dataRetriever.ResolversContainer
 	shardCoordinator                sharding.Coordinator
-	mainMessenger                   dataRetriever.TopicMessageHandler
-	fullArchiveMessenger            dataRetriever.TopicMessageHandler
+	mainMessenger                   p2p.Messenger
+	fullArchiveMessenger            p2p.Messenger
 	store                           dataRetriever.StorageService
 	marshalizer                     marshal.Marshalizer
 	dataPools                       dataRetriever.PoolsHolder

@@ -44,6 +44,8 @@ type MessengerStub struct {
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
+	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	TypeCalled                              func() p2p.MessageHandlerType
 }
 
 // ID -
@@ -349,6 +351,22 @@ func (ms *MessengerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]
 	}
 
 	return make([]byte, 0), nil
+}
+
+// ProcessReceivedMessage -
+func (ms *MessengerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+	if ms.ProcessReceivedMessageCalled != nil {
+		return ms.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
+	}
+	return nil
+}
+
+// Type -
+func (ms *MessengerStub) Type() p2p.MessageHandlerType {
+	if ms.TypeCalled != nil {
+		return ms.TypeCalled()
+	}
+	return p2p.RegularMessageHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

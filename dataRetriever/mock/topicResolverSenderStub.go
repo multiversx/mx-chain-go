@@ -9,7 +9,7 @@ import (
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendCalled          func(buff []byte, peer core.PeerID, network p2p.Network) error
+	SendCalled          func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error
 	TargetShardIDCalled func() uint32
 	debugHandler        dataRetriever.DebugHandler
 }
@@ -20,9 +20,9 @@ func (trss *TopicResolverSenderStub) RequestTopic() string {
 }
 
 // Send -
-func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID, network p2p.Network) error {
+func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
 	if trss.SendCalled != nil {
-		return trss.SendCalled(buff, peer, network)
+		return trss.SendCalled(buff, peer, source)
 	}
 
 	return nil
