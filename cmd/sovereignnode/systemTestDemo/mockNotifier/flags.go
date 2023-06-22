@@ -14,8 +14,4 @@ var (
 			" log level.",
 		Value: "*:" + logger.LogTrace.String(),
 	}
-	logSaveFile = cli.BoolFlag{
-		Name:  "log-save",
-		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
-	}
 )
