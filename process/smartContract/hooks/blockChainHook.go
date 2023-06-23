@@ -41,27 +41,28 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts                 state.AccountsAdapter
-	PubkeyConv               core.PubkeyConverter
-	StorageService           dataRetriever.StorageService
-	DataPool                 dataRetriever.PoolsHolder
-	BlockChain               data.ChainHandler
-	ShardCoordinator         sharding.Coordinator
-	Marshalizer              marshal.Marshalizer
-	Uint64Converter          typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions         vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler        vmcommon.SimpleESDTNFTStorageHandler
-	GlobalSettingsHandler    vmcommon.ESDTGlobalSettingsHandler
-	CompiledSCPool           storage.Cacher
-	ConfigSCStorage          config.StorageConfig
-	EnableEpochs             config.EnableEpochs
-	EpochNotifier            vmcommon.EpochNotifier
-	EnableEpochsHandler      common.EnableEpochsHandler
-	WorkingDir               string
-	NilCompiledSCStore       bool
-	GasSchedule              core.GasScheduleNotifier
-	Counter                  BlockChainHookCounter
-	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
+	Accounts                     state.AccountsAdapter
+	PubkeyConv                   core.PubkeyConverter
+	StorageService               dataRetriever.StorageService
+	DataPool                     dataRetriever.PoolsHolder
+	BlockChain                   data.ChainHandler
+	ShardCoordinator             sharding.Coordinator
+	Marshalizer                  marshal.Marshalizer
+	Uint64Converter              typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions             vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler            vmcommon.SimpleESDTNFTStorageHandler
+	GlobalSettingsHandler        vmcommon.ESDTGlobalSettingsHandler
+	CompiledSCPool               storage.Cacher
+	ConfigSCStorage              config.StorageConfig
+	EnableEpochs                 config.EnableEpochs
+	EpochNotifier                vmcommon.EpochNotifier
+	EnableEpochsHandler          common.EnableEpochsHandler
+	WorkingDir                   string
+	NilCompiledSCStore           bool
+	GasSchedule                  core.GasScheduleNotifier
+	Counter                      BlockChainHookCounter
+	MissingTrieNodesNotifier     common.MissingTrieNodesNotifier
+	BlockChainHookFactoryHandler BlockChainHookFactoryHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface

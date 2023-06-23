@@ -1,9 +1,6 @@
 package requestHandlers
 
 import (
-	"time"
-
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -21,9 +18,9 @@ func (rrh *resolverRequestHandlerFactory) CreateResolverRequestHandler(resolverR
 		resolverRequestArgs.RequestersFinder,
 		resolverRequestArgs.RequestedItemsHandler,
 		resolverRequestArgs.WhiteListHandler,
-		common.MaxTxsToRequest,
+		resolverRequestArgs.MaxTxsToRequest,
 		resolverRequestArgs.ShardID,
-		time.Second,
+		resolverRequestArgs.RequestInterval,
 	)
 }
 

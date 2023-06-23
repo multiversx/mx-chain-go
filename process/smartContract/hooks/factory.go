@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-go/common"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -15,14 +16,16 @@ func CreateBlockChainHook(chainRunType common.ChainRunType, args ArgBlockChainHo
 	}
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		return factory.CreateBlockChainHook(args)
+		args.BlockChainHookFactoryHandler = factory
 	case common.ChainRunTypeSovereign:
 		sovereignFactory, sovErr := NewSovereignBlockChainHookFactory(factory)
 		if sovErr != nil {
 			return nil, sovErr
 		}
-		return sovereignFactory.CreateBlockChainHook(args)
+		args.BlockChainHookFactoryHandler = sovereignFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
+
+	return args.BlockChainHookFactoryHandler.CreateBlockChainHook(args)
 }
