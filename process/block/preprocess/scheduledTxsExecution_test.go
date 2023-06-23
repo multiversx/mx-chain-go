@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -23,6 +21,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -966,7 +966,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 					return nil, nil
 				},
 			},
-			&testscommon.MarshalizerStub{
+			&marshallerMock.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, _ []byte) error {
 					return expectedErr
 				},
@@ -1008,7 +1008,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldWork(t *testing.T)
 				return marshalledSCRsSavedData, nil
 			},
 		},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1051,7 +1051,7 @@ func TestScheduledTxsExecution_getMarshalledScheduledInfoShouldWork(t *testing.T
 		&testscommon.TxProcessorMock{},
 		&testscommon.TransactionCoordinatorMock{},
 		genericMocks.NewStorerMock(),
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1120,7 +1120,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
 				return marshalledSCRsSavedData, nil
 			},
 		},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1184,7 +1184,7 @@ func TestScheduledTxsExecution_SaveState(t *testing.T) {
 				return nil
 			},
 		},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1213,7 +1213,7 @@ func TestScheduledTxsExecution_SaveStateIfNeeded(t *testing.T) {
 				return nil
 			},
 		},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1491,7 +1491,7 @@ func TestScheduledTxsExecution_GetScheduledRootHashForHeaderShouldWork(t *testin
 				return marshalledSCRsSavedData, nil
 			},
 		},
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
 	)
@@ -1600,7 +1600,7 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 			&testscommon.TxProcessorMock{},
 			&testscommon.TransactionCoordinatorMock{},
 			genericMocks.NewStorerMock(),
-			&testscommon.MarshalizerStub{
+			&marshallerMock.MarshalizerStub{
 				MarshalCalled: func(obj interface{}) ([]byte, error) {
 					return nil, expectedErr
 				},
@@ -1627,7 +1627,7 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 			&testscommon.TxProcessorMock{},
 			&testscommon.TransactionCoordinatorMock{},
 			genericMocks.NewStorerMock(),
-			&testscommon.MarshalizerStub{
+			&marshallerMock.MarshalizerStub{
 				MarshalCalled: func(obj interface{}) ([]byte, error) {
 					assert.Equal(t, mb, obj)
 					return nil, nil

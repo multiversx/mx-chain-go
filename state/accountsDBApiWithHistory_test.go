@@ -84,7 +84,7 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 	accountsApi.SetStateCheckpoint(nil)
 
 	assert.Equal(t, false, accountsApi.IsPruningEnabled())
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, nil, nil))
 
 	resultedMap, err := accountsApi.RecreateAllTries(nil)
 	assert.Nil(t, resultedMap)
@@ -129,7 +129,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 			},
 			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(address, testscommon.TestPubKeyAlice) {
-					return state.NewUserAccount(address)
+					return createUserAcc(address), nil
 				}
 
 				return nil, errors.New("not found")
@@ -307,7 +307,9 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 }
 
 func createDummyAccountWithBalanceString(balanceString string) state.UserAccountHandler {
-	dummyAccount := state.NewEmptyUserAccount()
+	dummyAccount := &mockState.AccountWrapMock{
+		Balance: big.NewInt(0),
+	}
 	dummyBalance, _ := big.NewInt(0).SetString(balanceString, 10)
 	_ = dummyAccount.AddToBalance(dummyBalance)
 

@@ -60,7 +60,6 @@ type ArgsGenesisBlockCreator struct {
 	TrieStorageManagers  map[string]common.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
 	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
 	ChainRunType         common.ChainRunType

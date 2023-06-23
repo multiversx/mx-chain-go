@@ -8,8 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +17,7 @@ import (
 
 func createMockArgInterceptedValidatorInfo() ArgInterceptedValidatorInfo {
 	args := ArgInterceptedValidatorInfo{
-		Marshalizer: testscommon.MarshalizerMock{},
+		Marshalizer: marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockShardValidatorInfo())
@@ -63,7 +63,7 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 
 		expectedErr := errors.New("expected err")
 		args := createMockArgInterceptedValidatorInfo()
-		args.Marshalizer = &testscommon.MarshalizerStub{
+		args.Marshalizer = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},

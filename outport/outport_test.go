@@ -2,6 +2,7 @@ package outport
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	atomicGo "sync/atomic"
 	"testing"
@@ -34,13 +35,13 @@ func TestNewOutport(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid retrial time should error", func(t *testing.T) {
-		outportHandler, err := NewOutport(0)
+		outportHandler, err := NewOutport(0, outportcore.OutportConfig{})
 
 		assert.True(t, errors.Is(err, ErrInvalidRetrialInterval))
 		assert.True(t, check.IfNil(outportHandler))
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, err := NewOutport(minimumRetrialInterval)
+		outportHandler, err := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(outportHandler))
@@ -69,7 +70,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -115,7 +116,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -161,7 +162,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -206,7 +207,7 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -253,7 +254,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -300,7 +301,7 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -348,7 +349,7 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -377,7 +378,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil driver should error", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval)
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -386,7 +387,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 		require.False(t, outportHandler.HasDrivers())
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval)
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -399,7 +400,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 func TestOutport_Close(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 	localErr := errors.New("local err")
 	driver1 := &mock.DriverStub{
@@ -423,7 +424,7 @@ func TestOutport_Close(t *testing.T) {
 func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 
 	localErr := errors.New("driver stuck in error")
 	driver1 := &mock.DriverStub{
@@ -511,7 +512,7 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	logErrorCalled := atomic.Flag{}
@@ -546,7 +547,7 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval)
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	numLogDebugCalled := uint32(0)
@@ -579,4 +580,93 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, uint32(2), atomicGo.LoadUint32(&numLogDebugCalled))
+}
+
+func TestOutport_SettingsRequestAndReceive(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	t.Run("RegisterHandlerForSettingsRequest errors, should not add the driver", func(t *testing.T) {
+		t.Parallel()
+
+		driver := &mock.DriverStub{
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
+				return expectedErr
+			},
+		}
+
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
+		err := outportHandler.SubscribeDriver(driver)
+		assert.Equal(t, expectedErr, err)
+		require.False(t, outportHandler.HasDrivers())
+	})
+	t.Run("SetCurrentSettings errors, should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, fmt.Sprintf("should have not failed %v", r))
+			}
+		}()
+
+		currentSettingsCalled := false
+		var callback func() error
+		driver := &mock.DriverStub{
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
+				callback = handlerFunction
+
+				return nil
+			},
+			SetCurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+				currentSettingsCalled = true
+				return expectedErr
+			},
+		}
+
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
+		err := outportHandler.SubscribeDriver(driver)
+		assert.Nil(t, err)
+
+		assert.False(t, currentSettingsCalled)
+
+		err = callback()
+		assert.Equal(t, expectedErr, err)
+		assert.True(t, currentSettingsCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		var driverRequestHandler func() error
+		receivedOutportConfig := outportcore.OutportConfig{}
+		driver := &mock.DriverStub{
+			RegisterHandlerCalled: func(handlerFunction func() error, _ string) error {
+				driverRequestHandler = handlerFunction
+
+				return nil
+			},
+			SetCurrentSettingsCalled: func(config outportcore.OutportConfig) error {
+				receivedOutportConfig = config
+				return nil
+			},
+		}
+
+		providedConfig := outportcore.OutportConfig{
+			IsInImportDBMode: true,
+		}
+		outportHandler, _ := NewOutport(time.Second, providedConfig)
+		err := outportHandler.SubscribeDriver(driver)
+		assert.Nil(t, err)
+		assert.True(t, outportHandler.HasDrivers())
+
+		assert.NotNil(t, driverRequestHandler) // the RegisterHandlerForSettingsRequest should have been called, handler set
+
+		// the expected config should be empty as the handler should not call the driver's SetCurrentSettings automatically at subscribe time
+		assert.Equal(t, outportcore.OutportConfig{}, receivedOutportConfig)
+
+		// driver calls the handler because it wants the config
+		err = driverRequestHandler()
+		assert.Nil(t, err)
+		assert.Equal(t, providedConfig, receivedOutportConfig)
+	})
 }

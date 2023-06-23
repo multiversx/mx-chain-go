@@ -21,7 +21,7 @@ func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	for i := 0; i < numRuns; i++ {
 		ss.NewSnapshotStarted()
 		go func() {
-			ss.AddTrieStats(getTrieStatsDTO(5, 60).GetTrieStats())
+			ss.AddTrieStats(getTrieStatsDTO(5, 60), common.DataTrie)
 			ss.SnapshotFinished()
 		}()
 	}

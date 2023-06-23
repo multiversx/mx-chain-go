@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -332,7 +333,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	for range leavesChannel.LeavesChan {
 	}
 	require.Nil(t, err)
@@ -360,7 +361,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel.LeavesChan {
@@ -562,7 +563,13 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := tr.GetAllLeavesOnChannel(
+		leavesChannel,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	require.Nil(t, err)
 
 	numLeaves := 0
@@ -591,6 +598,7 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 			TrieSyncerVersion:                 version,
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  integrationTests.TestAppStatusHandler,
+			EnableEpochsHandler:               node.EnableEpochsHandler,
 		},
 		ShardId:                0,
 		Throttler:              thr,

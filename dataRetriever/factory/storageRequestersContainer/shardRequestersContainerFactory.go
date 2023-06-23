@@ -37,6 +37,7 @@ func NewShardRequestersContainerFactory(
 		chainID:                  args.ChainID,
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.SnapshotsEnabled,
+		enableEpochsHandler:      args.EnableEpochsHandler,
 	}
 
 	err := base.checkParams()
@@ -170,6 +171,7 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 		userAccountsStorer,
 		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
+		srcf.enableEpochsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

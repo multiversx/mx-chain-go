@@ -38,6 +38,8 @@ type SystemEIStub struct {
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
+	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
+	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
 }
 
 // AddLogEntry -
@@ -288,6 +290,24 @@ func (s *SystemEIStub) CleanStorageUpdates() {
 	if s.CleanStorageUpdatesCalled != nil {
 		s.CleanStorageUpdatesCalled()
 	}
+}
+
+// SetOwnerOperatingOnAccount -
+func (s *SystemEIStub) SetOwnerOperatingOnAccount(newOwner []byte) error {
+	if s.SetOwnerOperatingOnAccountCalled != nil {
+		return s.SetOwnerOperatingOnAccountCalled(newOwner)
+	}
+
+	return nil
+}
+
+// UpdateCodeDeployerAddress -
+func (s *SystemEIStub) UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error {
+	if s.UpdateCodeDeployerAddressCalled != nil {
+		return s.UpdateCodeDeployerAddressCalled(scAddress, newOwner)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

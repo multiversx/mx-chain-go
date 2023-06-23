@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +16,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilStorageService", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  nil,
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		}
 
@@ -41,7 +42,7 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilPubKeyConverter", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  genericMocks.NewChainStorerMock(7),
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: nil,
 		}
 

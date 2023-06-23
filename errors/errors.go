@@ -561,3 +561,9 @@ var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
 var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")
+
+// ErrInvalidTrieNodeVersion signals that an invalid trie node version has been provided
+var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
+
+// ErrNilTrieMigrator signals that a nil trie migrator has been provided
+var ErrNilTrieMigrator = errors.New("nil trie migrator")
