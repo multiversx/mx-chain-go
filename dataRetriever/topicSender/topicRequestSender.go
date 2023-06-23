@@ -135,8 +135,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numCrossShardPeers,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger,
-			trs.mainPeersRatingHandler,
-			trs.mainPreferredPeersHolderHandler)
+			trs.mainPeersRatingHandler)
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
@@ -148,8 +147,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numIntraShardPeers,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger,
-			trs.mainPeersRatingHandler,
-			trs.mainPreferredPeersHolderHandler)
+			trs.mainPeersRatingHandler)
 	} else {
 		preferredPeer := trs.getPreferredFullArchivePeer()
 		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
@@ -162,8 +160,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numFullHistoryPeers,
 			core.FullHistoryPeer.String(),
 			trs.fullArchiveMessenger,
-			trs.fullArchivePeersRatingHandler,
-			trs.fullArchivePreferredPeersHolderHandler)
+			trs.fullArchivePeersRatingHandler)
 	}
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
@@ -205,7 +202,6 @@ func (trs *topicRequestSender) sendOnTopic(
 	peerType string,
 	messenger p2p.MessageHandler,
 	peersRatingHandler dataRetriever.PeersRatingHandler,
-	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
@@ -227,7 +223,7 @@ func (trs *topicRequestSender) sendOnTopic(
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
-		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger, preferredPeersHolder)
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger)
 		if err != nil {
 			continue
 		}

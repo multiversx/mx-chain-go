@@ -80,7 +80,6 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 	buff []byte,
 	peer core.PeerID,
 	messenger p2p.MessageHandler,
-	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) error {
 	msg := &factory.Message{
 		DataField:  buff,
@@ -88,7 +87,9 @@ func (baseSender *baseTopicSender) sendToConnectedPeer(
 		TopicField: topic,
 	}
 
-	shouldAvoidAntiFloodCheck := preferredPeersHolder.Contains(peer)
+	isPreferredOnMain := baseSender.mainPreferredPeersHolderHandler.Contains(peer)
+	isPreferredOnFullArchive := baseSender.fullArchivePreferredPeersHolderHandler.Contains(peer)
+	shouldAvoidAntiFloodCheck := isPreferredOnMain || isPreferredOnFullArchive
 	if shouldAvoidAntiFloodCheck {
 		return messenger.SendToConnectedPeer(topic, buff, peer)
 	}

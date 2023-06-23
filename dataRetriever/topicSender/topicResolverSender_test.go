@@ -172,9 +172,6 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 
 				return nil
 			},
-			TypeCalled: func() p2p.MessageHandlerType {
-				return p2p.RegularMessageHandler
-			},
 		}
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			IsConnectedCalled: func(peerID core.PeerID) bool {
@@ -184,9 +181,6 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 				assert.Fail(t, "should have not been called")
 
 				return nil
-			},
-			TypeCalled: func() p2p.MessageHandlerType {
-				return p2p.FullArchiveMessageHandler
 			},
 		}
 		wasCalled := false
@@ -227,18 +221,12 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 
 				return nil
 			},
-			TypeCalled: func() p2p.MessageHandlerType {
-				return p2p.FullArchiveMessageHandler
-			},
 		}
 		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Fail(t, "should have not been called")
 
 				return nil
-			},
-			TypeCalled: func() p2p.MessageHandlerType {
-				return p2p.RegularMessageHandler
 			},
 		}
 		wasCalled := false

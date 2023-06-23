@@ -265,6 +265,3 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrValidatorInfoNotFound signals that no validator info was found
 var ErrValidatorInfoNotFound = errors.New("validator info not found")
-
-// ErrUnknownMessageHandlerType signals that an unknown message handler has been provided
-var ErrUnknownMessageHandlerType = errors.New("unknown message handler type")

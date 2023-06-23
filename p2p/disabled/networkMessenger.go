@@ -185,11 +185,6 @@ func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.
 	return nil
 }
 
-// Type returns regular message handler as it is disabled
-func (netMes *networkMessenger) Type() p2p.MessageHandlerType {
-	return p2p.RegularMessageHandler
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
 	return netMes == nil

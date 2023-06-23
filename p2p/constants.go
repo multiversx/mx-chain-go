@@ -30,12 +30,3 @@ const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
 // BroadcastMethod defines the broadcast method of the message
 type BroadcastMethod = p2p.BroadcastMethod
-
-// MessageHandlerType defines the type of the message handler
-type MessageHandlerType = p2p.MessageHandlerType
-
-// RegularMessageHandler defines a message handler for the main network
-const RegularMessageHandler = p2p.RegularMessageHandler
-
-// FullArchiveMessageHandler defines a message handler for the full archive network
-const FullArchiveMessageHandler = p2p.FullArchiveMessageHandler
