@@ -16,3 +16,5 @@ SubscribedEvents = [
     Mode = "client"
     # This flag specifies if we should send an acknowledge signal upon receiving data
     WithAcknowledge = true
+    # The duration in seconds to wait for an acknowledgement message
+    AcknowledgeTimeout = 60

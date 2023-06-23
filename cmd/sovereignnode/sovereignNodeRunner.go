@@ -647,6 +647,7 @@ func getBaseAccountSyncerArgs(
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 
@@ -1692,6 +1693,7 @@ func createSovereignWsReceiver(
 			RetryDuration:      config.WebSocketConfig.RetryDuration,
 			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}

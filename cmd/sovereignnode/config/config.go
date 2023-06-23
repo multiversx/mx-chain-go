@@ -29,4 +29,5 @@ type WebSocketConfig struct {
 	HasherType         string `toml:"HasherType"`
 	Mode               string `toml:"Mode"`
 	WithAcknowledge    bool   `toml:"WithAcknowledge"`
+	AcknowledgeTimeout int    `toml:"AcknowledgeTimeout"`
 }
