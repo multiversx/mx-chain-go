@@ -30,7 +30,6 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		TxPool:      &testscommon.ShardedDataStub{},
 		Marshaller:  &marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
-		SelfShardID: core.SovereignChainShardId,
 	}
 }
 
@@ -360,7 +359,7 @@ func TestIncomingHeaderHandler_AddHeaderExpectNoncesIncremented(t *testing.T) {
 
 	errCt := uint64(4)
 	errUnmarshall := errors.New("error unmarshall")
-	args.Marshaller = &testscommon.MarshalizerStub{
+	args.Marshaller = &marshallerMock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			if addInTxPoolCt == errCt {
 				return nil, errUnmarshall

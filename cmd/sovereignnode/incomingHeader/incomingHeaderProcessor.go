@@ -20,7 +20,6 @@ type ArgsIncomingHeaderProcessor struct {
 	TxPool      TransactionPool
 	Marshaller  marshal.Marshalizer
 	Hasher      hashing.Hasher
-	SelfShardID uint32
 }
 
 type incomingHeaderProcessor struct {
@@ -52,7 +51,6 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	}
 
 	extendedHearProc := &extendedHeaderProcessor{
-		selfShardID: args.SelfShardID,
 		headersPool: args.HeadersPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
@@ -78,7 +76,7 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	extendedHeader := ihp.extendedHeaderProc.createExtendedHeader(headerV2, incomingSCRs)
+	extendedHeader := createExtendedHeader(headerV2, incomingSCRs)
 	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err

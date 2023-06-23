@@ -50,8 +50,10 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+
+		// TODO: (sovereign) replace this check with != shardCoordinator.SelfID(), once MX-14132 task is completed
 		// smart contract results are needed to be processed only at destination and only if they are cross shard
-		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+		if miniBlock.ReceiverShardID != core.SovereignChainShardId {
 			continue
 		}
 		if miniBlock.SenderShardID != core.MainChainShardId {

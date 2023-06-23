@@ -1389,12 +1389,13 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	scbp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, header.GetRootHash())
 }
 
-func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
+// TODO: (sovereign) remove these cleanUpFunc pointer functions once shardCoordinator will return the correct shard id from task: MX-14132
+func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupBlockTrackerPoolsForShard(core.SovereignChainShardId, noncesToPrevFinal)
 }
 
-func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(shardID uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupPoolsForCrossShard(shardID, noncesToPrevFinal)
+func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupPoolsForCrossShard(core.SovereignChainShardId, noncesToPrevFinal)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
