@@ -291,7 +291,12 @@ func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBo
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, bcf.chainRunType)
 	}
 
-	return bcf.epochStartBootstrapperFactoryHandler.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
+	esb, err := bcf.epochStartBootstrapperFactoryHandler.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+	}
+
+	return esb, nil
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.HeaderVersionHandler, shardID uint32) (nodeFactory.VersionedHeaderFactory, error) {
