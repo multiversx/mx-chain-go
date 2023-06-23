@@ -29,8 +29,5 @@ func (bhf *SovereignBlockChainHookFactory) CreateBlockChainHook(args ArgBlockCha
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bhf *SovereignBlockChainHookFactory) IsInterfaceNil() bool {
-	if bhf == nil {
-		return true
-	}
-	return false
+	return bhf == nil
 }

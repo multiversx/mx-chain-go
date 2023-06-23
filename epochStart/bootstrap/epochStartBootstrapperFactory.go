@@ -16,8 +16,5 @@ func (bcf *epochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStar
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bcf *epochStartBootstrapperFactory) IsInterfaceNil() bool {
-	if bcf == nil {
-		return true
-	}
-	return false
+	return bcf == nil
 }

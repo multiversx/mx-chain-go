@@ -571,6 +571,9 @@ var ErrNilTrieMigrator = errors.New("nil trie migrator")
 // ErrInvalidTypeConversion signals that a type conversion has failed
 var ErrInvalidTypeConversion = errors.New("invalid type conversion")
 
+// ErrNilResolverRequestFactoryHandler signals that a nil resolver request factory handler has been provided
+var ErrNilResolverRequestFactoryHandler = errors.New("nil resolver request factory handler")
+
 // ErrNilBlockChainHookFactory signals that a nil blockchain hook factory has been provided
 var ErrNilBlockChainHookFactory = errors.New("nil blockchain hook factory")
 

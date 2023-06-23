@@ -37,8 +37,5 @@ func (bcf *sovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bcf *sovereignEpochStartBootstrapperFactory) IsInterfaceNil() bool {
-	if bcf == nil {
-		return true
-	}
-	return false
+	return bcf == nil
 }
