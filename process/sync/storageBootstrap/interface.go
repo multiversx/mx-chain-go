@@ -2,7 +2,9 @@ package storageBootstrap
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/sync"
 )
 
 // StorageBootstrapper is the main interface for bootstrap from storage execution engine
@@ -15,5 +17,17 @@ type storageBootstrapperHandler interface {
 	cleanupNotarizedStorage(hash []byte)
 	cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo)
 	getRootHash(hash []byte) []byte
+	IsInterfaceNil() bool
+}
+
+// ShardStorageBootstrapperFactoryHandler defines the operations supported by a shard storage bootstrapper factory
+type ShardStorageBootstrapperFactoryHandler interface {
+	CreateShardStorageBootstrapper(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
+	IsInterfaceNil() bool
+}
+
+// ShardBootstrapFactoryHandler defines the operations supported by a shard bootstrap factory
+type ShardBootstrapFactoryHandler interface {
+	CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
 	IsInterfaceNil() bool
 }

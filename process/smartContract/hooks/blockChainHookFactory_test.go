@@ -1,6 +1,8 @@
 package hooks
 
 import (
+	"testing"
+
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -9,7 +11,6 @@ import (
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewBlockChainHookFactory(t *testing.T) {
