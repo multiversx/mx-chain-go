@@ -52,7 +52,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	wsServer, err := createWSHost()
+	host, err := createWSHost()
 	if err != nil {
 		log.Error("cannot create WebSocket server", "error", err)
 		return err
@@ -81,12 +81,12 @@ func startMockNotifier(ctx *cli.Context) error {
 			"rand seed", headerV2.GetRandSeed(),
 			"prev rand seed", prevRandSeed)
 
-		err = sendOutportBlock(outportBlock, wsServer)
+		err = sendOutportBlock(outportBlock, host)
 		log.LogIfError(err)
 
 		time.Sleep(3000 * time.Millisecond)
 
-		err = sendFinalizedBlock(headerHash, wsServer)
+		err = sendFinalizedBlock(headerHash, host)
 		log.LogIfError(err)
 
 		nonce++
@@ -238,16 +238,17 @@ func createBlockData(headerV2 *block.HeaderV2) (*outport.BlockData, error) {
 	}, nil
 }
 
-func sendOutportBlock(outportBlock *outport.OutportBlock, wsServer factoryHost.FullDuplexHost) error {
+func sendOutportBlock(outportBlock *outport.OutportBlock, host factoryHost.FullDuplexHost) error {
 	outportBlockBytes, err := marshaller.Marshal(outportBlock)
 	if err != nil {
 		return err
 	}
 
-	return wsServer.Send(outportBlockBytes, outport.TopicSaveBlock)
+	sendWithRetrial(host, outportBlockBytes, outport.TopicSaveBlock)
+	return nil
 }
 
-func sendFinalizedBlock(hash []byte, wsServer factoryHost.FullDuplexHost) error {
+func sendFinalizedBlock(hash []byte, host factoryHost.FullDuplexHost) error {
 	finalizedBlock := &outport.FinalizedBlock{
 		HeaderHash: hash,
 	}
@@ -256,5 +257,22 @@ func sendFinalizedBlock(hash []byte, wsServer factoryHost.FullDuplexHost) error 
 		return err
 	}
 
-	return wsServer.Send(finalizedBlockBytes, outport.TopicFinalizedBlock)
+	sendWithRetrial(host, finalizedBlockBytes, outport.TopicFinalizedBlock)
+	return nil
+}
+
+func sendWithRetrial(host factoryHost.FullDuplexHost, data []byte, topic string) {
+	timer := time.NewTimer(0)
+	defer timer.Stop()
+
+	for {
+		<-timer.C
+		err := host.Send(data, topic)
+		if err == nil {
+			return
+		}
+
+		log.Warn("could not send data", "topic", topic, "error", err)
+		timer.Reset(3 * time.Second)
+	}
 }

@@ -2,7 +2,6 @@ package nodesCoordinator
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -1160,8 +1159,7 @@ func selectValidators(
 	}
 
 	// todo: checks for indexes
-	rnd, _ := hex.DecodeString("dee503bf756e92695d2955ce5c243c763bcf974930558fadb05d9e2f41339bb0")
-	selectedIndexes, err := selector.Select(rnd, consensusSize)
+	selectedIndexes, err := selector.Select(randomness, consensusSize)
 	if err != nil {
 		return nil, err
 	}
