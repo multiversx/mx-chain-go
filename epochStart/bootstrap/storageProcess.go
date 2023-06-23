@@ -62,8 +62,13 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
+	esbConverted, ok := esb.(*epochStartBootstrap)
+	if !ok {
+		return nil, errors.ErrInvalidTypeConversion
+	}
+
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:        esb,
+		epochStartBootstrap:        esbConverted,
 		importDbConfig:             args.ImportDbConfig,
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
@@ -74,21 +79,21 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	return sesb, nil
 }
 
-func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (*epochStartBootstrap, error) {
-	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
+func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
+	fact, err := NewEpochStartBootstrapperFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch args.ChainRunType {
 	case common.ChainRunTypeRegular:
-		return esb, nil
+		return fact.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 	case common.ChainRunTypeSovereign:
-		scesb, err := NewSovereignChainEpochStartBootstrap(esb)
-		if err != nil {
-			return nil, err
+		sovFactory, errSov := NewSovereignEpochStartBootstrapperFactory(fact)
+		if errSov != nil {
+			return nil, errSov
 		}
-		return scesb.epochStartBootstrap, nil
+		return sovFactory.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 	default:
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, args.ChainRunType)
 	}

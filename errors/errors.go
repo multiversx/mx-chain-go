@@ -567,3 +567,12 @@ var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
 
 // ErrNilTrieMigrator signals that a nil trie migrator has been provided
 var ErrNilTrieMigrator = errors.New("nil trie migrator")
+
+// ErrInvalidTypeConversion signals that a type conversion has failed
+var ErrInvalidTypeConversion = errors.New("invalid type conversion")
+
+// ErrNilBlockChainHookFactory signals that a nil blockchain hook factory has been provided
+var ErrNilBlockChainHookFactory = errors.New("nil blockchain hook factory")
+
+// ErrNilEpochStartBootstrapperFactory signals that a nil epoch start bootstrapper factory has been provided
+var ErrNilEpochStartBootstrapperFactory = errors.New("nil epoch start bootstrapper factory")
