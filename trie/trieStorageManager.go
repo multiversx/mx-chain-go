@@ -335,19 +335,19 @@ func (tsm *trieStorageManager) TakeSnapshot(
 ) {
 	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.TakeSnapshot, cannot take snapshot because errChan is nil")
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -368,7 +368,7 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	case tsm.snapshotReq <- snapshotEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 	}
 }
@@ -385,19 +385,19 @@ func (tsm *trieStorageManager) SetCheckpoint(
 ) {
 	if iteratorChannels.ErrChan == nil {
 		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 	if tsm.IsClosed() {
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
 
 	if bytes.Equal(rootHash, common.EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
 		return
 	}
@@ -415,21 +415,15 @@ func (tsm *trieStorageManager) SetCheckpoint(
 	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 		stats.SnapshotFinished()
-	}
-}
-
-func safelyCloseChan(ch chan core.KeyValueHolder) {
-	if ch != nil {
-		close(ch)
 	}
 }
 
 func (tsm *trieStorageManager) finishOperation(snapshotEntry *snapshotsQueueEntry, message string) {
 	tsm.ExitPruningBufferingMode()
 	log.Trace(message, "rootHash", snapshotEntry.rootHash)
-	safelyCloseChan(snapshotEntry.iteratorChannels.LeavesChan)
+	common.CloseKeyValueHolderChan(snapshotEntry.iteratorChannels.LeavesChan)
 	snapshotEntry.stats.SnapshotFinished()
 }
 
@@ -475,7 +469,15 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats.AddAccountInfo(snapshotEntry.address, snapshotEntry.rootHash)
-	snapshotEntry.stats.AddTrieStats(stats.GetTrieStats())
+	snapshotEntry.stats.AddTrieStats(stats, getTrieTypeFromAddress(snapshotEntry.address))
+}
+
+func getTrieTypeFromAddress(address string) common.TrieType {
+	if len(address) == 0 {
+		return common.MainTrie
+	}
+
+	return common.DataTrie
 }
 
 func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
@@ -510,7 +512,7 @@ func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEnt
 	}
 
 	stats.AddAccountInfo(checkpointEntry.address, checkpointEntry.rootHash)
-	checkpointEntry.stats.AddTrieStats(stats.GetTrieStats())
+	checkpointEntry.stats.AddTrieStats(stats, getTrieTypeFromAddress(checkpointEntry.address))
 }
 
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
@@ -570,6 +572,20 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	}
 
 	return storer.RemoveFromCurrentEpoch(hash)
+}
+
+// RemoveFromAllActiveEpochs removes the given hash from all epochs
+func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.checkpointHashesHolder.Remove(hash)
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("trie storage manager: main storer does not implement snapshotPruningStorer interface: %T", tsm.mainStorer)
+	}
+
+	return storer.RemoveFromAllActiveEpochs(hash)
 }
 
 // RemoveFromCheckpointHashesHolder removes the given hash from the checkpointHashesHolder

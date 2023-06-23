@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -569,7 +570,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
+	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	if err != nil {
 		return nil, err
 	}

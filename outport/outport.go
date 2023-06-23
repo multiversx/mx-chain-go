@@ -24,10 +24,11 @@ type outport struct {
 	logHandler        func(logLevel logger.LogLevel, message string, args ...interface{})
 	timeForDriverCall time.Duration
 	messageCounter    uint64
+	config            outportcore.OutportConfig
 }
 
 // NewOutport will create a new instance of proxy
-func NewOutport(retrialInterval time.Duration) (*outport, error) {
+func NewOutport(retrialInterval time.Duration, cfg outportcore.OutportConfig) (*outport, error) {
 	if retrialInterval < minimumRetrialInterval {
 		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
 	}
@@ -39,6 +40,7 @@ func NewOutport(retrialInterval time.Duration) (*outport, error) {
 		chanClose:         make(chan struct{}),
 		logHandler:        log.Log,
 		timeForDriverCall: maxTimeForDriverCall,
+		config:            cfg,
 	}, nil
 }
 
@@ -369,6 +371,15 @@ func (o *outport) HasDrivers() bool {
 func (o *outport) SubscribeDriver(driver Driver) error {
 	if check.IfNil(driver) {
 		return ErrNilDriver
+	}
+
+	callback := func() error {
+		return driver.SetCurrentSettings(o.config)
+	}
+
+	err := driver.RegisterHandler(callback, outportcore.TopicSettings)
+	if err != nil {
+		return err
 	}
 
 	o.mutex.Lock()

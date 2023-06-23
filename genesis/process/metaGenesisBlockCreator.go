@@ -345,6 +345,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SystemSCConfig:      &arg.SystemSCConfig,
 		ValidatorAccountsDB: arg.ValidatorAccounts,
+		UserAccountsDB:      arg.Accounts,
 		ChanceComputer:      &disabled.Rater{},
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,

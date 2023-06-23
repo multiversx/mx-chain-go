@@ -177,11 +177,19 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
+	argsAccCreator := state.ArgsAccountCreation{
+		Hasher:              coreComponents.Hasher(),
+		Marshaller:          coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
+
 	accounts, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
+		accCreator,
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 
@@ -262,8 +270,9 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
+	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
 	if err != nil {
 		return nil, err
 	}

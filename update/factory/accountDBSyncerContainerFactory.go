@@ -35,6 +35,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
 	AddressPubKeyConverter    core.PubkeyConverter
+	EnableEpochsHandler       common.EnableEpochsHandler
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -52,6 +53,7 @@ type accountDBSyncersContainerFactory struct {
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
 	addressPubKeyConverter    core.PubkeyConverter
+	enableEpochsHandler       common.EnableEpochsHandler
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -87,6 +89,9 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, update.ErrNilPubKeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, update.ErrNilEnableEpochsHandler
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,
@@ -102,6 +107,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		addressPubKeyConverter:    args.AddressPubKeyConverter,
+		enableEpochsHandler:       args.EnableEpochsHandler,
 	}
 
 	return t, nil
@@ -151,6 +157,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -180,6 +187,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

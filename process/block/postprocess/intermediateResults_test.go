@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,7 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		BlockType:           block.SmartContractResultBlock,
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
 		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
 	}
 
 	return args
@@ -631,7 +632,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 			return maxGasLimitPerBlock
 		},
 	}
-	enableEpochHandler := &testscommon.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: false}
+	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: false}
 	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
 

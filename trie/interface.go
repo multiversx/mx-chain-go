@@ -29,7 +29,7 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
-	insert(n *leafNode, db common.TrieStorageInteractor) (node, [][]byte, error)
+	insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error)
 	delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
@@ -39,10 +39,12 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
 	getAllHashes(db common.TrieStorageInteractor) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getValue() []byte
+	getVersion() (core.TrieNodeVersion, error)
+	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
 	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
@@ -105,6 +107,7 @@ type snapshotPruningStorer interface {
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
+	RemoveFromAllActiveEpochs(key []byte) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch

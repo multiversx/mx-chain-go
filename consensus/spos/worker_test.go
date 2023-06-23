@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -114,7 +115,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		AppStatusHandler:         appStatusHandler,
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
-		EnableEpochHandler:       &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return workerArgs

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -23,7 +24,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 			},
 		},
 		Hasher:                &testscommon.HasherStub{},
-		Marshaller:            &testscommon.MarshalizerMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
 		AccountFactory:        &mockState.AccountsFactoryStub{},
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		ProcessingMode:        0,

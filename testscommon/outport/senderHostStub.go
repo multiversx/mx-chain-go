@@ -1,9 +1,21 @@
 package outport
 
+import "github.com/multiversx/mx-chain-communication-go/websocket"
+
 // SenderHostStub -
 type SenderHostStub struct {
-	SendCalled  func(payload []byte, topic string) error
-	CloseCalled func() error
+	SendCalled              func(payload []byte, topic string) error
+	SetPayloadHandlerCalled func(handler websocket.PayloadHandler) error
+	CloseCalled             func() error
+}
+
+// SetPayloadHandler -
+func (s *SenderHostStub) SetPayloadHandler(handler websocket.PayloadHandler) error {
+	if s.SetPayloadHandlerCalled != nil {
+		return s.SetPayloadHandlerCalled(handler)
+	}
+
+	return nil
 }
 
 // Send -

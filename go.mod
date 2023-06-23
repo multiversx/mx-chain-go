@@ -10,19 +10,19 @@ require (
 	github.com/gin-gonic/gin v1.9.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/google/gops v0.3.27
+	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.2
+	github.com/multiversx/mx-chain-communication-go v1.0.3
 	github.com/multiversx/mx-chain-core-go v1.2.8-0.20230622123429-f38fc38f494e
-	github.com/multiversx/mx-chain-crypto-go v1.2.6
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.4
+	github.com/multiversx/mx-chain-crypto-go v1.2.7
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.5
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-storage-go v1.0.10
-	github.com/multiversx/mx-chain-vm-common-go v1.4.10-0.20230622130622-77098dbf730b
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81
+	github.com/multiversx/mx-chain-storage-go v1.0.11
+	github.com/multiversx/mx-chain-vm-common-go v1.4.10-0.20230622123827-ac750e7fbabe
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.58
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.59
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.85
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -44,7 +44,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.6.0 // indirect
-	github.com/herumi/bls-go-binary v1.0.0 // indirect
+	github.com/herumi/bls-go-binary v1.28.2 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-datastore v0.5.1 // indirect
@@ -148,7 +148,8 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -156,8 +157,8 @@ require (
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.11 // indirect
-	github.com/tklauser/numcpus v0.6.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.4 // indirect
+	github.com/tklauser/numcpus v0.2.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.9 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect

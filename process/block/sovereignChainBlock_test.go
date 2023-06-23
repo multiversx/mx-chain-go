@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ import (
 func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &testscommon.HasherStub{},
-		Marshalizer: &testscommon.MarshalizerStub{},
+		Marshalizer: &marshallerMock.MarshalizerMock{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
@@ -28,7 +29,7 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &testscommon.HasherStub{},
 			HeaderValidator:  headerValidator,
-			Marshalizer:      &testscommon.MarshalizerStub{},
+			Marshalizer:      &marshallerMock.MarshalizerStub{},
 			RequestHandler:   &testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			RoundHandler:     &testscommon.RoundHandlerMock{},
 			ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
