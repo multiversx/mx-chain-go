@@ -62,8 +62,6 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 		require.Nil(t, managedNetworkComponents.PeerHonestyHandler())
 		require.Nil(t, managedNetworkComponents.PeersRatingHandler())
 		require.Nil(t, managedNetworkComponents.FullArchiveNetworkMessenger())
-		require.Nil(t, managedNetworkComponents.FullArchivePeersRatingHandler())
-		require.Nil(t, managedNetworkComponents.FullArchivePeersRatingMonitor())
 		require.Nil(t, managedNetworkComponents.FullArchivePreferredPeersHolderHandler())
 
 		err = managedNetworkComponents.Create()
@@ -77,8 +75,6 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 		require.NotNil(t, managedNetworkComponents.PeerHonestyHandler())
 		require.NotNil(t, managedNetworkComponents.PeersRatingHandler())
 		require.NotNil(t, managedNetworkComponents.FullArchiveNetworkMessenger())
-		require.NotNil(t, managedNetworkComponents.FullArchivePeersRatingHandler())
-		require.NotNil(t, managedNetworkComponents.FullArchivePeersRatingMonitor())
 		require.NotNil(t, managedNetworkComponents.FullArchivePreferredPeersHolderHandler())
 
 		require.Equal(t, factory.NetworkComponentsName, managedNetworkComponents.String())

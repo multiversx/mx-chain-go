@@ -42,7 +42,7 @@ type FacadeStub struct {
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                       func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatingsCalled              func() string
+	GetConnectedPeersRatingsCalled              func() (string, error)
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -384,7 +384,7 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 }
 
 // GetConnectedPeersRatings -
-func (f *FacadeStub) GetConnectedPeersRatings() string {
+func (f *FacadeStub) GetConnectedPeersRatings() (string, error) {
 	return f.GetConnectedPeersRatingsCalled()
 }
 

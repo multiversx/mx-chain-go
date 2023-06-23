@@ -2118,13 +2118,14 @@ func TestNodeFacade_GetConnectedPeersRatings(t *testing.T) {
 	providedResponse := "ratings"
 	args := createMockArguments()
 	args.Node = &mock.NodeStub{
-		GetConnectedPeersRatingsCalled: func() string {
-			return providedResponse
+		GetConnectedPeersRatingsCalled: func() (string, error) {
+			return providedResponse, nil
 		},
 	}
 	nf, _ := NewNodeFacade(args)
 
-	response := nf.GetConnectedPeersRatings()
+	response, err := nf.GetConnectedPeersRatings()
+	require.NoError(t, err)
 	require.Equal(t, providedResponse, response)
 }
 

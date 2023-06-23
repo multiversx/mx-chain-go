@@ -394,14 +394,12 @@ type TestProcessorNode struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	UseValidVmBlsSigVerifier bool
 
-	TransactionLogProcessor       process.TransactionLogProcessor
-	MainPeersRatingHandler        p2p.PeersRatingHandler
-	FullArchivePeersRatingHandler p2p.PeersRatingHandler
-	MainPeersRatingMonitor        p2p.PeersRatingMonitor
-	FullArchivePeersRatingMonitor p2p.PeersRatingMonitor
-	HardforkTrigger               node.HardforkTrigger
-	AppStatusHandler              core.AppStatusHandler
-	StatusMetrics                 external.StatusMetricsHandler
+	TransactionLogProcessor process.TransactionLogProcessor
+	PeersRatingHandler      p2p.PeersRatingHandler
+	PeersRatingMonitor      p2p.PeersRatingMonitor
+	HardforkTrigger         node.HardforkTrigger
+	AppStatusHandler        core.AppStatusHandler
+	StatusMetrics           external.StatusMetricsHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -445,50 +443,27 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	var peersRatingHandler p2p.PeersRatingHandler
 	peersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
-	topRatedCache := testscommon.NewCacherMock()
-	badRatedCache := testscommon.NewCacherMock()
-	var fullArchivePeersRatingHandler p2p.PeersRatingHandler
-	fullArchivePeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{}
-	fullArchiveTopRatedCache := testscommon.NewCacherMock()
-	fullArchiveBadRatedCache := testscommon.NewCacherMock()
+	var peersRatingMonitor p2p.PeersRatingMonitor
+	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
 	if args.WithPeersRatingHandler {
+		topRatedCache := testscommon.NewCacherMock()
+		badRatedCache := testscommon.NewCacherMock()
 		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
 			p2pFactory.ArgPeersRatingHandler{
 				TopRatedCache: topRatedCache,
 				BadRatedCache: badRatedCache,
 				Logger:        &testscommon.LoggerStub{},
 			})
-
-		fullArchivePeersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
-			p2pFactory.ArgPeersRatingHandler{
-				TopRatedCache: fullArchiveTopRatedCache,
-				BadRatedCache: fullArchiveBadRatedCache,
-				Logger:        &testscommon.LoggerStub{},
+		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
+			p2pFactory.ArgPeersRatingMonitor{
+				TopRatedCache: topRatedCache,
+				BadRatedCache: badRatedCache,
 			})
 	}
 
 	p2pKey := mock.NewPrivateKeyMock()
 	messenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
-	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(fullArchivePeersRatingHandler, p2pKey)
-
-	var peersRatingMonitor p2p.PeersRatingMonitor
-	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
-	var fullArchivePeersRatingMonitor p2p.PeersRatingMonitor
-	fullArchivePeersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
-	if args.WithPeersRatingHandler {
-		peersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
-			p2pFactory.ArgPeersRatingMonitor{
-				TopRatedCache:       topRatedCache,
-				BadRatedCache:       badRatedCache,
-				ConnectionsProvider: messenger,
-			})
-		fullArchivePeersRatingMonitor, _ = p2pFactory.NewPeersRatingMonitor(
-			p2pFactory.ArgPeersRatingMonitor{
-				TopRatedCache:       fullArchiveTopRatedCache,
-				BadRatedCache:       fullArchiveBadRatedCache,
-				ConnectionsProvider: fullArchiveMessenger,
-			})
-	}
+	fullArchiveMessenger := CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHandler, p2pKey)
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 	epochsConfig := args.EpochsConfig
@@ -504,35 +479,33 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
-		ShardCoordinator:              shardCoordinator,
-		MainMessenger:                 messenger,
-		FullArchiveMessenger:          fullArchiveMessenger,
-		NodeOperationMode:             nodeOperationMode,
-		NodesCoordinator:              nodesCoordinatorInstance,
-		ChainID:                       ChainID,
-		MinTransactionVersion:         MinTransactionVersion,
-		NodesSetup:                    nodesSetup,
-		HistoryRepository:             &dblookupextMock.HistoryRepositoryStub{},
-		EpochNotifier:                 genericEpochNotifier,
-		EnableEpochsHandler:           enableEpochsHandler,
-		EpochProvider:                 &mock.CurrentNetworkEpochProviderStub{},
-		WasmVMChangeLocker:            &sync.RWMutex{},
-		TransactionLogProcessor:       logsProcessor,
-		Bootstrapper:                  mock.NewTestBootstrapperMock(),
-		MainPeersRatingHandler:        peersRatingHandler,
-		FullArchivePeersRatingHandler: fullArchivePeersRatingHandler,
-		MainPeerShardMapper:           mock.NewNetworkShardingCollectorMock(),
-		FullArchivePeerShardMapper:    mock.NewNetworkShardingCollectorMock(),
-		EnableEpochs:                  *epochsConfig,
-		UseValidVmBlsSigVerifier:      args.WithBLSSigVerifier,
-		StorageBootstrapper:           &mock.StorageBootstrapperMock{},
-		BootstrapStorer:               &mock.BoostrapStorerMock{},
-		RatingsData:                   args.RatingsData,
-		EpochStartNotifier:            args.EpochStartSubscriber,
-		GuardedAccountHandler:         &guardianMocks.GuardedAccountHandlerStub{},
-		AppStatusHandler:              appStatusHandler,
-		MainPeersRatingMonitor:        peersRatingMonitor,
-		FullArchivePeersRatingMonitor: fullArchivePeersRatingMonitor,
+		ShardCoordinator:           shardCoordinator,
+		MainMessenger:              messenger,
+		FullArchiveMessenger:       fullArchiveMessenger,
+		NodeOperationMode:          nodeOperationMode,
+		NodesCoordinator:           nodesCoordinatorInstance,
+		ChainID:                    ChainID,
+		MinTransactionVersion:      MinTransactionVersion,
+		NodesSetup:                 nodesSetup,
+		HistoryRepository:          &dblookupextMock.HistoryRepositoryStub{},
+		EpochNotifier:              genericEpochNotifier,
+		EnableEpochsHandler:        enableEpochsHandler,
+		EpochProvider:              &mock.CurrentNetworkEpochProviderStub{},
+		WasmVMChangeLocker:         &sync.RWMutex{},
+		TransactionLogProcessor:    logsProcessor,
+		Bootstrapper:               mock.NewTestBootstrapperMock(),
+		PeersRatingHandler:         peersRatingHandler,
+		MainPeerShardMapper:        mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper: mock.NewNetworkShardingCollectorMock(),
+		EnableEpochs:               *epochsConfig,
+		UseValidVmBlsSigVerifier:   args.WithBLSSigVerifier,
+		StorageBootstrapper:        &mock.StorageBootstrapperMock{},
+		BootstrapStorer:            &mock.BoostrapStorerMock{},
+		RatingsData:                args.RatingsData,
+		EpochStartNotifier:         args.EpochStartSubscriber,
+		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
+		AppStatusHandler:           appStatusHandler,
+		PeersRatingMonitor:         peersRatingMonitor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -1458,8 +1431,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		CurrentNetworkEpochProvider:     tpn.EpochProvider,
 		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		MainPeersRatingHandler:          tpn.MainPeersRatingHandler,
-		FullArchivePeersRatingHandler:   tpn.FullArchivePeersRatingHandler,
+		PeersRatingHandler:              tpn.PeersRatingHandler,
 		SizeCheckDelta:                  0,
 	}
 
@@ -2466,10 +2438,8 @@ func (tpn *TestProcessorNode) initNode() {
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tpn.MainMessenger
 	networkComponents.FullArchiveNetworkMessengerField = tpn.FullArchiveMessenger
-	networkComponents.PeersRatingHandlerField = tpn.MainPeersRatingHandler
-	networkComponents.FullArchivePeersRatingHandlerField = tpn.FullArchivePeersRatingHandler
-	networkComponents.PeersRatingMonitorField = tpn.MainPeersRatingMonitor
-	networkComponents.FullArchivePeersRatingMonitorField = tpn.FullArchivePeersRatingMonitor
+	networkComponents.PeersRatingHandlerField = tpn.PeersRatingHandler
+	networkComponents.PeersRatingMonitorField = tpn.PeersRatingMonitor
 
 	tpn.Node, err = node.NewNode(
 		node.WithAddressSignatureSize(64),
@@ -3319,16 +3289,15 @@ func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 // GetDefaultNetworkComponents -
 func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	return &mock.NetworkComponentsStub{
-		Messenger:                          &p2pmocks.MessengerStub{},
-		InputAntiFlood:                     &mock.P2PAntifloodHandlerStub{},
-		OutputAntiFlood:                    &mock.P2PAntifloodHandlerStub{},
-		PeerBlackList:                      &mock.PeerBlackListCacherStub{},
-		PeersRatingHandlerField:            &p2pmocks.PeersRatingHandlerStub{},
-		PeersRatingMonitorField:            &p2pmocks.PeersRatingMonitorStub{},
-		FullArchiveNetworkMessengerField:   &p2pmocks.MessengerStub{},
-		FullArchivePeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
-		PreferredPeersHolder:               &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		Messenger:                        &p2pmocks.MessengerStub{},
+		InputAntiFlood:                   &mock.P2PAntifloodHandlerStub{},
+		OutputAntiFlood:                  &mock.P2PAntifloodHandlerStub{},
+		PeerBlackList:                    &mock.PeerBlackListCacherStub{},
+		PeersRatingHandlerField:          &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingMonitorField:          &p2pmocks.PeersRatingMonitorStub{},
+		FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
+		PreferredPeersHolder:             &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 	}
 }
 

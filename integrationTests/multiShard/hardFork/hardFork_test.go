@@ -579,8 +579,7 @@ func createHardForkExporter(
 		networkComponents := integrationTests.GetDefaultNetworkComponents()
 		networkComponents.Messenger = node.MainMessenger
 		networkComponents.FullArchiveNetworkMessengerField = node.FullArchiveMessenger
-		networkComponents.PeersRatingHandlerField = node.MainPeersRatingHandler
-		networkComponents.FullArchivePeersRatingHandlerField = node.FullArchivePeersRatingHandler
+		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
 		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 		argsExportHandler := factory.ArgsExporter{

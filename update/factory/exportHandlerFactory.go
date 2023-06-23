@@ -374,14 +374,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsRequesters := ArgsRequestersContainerFactory{
-		ShardCoordinator:              e.shardCoordinator,
-		MainMessenger:                 e.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:          e.networkComponents.FullArchiveNetworkMessenger(),
-		Marshaller:                    e.coreComponents.InternalMarshalizer(),
-		ExistingRequesters:            e.existingRequesters,
-		OutputAntifloodHandler:        e.networkComponents.OutputAntiFloodHandler(),
-		MainPeersRatingHandler:        e.networkComponents.PeersRatingHandler(),
-		FullArchivePeersRatingHandler: e.networkComponents.FullArchivePeersRatingHandler(),
+		ShardCoordinator:       e.shardCoordinator,
+		MainMessenger:          e.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:   e.networkComponents.FullArchiveNetworkMessenger(),
+		Marshaller:             e.coreComponents.InternalMarshalizer(),
+		ExistingRequesters:     e.existingRequesters,
+		OutputAntifloodHandler: e.networkComponents.OutputAntiFloodHandler(),
+		PeersRatingHandler:     e.networkComponents.PeersRatingHandler(),
 	}
 	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
 	if err != nil {

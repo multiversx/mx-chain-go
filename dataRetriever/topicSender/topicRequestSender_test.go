@@ -40,17 +40,16 @@ func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
 
 func createMockArgTopicRequestSender() topicsender.ArgTopicRequestSender {
 	return topicsender.ArgTopicRequestSender{
-		ArgBaseTopicSender:            createMockArgBaseTopicSender(),
-		Marshaller:                    &mock.MarshalizerMock{},
-		Randomizer:                    &mock.IntRandomizerStub{},
-		PeerListCreator:               &mock.PeerListCreatorStub{},
-		NumIntraShardPeers:            2,
-		NumCrossShardPeers:            2,
-		NumFullHistoryPeers:           2,
-		CurrentNetworkEpochProvider:   &mock.CurrentNetworkEpochProviderStub{},
-		SelfShardIdProvider:           mock.NewMultipleShardsCoordinatorMock(),
-		MainPeersRatingHandler:        &p2pmocks.PeersRatingHandlerStub{},
-		FullArchivePeersRatingHandler: &p2pmocks.PeersRatingHandlerStub{},
+		ArgBaseTopicSender:          createMockArgBaseTopicSender(),
+		Marshaller:                  &mock.MarshalizerMock{},
+		Randomizer:                  &mock.IntRandomizerStub{},
+		PeerListCreator:             &mock.PeerListCreatorStub{},
+		NumIntraShardPeers:          2,
+		NumCrossShardPeers:          2,
+		NumFullHistoryPeers:         2,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		SelfShardIdProvider:         mock.NewMultipleShardsCoordinatorMock(),
+		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
 	}
 }
 
@@ -138,23 +137,14 @@ func TestNewTopicRequestSender(t *testing.T) {
 		assert.True(t, check.IfNil(trs))
 		assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
 	})
-	t.Run("nil MainPeersRatingHandler should error", func(t *testing.T) {
+	t.Run("nil PeersRatingHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgTopicRequestSender()
-		arg.MainPeersRatingHandler = nil
+		arg.PeersRatingHandler = nil
 		trs, err := topicsender.NewTopicRequestSender(arg)
 		assert.True(t, check.IfNil(trs))
-		assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
-	})
-	t.Run("nil FullArchivePeersRatingHandler should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgTopicRequestSender()
-		arg.FullArchivePeersRatingHandler = nil
-		trs, err := topicsender.NewTopicRequestSender(arg)
-		assert.True(t, check.IfNil(trs))
-		assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
+		assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
 	})
 	t.Run("nil SelfShardIdProvider should error", func(t *testing.T) {
 		t.Parallel()
@@ -291,7 +281,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 		decreaseCalledCounter := 0
-		arg.MainPeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
 			DecreaseRatingCalled: func(pid core.PeerID) {
 				decreaseCalledCounter++
 				if !bytes.Equal(pid.Bytes(), pID1.Bytes()) && !bytes.Equal(pid.Bytes(), pID2.Bytes()) {
@@ -339,13 +329,8 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return false
 			},
 		}
-		arg.MainPeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
-			DecreaseRatingCalled: func(pid core.PeerID) {
-				assert.Fail(t, "should have not been called")
-			},
-		}
 		decreaseCalledCounter := 0
-		arg.FullArchivePeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
 			DecreaseRatingCalled: func(pid core.PeerID) {
 				decreaseCalledCounter++
 				assert.Equal(t, pIDfullHistory, pid)

@@ -26,27 +26,25 @@ const (
 )
 
 type requestersContainerFactory struct {
-	shardCoordinator              sharding.Coordinator
-	mainMessenger                 p2p.Messenger
-	fullArchiveMessenger          p2p.Messenger
-	marshaller                    marshal.Marshalizer
-	intRandomizer                 dataRetriever.IntRandomizer
-	container                     dataRetriever.RequestersContainer
-	outputAntifloodHandler        dataRetriever.P2PAntifloodHandler
-	mainPeersRatingHandler        dataRetriever.PeersRatingHandler
-	fullArchivePeersRatingHandler dataRetriever.PeersRatingHandler
+	shardCoordinator       sharding.Coordinator
+	mainMessenger          p2p.Messenger
+	fullArchiveMessenger   p2p.Messenger
+	marshaller             marshal.Marshalizer
+	intRandomizer          dataRetriever.IntRandomizer
+	container              dataRetriever.RequestersContainer
+	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
+	peersRatingHandler     dataRetriever.PeersRatingHandler
 }
 
 // ArgsRequestersContainerFactory defines the arguments for the requestersContainerFactory constructor
 type ArgsRequestersContainerFactory struct {
-	ShardCoordinator              sharding.Coordinator
-	MainMessenger                 p2p.Messenger
-	FullArchiveMessenger          p2p.Messenger
-	Marshaller                    marshal.Marshalizer
-	ExistingRequesters            dataRetriever.RequestersContainer
-	OutputAntifloodHandler        dataRetriever.P2PAntifloodHandler
-	MainPeersRatingHandler        dataRetriever.PeersRatingHandler
-	FullArchivePeersRatingHandler dataRetriever.PeersRatingHandler
+	ShardCoordinator       sharding.Coordinator
+	MainMessenger          p2p.Messenger
+	FullArchiveMessenger   p2p.Messenger
+	Marshaller             marshal.Marshalizer
+	ExistingRequesters     dataRetriever.RequestersContainer
+	OutputAntifloodHandler dataRetriever.P2PAntifloodHandler
+	PeersRatingHandler     dataRetriever.PeersRatingHandler
 }
 
 // NewRequestersContainerFactory creates a new container filled with topic requesters
@@ -69,23 +67,19 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
-	if check.IfNil(args.MainPeersRatingHandler) {
-		return nil, fmt.Errorf("%w on main network", update.ErrNilPeersRatingHandler)
-	}
-	if check.IfNil(args.FullArchivePeersRatingHandler) {
-		return nil, fmt.Errorf("%w on full archive network", update.ErrNilPeersRatingHandler)
+	if check.IfNil(args.PeersRatingHandler) {
+		return nil, update.ErrNilPeersRatingHandler
 	}
 
 	return &requestersContainerFactory{
-		shardCoordinator:              args.ShardCoordinator,
-		mainMessenger:                 args.MainMessenger,
-		fullArchiveMessenger:          args.FullArchiveMessenger,
-		marshaller:                    args.Marshaller,
-		intRandomizer:                 &random.ConcurrentSafeIntRandomizer{},
-		container:                     args.ExistingRequesters,
-		outputAntifloodHandler:        args.OutputAntifloodHandler,
-		mainPeersRatingHandler:        args.MainPeersRatingHandler,
-		fullArchivePeersRatingHandler: args.FullArchivePeersRatingHandler,
+		shardCoordinator:       args.ShardCoordinator,
+		mainMessenger:          args.MainMessenger,
+		fullArchiveMessenger:   args.FullArchiveMessenger,
+		marshaller:             args.Marshaller,
+		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
+		container:              args.ExistingRequesters,
+		outputAntifloodHandler: args.OutputAntifloodHandler,
+		peersRatingHandler:     args.PeersRatingHandler,
 	}, nil
 }
 
@@ -179,16 +173,15 @@ func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string
 			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 			TargetShardId:                   defaultTargetShardID,
 		},
-		Marshaller:                    rcf.marshaller,
-		Randomizer:                    rcf.intRandomizer,
-		PeerListCreator:               peerListCreator,
-		NumIntraShardPeers:            numIntraShardPeers,
-		NumCrossShardPeers:            numCrossShardPeers,
-		NumFullHistoryPeers:           numFullHistoryPeers,
-		CurrentNetworkEpochProvider:   disabled.NewCurrentNetworkEpochProviderHandler(),
-		SelfShardIdProvider:           rcf.shardCoordinator,
-		MainPeersRatingHandler:        rcf.mainPeersRatingHandler,
-		FullArchivePeersRatingHandler: rcf.fullArchivePeersRatingHandler,
+		Marshaller:                  rcf.marshaller,
+		Randomizer:                  rcf.intRandomizer,
+		PeerListCreator:             peerListCreator,
+		NumIntraShardPeers:          numIntraShardPeers,
+		NumCrossShardPeers:          numCrossShardPeers,
+		NumFullHistoryPeers:         numFullHistoryPeers,
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		SelfShardIdProvider:         rcf.shardCoordinator,
+		PeersRatingHandler:          rcf.peersRatingHandler,
 	}
 	requestSender, err := topicsender.NewTopicRequestSender(arg)
 	if err != nil {

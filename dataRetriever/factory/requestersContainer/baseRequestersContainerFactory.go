@@ -35,8 +35,7 @@ type baseRequestersContainerFactory struct {
 	currentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
 	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
-	mainPeersRatingHandler          dataRetriever.PeersRatingHandler
-	fullArchivePeersRatingHandler   dataRetriever.PeersRatingHandler
+	peersRatingHandler              dataRetriever.PeersRatingHandler
 	numCrossShardPeers              int
 	numIntraShardPeers              int
 	numTotalPeers                   int
@@ -71,11 +70,8 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
 		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
-	if check.IfNil(brcf.mainPeersRatingHandler) {
-		return fmt.Errorf("%w on main network", dataRetriever.ErrNilPeersRatingHandler)
-	}
-	if check.IfNil(brcf.fullArchivePeersRatingHandler) {
-		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPeersRatingHandler)
+	if check.IfNil(brcf.peersRatingHandler) {
+		return dataRetriever.ErrNilPeersRatingHandler
 	}
 	if brcf.numCrossShardPeers <= 0 {
 		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
@@ -288,16 +284,15 @@ func (brcf *baseRequestersContainerFactory) createOneRequestSenderWithSpecifiedN
 			FullArchivePreferredPeersHolder: brcf.fullArchivePreferredPeersHolder,
 			TargetShardId:                   targetShardId,
 		},
-		Marshaller:                    brcf.marshaller,
-		Randomizer:                    brcf.intRandomizer,
-		PeerListCreator:               peerListCreator,
-		NumIntraShardPeers:            numIntraShardPeers,
-		NumCrossShardPeers:            numCrossShardPeers,
-		NumFullHistoryPeers:           brcf.numFullHistoryPeers,
-		CurrentNetworkEpochProvider:   brcf.currentNetworkEpochProvider,
-		SelfShardIdProvider:           brcf.shardCoordinator,
-		MainPeersRatingHandler:        brcf.mainPeersRatingHandler,
-		FullArchivePeersRatingHandler: brcf.fullArchivePeersRatingHandler,
+		Marshaller:                  brcf.marshaller,
+		Randomizer:                  brcf.intRandomizer,
+		PeerListCreator:             peerListCreator,
+		NumIntraShardPeers:          numIntraShardPeers,
+		NumCrossShardPeers:          numCrossShardPeers,
+		NumFullHistoryPeers:         brcf.numFullHistoryPeers,
+		CurrentNetworkEpochProvider: brcf.currentNetworkEpochProvider,
+		SelfShardIdProvider:         brcf.shardCoordinator,
+		PeersRatingHandler:          brcf.peersRatingHandler,
 	}
 	return topicsender.NewTopicRequestSender(arg)
 }

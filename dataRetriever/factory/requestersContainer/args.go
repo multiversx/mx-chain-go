@@ -21,7 +21,6 @@ type FactoryArgs struct {
 	CurrentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
 	MainPreferredPeersHolder        p2p.PreferredPeersHolderHandler
 	FullArchivePreferredPeersHolder p2p.PreferredPeersHolderHandler
-	MainPeersRatingHandler          dataRetriever.PeersRatingHandler
-	FullArchivePeersRatingHandler   dataRetriever.PeersRatingHandler
+	PeersRatingHandler              dataRetriever.PeersRatingHandler
 	SizeCheckDelta                  uint32
 }

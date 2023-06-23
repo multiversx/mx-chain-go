@@ -82,21 +82,15 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	if check.IfNil(mnc.mainNetworkHolder.netMessenger) {
 		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnMainNetworkString)
 	}
-	if check.IfNil(mnc.mainNetworkHolder.peersRatingHandler) {
-		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingHandler, errorOnMainNetworkString)
+	if check.IfNil(mnc.peersRatingHandler) {
+		return errors.ErrNilPeersRatingHandler
 	}
-	if check.IfNil(mnc.mainNetworkHolder.peersRatingMonitor) {
-		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingMonitor, errorOnMainNetworkString)
+	if check.IfNil(mnc.peersRatingMonitor) {
+		return errors.ErrNilPeersRatingMonitor
 	}
 
 	if check.IfNil(mnc.fullArchiveNetworkHolder.netMessenger) {
 		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnFullArchiveNetworkString)
-	}
-	if check.IfNil(mnc.fullArchiveNetworkHolder.peersRatingHandler) {
-		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingHandler, errorOnFullArchiveNetworkString)
-	}
-	if check.IfNil(mnc.fullArchiveNetworkHolder.peersRatingMonitor) {
-		return fmt.Errorf("%w %s", errors.ErrNilPeersRatingMonitor, errorOnFullArchiveNetworkString)
 	}
 
 	if check.IfNil(mnc.inputAntifloodHandler) {
@@ -208,7 +202,7 @@ func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler
 		return nil
 	}
 
-	return mnc.mainNetworkHolder.peersRatingHandler
+	return mnc.peersRatingHandler
 }
 
 // PeersRatingMonitor returns the peers rating monitor of the main network
@@ -220,7 +214,7 @@ func (mnc *managedNetworkComponents) PeersRatingMonitor() p2p.PeersRatingMonitor
 		return nil
 	}
 
-	return mnc.mainNetworkHolder.peersRatingMonitor
+	return mnc.peersRatingMonitor
 }
 
 // FullArchiveNetworkMessenger returns the p2p messenger of the full archive network
@@ -233,30 +227,6 @@ func (mnc *managedNetworkComponents) FullArchiveNetworkMessenger() p2p.Messenger
 	}
 
 	return mnc.fullArchiveNetworkHolder.netMessenger
-}
-
-// FullArchivePeersRatingHandler returns the peers rating handler of the full archive network
-func (mnc *managedNetworkComponents) FullArchivePeersRatingHandler() p2p.PeersRatingHandler {
-	mnc.mutNetworkComponents.RLock()
-	defer mnc.mutNetworkComponents.RUnlock()
-
-	if mnc.networkComponents == nil {
-		return nil
-	}
-
-	return mnc.fullArchiveNetworkHolder.peersRatingHandler
-}
-
-// FullArchivePeersRatingMonitor returns the peers rating monitor of the full archive network
-func (mnc *managedNetworkComponents) FullArchivePeersRatingMonitor() p2p.PeersRatingMonitor {
-	mnc.mutNetworkComponents.RLock()
-	defer mnc.mutNetworkComponents.RUnlock()
-
-	if mnc.networkComponents == nil {
-		return nil
-	}
-
-	return mnc.fullArchiveNetworkHolder.peersRatingMonitor
 }
 
 // FullArchivePreferredPeersHolderHandler returns the preferred peers holder of the full archive network
