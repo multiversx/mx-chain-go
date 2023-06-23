@@ -332,7 +332,6 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		args := createMockMultikeyHeartbeatSenderArgs(createMockBaseArgs())
 		recordedMainMessages := make(map[core.PeerID][][]byte)
-		recordedFullArchiveMessages := make(map[core.PeerID][][]byte)
 		args.mainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, args.topic, topic)
@@ -341,16 +340,6 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 			BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 				assert.Equal(t, args.topic, topic)
 				recordedMainMessages[pid] = append(recordedMainMessages[pid], buff)
-			},
-		}
-		args.fullArchiveMessenger = &p2pmocks.MessengerStub{
-			BroadcastCalled: func(topic string, buff []byte) {
-				assert.Equal(t, args.topic, topic)
-				recordedFullArchiveMessages[args.mainMessenger.ID()] = append(recordedFullArchiveMessages[args.mainMessenger.ID()], buff)
-			},
-			BroadcastUsingPrivateKeyCalled: func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-				assert.Equal(t, args.topic, topic)
-				recordedFullArchiveMessages[pid] = append(recordedFullArchiveMessages[pid], buff)
 			},
 		}
 		args.managedPeersHolder = &testscommon.ManagedPeersHolderStub{
@@ -390,8 +379,7 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		err := senderInstance.execute()
 		assert.Nil(t, err)
-		assert.Equal(t, 4, len(recordedMainMessages))        // current pid, aa, bb, cc
-		assert.Equal(t, 4, len(recordedFullArchiveMessages)) // current pid, aa, bb, cc
+		assert.Equal(t, 4, len(recordedMainMessages)) // current pid, aa, bb, cc
 
 		checkRecordedMessages(t,
 			recordedMainMessages,
@@ -419,38 +407,6 @@ func TestMultikeyHeartbeatSender_execute(t *testing.T) {
 
 		checkRecordedMessages(t,
 			recordedMainMessages,
-			args,
-			args.baseVersionNumber+"/cc_machineID",
-			"cc_name",
-			"cc_pid",
-			core.RegularPeer)
-
-		checkRecordedMessages(t,
-			recordedFullArchiveMessages,
-			args,
-			args.versionNumber,
-			args.nodeDisplayName,
-			args.mainMessenger.ID(),
-			core.FullHistoryObserver)
-
-		checkRecordedMessages(t,
-			recordedFullArchiveMessages,
-			args,
-			args.baseVersionNumber+"/aa_machineID",
-			"aa_name",
-			"aa_pid",
-			core.RegularPeer)
-
-		checkRecordedMessages(t,
-			recordedFullArchiveMessages,
-			args,
-			args.baseVersionNumber+"/bb_machineID",
-			"bb_name",
-			"bb_pid",
-			core.RegularPeer)
-
-		checkRecordedMessages(t,
-			recordedFullArchiveMessages,
 			args,
 			args.baseVersionNumber+"/cc_machineID",
 			"cc_name",

@@ -174,26 +174,23 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 			},
 		}
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
-			IsConnectedCalled: func(peerID core.PeerID) bool {
-				return false
-			},
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Fail(t, "should have not been called")
 
 				return nil
 			},
 		}
-		wasCalled := false
+		wasMainCalled := false
 		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			ContainsCalled: func(peerID core.PeerID) bool {
-				wasCalled = true
+				wasMainCalled = true
 				return false
 			},
 		}
+		wasFullArchiveCalled := false
 		arg.FullArchivePreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			ContainsCalled: func(peerID core.PeerID) bool {
-				assert.Fail(t, "should have not been called")
-
+				wasFullArchiveCalled = true
 				return false
 			},
 		}
@@ -203,16 +200,14 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, sentToPid1)
-		assert.True(t, wasCalled)
+		assert.True(t, wasMainCalled)
+		assert.True(t, wasFullArchiveCalled)
 	})
 	t.Run("on full archive network", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgTopicResolverSender()
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
-			IsConnectedCalled: func(peerID core.PeerID) bool {
-				return true
-			},
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
 					bytes.Equal(buff, buffToSend) {
@@ -229,17 +224,17 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 				return nil
 			},
 		}
-		wasCalled := false
+		wasFullArchiveCalled := false
 		arg.FullArchivePreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			ContainsCalled: func(peerID core.PeerID) bool {
-				wasCalled = true
+				wasFullArchiveCalled = true
 				return false
 			},
 		}
+		wasMainCalled := false
 		arg.MainPreferredPeersHolder = &p2pmocks.PeersHolderStub{
 			ContainsCalled: func(peerID core.PeerID) bool {
-				assert.Fail(t, "should have not been called")
-
+				wasMainCalled = true
 				return false
 			},
 		}
@@ -249,7 +244,8 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.True(t, sentToPid1)
-		assert.True(t, wasCalled)
+		assert.True(t, wasMainCalled)
+		assert.True(t, wasFullArchiveCalled)
 	})
 }
 
