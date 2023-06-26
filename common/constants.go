@@ -772,9 +772,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 
-// GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
-const GetNodeFromDBErrorString = "getNodeFromDB error"
-
 // TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
 const TimeoutGettingTrieNodes = 2 * time.Minute // to consider syncing a very large trie node of 64MB at ~1MB/s
 
@@ -812,6 +809,10 @@ const (
 	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
 	// a channel
 	TrieLeavesChannelDefaultCapacity = 100
+
+	// TrieLeavesChannelSyncCapacity represents the value to be used as capacity for getting main trie
+	// leaf nodes for trie sync
+	TrieLeavesChannelSyncCapacity = 1000
 )
 
 // ApiOutputFormat represents the format type returned by api

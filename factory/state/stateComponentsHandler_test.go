@@ -7,8 +7,8 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -66,6 +66,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 		require.Nil(t, managedStateComponents.TrieStorageManagers())
 		require.Nil(t, managedStateComponents.AccountsAdapterAPI())
 		require.Nil(t, managedStateComponents.AccountsRepository())
+		require.Nil(t, managedStateComponents.MissingTrieNodesNotifier())
 
 		err = managedStateComponents.Create()
 		require.NoError(t, err)
@@ -75,6 +76,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 		require.NotNil(t, managedStateComponents.TrieStorageManagers())
 		require.NotNil(t, managedStateComponents.AccountsAdapterAPI())
 		require.NotNil(t, managedStateComponents.AccountsRepository())
+		require.NotNil(t, managedStateComponents.MissingTrieNodesNotifier())
 
 		require.Equal(t, factory.StateComponentsName, managedStateComponents.String())
 		require.NoError(t, managedStateComponents.Close())
@@ -126,7 +128,7 @@ func TestManagedStateComponents_Setters(t *testing.T) {
 	require.NoError(t, err)
 
 	triesContainer := &trieMock.TriesHolderStub{}
-	triesStorageManagers := map[string]common.StorageManager{"a": &testscommon.StorageManagerStub{}}
+	triesStorageManagers := map[string]common.StorageManager{"a": &storageManager.StorageManagerStub{}}
 
 	err = managedStateComponents.SetTriesContainer(nil)
 	require.Equal(t, errorsMx.ErrNilTriesContainer, err)

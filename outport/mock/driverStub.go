@@ -3,7 +3,7 @@ package mock
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 )
 
 // DriverStub -
@@ -16,6 +16,8 @@ type DriverStub struct {
 	SaveAccountsCalled          func(accounts *outportcore.Accounts) error
 	FinalizedBlockCalled        func(finalizedBlock *outportcore.FinalizedBlock) error
 	CloseCalled                 func() error
+	RegisterHandlerCalled       func(handlerFunction func() error, topic string) error
+	SetCurrentSettingsCalled    func(config outportcore.OutportConfig) error
 }
 
 // SaveBlock -
@@ -83,7 +85,25 @@ func (d *DriverStub) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) 
 
 // GetMarshaller -
 func (d *DriverStub) GetMarshaller() marshal.Marshalizer {
-	return testscommon.MarshalizerMock{}
+	return marshallerMock.MarshalizerMock{}
+}
+
+// SetCurrentSettings -
+func (d *DriverStub) SetCurrentSettings(config outportcore.OutportConfig) error {
+	if d.SetCurrentSettingsCalled != nil {
+		return d.SetCurrentSettingsCalled(config)
+	}
+
+	return nil
+}
+
+// RegisterHandler -
+func (d *DriverStub) RegisterHandler(handlerFunction func() error, topic string) error {
+	if d.RegisterHandlerCalled != nil {
+		return d.RegisterHandlerCalled(handlerFunction, topic)
+	}
+
+	return nil
 }
 
 // Close -

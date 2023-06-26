@@ -12,11 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	"github.com/stretchr/testify/require"
@@ -104,7 +104,7 @@ func generateTriesWithMaxDepth(
 ) []*keyForTrie {
 	tries := make([]*keyForTrie, numTries)
 	for i := 0; i < numTries; i++ {
-		tr, _ := trie.NewTrie(storage, marshaller, hasher, 2)
+		tr, _ := trie.NewTrie(storage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 2)
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()
@@ -163,20 +163,12 @@ func generateRandHexString(size int) string {
 }
 
 func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer, hasher hashing.Hasher) common.StorageManager {
-	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
-	}
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             store,
-		CheckpointsStorer:      database.NewMemDB(),
-		Marshalizer:            marshaller,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: disabled.NewDisabledCheckpointHashesHolder(),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := testStorage.GetStorageManagerArgs()
+	args.MainStorer = store
+	args.Marshalizer = marshaller
+	args.Hasher = hasher
+	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
+
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager

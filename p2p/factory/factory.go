@@ -1,13 +1,13 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
+	messagecheck "github.com/multiversx/mx-chain-communication-go/p2p/messageCheck"
+	"github.com/multiversx/mx-chain-communication-go/p2p/peersHolder"
+	"github.com/multiversx/mx-chain-communication-go/p2p/rating"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p"
-	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
-	"github.com/multiversx/mx-chain-p2p-go/message"
-	messagecheck "github.com/multiversx/mx-chain-p2p-go/messageCheck"
-	"github.com/multiversx/mx-chain-p2p-go/peersHolder"
-	"github.com/multiversx/mx-chain-p2p-go/rating"
 )
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -53,7 +53,7 @@ func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHo
 
 // NewP2PKeyConverter returns a new instance of p2pKeyConverter
 func NewP2PKeyConverter() p2p.P2PKeyConverter {
-	return p2pCrypto.NewP2PKeyConverter()
+	return crypto.NewP2PKeyConverter()
 }
 
 // NewMessageVerifier will return a new instance of messages verifier

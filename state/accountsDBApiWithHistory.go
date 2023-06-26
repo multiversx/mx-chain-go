@@ -125,7 +125,7 @@ func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 	return ErrOperationNotPermitted
 }
 

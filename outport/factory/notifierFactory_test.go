@@ -5,7 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/outport/factory"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +17,7 @@ func createMockNotifierFactoryArgs() *factory.EventNotifierFactoryArgs {
 		Username:          "",
 		Password:          "",
 		RequestTimeoutSec: 1,
-		Marshaller:        &testscommon.MarshalizerMock{},
+		Marshaller:        &marshallerMock.MarshalizerMock{},
 	}
 }
 

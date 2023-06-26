@@ -291,8 +291,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 				MaxBatchSize:      100,
 			},
 		},
-		GasSchedule: gasSchedule,
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              gasSchedule,
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -391,6 +392,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     logsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

@@ -1150,8 +1150,93 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 					{Name: "/:address/esdts-with-role/:role", Open: true},
 					{Name: "/:address/registered-nfts", Open: true},
+					{Name: "/:address/is-data-trie-migrated", Open: true},
 				},
 			},
 		},
 	}
+}
+
+func TestIsDataTrieMigrated(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+
+	t.Run("should return error if IsDataTrieMigrated returns error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
+				return false, expectedErr
+			},
+		}
+
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.NoError(t, err)
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/is-data-trie-migrated", testAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+
+	t.Run("should return true if IsDataTrieMigrated returns true", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
+				return true, nil
+			},
+		}
+
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.NoError(t, err)
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/is-data-trie-migrated", testAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.True(t, response.Error == "")
+
+		respData, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.True(t, respData["isMigrated"].(bool))
+	})
+
+	t.Run("should return false if IsDataTrieMigrated returns false", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
+				return false, nil
+			},
+		}
+
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.NoError(t, err)
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/is-data-trie-migrated", testAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.True(t, response.Error == "")
+
+		respData, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok)
+		assert.False(t, respData["isMigrated"].(bool))
+	})
 }

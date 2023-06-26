@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
@@ -303,23 +304,24 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              arg.Accounts,
-		PubkeyConv:            arg.Core.AddressPubKeyConverter(),
-		StorageService:        arg.Data.StorageService(),
-		BlockChain:            arg.Data.Blockchain(),
-		ShardCoordinator:      arg.ShardCoordinator,
-		Marshalizer:           arg.Core.InternalMarshalizer(),
-		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncs,
-		NFTStorageHandler:     &disabled.SimpleNFTStorage{},
-		GlobalSettingsHandler: &disabled.ESDTGlobalSettingsHandler{},
-		DataPool:              arg.Data.Datapool(),
-		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:         epochNotifier,
-		EnableEpochsHandler:   enableEpochsHandler,
-		NilCompiledSCStore:    true,
-		GasSchedule:           arg.GasSchedule,
-		Counter:               counters.NewDisabledCounter(),
+		Accounts:                 arg.Accounts,
+		PubkeyConv:               arg.Core.AddressPubKeyConverter(),
+		StorageService:           arg.Data.StorageService(),
+		BlockChain:               arg.Data.Blockchain(),
+		ShardCoordinator:         arg.ShardCoordinator,
+		Marshalizer:              arg.Core.InternalMarshalizer(),
+		Uint64Converter:          arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:         builtInFuncs,
+		NFTStorageHandler:        &disabled.SimpleNFTStorage{},
+		GlobalSettingsHandler:    &disabled.ESDTGlobalSettingsHandler{},
+		DataPool:                 arg.Data.Datapool(),
+		CompiledSCPool:           arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:            epochNotifier,
+		EnableEpochsHandler:      enableEpochsHandler,
+		NilCompiledSCStore:       true,
+		GasSchedule:              arg.GasSchedule,
+		Counter:                  counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
@@ -343,6 +345,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SystemSCConfig:      &arg.SystemSCConfig,
 		ValidatorAccountsDB: arg.ValidatorAccounts,
+		UserAccountsDB:      arg.Accounts,
 		ChanceComputer:      &disabled.Rater{},
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,

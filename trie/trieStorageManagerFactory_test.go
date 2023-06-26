@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ func TestTrieFactory_CreateWithoutPruning(t *testing.T) {
 
 	options := getTrieStorageManagerOptions()
 	options.PruningEnabled = false
-	tsm, err := trie.CreateTrieStorageManager(getNewTrieStorageManagerArgs(), options)
+	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), options)
 	assert.Nil(t, err)
 	assert.Equal(t, "*trie.trieStorageManagerWithoutPruning", fmt.Sprintf("%T", tsm))
 }
@@ -36,7 +36,7 @@ func TestTrieFactory_CreateWithoutSnapshot(t *testing.T) {
 
 	options := getTrieStorageManagerOptions()
 	options.SnapshotsEnabled = false
-	tsm, err := trie.CreateTrieStorageManager(getNewTrieStorageManagerArgs(), options)
+	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), options)
 	assert.Nil(t, err)
 	assert.Equal(t, "*trie.trieStorageManagerWithoutSnapshot", fmt.Sprintf("%T", tsm))
 }
@@ -46,7 +46,7 @@ func TestTrieFactory_CreateWithoutCheckpoints(t *testing.T) {
 
 	options := getTrieStorageManagerOptions()
 	options.CheckpointsEnabled = false
-	tsm, err := trie.CreateTrieStorageManager(getNewTrieStorageManagerArgs(), options)
+	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), options)
 	assert.Nil(t, err)
 	assert.Equal(t, "*trie.trieStorageManagerWithoutCheckpoints", fmt.Sprintf("%T", tsm))
 }
@@ -54,7 +54,7 @@ func TestTrieFactory_CreateWithoutCheckpoints(t *testing.T) {
 func TestTrieFactory_CreateNormal(t *testing.T) {
 	t.Parallel()
 
-	tsm, err := trie.CreateTrieStorageManager(getNewTrieStorageManagerArgs(), getTrieStorageManagerOptions())
+	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), getTrieStorageManagerOptions())
 	assert.Nil(t, err)
 	assert.Equal(t, "*trie.trieStorageManager", fmt.Sprintf("%T", tsm))
 }
@@ -67,7 +67,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 	getCalled := false
 	returnedVal := []byte("existingVal")
 	putCalled := 0
-	tsm = &testscommon.StorageManagerStub{
+	tsm = &storageManager.StorageManagerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			getCalled = true
 			return returnedVal, nil
@@ -98,7 +98,7 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 			return true
 		},
 		GetBaseTrieStorageManagerCalled: func() common.StorageManager {
-			tsm, _ = trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+			tsm, _ = trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 			return tsm
 		},
 	}
