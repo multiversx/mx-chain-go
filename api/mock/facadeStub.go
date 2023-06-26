@@ -89,6 +89,7 @@ type FacadeStub struct {
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
@@ -582,6 +583,14 @@ func (f *FacadeStub) GetManagedKeysCount() int {
 		return f.GetManagedKeysCountCalled()
 	}
 	return 0
+}
+
+// GetManagedKeys -
+func (f *FacadeStub) GetManagedKeys() []string {
+	if f.GetManagedKeysCalled != nil {
+		return f.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
 }
 
 // GetEligibleManagedKeys -

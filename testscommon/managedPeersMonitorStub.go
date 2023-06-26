@@ -5,6 +5,15 @@ type ManagedPeersMonitorStub struct {
 	GetManagedKeysCountCalled    func() int
 	GetEligibleManagedKeysCalled func() ([][]byte, error)
 	GetWaitingManagedKeysCalled  func() ([][]byte, error)
+	GetManagedKeysCalled         func() []string
+}
+
+// GetManagedKeys -
+func (stub *ManagedPeersMonitorStub) GetManagedKeys() []string {
+	if stub.GetManagedKeysCalled != nil {
+		return stub.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
 }
 
 // GetManagedKeysCount -

@@ -430,6 +430,7 @@ type StateSyncNotifierSubscriber interface {
 // ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
 type ManagedPeersMonitor interface {
 	GetManagedKeysCount() int
+	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([][]byte, error)
 	GetWaitingManagedKeys() ([][]byte, error)
 	IsInterfaceNil() bool

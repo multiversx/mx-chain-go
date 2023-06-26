@@ -40,6 +40,9 @@
         # /node/connected-peers-ratings will return the peers ratings
         { Name = "/connected-peers-ratings", Open = true },
 
+        # /node/managed-keys will return the keys managed by the node
+        { Name = "/managed-keys", Open = true },
+
         # /node/managed-keys/count will return the number of keys managed by the node
         { Name = "/managed-keys/count", Open = true },
 

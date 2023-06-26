@@ -595,6 +595,11 @@ func (nf *nodeFacade) GetManagedKeysCount() int {
 	return nf.apiResolver.GetManagedKeysCount()
 }
 
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nf *nodeFacade) GetManagedKeys() []string {
+	return nf.apiResolver.GetManagedKeys()
+}
+
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
 func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
 	return nf.apiResolver.GetEligibleManagedKeys()

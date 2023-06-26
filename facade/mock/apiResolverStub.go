@@ -43,6 +43,7 @@ type ApiResolverStub struct {
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
@@ -287,6 +288,14 @@ func (ars *ApiResolverStub) GetManagedKeysCount() int {
 		return ars.GetManagedKeysCountCalled()
 	}
 	return 0
+}
+
+// GetManagedKeys -
+func (ars *ApiResolverStub) GetManagedKeys() []string {
+	if ars.GetManagedKeysCalled != nil {
+		return ars.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
 }
 
 // GetEligibleManagedKeys -

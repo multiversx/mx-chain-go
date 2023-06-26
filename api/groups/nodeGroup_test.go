@@ -75,6 +75,13 @@ type managedKeysCountResponse struct {
 	generalResponse
 }
 
+type managedKeysResponse struct {
+	Data struct {
+		ManagedKeys []string `json:"managedKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
 type managedEligibleKeysResponse struct {
 	Data struct {
 		Keys []string `json:"eligibleKeys"`
@@ -699,6 +706,36 @@ func TestNodeGroup_ManagedKeysCount(t *testing.T) {
 	assert.Equal(t, providedCount, response.Data.Count)
 }
 
+func TestNodeGroup_ManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedKeys := []string{
+		"pk1",
+		"pk2",
+	}
+	facade := mock.FacadeStub{
+		GetManagedKeysCalled: func() []string {
+			return providedKeys
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedKeys, response.Data.ManagedKeys)
+}
+
 func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
 	t.Parallel()
 
@@ -925,6 +962,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/bootstrapstatus", Open: true},
 					{Name: "/connected-peers-ratings", Open: true},
 					{Name: "/managed-keys/count", Open: true},
+					{Name: "/managed-keys", Open: true},
 					{Name: "/managed-keys/eligible", Open: true},
 					{Name: "/managed-keys/waiting", Open: true},
 				},
