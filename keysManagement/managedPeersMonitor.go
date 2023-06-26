@@ -61,11 +61,11 @@ func (monitor *managedPeersMonitor) GetManagedKeysCount() int {
 }
 
 // GetManagedKeys returns all keys managed by the current node
-func (monitor *managedPeersMonitor) GetManagedKeys() []string {
+func (monitor *managedPeersMonitor) GetManagedKeys() [][]byte {
 	managedKeysMap := monitor.managedPeersHolder.GetManagedKeysByCurrentNode()
-	managedKeys := make([]string, 0, len(managedKeysMap))
+	managedKeys := make([][]byte, 0, len(managedKeysMap))
 	for pk := range managedKeysMap {
-		managedKeys = append(managedKeys, pk)
+		managedKeys = append(managedKeys, []byte(pk))
 	}
 
 	return managedKeys

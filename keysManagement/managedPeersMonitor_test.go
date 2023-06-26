@@ -267,7 +267,7 @@ func TestManagedPeersMonitor_GetManagedKeys(t *testing.T) {
 		"pk1": &cryptoMocks.PrivateKeyStub{},
 		"pk2": &cryptoMocks.PrivateKeyStub{},
 	}
-	expectedManagedKeys := []string{"pk1", "pk2"}
+	expectedManagedKeys := [][]byte{[]byte("pk1"), []byte("pk2")}
 	args := createMockArgManagedPeersMonitor()
 	args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
 		GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
