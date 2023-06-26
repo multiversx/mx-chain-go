@@ -54,18 +54,18 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalanceRelayer := big.NewInt(25760)
+	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4240), accumulatedFees)
+	require.Equal(t, big.NewInt(13390), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(915), developerFees)
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
@@ -103,7 +103,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 1, expectedBalance)
 
 	// check accumulated fees
@@ -147,7 +147,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	expectedBalanceRelayer := big.NewInt(17330)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -212,8 +212,8 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	expectedBalanceRelayer := big.NewInt(25810)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, owner, expectedOwnerNonce, expectedBalance)
+	expectedBalance := big.NewInt(88100)
+	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
@@ -256,7 +256,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	expectedBalanceRelayer := big.NewInt(25790)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees

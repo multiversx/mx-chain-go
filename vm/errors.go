@@ -31,6 +31,9 @@ var ErrInputCallerAddrIsNil = errors.New("input called address for system smart 
 // ErrInputRecipientAddrIsNil signals that input recipient address for system smart contract is nil
 var ErrInputRecipientAddrIsNil = errors.New("input recipient address for system smart contract is nil")
 
+// ErrInputAsyncParamsMissing signals that input does not contain async params
+var ErrInputAsyncParamsMissing = errors.New("input does not contain async params")
+
 // ErrNilBlockchainHook signals that blockchain hook is nil
 var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 

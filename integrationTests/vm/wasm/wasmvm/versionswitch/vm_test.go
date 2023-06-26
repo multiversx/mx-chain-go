@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 	"github.com/stretchr/testify/require"
 )
 

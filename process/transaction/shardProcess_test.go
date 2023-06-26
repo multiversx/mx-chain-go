@@ -93,6 +93,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
 }
@@ -277,6 +278,17 @@ func TestNewTxProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilTxLogsProcessor, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EnableRoundsHandler = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	assert.Nil(t, txProc)
 }
 

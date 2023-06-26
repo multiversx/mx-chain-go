@@ -230,6 +230,9 @@
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
     RefactorPeersMiniBlocksEnableEpoch = 1
 
+    # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
+    SCProcessorV2EnableEpoch = 6
+
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
     MaxBlockchainHookCountersEnableEpoch = 1
 
