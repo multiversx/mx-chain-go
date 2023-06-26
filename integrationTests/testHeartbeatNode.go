@@ -167,7 +167,7 @@ func NewTestHeartbeatNode(
 	}
 	err = messenger.SetPeerShardResolver(peerShardMapper)
 	if err != nil {
-		log.Error("error setting NewPeerShardMapper in p2p messenger", "error", err)
+		log.Error("error setting the peer shard mapper for the main p2p messenger", "error", err)
 	}
 
 	fullArchiveMessenger := CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig, &p2pmocks.PeersRatingHandlerStub{}, p2pKey)
@@ -187,7 +187,7 @@ func NewTestHeartbeatNode(
 	}
 	err = fullArchiveMessenger.SetPeerShardResolver(peerShardMapperFullArch)
 	if err != nil {
-		log.Error("error setting NewPeerShardMapper in p2p messenger for full archive network", "error", err)
+		log.Error("error setting the peer shard mapper for the full archive p2p messenger", "error", err)
 	}
 
 	thn := &TestHeartbeatNode{
@@ -262,7 +262,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 	}
 	err = messenger.SetPeerShardResolver(peerShardMapper)
 	if err != nil {
-		log.Error("error setting NewPeerShardMapper in p2p messenger", "error", err)
+		log.Error("error setting the peer shard mapper for the main p2p messenger", "error", err)
 	}
 
 	thn := &TestHeartbeatNode{
