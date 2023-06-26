@@ -39,7 +39,7 @@ import (
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -169,6 +169,13 @@ func createMockArgument(
 				SCDeployEnableEpoch:            0,
 				RelayedTransactionsEnableEpoch: 0,
 				PenalizedTooMuchGasEnableEpoch: 0,
+			},
+		},
+		RoundConfig: &config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "18446744073709551615",
+				},
 			},
 		},
 	}
