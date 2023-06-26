@@ -68,6 +68,10 @@ func (monitor *managedPeersMonitor) GetManagedKeys() [][]byte {
 		managedKeys = append(managedKeys, []byte(pk))
 	}
 
+	sort.Slice(managedKeys, func(i, j int) bool {
+		return string(managedKeys[i]) < string(managedKeys[j])
+	})
+
 	return managedKeys
 }
 
