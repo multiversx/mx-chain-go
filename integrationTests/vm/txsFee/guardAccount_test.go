@@ -97,7 +97,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			WaitingListFixEnableEpoch:               unreachableEpoch,
@@ -107,6 +107,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
+		integrationTests.GetDefaultRoundsConfig(),
 	)
 	require.Nil(tb, err)
 
