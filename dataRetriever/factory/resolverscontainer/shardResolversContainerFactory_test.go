@@ -24,10 +24,10 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
+func createMessengerStubForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
+	stub := &p2pmocks.MessengerStub{}
 
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -39,7 +39,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -51,7 +51,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	return tmhs
+	return stub
 }
 
 func createDataPoolsForShard() dataRetriever.PoolsHolder {
@@ -267,7 +267,7 @@ func TestShardResolversContainerFactory_CreateRegisterTxFailsOnMainNetworkShould
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createStubTopicMessageHandlerForShard("", factory.TransactionTopic)
+	args.MainMessenger = createMessengerStubForShard("", factory.TransactionTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -280,7 +280,7 @@ func TestShardResolversContainerFactory_CreateRegisterTxFailsOnFullArchiveNetwor
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForShard("", factory.TransactionTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", factory.TransactionTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -293,7 +293,7 @@ func TestShardResolversContainerFactory_CreateRegisterHdrFailsOnMainNetworkShoul
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createStubTopicMessageHandlerForShard("", factory.ShardBlocksTopic)
+	args.MainMessenger = createMessengerStubForShard("", factory.ShardBlocksTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -306,7 +306,7 @@ func TestShardResolversContainerFactory_CreateRegisterHdrFailsOnFullArchiveNetwo
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForShard("", factory.ShardBlocksTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", factory.ShardBlocksTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -319,7 +319,7 @@ func TestShardResolversContainerFactory_CreateRegisterMiniBlocksFailsOnMainNetwo
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createStubTopicMessageHandlerForShard("", factory.MiniBlocksTopic)
+	args.MainMessenger = createMessengerStubForShard("", factory.MiniBlocksTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -332,7 +332,7 @@ func TestShardResolversContainerFactory_CreateRegisterMiniBlocksFailsOnFullArchi
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForShard("", factory.MiniBlocksTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", factory.MiniBlocksTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -345,7 +345,7 @@ func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsOnMainNetwor
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createStubTopicMessageHandlerForShard("", factory.AccountTrieNodesTopic)
+	args.MainMessenger = createMessengerStubForShard("", factory.AccountTrieNodesTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -358,7 +358,7 @@ func TestShardResolversContainerFactory_CreateRegisterTrieNodesFailsOnFullArchiv
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForShard("", factory.AccountTrieNodesTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", factory.AccountTrieNodesTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -371,7 +371,7 @@ func TestShardResolversContainerFactory_CreateRegisterPeerAuthenticationOnMainNe
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.MainMessenger = createStubTopicMessageHandlerForShard("", common.PeerAuthenticationTopic)
+	args.MainMessenger = createMessengerStubForShard("", common.PeerAuthenticationTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -384,7 +384,7 @@ func TestShardResolversContainerFactory_CreateRegisterPeerAuthenticationOnFullAr
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.FullArchiveMessenger = createStubTopicMessageHandlerForShard("", common.PeerAuthenticationTopic)
+	args.FullArchiveMessenger = createMessengerStubForShard("", common.PeerAuthenticationTopic)
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, err := rcf.Create()
@@ -466,8 +466,8 @@ func TestShardResolversContainerFactory_IsInterfaceNil(t *testing.T) {
 func getArgumentsShard() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
 		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
-		MainMessenger:                   createStubTopicMessageHandlerForShard("", ""),
-		FullArchiveMessenger:            createStubTopicMessageHandlerForShard("", ""),
+		MainMessenger:                   createMessengerStubForShard("", ""),
+		FullArchiveMessenger:            createMessengerStubForShard("", ""),
 		Store:                           createStoreForShard(),
 		Marshalizer:                     &mock.MarshalizerMock{},
 		DataPools:                       createDataPoolsForShard(),

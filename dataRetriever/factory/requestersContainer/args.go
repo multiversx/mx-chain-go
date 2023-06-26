@@ -13,8 +13,8 @@ import (
 type FactoryArgs struct {
 	RequesterConfig                 config.RequesterConfig
 	ShardCoordinator                sharding.Coordinator
-	MainMessenger                   dataRetriever.TopicMessageHandler
-	FullArchiveMessenger            dataRetriever.TopicMessageHandler
+	MainMessenger                   p2p.Messenger
+	FullArchiveMessenger            p2p.Messenger
 	Marshaller                      marshal.Marshalizer
 	Uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
 	OutputAntifloodHandler          dataRetriever.P2PAntifloodHandler

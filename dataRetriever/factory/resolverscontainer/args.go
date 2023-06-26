@@ -13,8 +13,8 @@ import (
 type FactoryArgs struct {
 	NumConcurrentResolvingJobs      int32
 	ShardCoordinator                sharding.Coordinator
-	MainMessenger                   dataRetriever.TopicMessageHandler
-	FullArchiveMessenger            dataRetriever.TopicMessageHandler
+	MainMessenger                   p2p.Messenger
+	FullArchiveMessenger            p2p.Messenger
 	Store                           dataRetriever.StorageService
 	Marshalizer                     marshal.Marshalizer
 	DataPools                       dataRetriever.PoolsHolder

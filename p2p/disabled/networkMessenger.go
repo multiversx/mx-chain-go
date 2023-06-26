@@ -180,6 +180,11 @@ func (netMes *networkMessenger) AddPeerTopicNotifier(_ p2p.PeerTopicNotifier) er
 	return nil
 }
 
+// ProcessReceivedMessage returns nil as it is disabled
+func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
 	return netMes == nil

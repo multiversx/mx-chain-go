@@ -93,8 +93,8 @@ type epochStartBootstrap struct {
 	destinationShardAsObserver uint32
 	coreComponentsHolder       process.CoreComponentsHolder
 	cryptoComponentsHolder     process.CryptoComponentsHolder
-	mainMessenger              Messenger
-	fullArchiveMessenger       Messenger
+	mainMessenger              p2p.Messenger
+	fullArchiveMessenger       p2p.Messenger
 	generalConfig              config.Config
 	prefsConfig                config.PreferencesConfig
 	flagsConfig                config.ContextFlagsConfig
@@ -164,8 +164,8 @@ type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
 	DestinationShardAsObserver uint32
-	MainMessenger              Messenger
-	FullArchiveMessenger       Messenger
+	MainMessenger              p2p.Messenger
+	FullArchiveMessenger       p2p.Messenger
 	GeneralConfig              config.Config
 	PrefsConfig                config.PreferencesConfig
 	FlagsConfig                config.ContextFlagsConfig

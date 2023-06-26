@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -130,12 +131,90 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 	assert.Equal(t, interactingNodes-2, nodes[0].DataPool.PeerAuthentications().Len())
 }
 
+func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	interactingNodes := 3
+	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
+	for i := 0; i < interactingNodes; i++ {
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60)
+	}
+	assert.Equal(t, interactingNodes, len(nodes))
+
+	// connect nodes on main network only
+	for i := 0; i < interactingNodes-1; i++ {
+		for j := i + 1; j < interactingNodes; j++ {
+			src := nodes[i]
+			dst := nodes[j]
+			_ = src.ConnectOnMain(dst)
+		}
+	}
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 15)
+
+	// check peer shard mappers
+	// full archive should not be updated at this point
+	for i := 0; i < interactingNodes; i++ {
+		for j := 0; j < interactingNodes; j++ {
+			if i == j {
+				continue
+			}
+
+			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, core.UnknownPeer, peerInfo.PeerType) // nodes not connected on this network
+
+			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
+			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType) // on main network they are all validators
+		}
+	}
+
+	// connect nodes on full archive network as well
+	for i := 0; i < interactingNodes-1; i++ {
+		for j := i + 1; j < interactingNodes; j++ {
+			src := nodes[i]
+			dst := nodes[j]
+			_ = src.ConnectOnFullArchive(dst)
+		}
+	}
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 15)
+
+	// check peer shard mappers
+	// full archive should be updated at this point
+	for i := 0; i < interactingNodes; i++ {
+		for j := 0; j < interactingNodes; j++ {
+			if i == j {
+				continue
+			}
+
+			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfo.ShardID)
+			assert.Equal(t, core.ObserverPeer, peerInfo.PeerType) // observers because the peerAuth is not sent on this network
+
+			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
+			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType)
+		}
+	}
+
+	for i := 0; i < len(nodes); i++ {
+		nodes[i].Close()
+	}
+}
+
 func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes int) {
 	for i := 0; i < interactingNodes-1; i++ {
 		for j := i + 1; j < interactingNodes; j++ {
 			src := nodes[i]
 			dst := nodes[j]
 			_ = src.ConnectOnMain(dst)
+			_ = src.ConnectOnFullArchive(dst)
 		}
 	}
 }

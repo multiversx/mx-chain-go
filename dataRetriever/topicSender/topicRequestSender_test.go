@@ -20,8 +20,8 @@ import (
 
 func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
 	return topicsender.ArgBaseTopicSender{
-		MainMessenger:        &mock.MessageHandlerStub{},
-		FullArchiveMessenger: &mock.MessageHandlerStub{},
+		MainMessenger:        &p2pmocks.MessengerStub{},
+		FullArchiveMessenger: &p2pmocks.MessengerStub{},
 		TopicName:            "topic",
 		OutputAntiflooder:    &mock.P2PAntifloodHandlerStub{},
 		MainPreferredPeersHolder: &p2pmocks.PeersHolderStub{
@@ -264,7 +264,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		sentToPid2 := false
 
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 					sentToPid1 = true
@@ -276,7 +276,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return nil
 			},
 		}
-		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Fail(t, "should have not been called")
 				return nil
@@ -315,14 +315,14 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		sentToFullHistoryPeer := false
 
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Fail(t, "should have not been called")
 
 				return nil
 			},
 		}
-		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{pIDfullHistory}
 			},
@@ -401,7 +401,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		}
 		arg.NumCrossShardPeers = 5
 		arg.NumIntraShardPeers = 5
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if strings.HasPrefix(string(peerID), "prefPIDsh0") {
 					countPrefPeersSh0++
@@ -448,7 +448,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -493,7 +493,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -537,7 +537,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				}
 			},
 		}
-		arg.FullArchiveMessenger = &mock.MessageHandlerStub{
+		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{regularPeer0, regularPeer1}
 			},
@@ -549,7 +549,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 				return nil
 			},
 		}
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				assert.Fail(t, "should not have been called")
 
@@ -595,7 +595,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidPreferred {
 					sentToPreferredPeer = true
@@ -648,7 +648,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 			},
 		}
 
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
 					sentToPreferredPeer = true
@@ -672,7 +672,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				numSent++
 
@@ -702,7 +702,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidNotCalled {
 					assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
@@ -736,7 +736,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 
 		numSent := 0
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if peerID == pidNotCalled {
 					assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
@@ -769,7 +769,7 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		sentToPid1 := false
 
 		arg := createMockArgTopicRequestSender()
-		arg.MainMessenger = &mock.MessageHandlerStub{
+		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 					sentToPid1 = true

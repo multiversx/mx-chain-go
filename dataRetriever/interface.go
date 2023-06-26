@@ -21,7 +21,7 @@ type ResolverThrottler interface {
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool
@@ -50,7 +50,7 @@ type HeaderRequester interface {
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	Send(buff []byte, peer core.PeerID) error
+	Send(buff []byte, peer core.PeerID, destination p2p.MessageHandler) error
 	RequestTopic() string
 	TargetShardID() uint32
 	SetDebugHandler(handler DebugHandler) error
@@ -147,13 +147,6 @@ type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
-}
-
-// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
-// to other peers
-type TopicMessageHandler interface {
-	MessageHandler
-	TopicHandler
 }
 
 // IntRandomizer interface provides functionality over generating integer numbers

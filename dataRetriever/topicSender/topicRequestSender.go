@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
@@ -134,9 +135,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numCrossShardPeers,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger,
-			trs.mainPeersRatingHandler,
-			mainNetwork,
-			trs.mainPreferredPeersHolderHandler)
+			trs.mainPeersRatingHandler)
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
@@ -148,9 +147,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numIntraShardPeers,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger,
-			trs.mainPeersRatingHandler,
-			mainNetwork,
-			trs.mainPreferredPeersHolderHandler)
+			trs.mainPeersRatingHandler)
 	} else {
 		preferredPeer := trs.getPreferredFullArchivePeer()
 		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
@@ -163,9 +160,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numFullHistoryPeers,
 			core.FullHistoryPeer.String(),
 			trs.fullArchiveMessenger,
-			trs.fullArchivePeersRatingHandler,
-			fullArchiveNetwork,
-			trs.fullArchivePreferredPeersHolderHandler)
+			trs.fullArchivePeersRatingHandler)
 	}
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
@@ -205,10 +200,8 @@ func (trs *topicRequestSender) sendOnTopic(
 	buff []byte,
 	maxToSend int,
 	peerType string,
-	messenger dataRetriever.MessageHandler,
+	messenger p2p.MessageHandler,
 	peersRatingHandler dataRetriever.PeersRatingHandler,
-	network string,
-	preferredPeersHolder dataRetriever.PreferredPeersHolderHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
@@ -227,12 +220,10 @@ func (trs *topicRequestSender) sendOnTopic(
 		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
 	}
 
-	logData = append(logData, "network", network)
-
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
-		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger, network, preferredPeersHolder)
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger)
 		if err != nil {
 			continue
 		}
@@ -246,7 +237,7 @@ func (trs *topicRequestSender) sendOnTopic(
 		}
 	}
 	log.Trace("requests are sent to", logData...)
-	log.Trace("request peers histogram", "network", network, "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
+	log.Trace("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
 
 	return msgSentCounter
 }

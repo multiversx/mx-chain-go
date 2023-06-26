@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -22,8 +23,8 @@ const defaultTargetShardID = uint32(0)
 
 type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
-	mainMessenger          dataRetriever.TopicMessageHandler
-	fullArchiveMessenger   dataRetriever.TopicMessageHandler
+	mainMessenger          p2p.Messenger
+	fullArchiveMessenger   p2p.Messenger
 	marshalizer            marshal.Marshalizer
 	dataTrieContainer      common.TriesHolder
 	container              dataRetriever.ResolversContainer
@@ -35,8 +36,8 @@ type resolversContainerFactory struct {
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator           sharding.Coordinator
-	MainMessenger              dataRetriever.TopicMessageHandler
-	FullArchiveMessenger       dataRetriever.TopicMessageHandler
+	MainMessenger              p2p.Messenger
+	FullArchiveMessenger       p2p.Messenger
 	Marshalizer                marshal.Marshalizer
 	DataTrieContainer          common.TriesHolder
 	ExistingResolvers          dataRetriever.ResolversContainer
