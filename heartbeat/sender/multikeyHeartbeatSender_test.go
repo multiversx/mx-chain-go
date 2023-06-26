@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -236,7 +237,7 @@ func TestMultikeyHeartbeatSender_Execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		argsBase.timeBetweenSendsWhenError = time.Second * 3
 		argsBase.timeBetweenSends = time.Second * 2
-		argsBase.marshaller = &testscommon.MarshalizerStub{
+		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},

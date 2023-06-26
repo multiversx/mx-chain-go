@@ -5,10 +5,12 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
+	//TODO investigate if *baseAccount is needed in peerAccount, and remove if not
 	*baseAccount
 	PeerAccountData
 }
@@ -24,7 +26,7 @@ func NewEmptyPeerAccount() *peerAccount {
 	}
 }
 
-// NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
+// NewPeerAccount creates a new instance of peerAccount
 func NewPeerAccount(address []byte) (*peerAccount, error) {
 	if len(address) == 0 {
 		return nil, ErrNilAddress
@@ -33,7 +35,7 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 	return &peerAccount{
 		baseAccount: &baseAccount{
 			address:         address,
-			dataTrieTracker: NewTrackableDataTrie(address, nil),
+			dataTrieTracker: disabled.NewDisabledTrackableDataTrie(),
 		},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),

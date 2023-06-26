@@ -176,7 +176,7 @@ type WhiteListHandler interface {
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	GetSyncedTries() map[string]common.Trie
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

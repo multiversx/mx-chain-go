@@ -147,3 +147,6 @@ var ErrNilSyncStatisticsHandler = errors.New("nil sync statistics handler")
 
 // ErrNilAddressConverter signals that a nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

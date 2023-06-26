@@ -8,13 +8,14 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
 	txsFeeProc, _ := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshaller:         &testscommon.MarshalizerMock{},
+		Marshaller:         &marshallerMock.MarshalizerMock{},
 		TransactionsStorer: &genericMocks.StorerMock{},
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
@@ -29,7 +30,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		EconomicsData:            &mock.EconomicsHandlerMock{},
 		ShardCoordinator:         &testscommon.ShardsCoordinatorMock{},
 		ExecutionOrderHandler:    &mock.ExecutionOrderHandlerStub{},
-		Marshaller:               &testscommon.MarshalizerMock{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
 	}
 }
 

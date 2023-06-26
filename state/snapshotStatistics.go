@@ -48,11 +48,11 @@ func (ss *snapshotStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats adds the given trie stats to the snapshot statistics
-func (ss *snapshotStatistics) AddTrieStats(trieStats *statistics.TrieStatsDTO) {
+func (ss *snapshotStatistics) AddTrieStats(trieStats common.TrieStatisticsHandler, trieType common.TrieType) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	ss.trieStatisticsCollector.Add(trieStats)
+	ss.trieStatisticsCollector.Add(trieStats, trieType)
 }
 
 // WaitForSyncToFinish will wait until the waitGroup counter is zero
@@ -87,4 +87,9 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 // GetSnapshotNumNodes returns the number of nodes from the snapshot
 func (ss *snapshotStatistics) GetSnapshotNumNodes() uint64 {
 	return ss.trieStatisticsCollector.GetNumNodes()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ss *snapshotStatistics) IsInterfaceNil() bool {
+	return ss == nil
 }

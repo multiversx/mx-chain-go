@@ -93,11 +93,15 @@ type EnableEpochs struct {
 	MaxBlockchainHookCountersEnableEpoch              uint32
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
+	SetGuardianEnableEpoch                            uint32
+	RelayedNonceFixEnableEpoch                        uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
 	MultiClaimOnDelegationEnableEpoch                 uint32
 	ChangeUsernameEnableEpoch                         uint32
+	AutoBalanceDataTriesEnableEpoch                   uint32
+	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
+	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
-	SetGuardianEnableEpoch                            uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

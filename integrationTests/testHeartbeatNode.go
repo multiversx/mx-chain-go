@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -314,7 +315,7 @@ func CreateNodesWithTestHeartbeatNode(
 			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:       false,
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -366,7 +367,7 @@ func CreateNodesWithTestHeartbeatNode(
 				ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
 				NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 				IsFullArchive:       false,
-				EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

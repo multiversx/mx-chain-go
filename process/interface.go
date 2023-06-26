@@ -178,6 +178,7 @@ type SmartContractProcessor interface {
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
+	CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1233,7 +1234,7 @@ type InterceptedChunksProcessor interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

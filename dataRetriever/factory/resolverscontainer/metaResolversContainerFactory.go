@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -142,7 +141,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createTrieNodesResolver(
 			identifierTrieNodes,
-			triesFactory.UserAccountTrie,
+			dataRetriever.UserAccountsUnit.String(),
 			idx,
 		)
 		if err != nil {
@@ -295,7 +294,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
-		triesFactory.UserAccountTrie,
+		dataRetriever.UserAccountsUnit.String(),
 		core.MetachainShardId,
 	)
 	if err != nil {
@@ -308,7 +307,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(
 		identifierTrieNodes,
-		triesFactory.PeerAccountTrie,
+		dataRetriever.PeerAccountsUnit.String(),
 		core.MetachainShardId,
 	)
 	if err != nil {

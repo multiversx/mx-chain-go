@@ -406,17 +406,21 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
+func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {
 	if bpp.balanceComputation.IsAddressSet(address) {
-		return
+		return nil
 	}
 
 	balance, err := bpp.getBalanceForAddress(address)
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return err
+		}
 		balance = big.NewInt(0)
 	}
 
 	bpp.balanceComputation.SetBalanceToAddress(address, balance)
+	return nil
 }
 
 func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
