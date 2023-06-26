@@ -20,7 +20,9 @@ func TestNewSyncTrieStorageManagerNilTsm(t *testing.T) {
 func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
+	args := GetDefaultTrieStorageManagerParameters()
+	args.MainStorer = createMemUnit()
+	trieStorage, _ := NewTrieStorageManager(args)
 
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
 	assert.Nil(t, stsm)

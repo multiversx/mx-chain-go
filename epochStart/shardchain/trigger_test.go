@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -66,7 +67,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 		RoundHandler:         &mock.RoundHandlerStub{},
 		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{

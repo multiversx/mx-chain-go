@@ -64,7 +64,7 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldWork(t *testing.T
 	tagProvider := &mock.StableTagProviderStub{
 		FetchTagVersionCalled: func() (string, error) {
 			fetchChan <- true
-			return "", nil
+			return "1.0.0", nil
 		},
 	}
 
@@ -82,6 +82,8 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldWork(t *testing.T
 	case <-time.After(1 * time.Second):
 		assert.Fail(t, "fetch was not called")
 	}
+
+	assert.Nil(t, softwareChecker.Close())
 }
 
 func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldErrWhenFetchFails(t *testing.T) {
@@ -116,4 +118,14 @@ func TestSoftwareVersionChecker_StartCheckSoftwareVersionShouldErrWhenFetchFails
 	case <-setStringChan:
 		assert.Fail(t, "this should have not been called")
 	}
+}
+
+func TestResourceMonitor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var softwareChecker *softwareVersionChecker
+	assert.True(t, softwareChecker.IsInterfaceNil())
+
+	softwareChecker, _ = NewSoftwareVersionChecker(&statusHandlerMock.AppStatusHandlerStub{}, &mock.StableTagProviderStub{}, 1)
+	assert.False(t, softwareChecker.IsInterfaceNil())
 }

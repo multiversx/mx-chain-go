@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -61,6 +62,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -77,6 +79,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			processedMiniBlocksTracker,
 			receiptsRepository,
 			blockCutoffProcessingHandler,
+			missingTrieNodesNotifier,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -115,6 +118,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -139,6 +143,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	vmFactory, err := pcf.createVMFactoryShard(
 		pcf.state.AccountsAdapter(),
+		missingTrieNodesNotifier,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
@@ -278,6 +283,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		TxLogsProcessor:     pcf.txLogsProcessor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -942,6 +948,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 
 func (pcf *processComponentsFactory) createVMFactoryShard(
 	accounts state.AccountsAdapter,
+	notifier common.MissingTrieNodesNotifier,
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	esdtTransferParser vmcommon.ESDTTransferParser,
 	wasmVMChangeLocker common.Locker,
@@ -974,6 +981,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		ConfigSCStorage:       configSCStorage,
 		GasSchedule:           pcf.gasSchedule,
 		Counter:               counter,
+		MissingTrieNodesNotifier: notifier,
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1024,6 +1032,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		NilCompiledSCStore:    false,
 		GasSchedule:           pcf.gasSchedule,
 		Counter:               counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1042,6 +1051,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SystemSCConfig:      pcf.systemSCConfig,
 		ValidatorAccountsDB: pcf.state.PeerAccounts(),
+		UserAccountsDB:      pcf.state.AccountsAdapter(),
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),

@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-logger-go"
@@ -1012,7 +1011,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
 		logLevel := logger.LogWarning
-		if errors.IsClosingError(errNotCritical) {
+		if core.IsClosingError(errNotCritical) {
 			logLevel = logger.LogDebug
 		}
 		log.Log(logLevel, "SetProcessed put to shard header storage error", "error", errNotCritical)

@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
@@ -25,9 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/timecache"
@@ -446,6 +446,15 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
+	stateNodesNotifierSubscriber, ok := accountsDBSyncer.(common.StateSyncNotifierSubscriber)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
+	}
+	err = ccf.stateComponents.MissingTrieNodesNotifier().RegisterHandler(stateNodesNotifierSubscriber)
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
@@ -496,14 +505,14 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		MaxHardCapForMissingNodes:         ccf.config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 ccf.config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  ccf.config.TrieSync.CheckNodesOnDisk,
-		StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               ccf.coreComponents.EnableEpochsHandler(),
 	}
 }
 
 func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.PeerAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.PeerAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}
@@ -515,7 +524,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
-	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[trieFactory.UserAccountTrie]
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.UserAccountsUnit.String()]
 	if !ok {
 		return nil, errors.ErrNilTrieStorageManager
 	}

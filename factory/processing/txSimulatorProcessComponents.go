@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -261,6 +262,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 
 	vmContainerFactory, err := pcf.createVMFactoryShard(
 		accountsAdapter,
+		syncer.NewMissingTrieNodesNotifier(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		pcf.coreData.WasmVMChangeLocker(),
@@ -359,6 +361,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxLogsProcessor:     txLogsProcessor,
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)

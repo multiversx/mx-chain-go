@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/genesis"
 )
@@ -149,7 +150,7 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID s
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 	if err != nil {
 		// TODO: critical error - should not happen - maybe recreate trie syncer here
 		return err

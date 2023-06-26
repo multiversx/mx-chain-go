@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func createMockHeartbeatV2MonitorArgs() ArgHeartbeatV2Monitor {
 	return ArgHeartbeatV2Monitor{
 		Cache:                         testscommon.NewCacherMock(),
 		PubKeyConverter:               &testscommon.PubkeyConverterMock{},
-		Marshaller:                    &testscommon.MarshalizerMock{},
+		Marshaller:                    &marshallerMock.MarshalizerMock{},
 		MaxDurationPeerUnresponsive:   time.Second * 3,
 		HideInactiveValidatorInterval: time.Second * 5,
 		ShardId:                       0,
@@ -43,7 +44,7 @@ func createHeartbeatMessage(active bool, publicKeyBytes []byte) *heartbeat.Heart
 		Timestamp: messageTimestamp,
 	}
 
-	marshaller := testscommon.MarshalizerMock{}
+	marshaller := marshallerMock.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
 	return &heartbeat.HeartbeatV2{
 		Payload:            payloadBytes,
@@ -320,7 +321,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 				Timestamp: time.Now().Unix() - 30 + int64(i), // the last message will be the latest, so it will be returned
 			}
 
-			marshaller := testscommon.MarshalizerMock{}
+			marshaller := marshallerMock.MarshalizerMock{}
 			payloadBytes, _ := marshaller.Marshal(payload)
 			providedMessages[i].Payload = payloadBytes
 
@@ -356,7 +357,7 @@ func TestHeartbeatV2Monitor_GetHeartbeats(t *testing.T) {
 					Timestamp: time.Now().Unix() - 30 + int64(i), // the last message will be the latest, so it will be returned
 				}
 
-				marshaller := testscommon.MarshalizerMock{}
+				marshaller := marshallerMock.MarshalizerMock{}
 				payloadBytes, _ := marshaller.Marshal(payload)
 				providedMessages[i].Payload = payloadBytes
 			}

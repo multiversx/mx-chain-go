@@ -58,6 +58,8 @@ func createMetaStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
 	return store
 }
 
@@ -1129,7 +1131,8 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	args.ShardCoordinator = shardCoordinator
 	args.RoundHandler = initRoundHandler()
 
-	bs, _ := sync.NewMetaBootstrap(args)
+	bs, err := sync.NewMetaBootstrap(args)
+	require.Nil(t, err)
 	bs.ReceivedHeaders(addedHdr, addedHash)
 	time.Sleep(500 * time.Millisecond)
 
@@ -1180,7 +1183,8 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	args.ChainHandler, _ = blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 	args.RoundHandler = initRoundHandler()
 
-	bs, _ := sync.NewMetaBootstrap(args)
+	bs, err := sync.NewMetaBootstrap(args)
+	require.Nil(t, err)
 	bs.ReceivedHeaders(addedHdr, addedHash)
 	time.Sleep(500 * time.Millisecond)
 
@@ -1624,7 +1628,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := errors.New(common.GetNodeFromDBErrorString)
+	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), dataRetriever.UserAccountsUnit.String())
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
 	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errGetNodeFromDB
@@ -1680,16 +1684,11 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 	)
 	accountsSyncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
+		SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 			accountsSyncCalled = true
 			return nil
-		}}
-	validatorSyncCalled := false
-	args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
-		SyncAccountsCalled: func(rootHash []byte) error {
-			validatorSyncCalled = true
-			return nil
-		}}
+		},
+	}
 	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
@@ -1697,10 +1696,119 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 		return []byte("roothash"), nil
 	}}
 
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			var dbIdentifier string
+			switch unitType {
+			case dataRetriever.UserAccountsUnit:
+				dbIdentifier = "userAccountsUnit"
+			case dataRetriever.PeerAccountsUnit:
+				dbIdentifier = "peerAccountsUnit"
+			default:
+				dbIdentifier = ""
+			}
+
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return nil, process.ErrMissingHeader
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+				GetIdentifierCalled: func() string {
+					return dbIdentifier
+				},
+			}, nil
+		},
+	}
+
 	bs, _ := sync.NewMetaBootstrap(args)
 	err := bs.SyncBlock(context.Background())
 
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, accountsSyncCalled)
-	assert.True(t, validatorSyncCalled)
+}
+
+func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sync user accounts state", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		accountsSyncCalled := false
+		args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
+			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
+				accountsSyncCalled = true
+				return nil
+			},
+		}
+
+		dbIdentifier := dataRetriever.UserAccountsUnit.String()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType != dataRetriever.UserAccountsUnit {
+					return &storageStubs.StorerStub{}, nil
+				}
+
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, process.ErrMissingHeader
+					},
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
+					GetIdentifierCalled: func() string {
+						return dbIdentifier
+					},
+				}, nil
+			},
+		}
+
+		bs, _ := sync.NewMetaBootstrap(args)
+
+		err := bs.SyncAccountsDBs([]byte("key"), dbIdentifier)
+		require.Nil(t, err)
+		require.True(t, accountsSyncCalled)
+	})
+
+	t.Run("sync validator accounts state", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMetaBootstrapMockArguments()
+		accountsSyncCalled := false
+		args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
+			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
+				accountsSyncCalled = true
+				return nil
+			},
+		}
+
+		dbIdentifier := dataRetriever.PeerAccountsUnit.String()
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType != dataRetriever.PeerAccountsUnit {
+					return &storageStubs.StorerStub{}, nil
+				}
+
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, process.ErrMissingHeader
+					},
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
+					GetIdentifierCalled: func() string {
+						return dbIdentifier
+					},
+				}, nil
+			},
+		}
+
+		bs, _ := sync.NewMetaBootstrap(args)
+
+		err := bs.SyncAccountsDBs([]byte("key"), dbIdentifier)
+		require.Nil(t, err)
+		require.True(t, accountsSyncCalled)
+	})
 }

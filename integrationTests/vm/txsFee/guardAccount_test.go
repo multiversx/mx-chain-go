@@ -583,6 +583,7 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 //  9. alice adds bob as a pending guardian and calls set charlie immediately cosigned and should remove the pending guardian
 //  10. alice un-guards the account immediately by using a cosigned transaction
 //  11. alice guards the account immediately by calling the GuardAccount function
+//  12. alice sends a malformed set guardian transaction, should not consume gas
 //  13. alice sends a guarded transaction, while account is guarded -> should work
 //  14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
 //     14.1 alice sends unguarded transaction -> should work
@@ -837,6 +838,48 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 		pending: nil,
 	}
 	testGuardianStatus(t, testContext, alice, expectedStatus)
+
+	// 12. alice sends a malformed set guardian transaction, should not consume gas
+	// 12.1. transaction with value
+	nonceAlice := getNonce(testContext, alice)
+	setGuardianData := []byte("SetGuardian@" + hex.EncodeToString(bob) + "@" + hex.EncodeToString(uuid))
+	tx := &transaction.Transaction{
+		Nonce:    nonceAlice,
+		Value:    big.NewInt(10),
+		RcvAddr:  alice,
+		SndAddr:  alice,
+		GasPrice: gasPrice,
+		GasLimit: setGuardianGas + transferGas,
+		Data:     setGuardianData,
+	}
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	newNonceAlice := getNonce(testContext, alice)
+	// tx not executed
+	require.Equal(t, nonceAlice, newNonceAlice)
+
+	// 12.2. too many parameters in data, last one not hex (tx with notarization not builtin func call)
+	tx.Value = big.NewInt(0)
+	tx.Data = []byte(string(setGuardianData) + "@extra")
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	newNonceAlice = getNonce(testContext, alice)
+	// tx not executed
+	require.Equal(t, nonceAlice, newNonceAlice)
+
+	// 12.3. too many parameters in data, failed builtin func call
+	tx.Data = []byte(string(setGuardianData) + "@00")
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, process.ErrTransactionNotExecutable)
+	newNonceAlice = getNonce(testContext, alice)
+	// tx not executed
+	require.Equal(t, nonceAlice, newNonceAlice)
 
 	// 13. alice sends a guarded transaction, while account is guarded -> should work
 	err = transferFundsCoSigned(testContext, alice, transferValue, david, charlie)

@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
@@ -414,7 +415,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	shufflerArgs := &nodesCoordinator.NodesShufflerArgs{
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -455,7 +456,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:       false,
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -576,7 +577,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:       false,
-			EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
