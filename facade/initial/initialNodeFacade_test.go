@@ -255,7 +255,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, stakeValue)
 	assert.Equal(t, errNodeStarting, err)
 
-	ratings, err := inf.GetConnectedPeersRatings()
+	ratings, err := inf.GetConnectedPeersRatingsOnMainNetwork()
 	assert.Equal(t, "", ratings)
 	assert.Equal(t, errNodeStarting, err)
 

@@ -265,7 +265,7 @@ func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 		}
 		buff, _ := json.Marshal(providedRatings)
 		facade := mock.FacadeStub{
-			GetConnectedPeersRatingsCalled: func() (string, error) {
+			GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
 				return string(buff), nil
 			},
 		}
