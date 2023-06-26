@@ -697,6 +697,35 @@ func TestNodeApiResolver_GetManagedKeysCount(t *testing.T) {
 	require.Equal(t, providedCount, count)
 }
 
+func TestNodeApiResolver_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedKeys := [][]byte{
+		[]byte("pk1"),
+		[]byte("pk2"),
+	}
+	expectedKeys := []string{
+		"pk1",
+		"pk2",
+	}
+	args := createMockArgs()
+	args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+		GetManagedKeysCalled: func() [][]byte {
+			return providedKeys
+		},
+	}
+	args.ValidatorPubKeyConverter = &testscommon.PubkeyConverterStub{
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+			return string(pkBytes)
+		},
+	}
+	nar, err := external.NewNodeApiResolver(args)
+	require.NoError(t, err)
+
+	keys := nar.GetManagedKeys()
+	require.Equal(t, expectedKeys, keys)
+}
+
 func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 	t.Parallel()
 

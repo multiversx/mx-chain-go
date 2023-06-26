@@ -259,3 +259,25 @@ func TestManagedPeersMonitor_GetGetWaitingManagedKeys(t *testing.T) {
 		require.Equal(t, [][]byte{[]byte("managed 1"), []byte("managed 2")}, keys)
 	})
 }
+
+func TestManagedPeersMonitor_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	managedKeys := map[string]crypto.PrivateKey{
+		"pk2": &cryptoMocks.PrivateKeyStub{},
+		"pk1": &cryptoMocks.PrivateKeyStub{},
+		"pk3": &cryptoMocks.PrivateKeyStub{},
+	}
+	expectedManagedKeys := [][]byte{[]byte("pk1"), []byte("pk2"), []byte("pk3")}
+	args := createMockArgManagedPeersMonitor()
+	args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
+		GetManagedKeysByCurrentNodeCalled: func() map[string]crypto.PrivateKey {
+			return managedKeys
+		},
+	}
+	monitor, err := NewManagedPeersMonitor(args)
+	require.NoError(t, err)
+
+	keys := monitor.GetManagedKeys()
+	require.Equal(t, expectedManagedKeys, keys)
+}

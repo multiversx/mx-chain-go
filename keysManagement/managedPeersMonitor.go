@@ -60,6 +60,21 @@ func (monitor *managedPeersMonitor) GetManagedKeysCount() int {
 	return len(monitor.managedPeersHolder.GetManagedKeysByCurrentNode())
 }
 
+// GetManagedKeys returns all keys managed by the current node
+func (monitor *managedPeersMonitor) GetManagedKeys() [][]byte {
+	managedKeysMap := monitor.managedPeersHolder.GetManagedKeysByCurrentNode()
+	managedKeys := make([][]byte, 0, len(managedKeysMap))
+	for pk := range managedKeysMap {
+		managedKeys = append(managedKeys, []byte(pk))
+	}
+
+	sort.Slice(managedKeys, func(i, j int) bool {
+		return string(managedKeys[i]) < string(managedKeys[j])
+	})
+
+	return managedKeys
+}
+
 // GetEligibleManagedKeys returns eligible keys that are managed by the current node in the current epoch
 func (monitor *managedPeersMonitor) GetEligibleManagedKeys() ([][]byte, error) {
 	epoch := monitor.epochProvider.CurrentEpoch()

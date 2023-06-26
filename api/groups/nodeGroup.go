@@ -27,6 +27,7 @@ const (
 	epochStartDataForEpoch    = "/epoch-start/:epoch"
 	bootstrapStatusPath       = "/bootstrapstatus"
 	connectedPeersRatingsPath = "/connected-peers-ratings"
+	managedKeys               = "/managed-keys"
 	managedKeysCount          = "/managed-keys/count"
 	eligibleManagedKeys       = "/managed-keys/eligible"
 	waitingManagedKeys        = "/managed-keys/waiting"
@@ -41,6 +42,7 @@ type nodeFacadeHandler interface {
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetConnectedPeersRatings() string
 	GetManagedKeysCount() int
+	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
@@ -119,6 +121,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    managedKeysCount,
 			Method:  http.MethodGet,
 			Handler: ng.managedKeysCount,
+		},
+		{
+			Path:    managedKeys,
+			Method:  http.MethodGet,
+			Handler: ng.managedKeys,
 		},
 		{
 			Path:    eligibleManagedKeys,
@@ -366,6 +373,19 @@ func (ng *nodeGroup) managedKeysCount(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"count": count},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// managedKeys returns all keys managed by the current node
+func (ng *nodeGroup) managedKeys(c *gin.Context) {
+	keys := ng.getFacade().GetManagedKeys()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"managedKeys": keys},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
