@@ -17,7 +17,7 @@ require (
 	github.com/multiversx/mx-chain-crypto-go v1.2.5
 	github.com/multiversx/mx-chain-es-indexer-go v1.3.17
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-p2p-go v1.0.13-0.20230626080402-f46a768baf95
+	github.com/multiversx/mx-chain-p2p-go v1.0.13-0.20230626141349-eb2aab1d3891
 	github.com/multiversx/mx-chain-storage-go v1.0.7
 	github.com/multiversx/mx-chain-vm-common-go v1.3.37
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.50
@@ -124,7 +124,7 @@ require (
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/go-libp2p-pubsub v0.3.3-0.20230626075741-96efbbd7468d // indirect
+	github.com/multiversx/go-libp2p-pubsub v0.3.3-0.20230626141129-a0af0c20dfd9 // indirect
 	github.com/multiversx/mx-components-big-int v0.1.1 // indirect
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
