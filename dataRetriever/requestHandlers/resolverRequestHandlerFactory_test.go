@@ -32,10 +32,9 @@ func TestResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	rrhf, _ := NewResolverRequestHandlerFactory()
-
 	require.False(t, rrhf.IsInterfaceNil())
 
-	rrhf = nil
+	rrhf = (*resolverRequestHandlerFactory)(nil)
 	require.True(t, rrhf.IsInterfaceNil())
 }
 

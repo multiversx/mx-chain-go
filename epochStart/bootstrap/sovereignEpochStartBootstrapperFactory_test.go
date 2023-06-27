@@ -42,6 +42,6 @@ func TestSovereignEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
 
 	require.False(t, sebf.IsInterfaceNil())
 
-	sebf = nil
+	sebf = (*sovereignEpochStartBootstrapperFactory)(nil)
 	require.True(t, sebf.IsInterfaceNil())
 }

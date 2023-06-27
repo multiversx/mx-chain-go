@@ -41,6 +41,6 @@ func TestSovereignBlockChainHookFactory_IsInterfaceNil(t *testing.T) {
 
 	require.False(t, factory.IsInterfaceNil())
 
-	factory = nil
+	factory = (*sovereignBlockChainHookFactory)(nil)
 	require.True(t, factory.IsInterfaceNil())
 }

@@ -42,6 +42,6 @@ func TestSovereignResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
 
 	require.False(t, rrhf.IsInterfaceNil())
 
-	rrhf = nil
+	rrhf = (*sovereignResolverRequestHandlerFactory)(nil)
 	require.True(t, rrhf.IsInterfaceNil())
 }

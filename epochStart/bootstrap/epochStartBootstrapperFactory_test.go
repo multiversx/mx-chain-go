@@ -52,7 +52,7 @@ func TestEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
 
 	require.False(t, esbf.IsInterfaceNil())
 
-	esbf = nil
+	esbf = (*epochStartBootstrapperFactory)(nil)
 	require.True(t, esbf.IsInterfaceNil())
 }
 

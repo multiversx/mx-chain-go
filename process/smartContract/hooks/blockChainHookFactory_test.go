@@ -42,7 +42,7 @@ func TestBlockChainHookFactory_IsInterfaceNil(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, factory.IsInterfaceNil())
 
-	factory = nil
+	factory = (*blockChainHookFactory)(nil)
 	assert.True(t, factory.IsInterfaceNil())
 }
 
