@@ -252,35 +252,41 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFound)
 }
 
-func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
-	providedRatings := map[string]string{
-		"pid1": "100",
-		"pid2": "-50",
-		"pid3": "-5",
-	}
-	buff, _ := json.Marshal(providedRatings)
-	facade := mock.FacadeStub{
-		GetConnectedPeersRatingsCalled: func() string {
-			return string(buff)
-		},
-	}
+func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
+	t.Parallel()
 
-	nodeGroup, err := groups.NewNodeGroup(&facade)
-	require.NoError(t, err)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+		providedRatings := map[string]string{
+			"pid1": "100",
+			"pid2": "-50",
+			"pid3": "-5",
+		}
+		buff, _ := json.Marshal(providedRatings)
+		facade := mock.FacadeStub{
+			GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
+				return string(buff), nil
+			},
+		}
 
-	req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
 
-	response := &shared.GenericAPIResponse{}
-	loadResponse(resp.Body, response)
-	respMap, ok := response.Data.(map[string]interface{})
-	assert.True(t, ok)
-	ratings, ok := respMap["ratings"].(string)
-	assert.True(t, ok)
-	assert.Equal(t, string(buff), ratings)
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+		respMap, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok)
+		ratings, ok := respMap["ratings"].(string)
+		assert.True(t, ok)
+		assert.Equal(t, string(buff), ratings)
+	})
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {

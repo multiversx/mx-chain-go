@@ -1255,8 +1255,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
 		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		MainPeersRatingHandler:          disabled.NewDisabledPeersRatingHandler(),
-		FullArchivePeersRatingHandler:   disabled.NewDisabledPeersRatingHandler(),
+		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
 	}
 	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)

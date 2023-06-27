@@ -123,22 +123,11 @@ func TestNewShardRequestersContainerFactory_NilFullArchivePreferredPeersHolderSh
 	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 }
 
-func TestNewShardRequestersContainerFactory_NilMainPeersRatingHandlerShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.MainPeersRatingHandler = nil
-	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
-
-	assert.Nil(t, rcf)
-	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
-}
-
-func TestNewShardRequestersContainerFactory_NilFullArchivePeersRatingHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArguments()
-	args.FullArchivePeersRatingHandler = nil
+	args.PeersRatingHandler = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
@@ -286,8 +275,7 @@ func getArguments() requesterscontainer.FactoryArgs {
 		CurrentNetworkEpochProvider:     &mock.CurrentNetworkEpochProviderStub{},
 		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		MainPeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		FullArchivePeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
 	}
 }

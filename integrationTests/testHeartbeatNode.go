@@ -505,8 +505,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 		CurrentNetworkEpochProvider:     &mock.CurrentNetworkEpochProviderStub{},
 		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		MainPeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		FullArchivePeersRatingHandler:   &p2pmocks.PeersRatingHandlerStub{},
+		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
 	}
 

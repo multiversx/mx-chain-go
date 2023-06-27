@@ -60,8 +60,6 @@ type networkComponentsFactory struct {
 
 type networkComponentsHolder struct {
 	netMessenger         p2p.Messenger
-	peersRatingHandler   p2p.PeersRatingHandler
-	peersRatingMonitor   p2p.PeersRatingMonitor
 	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
@@ -69,6 +67,8 @@ type networkComponentsHolder struct {
 type networkComponents struct {
 	mainNetworkHolder        networkComponentsHolder
 	fullArchiveNetworkHolder networkComponentsHolder
+	peersRatingHandler       p2p.PeersRatingHandler
+	peersRatingMonitor       p2p.PeersRatingMonitor
 	inputAntifloodHandler    factory.P2PAntifloodHandler
 	outputAntifloodHandler   factory.P2PAntifloodHandler
 	pubKeyTimeCacher         process.TimeCacher
@@ -121,12 +121,17 @@ func NewNetworkComponentsFactory(
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	mainNetworkComp, err := ncf.createMainNetworkHolder()
+	peersRatingHandler, peersRatingMonitor, err := ncf.createPeersRatingComponents()
 	if err != nil {
 		return nil, err
 	}
 
-	fullArchiveNetworkComp, err := ncf.createFullArchiveNetworkHolder()
+	mainNetworkComp, err := ncf.createMainNetworkHolder(peersRatingHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	fullArchiveNetworkComp, err := ncf.createFullArchiveNetworkHolder(peersRatingHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +163,8 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	return &networkComponents{
 		mainNetworkHolder:        mainNetworkComp,
 		fullArchiveNetworkHolder: fullArchiveNetworkComp,
+		peersRatingHandler:       peersRatingHandler,
+		peersRatingMonitor:       peersRatingMonitor,
 		inputAntifloodHandler:    inputAntifloodHandler,
 		outputAntifloodHandler:   outputAntifloodHandler,
 		pubKeyTimeCacher:         antiFloodComponents.PubKeysCacher,
@@ -228,29 +235,10 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 func (ncf *networkComponentsFactory) createNetworkHolder(
 	p2pConfig p2pConfig.P2PConfig,
 	logger p2p.Logger,
+	peersRatingHandler p2p.PeersRatingHandler,
 ) (networkComponentsHolder, error) {
 
 	peersHolder, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
-	if err != nil {
-		return networkComponentsHolder{}, err
-	}
-
-	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
-	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
-	if err != nil {
-		return networkComponentsHolder{}, err
-	}
-	badRatedCache, err := cache.NewLRUCache(peersRatingCfg.BadRatedCacheCapacity)
-	if err != nil {
-		return networkComponentsHolder{}, err
-	}
-
-	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
-		TopRatedCache: topRatedCache,
-		BadRatedCache: badRatedCache,
-		Logger:        logger,
-	}
-	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
 	if err != nil {
 		return networkComponentsHolder{}, err
 	}
@@ -273,42 +261,62 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 		return networkComponentsHolder{}, err
 	}
 
-	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
-		TopRatedCache:       topRatedCache,
-		BadRatedCache:       badRatedCache,
-		ConnectionsProvider: networkMessenger,
-	}
-	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
-	if err != nil {
-		return networkComponentsHolder{}, err
-	}
-
 	return networkComponentsHolder{
 		netMessenger:         networkMessenger,
-		peersRatingHandler:   peersRatingHandler,
-		peersRatingMonitor:   peersRatingMonitor,
 		preferredPeersHolder: peersHolder,
 	}, nil
 }
 
-func (ncf *networkComponentsFactory) createMainNetworkHolder() (networkComponentsHolder, error) {
+func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
 	loggerInstance := logger.GetOrCreate("main/p2p")
-	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, peersRatingHandler)
 }
 
-func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder() (networkComponentsHolder, error) {
+func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
 	if ncf.nodeOperationMode != p2p.FullArchiveMode {
 		return networkComponentsHolder{
 			netMessenger:         p2pDisabled.NewNetworkMessenger(),
-			peersRatingHandler:   disabled.NewPeersRatingHandler(),
-			peersRatingMonitor:   disabled.NewPeersRatingMonitor(),
 			preferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		}, nil
 	}
 
 	loggerInstance := logger.GetOrCreate("full-archive/p2p")
 
-	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance)
+	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler)
+}
+
+func (ncf *networkComponentsFactory) createPeersRatingComponents() (p2p.PeersRatingHandler, p2p.PeersRatingMonitor, error) {
+	peersRatingCfg := ncf.mainConfig.PeersRatingConfig
+	topRatedCache, err := cache.NewLRUCache(peersRatingCfg.TopRatedCacheCapacity)
+	if err != nil {
+		return nil, nil, err
+	}
+	badRatedCache, err := cache.NewLRUCache(peersRatingCfg.BadRatedCacheCapacity)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	peersRatingLogger := logger.GetOrCreate("peersRating")
+	argsPeersRatingHandler := p2pFactory.ArgPeersRatingHandler{
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+		Logger:        peersRatingLogger,
+	}
+	peersRatingHandler, err := p2pFactory.NewPeersRatingHandler(argsPeersRatingHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argsPeersRatingMonitor := p2pFactory.ArgPeersRatingMonitor{
+		TopRatedCache: topRatedCache,
+		BadRatedCache: badRatedCache,
+	}
+	peersRatingMonitor, err := p2pFactory.NewPeersRatingMonitor(argsPeersRatingMonitor)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return peersRatingHandler, peersRatingMonitor, nil
 }
 
 // Close closes all underlying components that need closing

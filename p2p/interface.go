@@ -100,10 +100,7 @@ type PeersRatingHandler interface {
 }
 
 // PeersRatingMonitor represents an entity able to provide peers ratings
-type PeersRatingMonitor interface {
-	GetConnectedPeersRatings() string
-	IsInterfaceNil() bool
-}
+type PeersRatingMonitor = p2p.PeersRatingMonitor
 
 // PeerTopicNotifier represents an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
@@ -131,3 +128,6 @@ type P2PKeyConverter interface {
 
 // Logger defines the behavior of a data logger component
 type Logger = p2p.Logger
+
+// ConnectionsHandler defines the behaviour of a component able to handle connections
+type ConnectionsHandler = p2p.ConnectionsHandler

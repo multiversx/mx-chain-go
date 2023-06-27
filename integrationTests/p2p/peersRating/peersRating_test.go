@@ -67,7 +67,7 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	resolverNode.DataPool.Headers().AddHeader(hdrHash, hdr)
 	requestHeader(requesterNode, numOfRequests, hdrHash, resolverNode.ShardCoordinator.SelfId())
 
-	peerRatingsMap := getRatingsMap(t, requesterNode.MainPeersRatingMonitor)
+	peerRatingsMap := getRatingsMap(t, requesterNode.PeersRatingMonitor, requesterNode.MainMessenger)
 	// resolver node should have received and responded to numOfRequests
 	initialResolverRating, exists := peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
@@ -83,7 +83,7 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	numOfRequests = 120
 	requestHeader(requesterNode, numOfRequests, hdrHash, resolverNode.ShardCoordinator.SelfId())
 
-	peerRatingsMap = getRatingsMap(t, requesterNode.MainPeersRatingMonitor)
+	peerRatingsMap = getRatingsMap(t, requesterNode.PeersRatingMonitor, requesterNode.MainMessenger)
 	// Resolver should have reached max limit and timestamps still update
 	initialResolverRating, exists = peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
@@ -100,7 +100,7 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 	numOfRequests = 10
 	requestHeader(requesterNode, numOfRequests, hdrHash, resolverNode.ShardCoordinator.SelfId())
 
-	peerRatingsMap = getRatingsMap(t, requesterNode.MainPeersRatingMonitor)
+	peerRatingsMap = getRatingsMap(t, requesterNode.PeersRatingMonitor, requesterNode.MainMessenger)
 	// resolver node should have the max rating + numOfRequests that didn't answer to
 	resolverRating, exists := peerRatingsMap[resolverNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
@@ -176,7 +176,7 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 	}
 	requestHeader(requesterFullArchiveNode, numOfRequests, hdrHash, resolverFullArchiveNode.ShardCoordinator.SelfId())
 
-	peerRatingsMap := getRatingsMap(t, requesterFullArchiveNode.FullArchivePeersRatingMonitor)
+	peerRatingsMap := getRatingsMap(t, requesterFullArchiveNode.PeersRatingMonitor, requesterFullArchiveNode.FullArchiveMessenger)
 	// resolver node should have received and responded to numOfRequests
 	initialResolverRating, exists := peerRatingsMap[resolverFullArchiveNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
@@ -192,10 +192,10 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 		return true // force the full archive requester to request from main network
 	}
 	requestHeader(requesterFullArchiveNode, numOfRequests, hdrHash, regularNode.ShardCoordinator.SelfId())
-	peerRatingsMap = getRatingsMap(t, requesterFullArchiveNode.MainPeersRatingMonitor)
+	peerRatingsMap = getRatingsMap(t, requesterFullArchiveNode.PeersRatingMonitor, requesterFullArchiveNode.MainMessenger)
 
 	_, exists = peerRatingsMap[resolverFullArchiveNode.MainMessenger.ID().Pretty()]
-	require.False(t, exists) // should not be any request on the main monitor to the full archive resolver
+	require.False(t, exists) // resolverFullArchiveNode is not even connected to requesterFullArchiveNode on main network
 
 	mainResolverRating, exists := peerRatingsMap[regularNode.MainMessenger.ID().Pretty()]
 	require.True(t, exists)
@@ -240,11 +240,12 @@ func getHeader() (*block.Header, []byte, []byte) {
 	return hdr, hdrHash, hdrBuff
 }
 
-func getRatingsMap(t *testing.T, monitor p2p.PeersRatingMonitor) map[string]string {
-	peerRatingsStr := monitor.GetConnectedPeersRatings()
+func getRatingsMap(t *testing.T, monitor p2p.PeersRatingMonitor, connectionsHandler p2p.ConnectionsHandler) map[string]string {
+	peerRatingsStr, err := monitor.GetConnectedPeersRatings(connectionsHandler)
+	require.Nil(t, err)
 	peerRatingsMap := make(map[string]string)
 
-	err := json.Unmarshal([]byte(peerRatingsStr), &peerRatingsMap)
+	err = json.Unmarshal([]byte(peerRatingsStr), &peerRatingsMap)
 	require.Nil(t, err)
 
 	return peerRatingsMap

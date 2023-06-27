@@ -1432,8 +1432,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		CurrentNetworkEpochProvider:     currentEpochProvider,
 		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
-		MainPeersRatingHandler:          pcf.network.PeersRatingHandler(),
-		FullArchivePeersRatingHandler:   pcf.network.FullArchivePeersRatingHandler(),
+		PeersRatingHandler:              pcf.network.PeersRatingHandler(),
 		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
 	}
 
