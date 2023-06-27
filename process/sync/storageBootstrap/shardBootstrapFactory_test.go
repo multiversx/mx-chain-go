@@ -21,25 +21,37 @@ import (
 )
 
 func TestNewShardBootstrapFactory(t *testing.T) {
+	t.Parallel()
+
 	sbf, err := NewShardBootstrapFactory()
+
 	require.NotNil(t, sbf)
 	require.Nil(t, err)
 }
 
 func TestShardBootstrapFactory_CreateShardBootstrapFactory(t *testing.T) {
+	t.Parallel()
+
 	sbf, err := NewShardBootstrapFactory()
+
 	require.NotNil(t, sbf)
 	require.Nil(t, err)
 
 	bootStrapper, err := sbf.CreateShardBootstrapFactory(getDefaultArgs())
+
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)
 }
 
 func TestShardBootstrapFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	sbf, _ := NewShardBootstrapFactory()
 
 	require.False(t, sbf.IsInterfaceNil())
+
+	sbf = nil
+	require.True(t, sbf.IsInterfaceNil())
 }
 
 func getDefaultArgs() sync.ArgShardBootstrapper {

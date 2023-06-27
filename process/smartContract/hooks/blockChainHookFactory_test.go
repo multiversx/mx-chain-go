@@ -26,9 +26,11 @@ func TestBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 	t.Parallel()
 
 	factory, err := NewBlockChainHookFactory()
+
 	assert.Nil(t, err)
 
 	_, err = factory.CreateBlockChainHook(getDefaultArgs())
+
 	assert.Nil(t, err)
 }
 
@@ -36,9 +38,12 @@ func TestBlockChainHookFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	factory, err := NewBlockChainHookFactory()
-	assert.Nil(t, err)
 
+	assert.Nil(t, err)
 	assert.False(t, factory.IsInterfaceNil())
+
+	factory = nil
+	assert.True(t, factory.IsInterfaceNil())
 }
 
 func getDefaultArgs() ArgBlockChainHook {

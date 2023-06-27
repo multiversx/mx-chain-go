@@ -10,6 +10,8 @@ import (
 )
 
 func TestNewResolverRequestHandlerFactory(t *testing.T) {
+	t.Parallel()
+
 	rrhf, err := NewResolverRequestHandlerFactory()
 
 	require.Nil(t, err)
@@ -17,8 +19,9 @@ func TestNewResolverRequestHandlerFactory(t *testing.T) {
 }
 
 func TestResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T) {
-	rrhf, _ := NewResolverRequestHandlerFactory()
+	t.Parallel()
 
+	rrhf, _ := NewResolverRequestHandlerFactory()
 	rrh, err := rrhf.CreateResolverRequestHandler(GetDefaultArgs())
 
 	require.Nil(t, err)
@@ -26,9 +29,14 @@ func TestResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T
 }
 
 func TestResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	rrhf, _ := NewResolverRequestHandlerFactory()
 
 	require.False(t, rrhf.IsInterfaceNil())
+
+	rrhf = nil
+	require.True(t, rrhf.IsInterfaceNil())
 }
 
 func GetDefaultArgs() ResolverRequestArgs {

@@ -16,23 +16,32 @@ import (
 )
 
 func TestNewShardStorageBootstrapperFactory(t *testing.T) {
+	t.Parallel()
+
 	sbf, err := NewShardStorageBootstrapperFactory()
+
 	require.NotNil(t, sbf)
 	require.Nil(t, err)
 }
 
 func TestShardStorageBootstrapperFactory_CreateShardStorageBootstrapper(t *testing.T) {
-	sbf, _ := NewShardStorageBootstrapperFactory()
+	t.Parallel()
 
+	sbf, _ := NewShardStorageBootstrapperFactory()
 	bootStrapper, err := sbf.CreateShardStorageBootstrapper(getDefaultArgShardBootstrapper())
+
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)
 }
 
 func TestShardStorageBootstrapperFactory_IsInterfaceNil(t *testing.T) {
-	sbf, _ := NewShardStorageBootstrapperFactory()
+	t.Parallel()
 
+	sbf, _ := NewShardStorageBootstrapperFactory()
 	require.False(t, sbf.IsInterfaceNil())
+
+	sbf = nil
+	require.True(t, sbf.IsInterfaceNil())
 }
 
 func getDefaultArgShardBootstrapper() ArgsShardStorageBootstrapper {

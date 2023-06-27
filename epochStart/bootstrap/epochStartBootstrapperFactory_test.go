@@ -27,6 +27,8 @@ import (
 )
 
 func TestEpochStartBootstrapperFactory_NewEpochStartBootstrapperFactory(t *testing.T) {
+	t.Parallel()
+
 	esbf, err := NewEpochStartBootstrapperFactory()
 
 	require.Nil(t, err)
@@ -34,8 +36,9 @@ func TestEpochStartBootstrapperFactory_NewEpochStartBootstrapperFactory(t *testi
 }
 
 func TestEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *testing.T) {
-	esbf, _ := NewEpochStartBootstrapperFactory()
+	t.Parallel()
 
+	esbf, _ := NewEpochStartBootstrapperFactory()
 	esb, err := esbf.CreateEpochStartBootstrapper(GetDefaultArgs())
 
 	require.Nil(t, err)
@@ -43,9 +46,14 @@ func TestEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *testing.T
 }
 
 func TestEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	esbf, _ := NewEpochStartBootstrapperFactory()
 
 	require.False(t, esbf.IsInterfaceNil())
+
+	esbf = nil
+	require.True(t, esbf.IsInterfaceNil())
 }
 
 func GetDefaultArgs() ArgsEpochStartBootstrap {

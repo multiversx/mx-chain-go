@@ -8,6 +8,8 @@ import (
 )
 
 func TestNewSovereignResolverRequestHandlerFactory(t *testing.T) {
+	t.Parallel()
+
 	rrhf, err := NewSovereignResolverRequestHandlerFactory(nil)
 
 	require.Nil(t, rrhf)
@@ -15,11 +17,14 @@ func TestNewSovereignResolverRequestHandlerFactory(t *testing.T) {
 
 	rf, _ := NewResolverRequestHandlerFactory()
 	rrhf, err = NewSovereignResolverRequestHandlerFactory(rf)
+
 	require.Nil(t, err)
 	require.NotNil(t, rrhf)
 }
 
 func TestSovereignResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T) {
+	t.Parallel()
+
 	rf, _ := NewResolverRequestHandlerFactory()
 	rrhf, _ := NewSovereignResolverRequestHandlerFactory(rf)
 
@@ -30,8 +35,13 @@ func TestSovereignResolverRequestHandlerFactory_CreateResolverRequestHandler(t *
 }
 
 func TestSovereignResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	rf, _ := NewResolverRequestHandlerFactory()
 	rrhf, _ := NewSovereignResolverRequestHandlerFactory(rf)
 
 	require.False(t, rrhf.IsInterfaceNil())
+
+	rrhf = nil
+	require.True(t, rrhf.IsInterfaceNil())
 }
