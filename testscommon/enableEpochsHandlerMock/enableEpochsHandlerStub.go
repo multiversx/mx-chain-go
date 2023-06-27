@@ -110,6 +110,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsSCProcessorV2FlagEnabledField                              bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
@@ -964,6 +965,14 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	defer stub.RUnlock()
 
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
+}
+
+// IsSCProcessorV2FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSCProcessorV2FlagEnabledField
 }
 
 // IsFixAsyncCallBackArgsListFlagEnabled -

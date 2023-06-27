@@ -128,4 +128,5 @@ type BlockchainHook interface {
 	Close() error
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	IsBuiltinFunctionName(functionName string) bool
 }

@@ -71,7 +71,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -634,6 +634,8 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
+	roundsConfig := GetDefaultRoundsConfig()
+
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
 		Data:              dataComponents,
@@ -699,6 +701,7 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		RoundConfig: &roundsConfig,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -1003,9 +1006,11 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
@@ -1325,6 +1330,36 @@ func CreateNodesWithEnableEpochs(
 	numMetaChainNodes int,
 	epochConfig config.EnableEpochs,
 ) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfig(numOfShards, nodesPerShard, numMetaChainNodes, epochConfig, nil)
+}
+
+// CreateNodesWithEnableEpochsAndVmConfig creates multiple nodes with custom epoch and vm config
+func CreateNodesWithEnableEpochsAndVmConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	vmConfig *config.VirtualMachineConfig,
+) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		epochConfig,
+		GetDefaultRoundsConfig(),
+		vmConfig,
+	)
+}
+
+// CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig creates multiple nodes with custom epoch and vm config
+func CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	vmConfig *config.VirtualMachineConfig,
+) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
 
@@ -1336,6 +1371,8 @@ func CreateNodesWithEnableEpochs(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         &epochConfig,
+				RoundsConfig:         &roundsConfig,
+				VMConfig:             vmConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1349,6 +1386,8 @@ func CreateNodesWithEnableEpochs(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         &epochConfig,
+			RoundsConfig:         &roundsConfig,
+			VMConfig:             vmConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
@@ -1664,10 +1703,31 @@ func CreateAndSendTransaction(
 	txData string,
 	additionalGasLimit uint64,
 ) {
+	CreateAndSendTransactionWithSenderAccount(
+		node,
+		nodes,
+		txValue,
+		node.OwnAccount,
+		rcvAddress,
+		txData,
+		additionalGasLimit)
+}
+
+// CreateAndSendTransactionWithSenderAccount will generate a transaction with provided parameters, sign it with the provided
+// node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
+func CreateAndSendTransactionWithSenderAccount(
+	node *TestProcessorNode,
+	nodes []*TestProcessorNode,
+	txValue *big.Int,
+	senderAccount *TestWalletAccount,
+	rcvAddress []byte,
+	txData string,
+	additionalGasLimit uint64,
+) {
 	tx := &transaction.Transaction{
-		Nonce:    node.OwnAccount.Nonce,
+		Nonce:    senderAccount.Nonce,
 		Value:    new(big.Int).Set(txValue),
-		SndAddr:  node.OwnAccount.Address,
+		SndAddr:  senderAccount.Address,
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
@@ -1677,8 +1737,8 @@ func CreateAndSendTransaction(
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
-	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
-	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
+	tx.Signature, _ = senderAccount.SingleSigner.Sign(senderAccount.SkTxSign, txBuff)
+	senderShardID := node.ShardCoordinator.ComputeId(senderAccount.Address)
 
 	wasSent := false
 	for _, senderNode := range nodes {
@@ -1688,7 +1748,7 @@ func CreateAndSendTransaction(
 
 		_, err := senderNode.SendTransaction(tx)
 		if err != nil {
-			log.Error("could not send transaction", "address", node.OwnAccount.Address, "error", err)
+			log.Error("could not send transaction", "address", senderAccount.Address, "error", err)
 		} else {
 			wasSent = true
 		}
@@ -1696,9 +1756,9 @@ func CreateAndSendTransaction(
 	}
 
 	if !wasSent {
-		log.Error("no suitable node found to send the provided transaction", "address", node.OwnAccount.Address)
+		log.Error("no suitable node found to send the provided transaction", "address", senderAccount.Address)
 	}
-	node.OwnAccount.Nonce++
+	senderAccount.Nonce++
 }
 
 // CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price
