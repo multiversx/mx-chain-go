@@ -621,8 +621,9 @@ github.com/multiformats/go-varint v0.0.6 h1:gk85QWKxh3TazbLxED/NlDVv8+q+ReFJk7Y2
 github.com/multiformats/go-varint v0.0.6/go.mod h1:3Ls8CIEsrijN6+B7PbrXRPxHRPuXSrVKRY101jdMZYE=
 github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUYwbO0993uPI=
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
-github.com/multiversx/mx-chain-communication-go v1.0.3 h1:42LkNQX+PdT4UEDO2/kbOMT/iDpEMfE0ncNldFTyFD4=
 github.com/multiversx/mx-chain-communication-go v1.0.3/go.mod h1:7oTI77XfWmRWwVEbCq+pjH5CO3mJ6vEiHGMvQv6vF3Y=
+github.com/multiversx/mx-chain-communication-go v1.0.4-0.20230627075501-f62c0874a0a6 h1:WiXLEeICPQNUnoGbfo9d8JewlN2JIUYGtD4geuRb6pE=
+github.com/multiversx/mx-chain-communication-go v1.0.4-0.20230627075501-f62c0874a0a6/go.mod h1:7oTI77XfWmRWwVEbCq+pjH5CO3mJ6vEiHGMvQv6vF3Y=
 github.com/multiversx/mx-chain-core-go v1.1.30/go.mod h1:8gGEQv6BWuuJwhd25qqhCOZbBSv9mk+hLeKvinSaSMk=
 github.com/multiversx/mx-chain-core-go v1.2.1/go.mod h1:8gGEQv6BWuuJwhd25qqhCOZbBSv9mk+hLeKvinSaSMk=
 github.com/multiversx/mx-chain-core-go v1.2.5/go.mod h1:jzYFSiYBuO0dGpGFXnZWSwcwcKP7Flyn/X41y4zIQrQ=

@@ -502,8 +502,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		NodesSetup:                 nodesSetup,
 		HistoryRepository:          &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:              genericEpochNotifier,
-		RoundNotifier:            genericRoundNotifier,
-		EnableRoundsHandler:      enableRoundsHandler,
+		RoundNotifier:              genericRoundNotifier,
+		EnableRoundsHandler:        enableRoundsHandler,
 		EnableEpochsHandler:        enableEpochsHandler,
 		EpochProvider:              &mock.CurrentNetworkEpochProviderStub{},
 		WasmVMChangeLocker:         &sync.RWMutex{},
@@ -2121,6 +2121,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
