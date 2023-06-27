@@ -170,5 +170,8 @@ var ErrMissingDeployedSC = errors.New("missing deployed SC")
 // ErrNilEpochConfig signals that a nil epoch config was provided
 var ErrNilEpochConfig = errors.New("nil epoch config")
 
+// ErrNilRoundConfig signals that a nil round config was provided
+var ErrNilRoundConfig = errors.New("nil round config")
+
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil gas schedule")

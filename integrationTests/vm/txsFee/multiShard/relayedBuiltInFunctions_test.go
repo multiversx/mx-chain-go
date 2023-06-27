@@ -36,8 +36,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	require.Nil(t, err)
 	defer testContextInner.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
-	scAddr, owner := utils.DoDeploy(t, testContextInner, pathToContract)
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
+	scAddr, owner := utils.DoDeployOldCounter(t, testContextInner, pathToContract)
 	gasAndFees := getZeroGasAndFees()
 	testContextInner.TxFeeHandler.CreateBlockStarted(gasAndFees)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextInner)
@@ -79,14 +79,10 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 
 	utils.CheckOwnerAddr(t, testContextInner, scAddr, newOwner)
 
-	expectedFees = big.NewInt(850)
+	expectedFees = big.NewInt(7000)
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedFees, accumulatedFees)
 
-	txs := testContextInner.GetIntermediateTransactions(t)
-	scr := txs[0]
-	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-
-	expectedRelayerBalance = big.NewInt(10760)
+	expectedRelayerBalance = big.NewInt(4610)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedRelayerBalance)
 }

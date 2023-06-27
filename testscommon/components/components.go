@@ -41,7 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,7 +93,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
-				"Example": {
+				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
 			},

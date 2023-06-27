@@ -27,6 +27,7 @@ func CreateHostDriver(args ArgsHostDriverFactory) (outport.Driver, error) {
 			RetryDurationInSec:         args.HostConfig.RetryDurationInSec,
 			BlockingAckOnError:         args.HostConfig.BlockingAckOnError,
 			DropMessagesIfNoConnection: args.HostConfig.DropMessagesIfNoConnection,
+			AcknowledgeTimeoutInSec:    args.HostConfig.AcknowledgeTimeoutInSec,
 		},
 		Marshaller: args.Marshaller,
 		Log:        log,

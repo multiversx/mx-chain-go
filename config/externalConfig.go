@@ -48,4 +48,5 @@ type HostDriverConfig struct {
 	MarshallerType             string
 	Mode                       string
 	RetryDurationInSec         int
+	AcknowledgeTimeoutInSec    int
 }
