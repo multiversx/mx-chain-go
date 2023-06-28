@@ -8,9 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
+	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 	"github.com/stretchr/testify/require"
 )
 

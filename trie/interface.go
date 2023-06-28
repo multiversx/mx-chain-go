@@ -107,6 +107,7 @@ type snapshotPruningStorer interface {
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
+	RemoveFromAllActiveEpochs(key []byte) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch

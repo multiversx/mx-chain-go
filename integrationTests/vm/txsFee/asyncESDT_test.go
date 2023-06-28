@@ -202,7 +202,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	// deploy forwarder
 	forwarderAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/forwarder-raw-managed-api.wasm",
+		"../esdt/testdata/forwarder-raw-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -214,7 +214,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.2.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -233,7 +233,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 		sftBalance,
 		gasPrice,
 		txGasLimit,
-		"just_accept_funds",
+		"accept_funds",
 	)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -295,7 +295,7 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 	// deploy forwarder
 	forwarderAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/forwarder-raw-managed-api.wasm",
+		"../esdt/testdata/forwarder-raw-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -307,7 +307,7 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.2.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -335,7 +335,7 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 		sftBalance,
 		gasPrice,
 		txGasLimit,
-		"deposit",
+		"",
 	)
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -393,7 +393,7 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 
 	vaultAddr := utils.DoDeploySecond(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,
@@ -442,7 +442,7 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 
 	vaultAddr := utils.DoDeployWithMetadata(t,
 		testContext,
-		"../esdt/testdata/vault-managed-api.wasm",
+		"../esdt/testdata/vault-0.34.0.wasm",
 		ownerAccount,
 		gasPrice,
 		deployGasLimit,

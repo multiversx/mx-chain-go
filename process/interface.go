@@ -59,6 +59,12 @@ type SmartContractResultProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// SmartContractProcessorFacade is the main interface for smart contract result execution engine
+type SmartContractProcessorFacade interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
+}
+
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
@@ -260,6 +266,12 @@ type BlockProcessor interface {
 	NonceOfFirstCommittedBlock() core.OptionalUint64
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// SmartContractProcessorFull is the main interface for smart contract result execution engine
+type SmartContractProcessorFull interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
 }
 
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
@@ -517,12 +529,15 @@ type BlockChainHookHandler interface {
 	ClearCompiledCodes()
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetVMContainer(vmContainer VirtualMachinesContainer) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
 	ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	ResetCounters()
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
+	IsBuiltinFunctionName(functionName string) bool
 }
 
 // Interceptor defines what a data interceptor should do
@@ -1090,16 +1105,24 @@ type NodesCoordinator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
+	// TODO RoundSubscriberHandler should be move to elrond-core
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
+// RoundNotifier can notify upon an epoch change and provide the current epoch
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler)
+	CurrentRound() uint64
+	CheckRound(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
-	CheckRound(round uint64)
-	IsExampleEnabled() bool
+	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
 

@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
@@ -30,12 +31,14 @@ func TestScDeploy(t *testing.T) {
 	relayedTxEnableEpoch := uint32(0)
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
+	scProcessorV2EnableEpoch := integrationTests.UnreachableEpoch
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.BuiltInFunctionOnMetaEnableEpoch = builtinEnableEpoch
 	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
+	enableEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnableEpoch
 
 	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,

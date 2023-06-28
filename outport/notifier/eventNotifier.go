@@ -150,6 +150,16 @@ func (en *eventNotifier) Close() error {
 	return nil
 }
 
+// RegisterHandler will do nothing
+func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
+	return nil
+}
+
+// SetCurrentSettings will do nothing
+func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
+	return nil
+}
+
 func (en *eventNotifier) getHeaderFromBytes(headerType core.HeaderType, headerBytes []byte) (header data.HeaderHandler, err error) {
 	creator, err := en.blockContainer.Get(headerType)
 	if err != nil {

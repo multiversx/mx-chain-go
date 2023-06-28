@@ -30,7 +30,7 @@ import (
 const (
 	leavesChannelSize       = 100
 	missingNodesChannelSize = 100
-	lastSnapshotStarted     = "lastSnapshot"
+	lastSnapshot            = "lastSnapshot"
 	userTrieSnapshotMsg     = "snapshotState user trie"
 	peerTrieSnapshotMsg     = "snapshotState peer trie"
 )
@@ -204,7 +204,7 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager, p
 		return
 	}
 
-	rootHash, err := tsm.Get([]byte(lastSnapshotStarted))
+	rootHash, err := tsm.GetFromCurrentEpoch([]byte(lastSnapshot))
 	if err != nil {
 		log.Debug("startSnapshotAfterRestart root hash", "error", err)
 		return
@@ -1211,6 +1211,11 @@ func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, 
 		return nil, 0, false
 	}
 
+	defer func() {
+		err = trieStorageManager.PutInEpoch([]byte(lastSnapshot), rootHash, epoch)
+		handleLoggingWhenError("could not set lastSnapshot", err, "rootHash", rootHash)
+	}()
+
 	if !adb.shouldTakeSnapshot(trieStorageManager, rootHash, epoch) {
 		log.Debug("skipping snapshot",
 			"last snapshot rootHash", adb.lastSnapshot.rootHash,
@@ -1225,8 +1230,6 @@ func (adb *AccountsDB) prepareSnapshot(rootHash []byte) (common.StorageManager, 
 	adb.isSnapshotInProgress.SetValue(true)
 	adb.lastSnapshot.rootHash = rootHash
 	adb.lastSnapshot.epoch = epoch
-	err = trieStorageManager.Put([]byte(lastSnapshotStarted), rootHash)
-	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
 	return trieStorageManager, epoch, true
@@ -1310,8 +1313,8 @@ func (adb *AccountsDB) processSnapshotCompletion(
 		return
 	}
 
-	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
-	handleLoggingWhenError("could not remove lastSnapshotStarted", err, "rootHash", rootHash)
+	err := trieStorageManager.RemoveFromAllActiveEpochs([]byte(lastSnapshot))
+	handleLoggingWhenError("could not remove lastSnapshot", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)

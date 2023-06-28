@@ -772,6 +772,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
     ConsistentTokensValuesLengthCheckEnableEpoch = 86
 
+    # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 87
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -878,6 +881,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			MultiClaimOnDelegationEnableEpoch:                 84,
 			ChangeUsernameEnableEpoch:                         85,
 			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
+			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

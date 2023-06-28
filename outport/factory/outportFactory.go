@@ -3,12 +3,14 @@ package factory
 import (
 	"time"
 
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
+	IsImportDB                bool
 	RetrialInterval           time.Duration
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
@@ -22,7 +24,11 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		return nil, err
 	}
 
-	outportHandler, err := outport.NewOutport(args.RetrialInterval)
+	cfg := outportcore.OutportConfig{
+		IsInImportDBMode: args.IsImportDB,
+	}
+
+	outportHandler, err := outport.NewOutport(args.RetrialInterval, cfg)
 	if err != nil {
 		return nil, err
 	}

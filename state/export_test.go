@@ -1,13 +1,19 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
-const LastSnapshotStarted = lastSnapshotStarted
+const LastSnapshotStarted = lastSnapshot
+
+// IsSnapshotInProgress -
+func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
+	return &adb.isSnapshotInProgress
+}
 
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {

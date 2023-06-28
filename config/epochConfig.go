@@ -90,6 +90,7 @@ type EnableEpochs struct {
 	RuntimeCodeSizeFixEnableEpoch                     uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
+	SCProcessorV2EnableEpoch                          uint32
 	MaxBlockchainHookCountersEnableEpoch              uint32
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
@@ -100,6 +101,7 @@ type EnableEpochs struct {
 	ChangeUsernameEnableEpoch                         uint32
 	AutoBalanceDataTriesEnableEpoch                   uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
+	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 
