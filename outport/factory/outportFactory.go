@@ -55,6 +55,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
 		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
 		if err != nil {
+			log.Error("createAndSubscribeHostDriverIfNeeded", "host index", idx, "error", err)
 			return err
 		}
 	}
