@@ -28,7 +28,7 @@ func TestShardStorageBootstrapperFactory_CreateShardStorageBootstrapper(t *testi
 	t.Parallel()
 
 	sbf, _ := NewShardStorageBootstrapperFactory()
-	bootStrapper, err := sbf.CreateShardStorageBootstrapper(getDefaultArgShardBootstrapper())
+	bootStrapper, err := sbf.CreateBootstrapperFromStorage(getDefaultArgShardBootstrapper())
 
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)

@@ -54,7 +54,7 @@ type bootstrapComponentsFactory struct {
 	networkComponents                    factory.NetworkComponentsHolder
 	statusCoreComponents                 factory.StatusCoreComponentsHolder
 	chainRunType                         common.ChainRunType
-	epochStartBootstrapperFactoryHandler bootstrap.EpochStartBootstrapperFactoryHandler
+	epochStartBootstrapperFactoryHandler bootstrap.EpochStartBootstrapperCreator
 }
 
 type bootstrapComponents struct {

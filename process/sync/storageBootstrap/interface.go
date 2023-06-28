@@ -20,14 +20,14 @@ type storageBootstrapperHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ShardStorageBootstrapperFactoryHandler defines the operations supported by a shard storage bootstrapper factory
-type ShardStorageBootstrapperFactoryHandler interface {
-	CreateShardStorageBootstrapper(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
+// BootstrapperFromStorageCreator defines the operations supported by a shard storage bootstrapper factory
+type BootstrapperFromStorageCreator interface {
+	CreateBootstrapperFromStorage(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
 	IsInterfaceNil() bool
 }
 
-// ShardBootstrapFactoryHandler defines the operations supported by a shard bootstrap factory
-type ShardBootstrapFactoryHandler interface {
-	CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
+// BootstrapperCreator defines the operations supported by a shard bootstrap factory
+type BootstrapperCreator interface {
+	CreateBootstrapper(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
 	IsInterfaceNil() bool
 }

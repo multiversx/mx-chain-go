@@ -28,7 +28,7 @@ func TestSovereignResolverRequestHandlerFactory_CreateResolverRequestHandler(t *
 	rf, _ := NewResolverRequestHandlerFactory()
 	rrhf, _ := NewSovereignResolverRequestHandlerFactory(rf)
 
-	rrh, err := rrhf.CreateResolverRequestHandler(GetDefaultArgs())
+	rrh, err := rrhf.CreateRequestHandler(getDefaultArgs())
 
 	require.Nil(t, err)
 	require.NotNil(t, rrh)

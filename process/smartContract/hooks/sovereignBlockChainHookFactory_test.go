@@ -28,9 +28,15 @@ func TestSovereignBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 	baseFactory, _ := NewBlockChainHookFactory()
 	factory, _ := NewSovereignBlockChainHookFactory(baseFactory)
 
-	_, err := factory.CreateBlockChainHook(getDefaultArgs())
+	bhh, err := factory.CreateBlockChainHookHandler(ArgBlockChainHook{})
+
+	require.Nil(t, bhh)
+	require.NotNil(t, err)
+
+	bhh, err = factory.CreateBlockChainHookHandler(getDefaultArgs())
 
 	require.Nil(t, err)
+	require.NotNil(t, bhh)
 }
 
 func TestSovereignBlockChainHookFactory_IsInterfaceNil(t *testing.T) {

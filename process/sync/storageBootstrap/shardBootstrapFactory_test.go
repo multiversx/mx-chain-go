@@ -37,7 +37,7 @@ func TestShardBootstrapFactory_CreateShardBootstrapFactory(t *testing.T) {
 	require.NotNil(t, sbf)
 	require.Nil(t, err)
 
-	bootStrapper, err := sbf.CreateShardBootstrapFactory(getDefaultArgs())
+	bootStrapper, err := sbf.CreateBootstrapper(getDefaultArgs())
 
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)

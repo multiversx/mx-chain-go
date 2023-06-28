@@ -13,8 +13,8 @@ func NewShardBootstrapFactory() (*shardBootstrapFactory, error) {
 	return &shardBootstrapFactory{}, nil
 }
 
-// CreateShardBootstrapFactory creates a new instance of shardBootstrapFactory for run type normal
-func (sbf *shardBootstrapFactory) CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+// CreateBootstrapper creates a new instance of shardBootstrapFactory for run type normal
+func (sbf *shardBootstrapFactory) CreateBootstrapper(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
 	return sync.NewShardBootstrap(argsBaseBootstrapper)
 }
 

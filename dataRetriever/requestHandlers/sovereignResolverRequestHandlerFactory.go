@@ -7,11 +7,11 @@ import (
 )
 
 type sovereignResolverRequestHandlerFactory struct {
-	resolverRequestFactoryHandler ResolverRequestFactoryHandler
+	resolverRequestFactoryHandler RequestHandlerCreator
 }
 
 // NewSovereignResolverRequestHandlerFactory creates a new resolver request handler factory for chain run type sovereign
-func NewSovereignResolverRequestHandlerFactory(re ResolverRequestFactoryHandler) (ResolverRequestFactoryHandler, error) {
+func NewSovereignResolverRequestHandlerFactory(re RequestHandlerCreator) (RequestHandlerCreator, error) {
 	if check.IfNil(re) {
 		return nil, errors.ErrNilResolverRequestFactoryHandler
 	}
@@ -20,9 +20,9 @@ func NewSovereignResolverRequestHandlerFactory(re ResolverRequestFactoryHandler)
 	}, nil
 }
 
-// CreateResolverRequestHandler creates a RequestHandler for chain run type sovereign
-func (rrh *sovereignResolverRequestHandlerFactory) CreateResolverRequestHandler(resolverRequestArgs ResolverRequestArgs) (process.RequestHandler, error) {
-	requestHandler, err := rrh.resolverRequestFactoryHandler.CreateResolverRequestHandler(resolverRequestArgs)
+// CreateRequestHandler creates a RequestHandler for chain run type sovereign
+func (rrh *sovereignResolverRequestHandlerFactory) CreateRequestHandler(resolverRequestArgs RequestHandlerArgs) (process.RequestHandler, error) {
+	requestHandler, err := rrh.resolverRequestFactoryHandler.CreateRequestHandler(resolverRequestArgs)
 	if err != nil {
 		return nil, err
 	}

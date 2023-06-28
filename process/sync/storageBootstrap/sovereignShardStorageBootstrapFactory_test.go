@@ -27,12 +27,12 @@ func TestSovereignShardStorageBootstrapperFactory_CreateShardStorageBootstrapper
 
 	sbf, _ := NewShardStorageBootstrapperFactory()
 	ssbf, _ := NewSovereignShardStorageBootstrapperFactory(sbf)
-	sb, err := ssbf.CreateShardStorageBootstrapper(ArgsShardStorageBootstrapper{})
+	sb, err := ssbf.CreateBootstrapperFromStorage(ArgsShardStorageBootstrapper{})
 
 	require.Nil(t, sb)
 	require.NotNil(t, err)
 
-	sb, err = ssbf.CreateShardStorageBootstrapper(getDefaultArgShardBootstrapper())
+	sb, err = ssbf.CreateBootstrapperFromStorage(getDefaultArgShardBootstrapper())
 
 	require.NotNil(t, sb)
 	require.Nil(t, err)

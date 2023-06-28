@@ -37,7 +37,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	ChanGracefullyClose                  chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData           time.Duration
 	ChainRunType                         common.ChainRunType
-	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperFactoryHandler
+	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -49,7 +49,7 @@ type storageEpochStartBootstrap struct {
 	chainID                    string
 	timeToWaitForRequestedData time.Duration
 	chainRunType               common.ChainRunType
-	resolverRequestFactory     requestHandlers.ResolverRequestFactoryHandler
+	resolverRequestFactory     requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -87,6 +87,7 @@ func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (EpochSta
 		return nil, err
 	}
 
+	// TODO: remove this switch so that no assignment is made to the EpochStartBootstrapperFactoryHandler
 	switch args.ChainRunType {
 	case common.ChainRunTypeRegular:
 		args.EpochStartBootstrapperFactoryHandler = fact
@@ -245,7 +246,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 	}
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
-	args := requestHandlers.ResolverRequestArgs{
+	args := requestHandlers.RequestHandlerArgs{
 		RequestersFinder:      finder,
 		RequestedItemsHandler: requestedItemsHandler,
 		WhiteListHandler:      sesb.whiteListHandler,
@@ -272,7 +273,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, sesb.chainRunType)
 	}
 
-	return sesb.resolverRequestFactory.CreateResolverRequestHandler(args)
+	return sesb.resolverRequestFactory.CreateRequestHandler(args)
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {

@@ -39,7 +39,7 @@ func TestEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *testing.T
 	t.Parallel()
 
 	esbf, _ := NewEpochStartBootstrapperFactory()
-	esb, err := esbf.CreateEpochStartBootstrapper(GetDefaultArgs())
+	esb, err := esbf.CreateEpochStartBootstrapper(getDefaultArgs())
 
 	require.Nil(t, err)
 	require.NotNil(t, esb)
@@ -56,7 +56,7 @@ func TestEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
 	require.True(t, esbf.IsInterfaceNil())
 }
 
-func GetDefaultArgs() ArgsEpochStartBootstrap {
+func getDefaultArgs() ArgsEpochStartBootstrap {
 	generalCfg := testscommon.GetGeneralConfig()
 
 	coreMock := &mock.CoreComponentsMock{

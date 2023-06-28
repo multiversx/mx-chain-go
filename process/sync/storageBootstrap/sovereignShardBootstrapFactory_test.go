@@ -29,11 +29,11 @@ func TestSovereignShardBootstrapFactory_CreateShardBootstrapFactory(t *testing.T
 	sbf, _ := NewShardBootstrapFactory()
 	ssbf, _ := NewSovereignShardBootstrapFactory(sbf)
 
-	_, err := ssbf.CreateShardBootstrapFactory(sync.ArgShardBootstrapper{})
+	_, err := ssbf.CreateBootstrapper(sync.ArgShardBootstrapper{})
 
 	require.NotNil(t, err)
 
-	bootStrapper, err := ssbf.CreateShardBootstrapFactory(getDefaultArgs())
+	bootStrapper, err := ssbf.CreateBootstrapper(getDefaultArgs())
 
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)

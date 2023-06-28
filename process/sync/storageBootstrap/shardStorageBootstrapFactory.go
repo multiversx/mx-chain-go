@@ -12,8 +12,8 @@ func NewShardStorageBootstrapperFactory() (*shardStorageBootstrapperFactory, err
 	return &shardStorageBootstrapperFactory{}, nil
 }
 
-// CreateShardStorageBootstrapper creates a new instance of shardStorageBootstrapperFactory for run type normal
-func (ssbf *shardStorageBootstrapperFactory) CreateShardStorageBootstrapper(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+// CreateBootstrapperFromStorage creates a new instance of shardStorageBootstrapperFactory for run type normal
+func (ssbf *shardStorageBootstrapperFactory) CreateBootstrapperFromStorage(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	return NewShardStorageBootstrapper(args)
 }
 

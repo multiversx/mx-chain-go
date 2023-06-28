@@ -14,18 +14,21 @@ func CreateBlockChainHook(chainRunType common.ChainRunType, args ArgBlockChainHo
 	if err != nil {
 		return nil, err
 	}
+
+	var bhhc BlockChainHookHandlerCreator
+
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		args.BlockChainHookFactoryHandler = factory
+		bhhc = factory
 	case common.ChainRunTypeSovereign:
 		sovereignFactory, sovErr := NewSovereignBlockChainHookFactory(factory)
 		if sovErr != nil {
 			return nil, sovErr
 		}
-		args.BlockChainHookFactoryHandler = sovereignFactory
+		bhhc = sovereignFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
 
-	return args.BlockChainHookFactoryHandler.CreateBlockChainHook(args)
+	return bhhc.CreateBlockChainHookHandler(args)
 }

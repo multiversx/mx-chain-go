@@ -7,12 +7,12 @@ type blockChainHookFactory struct {
 }
 
 // NewBlockChainHookFactory creates a new instance of blockChainHookFactory
-func NewBlockChainHookFactory() (BlockChainHookFactoryHandler, error) {
+func NewBlockChainHookFactory() (BlockChainHookHandlerCreator, error) {
 	return &blockChainHookFactory{}, nil
 }
 
-// CreateBlockChainHook creates a blockchain hook based on the chain run type normal
-func (bhf *blockChainHookFactory) CreateBlockChainHook(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+// CreateBlockChainHookHandler creates a blockchain hook based on the chain run type normal
+func (bhf *blockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
 	return NewBlockChainHookImpl(args)
 }
 

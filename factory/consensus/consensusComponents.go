@@ -73,8 +73,8 @@ type consensusComponentsFactory struct {
 	shouldDisableWatchdog                  bool
 	consensusModel                         consensus.ConsensusModel
 	chainRunType                           common.ChainRunType
-	shardStorageBootstrapperFactoryHandler storageBootstrap.ShardStorageBootstrapperFactoryHandler
-	shardBootstrapFactoryHandler           storageBootstrap.ShardBootstrapFactoryHandler
+	shardStorageBootstrapperFactoryHandler storageBootstrap.BootstrapperFromStorageCreator
+	shardBootstrapFactoryHandler           storageBootstrap.BootstrapperCreator
 }
 
 type consensusComponents struct {
@@ -539,7 +539,7 @@ func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseSt
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
 	}
 
-	return ccf.shardStorageBootstrapperFactoryHandler.CreateShardStorageBootstrapper(argsShardStorageBootstrapper)
+	return ccf.shardStorageBootstrapperFactoryHandler.CreateBootstrapperFromStorage(argsShardStorageBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
@@ -565,7 +565,7 @@ func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBoots
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
 	}
 
-	return ccf.shardBootstrapFactoryHandler.CreateShardBootstrapFactory(argsShardBootstrapper)
+	return ccf.shardBootstrapFactoryHandler.CreateBootstrapper(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {

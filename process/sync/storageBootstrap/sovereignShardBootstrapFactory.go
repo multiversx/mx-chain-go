@@ -8,11 +8,11 @@ import (
 )
 
 type sovereignShardBootstrapFactory struct {
-	shardBootstrapFactory ShardBootstrapFactoryHandler
+	shardBootstrapFactory BootstrapperCreator
 }
 
 // NewSovereignShardBootstrapFactory creates a new instance of shardBootstrapFactory for run type sovereign
-func NewSovereignShardBootstrapFactory(sbf ShardBootstrapFactoryHandler) (*sovereignShardBootstrapFactory, error) {
+func NewSovereignShardBootstrapFactory(sbf BootstrapperCreator) (*sovereignShardBootstrapFactory, error) {
 	if check.IfNil(sbf) {
 		return nil, errors.ErrNilShardBootstrapFactory
 	}
@@ -21,8 +21,8 @@ func NewSovereignShardBootstrapFactory(sbf ShardBootstrapFactoryHandler) (*sover
 	}, nil
 }
 
-// CreateShardBootstrapFactory creates a new instance of shardBootstrapFactory for run type sovereign
-func (sbf *sovereignShardBootstrapFactory) CreateShardBootstrapFactory(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+// CreateBootstrapper creates a new instance of shardBootstrapFactory for run type sovereign
+func (sbf *sovereignShardBootstrapFactory) CreateBootstrapper(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
 	bootstrapper, err := sync.NewShardBootstrap(argsBaseBootstrapper)
 	if err != nil {
 		return nil, err

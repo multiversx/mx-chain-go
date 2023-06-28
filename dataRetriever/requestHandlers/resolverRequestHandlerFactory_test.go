@@ -22,7 +22,7 @@ func TestResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T
 	t.Parallel()
 
 	rrhf, _ := NewResolverRequestHandlerFactory()
-	rrh, err := rrhf.CreateResolverRequestHandler(GetDefaultArgs())
+	rrh, err := rrhf.CreateRequestHandler(getDefaultArgs())
 
 	require.Nil(t, err)
 	require.NotNil(t, rrh)
@@ -38,8 +38,8 @@ func TestResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
 	require.True(t, rrhf.IsInterfaceNil())
 }
 
-func GetDefaultArgs() ResolverRequestArgs {
-	return ResolverRequestArgs{
+func getDefaultArgs() RequestHandlerArgs {
+	return RequestHandlerArgs{
 		RequestersFinder:      &dataRetriever.RequestersFinderStub{},
 		RequestedItemsHandler: &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:      &testscommon.WhiteListHandlerStub{},

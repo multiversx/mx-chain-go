@@ -29,7 +29,7 @@ func TestBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	_, err = factory.CreateBlockChainHook(getDefaultArgs())
+	_, err = factory.CreateBlockChainHookHandler(getDefaultArgs())
 
 	assert.Nil(t, err)
 }
@@ -54,7 +54,7 @@ func getDefaultArgs() ArgBlockChainHook {
 		BlockChain:            &testscommon.ChainHandlerStub{},
 		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
 		Marshalizer:           &testscommon.ProtoMarshalizerMock{},
-		Uint64Converter:       &testscommon.Uint64ByteSliceConverterMock{},
+		Uint64Converter:       &testscommon.Uint64ByteSliceConverterStub{},
 		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
 		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},

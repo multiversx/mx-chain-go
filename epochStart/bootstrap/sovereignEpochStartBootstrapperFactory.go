@@ -7,11 +7,11 @@ import (
 
 // sovereignEpochStartBootstrapperFactory defines the epoch start bootstrapper factory for chain run sovereign
 type sovereignEpochStartBootstrapperFactory struct {
-	epochStartBootstrapperFactory EpochStartBootstrapperFactoryHandler
+	epochStartBootstrapperFactory EpochStartBootstrapperCreator
 }
 
 // NewSovereignEpochStartBootstrapperFactory creates a new epoch start bootstrapper factory for chain run sovereign
-func NewSovereignEpochStartBootstrapperFactory(esbf EpochStartBootstrapperFactoryHandler) (EpochStartBootstrapperFactoryHandler, error) {
+func NewSovereignEpochStartBootstrapperFactory(esbf EpochStartBootstrapperCreator) (EpochStartBootstrapperCreator, error) {
 	if check.IfNil(esbf) {
 		return nil, errors.ErrNilEpochStartBootstrapperFactory
 	}

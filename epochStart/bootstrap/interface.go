@@ -60,8 +60,8 @@ type NodeTypeProviderHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartBootstrapperFactoryHandler defines the epoch start bootstrapper factory handler
-type EpochStartBootstrapperFactoryHandler interface {
+// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperCreator interface {
 	CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
 	IsInterfaceNil() bool
 }
@@ -69,6 +69,6 @@ type EpochStartBootstrapperFactoryHandler interface {
 // EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
 	Bootstrap() (Parameters, error)
-	IsInterfaceNil() bool
 	Close() error
+	IsInterfaceNil() bool
 }

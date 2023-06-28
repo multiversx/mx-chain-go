@@ -28,7 +28,7 @@ func TestSovereignEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *
 	esbf, _ := NewEpochStartBootstrapperFactory()
 	sebf, _ := NewSovereignEpochStartBootstrapperFactory(esbf)
 
-	seb, err := sebf.CreateEpochStartBootstrapper(GetDefaultArgs())
+	seb, err := sebf.CreateEpochStartBootstrapper(getDefaultArgs())
 
 	require.Nil(t, err)
 	require.NotNil(t, seb)

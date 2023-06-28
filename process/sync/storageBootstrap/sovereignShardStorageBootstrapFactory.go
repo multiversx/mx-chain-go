@@ -7,11 +7,11 @@ import (
 )
 
 type sovereignShardStorageBootstrapperFactory struct {
-	shardStorageBootstrapperFactory ShardStorageBootstrapperFactoryHandler
+	shardStorageBootstrapperFactory BootstrapperFromStorageCreator
 }
 
 // NewSovereignShardStorageBootstrapperFactory creates a new instance of shardStorageBootstrapperFactory for run type sovereign
-func NewSovereignShardStorageBootstrapperFactory(ssb ShardStorageBootstrapperFactoryHandler) (*sovereignShardStorageBootstrapperFactory, error) {
+func NewSovereignShardStorageBootstrapperFactory(ssb BootstrapperFromStorageCreator) (*sovereignShardStorageBootstrapperFactory, error) {
 	if check.IfNil(ssb) {
 		return nil, errors.ErrNilShardStorageBootstrapperFactory
 	}
@@ -21,8 +21,8 @@ func NewSovereignShardStorageBootstrapperFactory(ssb ShardStorageBootstrapperFac
 	}, nil
 }
 
-// CreateShardStorageBootstrapper creates a new instance of shardStorageBootstrapperFactory for run type sovereign
-func (ssbf *sovereignShardStorageBootstrapperFactory) CreateShardStorageBootstrapper(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+// CreateBootstrapperFromStorage creates a new instance of shardStorageBootstrapperFactory for run type sovereign
+func (ssbf *sovereignShardStorageBootstrapperFactory) CreateBootstrapperFromStorage(args ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	ssb, err := NewShardStorageBootstrapper(args)
 	if err != nil {
 		return nil, err

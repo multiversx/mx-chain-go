@@ -62,7 +62,7 @@ type ArgBlockChainHook struct {
 	GasSchedule                  core.GasScheduleNotifier
 	Counter                      BlockChainHookCounter
 	MissingTrieNodesNotifier     common.MissingTrieNodesNotifier
-	BlockChainHookFactoryHandler BlockChainHookFactoryHandler
+	BlockChainHookHandlerCreator BlockChainHookHandlerCreator
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface

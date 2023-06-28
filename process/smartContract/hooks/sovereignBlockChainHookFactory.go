@@ -8,11 +8,11 @@ import (
 
 // sovereignBlockChainHookFactory - factory for blockchain hook chain run type sovereign
 type sovereignBlockChainHookFactory struct {
-	blockChainHookFactory BlockChainHookFactoryHandler
+	blockChainHookFactory BlockChainHookHandlerCreator
 }
 
 // NewSovereignBlockChainHookFactory creates a new instance of sovereignBlockChainHookFactory
-func NewSovereignBlockChainHookFactory(blockChainHookFactory BlockChainHookFactoryHandler) (BlockChainHookFactoryHandler, error) {
+func NewSovereignBlockChainHookFactory(blockChainHookFactory BlockChainHookHandlerCreator) (BlockChainHookHandlerCreator, error) {
 	if check.IfNil(blockChainHookFactory) {
 		return nil, customErrors.ErrNilBlockChainHookFactory
 	}
@@ -21,9 +21,12 @@ func NewSovereignBlockChainHookFactory(blockChainHookFactory BlockChainHookFacto
 	}, nil
 }
 
-// CreateBlockChainHook creates a blockchain hook based on the chain run type sovereign
-func (bhf *sovereignBlockChainHookFactory) CreateBlockChainHook(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
-	bh, _ := NewBlockChainHookImpl(args)
+// CreateBlockChainHookHandler creates a blockchain hook based on the chain run type sovereign
+func (bhf *sovereignBlockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+	bh, err := NewBlockChainHookImpl(args)
+	if err != nil {
+		return nil, err
+	}
 	return NewSovereignBlockChainHook(bh)
 }
 
