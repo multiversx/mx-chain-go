@@ -255,7 +255,7 @@ func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactor
 	for idx := 0; idx < len(scf.externalConfig.HostDriversConfig); idx++ {
 		hostConfig := scf.externalConfig.HostDriversConfig[idx]
 		if !hostConfig.Enabled {
-			return argsHostDriverFactorySlice, nil
+			continue
 		}
 
 		marshaller, err := factoryMarshalizer.NewMarshalizer(hostConfig.MarshallerType)

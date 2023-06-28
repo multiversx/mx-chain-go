@@ -131,6 +131,16 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 			{
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
+					Enabled:            false,
+					URL:                "localhost",
+					RetryDurationInSec: 1,
+					MarshallerType:     "json",
+					Mode:               data.ModeClient,
+				},
+			},
+			{
+				Marshaller: &testscommon.MarshalizerMock{},
+				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
 					URL:                "localhost",
 					RetryDurationInSec: 1,
