@@ -121,6 +121,7 @@ type CoreComponentsHolder interface {
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	EnableRoundsHandler() process.EnableRoundsHandler
+	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time

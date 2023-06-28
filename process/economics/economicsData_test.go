@@ -103,7 +103,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -117,7 +117,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: handler,
-		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }

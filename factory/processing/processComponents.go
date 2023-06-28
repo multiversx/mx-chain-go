@@ -132,6 +132,7 @@ type processComponents struct {
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                 config.Config
+	RoundConfig            config.RoundConfig
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
@@ -160,6 +161,7 @@ type ProcessComponentsFactoryArgs struct {
 
 type processComponentsFactory struct {
 	config                 config.Config
+	roundConfig            config.RoundConfig
 	epochConfig            config.EpochConfig
 	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
@@ -850,10 +852,10 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:       pcf.config.Hardfork,
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
-		ImportStartHandler:   pcf.importStartHandler,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
+		RoundConfig:          &pcf.roundConfig,
 		EpochConfig:          &pcf.epochConfig,
 	}
 

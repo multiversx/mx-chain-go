@@ -2079,7 +2079,6 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	t.Run("should fail on getting all leaves from trie", func(t *testing.T) {
 		peerAdapter := getAccountsMock()
 
-		expectedErr := errors.New("expected error")
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {

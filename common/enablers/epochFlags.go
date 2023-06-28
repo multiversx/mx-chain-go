@@ -83,6 +83,7 @@ type epochFlagsHolder struct {
 	setSenderInEeiOutputTransferFlag            *atomic.Flag
 	changeDelegationOwnerFlag                   *atomic.Flag
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
+	scProcessorV2Flag                           *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
@@ -97,6 +98,7 @@ type epochFlagsHolder struct {
 	changeUsernameFlag                          *atomic.Flag
 	consistentTokensValuesCheckFlag             *atomic.Flag
 	autoBalanceDataTriesFlag                    *atomic.Flag
+	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -179,6 +181,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		setSenderInEeiOutputTransferFlag:            &atomic.Flag{},
 		changeDelegationOwnerFlag:                   &atomic.Flag{},
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
+		scProcessorV2Flag:                           &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
@@ -193,6 +196,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
 		changeUsernameFlag:                          &atomic.Flag{},
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
+		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 	}
 }
 
@@ -639,6 +643,11 @@ func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return holder.refactorPeersMiniBlocksFlag.IsSet()
 }
 
+// IsSCProcessorV2FlagEnabled returns true if scProcessorV2Flag is enabled
+func (holder *epochFlagsHolder) IsSCProcessorV2FlagEnabled() bool {
+	return holder.scProcessorV2Flag.IsSet()
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled returns true if fixAsyncCallBackArgsList is enabled
 func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return holder.fixAsyncCallBackArgsList.IsSet()
@@ -707,4 +716,9 @@ func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
 // IsAutoBalanceDataTriesEnabled returns true if autoBalanceDataTriesFlag is enabled
 func (holder *epochFlagsHolder) IsAutoBalanceDataTriesEnabled() bool {
 	return holder.autoBalanceDataTriesFlag.IsSet()
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled returns true if the fix for the delegation change owner on account is enabled
+func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return holder.fixDelegationChangeOwnerOnAccountFlag.IsSet()
 }

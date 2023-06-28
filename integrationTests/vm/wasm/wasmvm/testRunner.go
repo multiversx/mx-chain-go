@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -144,7 +145,9 @@ func DeployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		config.EnableEpochs{},
+		config.EnableEpochs{
+			MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
+		},
 	)
 	if err != nil {
 		return nil, err

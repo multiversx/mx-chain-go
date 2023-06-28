@@ -58,6 +58,8 @@ type SystemEI interface {
 	CleanStorageUpdates()
 	GetTotalSentToUser(dest []byte) *big.Int
 	GetLogs() []*vmcommon.LogEntry
+	SetOwnerOperatingOnAccount(newOwner []byte) error
+	UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error
 
 	IsInterfaceNil() bool
 }
@@ -126,4 +128,5 @@ type BlockchainHook interface {
 	Close() error
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	IsBuiltinFunctionName(functionName string) bool
 }

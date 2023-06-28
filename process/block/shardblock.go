@@ -105,7 +105,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		enableRoundsHandler:           arguments.EnableRoundsHandler,
+		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -178,7 +179,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
+	sp.roundNotifier.CheckRound(headerHandler)
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -1376,7 +1377,6 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	sp.enableRoundsHandler.CheckRound(round)
 	epoch := sp.epochStartTrigger.MetaEpoch()
 	header := sp.versionedHeaderFactory.Create(epoch)
 
@@ -1389,6 +1389,8 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	if err != nil {
 		return nil, err
 	}
+
+	sp.roundNotifier.CheckRound(header)
 
 	err = shardHeader.SetNonce(nonce)
 	if err != nil {
