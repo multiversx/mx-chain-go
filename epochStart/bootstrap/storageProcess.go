@@ -33,11 +33,11 @@ import (
 // from storage
 type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
-	ImportDbConfig                       config.ImportDbConfig
-	ChanGracefullyClose                  chan endProcess.ArgEndProcess
-	TimeToWaitForRequestedData           time.Duration
-	ChainRunType                         common.ChainRunType
-	EpochStartBootstrapperFactoryHandler EpochStartBootstrapperCreator
+	ImportDbConfig                config.ImportDbConfig
+	ChanGracefullyClose           chan endProcess.ArgEndProcess
+	TimeToWaitForRequestedData    time.Duration
+	ChainRunType                  common.ChainRunType
+	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -87,21 +87,22 @@ func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (EpochSta
 		return nil, err
 	}
 
-	// TODO: remove this switch so that no assignment is made to the EpochStartBootstrapperFactoryHandler
+	// TODO: remove this switch so that no assignment is made to the EpochStartBootstrapperCreator
+	var esbfh EpochStartBootstrapperCreator
 	switch args.ChainRunType {
 	case common.ChainRunTypeRegular:
-		args.EpochStartBootstrapperFactoryHandler = fact
+		esbfh = fact
 	case common.ChainRunTypeSovereign:
 		sovFactory, errSov := NewSovereignEpochStartBootstrapperFactory(fact)
 		if errSov != nil {
 			return nil, errSov
 		}
-		args.EpochStartBootstrapperFactoryHandler = sovFactory
+		esbfh = sovFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, args.ChainRunType)
 	}
 
-	return args.EpochStartBootstrapperFactoryHandler.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
+	return esbfh.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 }
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
