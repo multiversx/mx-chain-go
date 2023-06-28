@@ -30,8 +30,10 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 				Password:       "pass",
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
-			HostDriverConfig: config.HostDriverConfig{
-				MarshallerType: "json",
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType: "json",
+				},
 			},
 			EventNotifierConnector: config.EventNotifierConfig{
 				MarshallerType: "json",
@@ -187,8 +189,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockStatusComponentsFactoryArgs()
-		args.ExternalConfig.HostDriverConfig.Enabled = true
-		args.ExternalConfig.HostDriverConfig.MarshallerType = "invalid type"
+		args.ExternalConfig.HostDriversConfig[0].Enabled = true
+		args.ExternalConfig.HostDriversConfig[0].MarshallerType = "invalid type"
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
 		require.NotNil(t, scf)
 
@@ -204,7 +206,7 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 			return core.MetachainShardId // coverage
 		}
 		args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-		args.ExternalConfig.HostDriverConfig.Enabled = true // coverage
+		args.ExternalConfig.HostDriversConfig[0].Enabled = true // coverage
 		scf, err := statusComp.NewStatusComponentsFactory(args)
 		require.Nil(t, err)
 

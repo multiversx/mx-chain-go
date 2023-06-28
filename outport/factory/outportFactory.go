@@ -14,7 +14,7 @@ type OutportFactoryArgs struct {
 	RetrialInterval           time.Duration
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
-	HostDriverArgs            ArgsHostDriverFactory
+	HostDriversArgs           []ArgsHostDriverFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -52,7 +52,14 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
+	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
+		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func createAndSubscribeElasticDriverIfNeeded(

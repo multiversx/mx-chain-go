@@ -5,11 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/factory"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-storage-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,6 +104,49 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 	defer func(c outport.OutportHandler) {
 		_ = c.Close()
 	}(outPort)
+
+	require.True(t, outPort.HasDrivers())
+}
+
+func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
+	args := &factory.OutportFactoryArgs{
+		RetrialInterval: time.Second,
+		EventNotifierFactoryArgs: &notifierFactory.EventNotifierFactoryArgs{
+			Enabled: false,
+		},
+		ElasticIndexerFactoryArgs: indexerFactory.ArgsIndexerFactory{
+			Enabled: false,
+		},
+		HostDriversArgs: []notifierFactory.ArgsHostDriverFactory{
+			{
+				Marshaller: &testscommon.MarshalizerMock{},
+				HostConfig: config.HostDriversConfig{
+					Enabled:            true,
+					URL:                "localhost",
+					RetryDurationInSec: 1,
+					MarshallerType:     "json",
+					Mode:               data.ModeClient,
+				},
+			},
+			{
+				Marshaller: &testscommon.MarshalizerMock{},
+				HostConfig: config.HostDriversConfig{
+					Enabled:            true,
+					URL:                "localhost",
+					RetryDurationInSec: 1,
+					MarshallerType:     "json",
+					Mode:               data.ModeClient,
+				},
+			},
+		},
+	}
+
+	outPort, err := factory.CreateOutport(args)
+	require.Nil(t, err)
+
+	defer func() {
+		_ = outPort.Close()
+	}()
 
 	require.True(t, outPort.HasDrivers())
 }
