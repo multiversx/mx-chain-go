@@ -35,7 +35,10 @@
         { Name = "/epoch-start/:epoch", Open = true },
 
         # /node/bootstrapstatus will return all metrics available during bootstrap
-        { Name = "/bootstrapstatus", Open = true }
+        { Name = "/bootstrapstatus", Open = true },
+
+        # /node/connected-peers-ratings will return the peers ratings
+        { Name = "/connected-peers-ratings", Open = true }
     ]
 
 [APIPackages.address]
@@ -61,6 +64,9 @@
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
+        # /:address/guardian-data will return the guardian data for the given account
+        { Name = "/:address/guardian-data", Open = true},
+
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 
@@ -77,7 +83,10 @@
         { Name = "/:address/esdts-with-role/:role", Open = true },
 
         # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
-        { Name = "/:address/registered-nfts", Open = true }
+        { Name = "/:address/registered-nfts", Open = true },
+
+        # /address/:address/is-data-trie-migrated will return the status of the data trie migration for the given address
+        { Name = "/:address/is-data-trie-migrated", Open = true }
     ]
 
 [APIPackages.hardfork]

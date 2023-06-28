@@ -35,6 +35,11 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
+   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+   # the activation of the configured guardian.
+   # Make sure that this is greater than the unbonding period!
+   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
@@ -485,8 +490,8 @@
     Type = "LRU"
 
 [PeersRatingConfig]
-    TopRatedCacheCapacity = 5000
-    BadRatedCacheCapacity = 5000
+    TopRatedCacheCapacity           = 5000
+    BadRatedCacheCapacity           = 5000
 
 [PoolsCleanersConfig]
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
@@ -589,6 +594,8 @@
     TrieOperationsDeadlineMilliseconds = 10000
     # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
     GetAddressesBulkMaxSize = 100
+    # VmQueryDelayAfterStartInSec represents the number of seconds to wait when starting node before accepting vm query requests
+    VmQueryDelayAfterStartInSec = 120
     # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
     EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                            { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -599,6 +606,7 @@
     Length = 32
     Type = "bech32"
     SignatureLength = 64
+    Hrp = "erd"
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -683,6 +691,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -692,6 +701,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]
@@ -707,6 +717,9 @@
         "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
     ]
     MaxNumAddressesInTransferRole = 100
+    DNSV2Addresses =[
+        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+    ]
 
 [Hardfork]
     EnableTrigger = true
@@ -931,6 +944,7 @@
     HardforkTimeBetweenSendsInSec                    = 60   # 1min       # time between hardfork messages
     TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec      # time between consecutive connections metrics updates
     TimeToReadDirectConnectionsInSec                 = 15   # 15sec      # time between consecutive peer shard mapper updates with direct connections
+    PeerAuthenticationTimeBetweenChecksInSec         = 6    # 6sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 50000

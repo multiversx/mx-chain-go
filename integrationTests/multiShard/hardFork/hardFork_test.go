@@ -21,13 +21,14 @@ import (
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -402,6 +403,8 @@ func hardForkImport(
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
 
+		roundConfig := integrationTests.GetDefaultRoundsConfig()
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
 			StartEpochNum:     100,
@@ -435,13 +438,17 @@ func hardForkImport(
 					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					V1: config.GovernanceSystemSCConfigV1{
+						ProposalCost: "500",
+					},
 					Active: config.GovernanceSystemSCConfigActive{
 						ProposalCost:     "500",
-						MinQuorum:        "50",
-						MinPassThreshold: "50",
-						MinVetoThreshold: "50",
+						MinQuorum:        0.5,
+						MinPassThreshold: 0.5,
+						MinVetoThreshold: 0.5,
+						LostProposalFee:  "1",
 					},
-					FirstWhitelistedAddress: integrationTests.DelegationManagerConfigChangeAddress,
+					OwnerAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -469,11 +476,6 @@ func hardForkImport(
 			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
-			ImportStartHandler: &mock.ImportStartHandlerStub{
-				ShouldStartImportCalled: func() bool {
-					return true
-				},
-			},
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					BuiltInFunctionsEnableEpoch:        0,
@@ -486,6 +488,7 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			RoundConfig: &roundConfig,
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -563,6 +566,7 @@ func createHardForkExporter(
 			return string(node.ChainID)
 		}
 		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner

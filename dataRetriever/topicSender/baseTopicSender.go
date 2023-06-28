@@ -9,15 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-p2p-go/message"
 )
 
 var log = logger.GetOrCreate("dataretriever/topicsender")
 
 const (
-	// topicRequestSuffix represents the topic name suffix
-	topicRequestSuffix = "_REQUEST"
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
 )
@@ -66,7 +64,7 @@ func checkBaseTopicSenderArgs(args ArgBaseTopicSender) error {
 }
 
 func (baseSender *baseTopicSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
-	msg := &message.Message{
+	msg := &factory.Message{
 		DataField:  buff,
 		PeerField:  peer,
 		TopicField: topic,
@@ -112,7 +110,7 @@ func (baseSender *baseTopicSender) SetDebugHandler(handler dataRetriever.DebugHa
 
 // RequestTopic returns the topic with the request suffix used for sending requests
 func (baseSender *baseTopicSender) RequestTopic() string {
-	return baseSender.topicName + topicRequestSuffix
+	return baseSender.topicName + core.TopicRequestSuffix
 }
 
 // TargetShardID returns the target shard ID for this resolver should serve data

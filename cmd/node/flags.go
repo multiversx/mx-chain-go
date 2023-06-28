@@ -208,6 +208,13 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// allValidatorKeysPemFile defines a flag for the path to the file that hold all validator keys used in block signing
+	// managed by the current node
+	allValidatorKeysPemFile = cli.StringFlag{
+		Name:  "all-validator-keys-pem-file",
+		Usage: "The `filepath` for the PEM file which contains all the secret keys managed by the current node.",
+		Value: "./config/allValidatorsKeys.pem",
+	}
 
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
@@ -377,6 +384,12 @@ var (
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
+
+	// repopulateTokensSupplies defines a flag that, if set, will repopulate the tokens supplies database by iterating over the trie
+	repopulateTokensSupplies = cli.BoolFlag{
+		Name:  "repopulate-tokens-supplies",
+		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -397,6 +410,7 @@ func getFlags() []cli.Flag {
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
+		allValidatorKeysPemFile,
 		port,
 		profileMode,
 		useHealthService,
@@ -435,6 +449,7 @@ func getFlags() []cli.Flag {
 		dbDirectory,
 		logsDirectory,
 		operationMode,
+		repopulateTokensSupplies,
 	}
 }
 
@@ -464,6 +479,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
+	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 
 	return flagsConfig
 }
@@ -475,6 +491,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
 	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.AllValidatorKeys = ctx.GlobalString(allValidatorKeysPemFile.Name)
 	cfgs.ConfigurationPathsHolder.P2pKey = ctx.GlobalString(p2pKeyPemFile.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
@@ -567,6 +584,11 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
+	}
+
+	if configs.PreferencesConfig.BlockProcessingCutoff.Enabled {
+		log.Debug("node is started by using the block processing cut-off - will disable the watchdog")
+		configs.FlagsConfig.DisableConsensusWatchdog = true
 	}
 
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -25,6 +26,8 @@ type coreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
+	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
@@ -65,6 +68,7 @@ type ArgBaseProcessor struct {
 	StatusCoreComponents statusCoreComponentsHolder
 
 	Config                         config.Config
+	PrefsConfig                    config.Preferences
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
 	NodesCoordinator               nodesCoordinator.NodesCoordinator
@@ -79,7 +83,6 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler             process.BlockSizeThrottler
 	Version                        string
 	HistoryRepository              dblookupext.HistoryRepository
-	EnableRoundsHandler            process.EnableRoundsHandler
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider
@@ -88,6 +91,7 @@ type ArgBaseProcessor struct {
 	ScheduledMiniBlocksEnableEpoch uint32
 	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 	ReceiptsRepository             receiptsRepository
+	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

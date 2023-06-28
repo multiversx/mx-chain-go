@@ -87,7 +87,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 // 2. proposer will have those 3 transactions in its pools and will propose a block
 // 3. another node will be able to sync the proposed block (and request - receive) the 2 transactions that
 //    will end up in the block (one valid and one invalid)
-// 4. the unexecutable transaction will be removed from the proposer's pool
+// 4. the non-executable transaction will be removed from the proposer's pool
 func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -266,7 +266,8 @@ func proposeAndCommitBlock(node *integrationTests.TestProcessorNode, round uint6
 		return err
 	}
 
-	node.BroadcastBlock(body, hdr)
+	pk := node.NodeKeys.MainKey.Pk
+	node.BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 	return nil
 }

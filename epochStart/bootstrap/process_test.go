@@ -32,9 +32,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -70,14 +72,14 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			Hash:                         &hashingMocks.HasherMock{},
 			TxSignHasherField:            &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv:          &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:               &mock.PubkeyConverterMock{},
+			AddrPubKeyConv:               &testscommon.PubkeyConverterMock{},
 			PathHdl:                      &testscommon.PathManagerStub{},
 			EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -87,6 +89,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			BlKeyGen:        &cryptoMocks.KeyGenStub{},
 			TxKeyGen:        &cryptoMocks.KeyGenStub{},
 			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
+			ManagedPeers:    &testscommon.ManagedPeersHolderStub{},
 		}
 }
 
@@ -582,6 +585,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
 		assert.Nil(t, epochStartProvider)
+	})
+	t.Run("nil managed peers holder", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		cryptoComp.ManagedPeers = nil
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
 	})
 }
 
@@ -1230,7 +1244,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1364,7 +1378,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},

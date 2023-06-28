@@ -316,7 +316,7 @@ type WhiteListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// DebugHandler defines an interface for debugging the reqested-resolved data
+// DebugHandler defines an interface for debugging the requested-resolved data
 type DebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
@@ -340,7 +340,6 @@ type PreferredPeersHolderHandler interface {
 
 // PeersRatingHandler represent an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID

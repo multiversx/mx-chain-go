@@ -84,7 +84,7 @@ func NewTestNetworkSized(
 }
 
 // Start initializes the test network and starts its nodes
-func (net *TestNetwork) Start() {
+func (net *TestNetwork) Start() *TestNetwork {
 	net.Round = 0
 	net.Nonce = 0
 
@@ -93,6 +93,8 @@ func (net *TestNetwork) Start() {
 	net.startNodes()
 	net.mapNodesByShard()
 	net.initDefaults()
+
+	return net
 }
 
 // Increment only increments the Round and the Nonce, without triggering the
@@ -143,13 +145,26 @@ func (net *TestNetwork) MintNodeAccountsUint64(value uint64) {
 
 // CreateWallets initializes the internal test wallets
 func (net *TestNetwork) CreateWallets(count int) {
-	net.Wallets = make([]*TestWalletAccount, count)
-
+	net.CreateUninitializedWallets(count)
 	for i := 0; i < count; i++ {
 		shardID := ShardIdentifier(i % net.NumShards)
 		node := net.firstNodeInShard(shardID)
 		net.Wallets[i] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
 	}
+}
+
+func (net *TestNetwork) SetWallet(walletIndex int, wallet *TestWalletAccount) {
+	net.Wallets[walletIndex] = wallet
+}
+
+func (net *TestNetwork) CreateUninitializedWallets(count int) {
+	net.Wallets = make([]*TestWalletAccount, count)
+}
+
+func (net *TestNetwork) CreateWalletOnShard(walletIndex int, shardID uint32) *TestWalletAccount {
+	node := net.firstNodeInShard(shardID)
+	net.Wallets[walletIndex] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
+	return net.Wallets[walletIndex]
 }
 
 // MintWallets adds the specified value to the test wallets.
@@ -309,7 +324,7 @@ func (net *TestNetwork) CreateTx(
 
 // SignTx signs a transaction with the provided `signer` wallet.
 func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transaction) {
-	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	net.handleOrBypassError(err)
 
 	signature, err := signer.SingleSigner.Sign(signer.SkTxSign, txBuff)
@@ -321,10 +336,16 @@ func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transa
 // NewAddress creates a new child address of the provided wallet; used to
 // compute the address of newly deployed smart contracts.
 func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
+	return net.NewAddressWithVM(creator, net.DefaultVM)
+}
+
+// NewAddressWithVM creates a new child address of the provided wallet; used to
+// compute the address of newly deployed smart contracts.
+func (net *TestNetwork) NewAddressWithVM(creator *TestWalletAccount, vmType []byte) Address {
 	address, err := net.DefaultNode.BlockchainHook.NewAddress(
 		creator.Address,
 		creator.Nonce,
-		net.DefaultVM)
+		vmType)
 	net.handleOrBypassError(err)
 
 	return address

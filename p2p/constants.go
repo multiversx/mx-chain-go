@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
 // NodeOperation defines the p2p node operation
@@ -27,3 +27,6 @@ const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 
 // ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
 const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
+
+// BroadcastMethod defines the broadcast method of the message
+type BroadcastMethod = p2p.BroadcastMethod

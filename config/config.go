@@ -21,12 +21,14 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the database configuration
 type DBConfig struct {
-	FilePath          string
-	Type              string
-	BatchDelaySeconds int
-	MaxBatchSize      int
-	MaxOpenFiles      int
-	UseTmpAsFilePath  bool
+	FilePath            string
+	Type                string
+	BatchDelaySeconds   int
+	MaxBatchSize        int
+	MaxOpenFiles        int
+	UseTmpAsFilePath    bool
+	ShardIDProviderType string
+	NumShards           int32
 }
 
 // StorageConfig will map the storage unit configuration
@@ -48,6 +50,7 @@ type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
+	Hrp             string
 }
 
 // TypeConfig will map the string type configuration
@@ -127,6 +130,7 @@ type HeartbeatV2Config struct {
 	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
+	PeerAuthenticationTimeBetweenChecksInSec         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -277,6 +281,7 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	SetGuardianEpochsDelay               uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
@@ -317,6 +322,7 @@ type WebServerAntifloodConfig struct {
 	SameSourceResetIntervalInSec       uint32
 	TrieOperationsDeadlineMilliseconds uint32
 	GetAddressesBulkMaxSize            uint32
+	VmQueryDelayAfterStartInSec        uint32
 	EndpointsThrottlers                []EndpointsThrottlersConfig
 }
 
@@ -417,6 +423,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -585,6 +592,7 @@ type ConfigurationPathsHolder struct {
 	Genesis                  string
 	SmartContracts           string
 	ValidatorKey             string
+	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
 	P2pKey                   string

@@ -10,12 +10,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const asciiSpace = byte(' ')
 const asciiTab = byte('\t')
 const asciiLineFeed = byte('\r')
 const asciiNewLine = byte('\n')
+
+var log = logger.GetOrCreate("stringers")
 
 // TransactionHandlerToString will convert the transaction data slice provided to string
 func TransactionHandlerToString(pubKeyConverter core.PubkeyConverter, txHandlers ...data.TransactionHandler) string {
@@ -90,7 +93,7 @@ func putAddressInBuilder(builder *strings.Builder, name string, indent string, p
 			// can not encode with the provided address
 			address = hex.EncodeToString(slice) + " (!)"
 		} else {
-			address = pubKeyConverter.Encode(slice)
+			address = pubKeyConverter.SilentEncode(slice, log)
 		}
 	}
 

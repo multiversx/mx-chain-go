@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,10 +14,13 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+const transferValueOnly = "transferValueOnly"
+
 type vmContext struct {
 	blockChainHook      vm.BlockchainHook
 	cryptoHook          vmcommon.CryptoHook
 	validatorAccountsDB state.AccountsAdapter
+	userAccountsDB      state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      nodesCoordinator.ChanceComputer
@@ -31,6 +35,7 @@ type vmContext struct {
 	logs          []*vmcommon.LogEntry
 
 	enableEpochsHandler common.EnableEpochsHandler
+	crtTransferIndex    uint32
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
@@ -39,6 +44,7 @@ type VMContextArgs struct {
 	CryptoHook          vmcommon.CryptoHook
 	InputParser         vm.ArgumentsParser
 	ValidatorAccountsDB state.AccountsAdapter
+	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	EnableEpochsHandler common.EnableEpochsHandler
 }
@@ -57,6 +63,9 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, vm.ErrNilUserAccountsDB
+	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
@@ -69,6 +78,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 		cryptoHook:          args.CryptoHook,
 		inputParser:         args.InputParser,
 		validatorAccountsDB: args.ValidatorAccountsDB,
+		userAccountsDB:      args.UserAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}
@@ -147,7 +157,6 @@ func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []
 	if !exists {
 		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
-
 	length := len(value)
 	host.storageUpdate[strAdr][string(key)] = make([]byte, length)
 	copy(host.storageUpdate[strAdr][string(key)][:length], value[:length])
@@ -160,25 +169,16 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
-	strAdr := string(addr)
-	outAcc, exists := host.outputAccounts[strAdr]
+	outAcc, exists := host.outputAccounts[string(addr)]
 	if exists {
 		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
 		return actualBalance
 	}
 
 	account, err := host.blockChainHook.GetUserAccount(addr)
-	if err == state.ErrAccNotFound {
+	if err != nil {
 		return big.NewInt(0)
 	}
-	if err != nil {
-		return nil
-	}
-
-	host.outputAccounts[strAdr] = &vmcommon.OutputAccount{
-		Balance:      big.NewInt(0).Set(account.GetBalance()),
-		BalanceDelta: big.NewInt(0),
-		Address:      addr}
 
 	return account.GetBalance()
 }
@@ -204,21 +204,13 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 				BalanceDelta: big.NewInt(0),
 			}
 		}
+		outputTransfer.Index = host.NextOutputTransferIndex()
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
 }
 
-// Transfer handles any necessary value transfer required and takes
-// the necessary steps to create accounts
-func (host *vmContext) Transfer(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-	gasLimit uint64,
-) error {
-
+func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcommon.OutputAccount, *vmcommon.OutputAccount) {
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
 		senderAcc = &vmcommon.OutputAccount{
@@ -239,10 +231,33 @@ func (host *vmContext) Transfer(
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
+	return senderAcc, destAcc
+}
+
+func (host *vmContext) transferValueOnly(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+) {
+	senderAcc, destAcc := host.getSenderDestination(sender, destination)
+
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
+}
 
+// Transfer handles any necessary value transfer required and takes
+// the necessary steps to create accounts
+func (host *vmContext) Transfer(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
+	host.transferValueOnly(destination, sender, value)
+	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
+		Index:    host.NextOutputTransferIndex(),
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
@@ -255,6 +270,21 @@ func (host *vmContext) Transfer(
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
 	return nil
+}
+
+// GetLogs returns the logs
+func (host *vmContext) GetLogs() []*vmcommon.LogEntry {
+	return host.logs
+}
+
+// GetTotalSentToUser returns the total sent to the specified address
+func (host *vmContext) GetTotalSentToUser(dest []byte) *big.Int {
+	destination, exists := host.outputAccounts[string(dest)]
+	if !exists {
+		return big.NewInt(0)
+	}
+
+	return destination.BalanceDelta
 }
 
 func (host *vmContext) copyToNewContext() *vmContext {
@@ -295,6 +325,71 @@ func (host *vmContext) mergeContext(currContext *vmContext) {
 	host.scAddress = currContext.scAddress
 }
 
+func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode vmcommon.ReturnCode) {
+	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		host.mergeContext(parentContext)
+		return
+	}
+
+	host.scAddress = parentContext.scAddress
+	host.AddReturnMessage(parentContext.returnMessage)
+	if returnCode != vmcommon.Ok {
+		// no need to merge - revert was done - transaction will fail
+		return
+	}
+
+	host.output = append(host.output, parentContext.output...)
+	for _, rightAccount := range parentContext.outputAccounts {
+		leftAccount, exist := host.outputAccounts[string(rightAccount.Address)]
+		if !exist {
+			leftAccount = &vmcommon.OutputAccount{
+				Balance:      big.NewInt(0),
+				BalanceDelta: big.NewInt(0),
+				Address:      rightAccount.Address,
+			}
+			host.outputAccounts[string(rightAccount.Address)] = leftAccount
+		}
+		addOutputAccounts(leftAccount, rightAccount)
+	}
+}
+
+func addOutputAccounts(
+	destination *vmcommon.OutputAccount,
+	rightAccount *vmcommon.OutputAccount,
+) {
+	if len(rightAccount.Address) != 0 {
+		destination.Address = rightAccount.Address
+	}
+	if rightAccount.Balance != nil {
+		destination.Balance = rightAccount.Balance
+	}
+	if destination.BalanceDelta == nil {
+		destination.BalanceDelta = big.NewInt(0)
+	}
+	if rightAccount.BalanceDelta != nil {
+		destination.BalanceDelta.Add(destination.BalanceDelta, rightAccount.BalanceDelta)
+	}
+	if len(rightAccount.Code) > 0 {
+		destination.Code = rightAccount.Code
+	}
+	if len(rightAccount.CodeMetadata) > 0 {
+		destination.CodeMetadata = rightAccount.CodeMetadata
+	}
+	if rightAccount.Nonce > destination.Nonce {
+		destination.Nonce = rightAccount.Nonce
+	}
+
+	destination.GasUsed += rightAccount.GasUsed
+
+	if rightAccount.CodeDeployerAddress != nil {
+		destination.CodeDeployerAddress = rightAccount.CodeDeployerAddress
+	}
+
+	destination.BytesAddedToStorage += rightAccount.BytesAddedToStorage
+	destination.BytesDeletedFromStorage += rightAccount.BytesDeletedFromStorage
+	destination.OutputTransfers = append(destination.OutputTransfers, rightAccount.OutputTransfers...)
+}
+
 func (host *vmContext) createContractCallInput(
 	destination []byte,
 	sender []byte,
@@ -328,6 +423,25 @@ func createDirectCallInput(
 	return input
 }
 
+func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
+	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+	}
+	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
+
+	if callInput.CallValue.Cmp(zero) > 0 {
+		logEntry := &vmcommon.LogEntry{
+			Identifier: []byte(transferValueOnly),
+			Address:    callInput.RecipientAddr,
+			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
+			Data:       []byte{},
+		}
+		host.AddLogEntry(logEntry)
+	}
+
+	return nil
+}
+
 // DeploySystemSC will deploy a smart contract according to the input
 // will call the init function and merge the vmOutputs
 // will add to the system smart contracts container the new address
@@ -345,7 +459,8 @@ func (host *vmContext) DeploySystemSC(
 	}
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
-	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
+
+	err := host.transferBeforeInternalExec(callInput, host.scAddress)
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
 	}
@@ -402,16 +517,16 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
+	err = host.transferBeforeInternalExec(callInput, sender)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
 	defer func() {
 		host.output = make([][]byte, 0)
-		host.mergeContext(currContext)
+		host.properMergeContexts(currContext, vmOutput.ReturnCode)
 	}()
 
 	host.softCleanCache()
@@ -436,6 +551,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	} else {
 		// all changes must be deleted
 		host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
+		host.storageUpdate = currContext.storageUpdate
 	}
 	vmOutput.ReturnCode = returnCode
 	vmOutput.ReturnMessage = host.returnMessage
@@ -490,6 +606,7 @@ func (host *vmContext) CleanCache() {
 	host.returnMessage = ""
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
+	host.crtTransferIndex = 1
 }
 
 // SetGasProvided sets the provided gas
@@ -515,6 +632,19 @@ func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
 	host.returnMessage = ""
+}
+
+// UpdateCodeDeployerAddress will try to update the owner of an existing account stored in this vmContext instance.
+// Errors if the account is not found because that is a programming error
+func (host *vmContext) UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error {
+	outAcc, found := host.outputAccounts[scAddress]
+	if !found {
+		return vm.ErrInternalErrorWhileSettingNewOwner
+	}
+
+	outAcc.CodeDeployerAddress = newOwner
+
+	return nil
 }
 
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
@@ -622,6 +752,27 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
 }
 
+// SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through
+// SC processor is not possible
+func (host *vmContext) SetOwnerOperatingOnAccount(newOwner []byte) error {
+	scAccount, err := host.userAccountsDB.LoadAccount(host.scAddress)
+	if err != nil {
+		return err
+	}
+
+	scAccountHandler, okCast := scAccount.(state.UserAccountHandler)
+	if !okCast {
+		return fmt.Errorf("%w, not a user account handler", vm.ErrWrongTypeAssertion)
+	}
+
+	if len(newOwner) != len(host.scAddress) {
+		return vm.ErrWrongNewOwnerAddress
+	}
+	scAccountHandler.SetOwnerAddress(newOwner)
+
+	return host.userAccountsDB.SaveAccount(scAccountHandler)
+}
+
 // IsValidator returns true if the validator is in eligible or waiting list
 func (host *vmContext) IsValidator(blsKey []byte) bool {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
@@ -689,6 +840,18 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
+// NextOutputTransferIndex returns next available output transfer index
+func (host *vmContext) NextOutputTransferIndex() uint32 {
+	index := host.crtTransferIndex
+	host.crtTransferIndex++
+	return index
+}
+
+// GetCrtTransferIndex returns the current output transfer index
+func (host *vmContext) GetCrtTransferIndex() uint32 {
+	return host.crtTransferIndex
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

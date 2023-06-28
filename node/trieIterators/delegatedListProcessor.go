@@ -11,9 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -96,8 +96,13 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo, ok := delegatorsMap[string(delegatorAddress)]
 		if !ok {
+			encodedDelegatorAddress, err := dlp.publicKeyConverter.Encode(delegatorAddress)
+			if err != nil {
+				return fmt.Errorf("%w encoding the address of the delegator %s", err, hex.EncodeToString(delegatorAddress))
+			}
+
 			delegatorInfo = &api.Delegator{
-				DelegatorAddress: dlp.publicKeyConverter.Encode(delegatorAddress),
+				DelegatorAddress: encodedDelegatorAddress,
 				DelegatedTo:      make([]*api.DelegatedValue, 0),
 				TotalAsBigInt:    big.NewInt(0),
 			}
@@ -107,8 +112,13 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 
 		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
+		delegationSCAddress, err := dlp.publicKeyConverter.Encode(delegationSC)
+		if err != nil {
+			return fmt.Errorf("%w encoding delegation SC address %s", err, hex.EncodeToString(delegationSC))
+		}
+
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
-			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
+			DelegationScAddress: delegationSCAddress,
 			Value:               value.String(),
 		})
 	}
@@ -122,16 +132,11 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
 	}
 
-	rootHash, err := delegatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = delegatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = delegatorAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +151,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte, ctx co
 		delegators = append(delegators, leafKey)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

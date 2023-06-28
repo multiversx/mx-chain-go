@@ -13,6 +13,6 @@ type HeartbeatMonitor interface {
 
 // HeartbeatSenderInfoProvider is able to provide correct information about the current sender
 type HeartbeatSenderInfoProvider interface {
-	GetSenderInfo() (string, core.P2PPeerSubType, error)
+	GetCurrentNodeType() (string, core.P2PPeerSubType, error)
 	IsInterfaceNil() bool
 }

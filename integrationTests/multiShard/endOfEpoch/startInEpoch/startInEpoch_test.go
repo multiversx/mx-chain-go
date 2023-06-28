@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -206,7 +207,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
-	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.MainKey.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
 	cryptoComponents.TxSig = &mock.SignerMock{}
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
@@ -286,7 +287,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            common.Normal,
 			SnapshotsEnabled:              false,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		},
 	)
 	assert.NoError(t, err)

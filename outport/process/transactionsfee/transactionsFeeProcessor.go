@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,7 +15,7 @@ import (
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
-var log = logger.GetOrCreate("outport/process/transactionsfee")
+const loggerName = "outport/process/transactionsfee"
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
@@ -30,6 +31,7 @@ type transactionsFeeProcessor struct {
 	txFeeCalculator  FeesProcessorHandler
 	shardCoordinator sharding.Coordinator
 	dataFieldParser  dataFieldParser
+	log              logger.Logger
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -51,6 +53,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		txFeeCalculator:  arg.TxFeeCalculator,
 		shardCoordinator: arg.ShardCoordinator,
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
+		log:              logger.GetOrCreate(loggerName),
 		dataFieldParser:  parser,
 	}, nil
 }
@@ -76,7 +79,7 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 }
 
 // PutFeeAndGasUsed will compute and set in transactions pool fee and gas used
-func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) error {
+func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.TransactionPool) error {
 	tep.prepareInvalidTxs(pool)
 
 	txsWithResultsMap := prepareTransactionsAndScrs(pool)
@@ -85,35 +88,38 @@ func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Pool) er
 	return tep.prepareScrsNoTx(txsWithResultsMap)
 }
 
-func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Pool) {
-	for _, invalidTx := range pool.Invalid {
-		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx, invalidTx.GetGasLimit())
-		invalidTx.SetGasUsed(invalidTx.GetGasLimit())
-		invalidTx.SetFee(fee)
-		invalidTx.SetInitialPaidFee(fee)
+func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.TransactionPool) {
+	for _, invalidTx := range pool.InvalidTxs {
+		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(invalidTx.Transaction, invalidTx.Transaction.GasLimit)
+		invalidTx.FeeInfo.SetGasUsed(invalidTx.Transaction.GetGasLimit())
+		invalidTx.FeeInfo.SetFee(fee)
+		invalidTx.FeeInfo.SetInitialPaidFee(fee)
 	}
 }
 
 func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *transactionsAndScrsHolder) {
-	for txHash, txWithResult := range transactionsAndScrs.txsWithResults {
-		gasUsed := tep.txFeeCalculator.ComputeGasLimit(txWithResult)
-		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, gasUsed)
-		initialPaidFee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResult, txWithResult.GetGasLimit())
+	for txHashHex, txWithResult := range transactionsAndScrs.txsWithResults {
+		txHandler := txWithResult.GetTxHandler()
 
-		txWithResult.SetGasUsed(gasUsed)
-		txWithResult.SetFee(fee)
-		txWithResult.SetInitialPaidFee(initialPaidFee)
+		gasUsed := tep.txFeeCalculator.ComputeGasLimit(txHandler)
+		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txHandler, gasUsed)
+		initialPaidFee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txHandler, txHandler.GetGasLimit())
 
-		if isRelayedTx(txWithResult) || tep.isESDTOperationWithSCCall(txWithResult) {
-			txWithResult.SetGasUsed(txWithResult.GetGasLimit())
-			txWithResult.SetFee(initialPaidFee)
+		feeInfo := txWithResult.GetFeeInfo()
+		feeInfo.SetGasUsed(gasUsed)
+		feeInfo.SetFee(fee)
+		feeInfo.SetInitialPaidFee(initialPaidFee)
+
+		if isRelayedTx(txWithResult) || tep.isESDTOperationWithSCCall(txHandler) {
+			feeInfo.SetGasUsed(txWithResult.GetTxHandler().GetGasLimit())
+			feeInfo.SetFee(initialPaidFee)
 		}
 
-		tep.prepareTxWithResults([]byte(txHash), txWithResult)
+		tep.prepareTxWithResults(txHashHex, txWithResult)
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithResults *transactionWithResults) {
+func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults) {
 	hasRefund := false
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
@@ -121,11 +127,11 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHash []byte, txWithR
 			continue
 		}
 
-		if isSCRForSenderWithRefund(scr, txHash, txWithResults) || isRefundForRelayed(scr, txWithResults) {
-			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, scr.Value)
+		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), scr.Value)
 
-			txWithResults.SetGasUsed(gasUsed)
-			txWithResults.SetFee(fee)
+			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
+			txWithResults.GetFeeInfo().SetFee(fee)
 			hasRefund = true
 			break
 		}
@@ -145,16 +151,16 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 	for _, event := range txWithResults.log.GetLogEvents() {
 		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
-			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults, big.NewInt(0))
-			txWithResults.SetGasUsed(gasUsed)
-			txWithResults.SetFee(fee)
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), big.NewInt(0))
+			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
+			txWithResults.GetFeeInfo().SetFee(fee)
 
 			continue
 		}
 		if core.SignalErrorOperation == string(event.GetIdentifier()) {
-			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults, txWithResults.GetGasLimit())
-			txWithResults.SetGasUsed(txWithResults.GetGasLimit())
-			txWithResults.SetFee(fee)
+			fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txWithResults.GetTxHandler(), txWithResults.GetTxHandler().GetGasLimit())
+			txWithResults.GetFeeInfo().SetGasUsed(txWithResults.GetTxHandler().GetGasLimit())
+			txWithResults.GetFeeInfo().SetFee(fee)
 		}
 	}
 
@@ -178,13 +184,19 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		txFromStorage, err := tep.txGetter.GetTxByHash(scr.OriginalTxHash)
 		if err != nil {
-			return err
+			tep.log.Trace("transactionsFeeProcessor.prepareScrsNoTx: cannot find transaction in storage", "hash", scr.OriginalTxHash, "error", err.Error())
+			continue
+		}
+
+		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
+		if !isForInitialTxSender {
+			continue
 		}
 
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
 
-		scrHandler.SetGasUsed(gasUsed)
-		scrHandler.SetFee(fee)
+		scrHandler.GetFeeInfo().SetGasUsed(gasUsed)
+		scrHandler.GetFeeInfo().SetFee(fee)
 	}
 
 	return nil

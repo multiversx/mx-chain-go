@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -89,10 +92,21 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type, address []byte) (vmcommon.AccountHandler, error) {
+func NewEmptyAccount(
+	accType Type,
+	address []byte,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		return state.NewUserAccount(address)
+		argsAccCreation := state.ArgsAccountCreation{
+			Hasher:              hasher,
+			Marshaller:          marshaller,
+			EnableEpochsHandler: enableEpochsHandler,
+		}
+		return state.NewUserAccount(address, argsAccCreation)
 	case ValidatorAccount:
 		return state.NewPeerAccount(address)
 	case DataTrie:

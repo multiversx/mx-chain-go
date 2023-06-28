@@ -62,8 +62,14 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+# MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
+export MULTI_KEY_NODES=0
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
+export ROUNDS_PER_EPOCH=0
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
@@ -161,6 +167,16 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 # to enable the full archive feature on the observers, please use the --full-archive flag
 export EXTRA_OBSERVERS_FLAGS="-operation-mode db-lookup-extension"
 
+if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+  EXTRA_OBSERVERS_FLAGS="--no-key"
+fi
+
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
+
+# VALIDATOR_KEY_PEM_FILE is the pem file name when running single key mode, with all nodes' keys
+export VALIDATOR_KEY_PEM_FILE="validatorKey.pem"
+
+# MULTI_KEY_PEM_FILE is the pem file name when running multi key mode, with all managed
+export MULTI_KEY_PEM_FILE="allValidatorsKeys.pem"

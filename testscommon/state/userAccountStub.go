@@ -2,23 +2,29 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance             *big.Int
-	DeveloperRewards    *big.Int
-	UserName            []byte
-	Owner               []byte
-	Address             []byte
-	AddToBalanceCalled  func(value *big.Int) error
-	RetrieveValueCalled func(_ []byte) ([]byte, uint32, error)
+	Balance                  *big.Int
+	DeveloperRewards         *big.Int
+	UserName                 []byte
+	Owner                    []byte
+	Address                  []byte
+	AddToBalanceCalled       func(value *big.Int) error
+	DataTrieTrackerCalled    func() state.DataTrieTracker
+	IsGuardedCalled          func() bool
+	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
+	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
 }
 
 // HasNewCode -
@@ -155,12 +161,33 @@ func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
 	return nil
 }
 
+// IsGuarded -
+func (u *UserAccountStub) IsGuarded() bool {
+	if u.IsGuardedCalled != nil {
+		return u.IsGuardedCalled()
+	}
+	return false
+}
+
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
 }
 
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return false
+	return u == nil
+}
+
+// AccountDataHandler -
+func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
+	if u.AccountDataHandlerCalled != nil {
+		return u.AccountDataHandlerCalled()
+	}
+	return nil
+}
+
+// GetAllLeaves -
+func (u *UserAccountStub) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

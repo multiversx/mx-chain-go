@@ -65,6 +65,10 @@ func (mhc *managedHeartbeatV2Components) Monitor() factory.HeartbeatV2Monitor {
 	mhc.mutHeartbeatV2Components.Lock()
 	defer mhc.mutHeartbeatV2Components.Unlock()
 
+	if mhc.heartbeatV2Components == nil {
+		return nil
+	}
+
 	return mhc.monitor
 }
 

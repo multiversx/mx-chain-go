@@ -112,7 +112,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 		return err
 	}
 
-	topicToSendRequest := trs.topicName + topicRequestSuffix
+	topicToSendRequest := trs.topicName + core.TopicRequestSuffix
 
 	var numSentIntra, numSentCross int
 	var intraPeers, crossPeers []core.PeerID
@@ -193,6 +193,7 @@ func (trs *topicRequestSender) sendOnTopic(
 		if err != nil {
 			continue
 		}
+		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())

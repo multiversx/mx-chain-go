@@ -13,15 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockSenderArgs() ArgSender {
 	return ArgSender{
 		Messenger:                          &p2pmocks.MessengerStub{},
-		Marshaller:                         &testscommon.MarshalizerMock{},
+		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		PeerAuthenticationTopic:            "pa-topic",
 		HeartbeatTopic:                     "hb-topic",
 		PeerAuthenticationTimeBetweenSends: time.Second,
@@ -30,6 +32,7 @@ func createMockSenderArgs() ArgSender {
 		HeartbeatTimeBetweenSends:                   time.Second,
 		HeartbeatTimeBetweenSendsWhenError:          time.Second,
 		HeartbeatTimeThresholdBetweenSends:          0.1,
+		BaseVersionNumber:                           "v1-base",
 		VersionNumber:                               "v1",
 		NodeDisplayName:                             "node",
 		Identity:                                    "identity",
@@ -43,6 +46,9 @@ func createMockSenderArgs() ArgSender {
 		HardforkTimeBetweenSends:                    time.Second,
 		HardforkTriggerPubKey:                       providedHardforkPubKey,
 		PeerTypeProvider:                            &mock.PeerTypeProviderStub{},
+		ManagedPeersHolder:                          &testscommon.ManagedPeersHolderStub{},
+		PeerAuthenticationTimeBetweenChecks:         time.Second,
+		ShardCoordinator:                            createShardCoordinatorInShard(0),
 	}
 }
 
@@ -260,6 +266,37 @@ func TestNewSender(t *testing.T) {
 		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerTypeProvider, err)
 	})
+	t.Run("nil managed peers holder should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.ManagedPeersHolder = nil
+		senderInstance, err := NewSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilManagedPeersHolder))
+	})
+	t.Run("invalid time between checks should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.PeerAuthenticationTimeBetweenChecks = time.Second - time.Nanosecond
+		senderInstance, err := NewSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
+		assert.True(t, strings.Contains(err.Error(), "timeBetweenChecks"))
+	})
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.ShardCoordinator = nil
+		senderInstance, err := NewSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilShardCoordinator))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -287,7 +324,7 @@ func TestSender_Close(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSender_GetSenderInfoShouldNotPanic(t *testing.T) {
+func TestSender_GetCurrentNodeTypeShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -298,9 +335,10 @@ func TestSender_GetSenderInfoShouldNotPanic(t *testing.T) {
 	}()
 
 	args := createMockSenderArgs()
-	senderInstance, _ := NewSender(args)
+	senderInstance, err := NewSender(args)
+	require.Nil(t, err)
 
-	_, _, err := senderInstance.GetSenderInfo()
+	_, _, err = senderInstance.GetCurrentNodeType()
 	assert.Nil(t, err)
 
 	_ = senderInstance.Close()

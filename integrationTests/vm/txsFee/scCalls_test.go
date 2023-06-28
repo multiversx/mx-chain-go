@@ -29,7 +29,8 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +58,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                           unreachableEpoch,
 			WaitingListFixEnableEpoch:                       unreachableEpoch,
@@ -69,6 +70,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
+		integrationTests.GetDefaultRoundsConfig(),
 	)
 	require.Nil(tb, err)
 
@@ -100,7 +102,6 @@ func TestScCallShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -109,7 +110,7 @@ func TestScCallShouldWork(t *testing.T) {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
-		require.Equal(t, uint64(387), calculatedGasLimit)
+		require.Equal(t, uint64(418), calculatedGasLimit)
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
@@ -122,15 +123,15 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(61300)
+	expectedBalance := big.NewInt(58200)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(49670), accumulatedFees)
+	require.Equal(t, big.NewInt(53700), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4138), developerFees)
+	require.Equal(t, big.NewInt(4479), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -142,7 +143,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	scAddrBytes, _ := hex.DecodeString(scAddress)
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -173,7 +173,6 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -194,7 +193,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(20970), accumulatedFees)
+	require.Equal(t, big.NewInt(21900), accumulatedFees)
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -206,7 +205,6 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(9)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -226,10 +224,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFees)
+	require.Equal(t, big.NewInt(11900), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
@@ -242,7 +240,6 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -263,7 +260,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(11170), accumulatedFees)
+	require.Equal(t, big.NewInt(12100), accumulatedFees)
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
@@ -280,7 +277,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -319,7 +315,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	owner := []byte("12345678901234567890123456789011")
 	senderBalance := big.NewInt(1000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(2000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
@@ -329,7 +324,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance = big.NewInt(10000000)
-	gasPrice = uint64(10)
 	gasLimit = uint64(30000)
 
 	esdtBalance := big.NewInt(100000000)
@@ -432,7 +426,6 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	sndAddr1 := []byte("12345678901234567890123456789112")
 	sndAddr2 := []byte("12345678901234567890123456789113")
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
@@ -456,11 +449,15 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		require.Equal(t, 1, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+		assert.Equal(t, 2, len(logs))
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "execution failed", string(scr.ReturnMessage))
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 	t.Run("transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -474,16 +471,20 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+		assert.Equal(t, 3, len(logs))
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 }
 
@@ -494,7 +495,6 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	sndAddr1 := []byte("12345678901234567890123456789112")
 	sndAddr2 := []byte("12345678901234567890123456789113")
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
@@ -513,19 +513,20 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
-		assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
-		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@37@01@3132333435363738393031323334353637383930313233343536373839313132@626f7567687420746f6b656e2061742061756374696f6e"
-		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 	t.Run("second transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
@@ -539,19 +540,20 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
-		assert.Equal(t, vmcommon.Ok, returnCode)
+		assert.Equal(t, vmcommon.UserError, returnCode)
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
 
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		assert.Equal(t, 5, len(intermediateTxs))
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
-		assert.Equal(t, "", string(scr.ReturnMessage))
-		assert.Equal(t, sndAddr2, intermediateTxs[0].(*smartContractResult.SmartContractResult).OriginalSender)
-		expectedNFTTransfer := "ESDTNFTTransfer@4550554e4b532d343662313836@51@01@3132333435363738393031323334353637383930313233343536373839313133@626f7567687420746f6b656e2061742061756374696f6e"
-		assert.Equal(t, expectedNFTTransfer, string(intermediateTxs[1].GetData()))
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
 	})
 }
 
@@ -559,12 +561,12 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 
-	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	pkConv, err := pubkeyConverter.NewBech32PubkeyConverter(32, integrationTests.AddressHrp)
+	require.NoError(t, err)
 	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
 	require.Nil(t, err)
 
 	senderBalance := big.NewInt(1000000000000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(600000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)

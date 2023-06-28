@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -638,7 +640,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	}
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	coreComp.AddrPubKeyConv = mock.NewPubkeyConverterMock(32)
+	coreComp.AddrPubKeyConv = testscommon.NewPubkeyConverterMock(32)
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
@@ -675,7 +677,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxSignHasherField:   &hashingMocks.HasherMock{},
 		Hash:                &hashingMocks.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
-		AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 		ChainIdCalled: func() string {
 			return chainID
 		},
@@ -685,7 +687,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		HardforkTriggerPubKeyField: providedHardforkPubKey,
-		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
@@ -713,7 +715,7 @@ func getArgumentsShard(
 		Store:                        createShardStore(),
 		DataPool:                     createShardDataPools(),
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
-		TxFeeHandler:                 &mock.FeeHandlerStub{},
+		TxFeeHandler:                 &economicsmocks.EconomicsHandlerStub{},
 		BlockBlackList:               &testscommon.TimeCacheStub{},
 		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},

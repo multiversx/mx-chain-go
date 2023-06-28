@@ -12,16 +12,16 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // NodeStub -
 type NodeStub struct {
-	ConnectToAddressesHandler  func([]string) error
-	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
+	ConnectToAddressesHandler                      func([]string) error
+	GetBalanceCalled                               func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GenerateTransactionHandler                     func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
+	CreateTransactionHandler                       func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
@@ -36,7 +36,9 @@ type NodeStub struct {
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatingsCalled                 func() string
 	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
@@ -50,6 +52,8 @@ type NodeStub struct {
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
+	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
+	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetProof -
@@ -115,6 +119,14 @@ func (ns *NodeStub) GetValueForKey(address string, key string, options api.Accou
 	return "", api.BlockInfo{}, nil
 }
 
+// GetGuardianData -
+func (ns *NodeStub) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	if ns.GetGuardianDataCalled != nil {
+		return ns.GetGuardianDataCalled(address, options)
+	}
+	return api.GuardianData{}, api.BlockInfo{}, nil
+}
+
 // EncodeAddressPubkey -
 func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
@@ -131,10 +143,9 @@ func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) 
 }
 
 // CreateTransaction -
-func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-	gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error) {
+func (ns *NodeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 
-	return ns.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return ns.CreateTransactionHandler(txArgs)
 }
 
 //ValidateTransaction -
@@ -204,6 +215,15 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return make([]core.QueryP2PPeerInfo, 0), nil
 }
 
+// GetConnectedPeersRatings -
+func (ns *NodeStub) GetConnectedPeersRatings() string {
+	if ns.GetConnectedPeersRatingsCalled != nil {
+		return ns.GetConnectedPeersRatingsCalled()
+	}
+
+	return ""
+}
+
 // GetEpochStartDataAPI -
 func (ns *NodeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error) {
 	if ns.GetEpochStartDataAPICalled != nil {
@@ -250,7 +270,10 @@ func (ns *NodeStub) GetAllESDTTokens(address string, options api.AccountQueryOpt
 }
 
 // GetTokenSupply -
-func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+func (ns *NodeStub) GetTokenSupply(token string) (*api.ESDTSupply, error) {
+	if ns.GetTokenSupplyCalled != nil {
+		return ns.GetTokenSupplyCalled(token)
+	}
 	return nil, nil
 }
 
@@ -260,6 +283,14 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]
 		return ns.GetAllIssuedESDTsCalled(tokenType, ctx)
 	}
 	return make([]string, 0), nil
+}
+
+// IsDataTrieMigrated -
+func (ns *NodeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	if ns.IsDataTrieMigratedCalled != nil {
+		return ns.IsDataTrieMigratedCalled(address, options)
+	}
+	return false, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -

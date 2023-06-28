@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -34,7 +35,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	wasCalledEpochNotifier := false
 	savedLastRound := int64(0)
 
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	startRound := 4000
 	hdr := &block.Header{
 		Nonce:    3999,
@@ -105,7 +106,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					return nil
 				},
 			},
-			Marshalizer: &testscommon.MarshalizerMock{},
+			Marshalizer: &marshallerMock.MarshalizerMock{},
 			Store: &storageMock.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 					return blockStorerMock, nil

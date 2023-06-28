@@ -10,11 +10,14 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const minimumAcceptedNodePrice = 0
 
 var zero = big.NewInt(0)
+
+var log = logger.GetOrCreate("genesis/checking")
 
 type nodeSetupChecker struct {
 	accountsParser           genesis.AccountsParser
@@ -64,7 +67,7 @@ func NewNodesSetupChecker(
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
 func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
-	err := nsc.ckeckGenesisNodes(initialNodes)
+	err := nsc.checkGenesisNodes(initialNodes)
 	if err != nil {
 		return err
 	}
@@ -79,13 +82,15 @@ func (nsc *nodeSetupChecker) Check(initialNodes []nodesCoordinator.GenesisNodeIn
 	return nsc.checkRemainderInitialAccounts(initialAccounts, delegated)
 }
 
-func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
+func (nsc *nodeSetupChecker) checkGenesisNodes(initialNodes []nodesCoordinator.GenesisNodeInfoHandler) error {
 	for _, node := range initialNodes {
 		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
 		if err != nil {
+			validatorPubkeyEncodedAddr := nsc.validatorPubkeyConverter.SilentEncode(node.PubKeyBytes(), log)
+
 			return fmt.Errorf("%w for node's public key `%s`, error: %s",
 				genesis.ErrInvalidPubKey,
-				nsc.validatorPubkeyConverter.Encode(node.PubKeyBytes()),
+				validatorPubkeyEncodedAddr,
 				err.Error(),
 			)
 		}
@@ -113,8 +118,10 @@ func (nsc *nodeSetupChecker) traverseInitialNodesSubtractingStakedValue(
 	for _, initialNode := range initialNodes {
 		err := nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts, delegated)
 		if err != nil {
+			validatorPubkeyEncoded := nsc.validatorPubkeyConverter.SilentEncode(initialNode.PubKeyBytes(), log)
+
 			return fmt.Errorf("'%w' while processing node pubkey %s",
-				err, nsc.validatorPubkeyConverter.Encode(initialNode.PubKeyBytes()))
+				err, validatorPubkeyEncoded)
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -32,8 +33,22 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-	mtStrHandler, err := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	mtStrHandler, err := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
 }
@@ -51,7 +66,21 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	mtStrHandler, err := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	mtStrHandler, err := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
 }
@@ -69,8 +98,22 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	mtStrHandler, _ := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 
 	header := &block.MetaBlock{Nonce: 0}
 
@@ -97,8 +140,22 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	mtStrHandler, _ := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 
 	hdr1 := &block.Header{Nonce: 1}
 	hdr2 := &block.Header{Nonce: 2}
@@ -131,8 +188,22 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	mtStrHandler, _ := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
@@ -156,8 +227,22 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-	mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+	mtStrHandler, _ := NewMetaStorageHandler(
+		gCfg,
+		prefsConfig,
+		coordinator,
+		pathManager,
+		marshalizer,
+		hasher,
+		1,
+		uit64Cvt,
+		nodeTypeProvider,
+		common.Normal,
+		false,
+		managedPeersHolder,
+	)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
@@ -198,8 +283,22 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		hasher := &hashingMocks.HasherMock{}
 		uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 		nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
+		managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
 
-		mtStrHandler, _ := NewMetaStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider, false)
+		mtStrHandler, _ := NewMetaStorageHandler(
+			gCfg,
+			prefsConfig,
+			coordinator,
+			pathManager,
+			marshalizer,
+			hasher,
+			1,
+			uit64Cvt,
+			nodeTypeProvider,
+			common.Normal,
+			false,
+			managedPeersHolder,
+		)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

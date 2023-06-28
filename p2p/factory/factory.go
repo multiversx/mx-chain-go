@@ -1,15 +1,13 @@
 package factory
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p"
+	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
+	"github.com/multiversx/mx-chain-communication-go/p2p/message"
+	messagecheck "github.com/multiversx/mx-chain-communication-go/p2p/messageCheck"
+	"github.com/multiversx/mx-chain-communication-go/p2p/peersHolder"
+	"github.com/multiversx/mx-chain-communication-go/p2p/rating"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-p2p-go/libp2p"
-	p2pCrypto "github.com/multiversx/mx-chain-p2p-go/libp2p/crypto"
-	"github.com/multiversx/mx-chain-p2p-go/message"
-	messagecheck "github.com/multiversx/mx-chain-p2p-go/messageCheck"
-	"github.com/multiversx/mx-chain-p2p-go/peersHolder"
-	"github.com/multiversx/mx-chain-p2p-go/rating"
 )
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -32,6 +30,9 @@ type PeerShard = message.PeerShard
 // ArgPeersRatingHandler is the DTO used to create a new peers rating handler
 type ArgPeersRatingHandler = rating.ArgPeersRatingHandler
 
+// ArgPeersRatingMonitor is the DTO used to create a new peers rating monitor
+type ArgPeersRatingMonitor = rating.ArgPeersRatingMonitor
+
 // ArgsMessageVerifier defines the args used to create a message verifier
 type ArgsMessageVerifier = messagecheck.ArgsMessageVerifier
 
@@ -40,14 +41,19 @@ func NewPeersRatingHandler(args ArgPeersRatingHandler) (p2p.PeersRatingHandler, 
 	return rating.NewPeersRatingHandler(args)
 }
 
+// NewPeersRatingMonitor returns a new peers rating monitor
+func NewPeersRatingMonitor(args ArgPeersRatingMonitor) (p2p.PeersRatingMonitor, error) {
+	return rating.NewPeersRatingMonitor(args)
+}
+
 // NewPeersHolder returns a new instance of peersHolder
 func NewPeersHolder(preferredConnectionAddresses []string) (p2p.PreferredPeersHolderHandler, error) {
 	return peersHolder.NewPeersHolder(preferredConnectionAddresses)
 }
 
-// ConvertPublicKeyToPeerID will convert a public key to core.PeerID
-func ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error) {
-	return p2pCrypto.ConvertPublicKeyToPeerID(pk)
+// NewP2PKeyConverter returns a new instance of p2pKeyConverter
+func NewP2PKeyConverter() p2p.P2PKeyConverter {
+	return crypto.NewP2PKeyConverter()
 }
 
 // NewMessageVerifier will return a new instance of messages verifier

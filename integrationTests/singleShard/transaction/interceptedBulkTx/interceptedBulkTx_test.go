@@ -87,9 +87,11 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	mintingValue := big.NewInt(10000000000)
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
-	receiver := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
-	err := n.Node.GenerateAndSendBulkTransactions(
-		receiver,
+	encodedReceiverAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	assert.Nil(t, err)
+
+	err = n.Node.GenerateAndSendBulkTransactions(
+		encodedReceiverAddr,
 		big.NewInt(1),
 		uint64(noOfTx),
 		n.OwnAccount.SkTxSign,
@@ -148,7 +150,7 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 		Version:  integrationTests.MinTransactionVersion,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	err := node.Node.ValidateTransaction(tx)

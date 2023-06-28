@@ -7,7 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -150,11 +152,11 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 
 	allLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil)
+	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewMainTrieLeafParser())
 	require.NoError(t, err)
 
-	err = common.GetErrorFromChanNonBlocking(allLeaves.ErrChan)
+	err = allLeaves.ErrChan.ReadFromChanNonBlocking()
 	require.NoError(t, err)
 }

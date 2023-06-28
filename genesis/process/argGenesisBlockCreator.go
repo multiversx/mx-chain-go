@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -25,6 +25,7 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
@@ -34,7 +35,7 @@ type dataComponentsHandler interface {
 	StorageService() dataRetriever.StorageService
 	Blockchain() data.ChainHandler
 	Datapool() dataRetriever.PoolsHolder
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -58,8 +59,8 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig       config.HardforkConfig
 	TrieStorageManagers  map[string]common.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
+	RoundConfig          *config.RoundConfig
 	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
 

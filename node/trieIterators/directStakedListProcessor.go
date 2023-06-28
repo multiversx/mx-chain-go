@@ -7,10 +7,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("node/trieIterators")
 
 type directStakedListProcessor struct {
 	*commonStakingProcessor
@@ -49,16 +52,11 @@ func (dslp *directStakedListProcessor) GetDirectStakedList(ctx context.Context) 
 }
 
 func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount state.UserAccountHandler, ctx context.Context) ([]*api.DirectStakedValue, error) {
-	rootHash, err := validatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err := validatorAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +78,10 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 
 		baseStaked := big.NewInt(0).Set(info.totalStakedValue)
 		baseStaked.Sub(baseStaked, info.topUpValue)
+		encodedLeafKey := dslp.publicKeyConverter.SilentEncode(leafKey, log)
+
 		val := &api.DirectStakedValue{
-			Address:    dslp.publicKeyConverter.Encode(leafKey),
+			Address:    encodedLeafKey,
 			BaseStaked: baseStaked.String(),
 			TopUp:      info.topUpValue.String(),
 			Total:      info.totalStakedValue.String(),
@@ -90,7 +90,7 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 		stakedAccounts = append(stakedAccounts, val)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

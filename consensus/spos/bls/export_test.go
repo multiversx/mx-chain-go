@@ -315,6 +315,11 @@ func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
 	return sr.verifyInvalidSigners(invalidSigners)
 }
 
+// GetMinConsensusGroupIndexOfManagedKeys -
+func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
+	return sr.getMinConsensusGroupIndexOfManagedKeys()
+}
+
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)

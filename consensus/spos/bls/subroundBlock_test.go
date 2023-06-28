@@ -901,8 +901,6 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 		_ = sr.SendBlockBody(body, marshalizedBody)
 		_ = sr.SendBlockHeader(header, marshalizedHeader)
 
-		oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-		newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 		expectedHeader, _ := container.BlockProcessor().CreateNewHeader(uint64(sr.RoundHandler().Index()), uint64(1))
 		err := expectedHeader.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
 		require.Nil(t, err)
@@ -912,7 +910,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 		require.Nil(t, err)
 		err = expectedHeader.SetPrevRandSeed(sr.BlockChain().GetGenesisHeader().GetRandSeed())
 		require.Nil(t, err)
-		err = expectedHeader.SetRandSeed(newRand)
+		err = expectedHeader.SetRandSeed(make([]byte, 0))
 		require.Nil(t, err)
 		err = expectedHeader.SetMiniBlockHeaderHandlers(header.GetMiniBlockHeaderHandlers())
 		require.Nil(t, err)
@@ -937,8 +935,6 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		_ = sr.SendBlockBody(body, marshalizedBody)
 		_ = sr.SendBlockHeader(header, marshalizedHeader)
 
-		oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-		newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 		expectedHeader, _ := container.BlockProcessor().CreateNewHeader(
 			uint64(sr.RoundHandler().Index()),
 			sr.BlockChain().GetCurrentBlockHeader().GetNonce()+1)
@@ -948,7 +944,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		require.Nil(t, err)
 		err = expectedHeader.SetPrevHash(sr.BlockChain().GetCurrentBlockHeaderHash())
 		require.Nil(t, err)
-		err = expectedHeader.SetRandSeed(newRand)
+		err = expectedHeader.SetRandSeed(make([]byte, 0))
 		require.Nil(t, err)
 		err = expectedHeader.SetMiniBlockHeaderHandlers(header.GetMiniBlockHeaderHandlers())
 		require.Nil(t, err)
@@ -990,15 +986,13 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	_ = sr.SendBlockBody(body, marshalizedBody)
 	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
-	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
-	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint64(sr.RoundHandler().Index()),
 		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1,
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
-		RandSeed:         newRand,
+		RandSeed:         make([]byte, 0),
 		MiniBlockHeaders: mbHeaders,
 		ChainID:          chainID,
 	}

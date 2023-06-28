@@ -14,6 +14,10 @@ import (
 
 // keep this test in a separate package as to not be influenced by other the tests from the same package
 func TestFeeComputer_MemoryFootprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this test is not relevant and will fail if started with -race")
+	}
+
 	numEpochs := 10000
 	maxFootprintNumBytes := 48_000_000
 
@@ -23,6 +27,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	feeComputer, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComputer)
 

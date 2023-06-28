@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -21,16 +21,15 @@ import (
 
 // FacadeStub is the mock implementation of a node router handler
 type FacadeStub struct {
-	ShouldErrorStart           bool
-	ShouldErrorStop            bool
-	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
-	GetBalanceCalled           func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GetAccountCalled           func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
-	GetAccountsCalled          func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
-	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+	ShouldErrorStart                            bool
+	ShouldErrorStop                             bool
+	GetHeartbeatsHandler                        func() ([]data.PubKeyHeartbeat, error)
+	GetBalanceCalled                            func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
+	GetAccountCalled                            func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountsCalled                           func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
+	GenerateTransactionHandler                  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler                       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	CreateTransactionHandler                    func(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                  func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
@@ -41,7 +40,9 @@ type FacadeStub struct {
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
+	GetGuardianDataCalled                       func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetConnectedPeersRatingsCalled              func() string
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -55,7 +56,7 @@ type FacadeStub struct {
 	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -82,6 +83,11 @@ type FacadeStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
+	RestApiInterfaceCalled                      func() string
+	RestAPIServerDebugModeCalled                func() bool
+	PprofEnabledCalled                          func() bool
+	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
+	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetTokenSupply -
@@ -158,16 +164,25 @@ func (f *FacadeStub) GetThrottlerForEndpoint(endpoint string) (core.Throttler, b
 
 // RestApiInterface -
 func (f *FacadeStub) RestApiInterface() string {
+	if f.RestApiInterfaceCalled != nil {
+		return f.RestApiInterfaceCalled()
+	}
 	return "localhost:8080"
 }
 
 // RestAPIServerDebugMode -
 func (f *FacadeStub) RestAPIServerDebugMode() bool {
+	if f.RestAPIServerDebugModeCalled != nil {
+		return f.RestAPIServerDebugModeCalled()
+	}
 	return false
 }
 
 // PprofEnabled -
 func (f *FacadeStub) PprofEnabled() bool {
+	if f.PprofEnabledCalled != nil {
+		return f.PprofEnabledCalled()
+	}
 	return false
 }
 
@@ -197,6 +212,14 @@ func (f *FacadeStub) GetKeyValuePairs(address string, options api.AccountQueryOp
 	}
 
 	return nil, api.BlockInfo{}, nil
+}
+
+// GetGuardianData -
+func (f *FacadeStub) GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	if f.GetGuardianDataCalled != nil {
+		return f.GetGuardianDataCalled(address, options)
+	}
+	return api.GuardianData{}, api.BlockInfo{}, nil
 }
 
 // GetESDTData -
@@ -268,22 +291,8 @@ func (f *FacadeStub) GetAccounts(addresses []string, options api.AccountQueryOpt
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
-func (f *FacadeStub) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	data []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+func (f *FacadeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	return f.CreateTransactionHandler(txArgs)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
@@ -358,6 +367,9 @@ func (f *FacadeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 
 // DecodeAddressPubkey -
 func (f *FacadeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if f.DecodeAddressPubkeyCalled != nil {
+		return f.DecodeAddressPubkeyCalled(pk)
+	}
 	return hex.DecodeString(pk)
 }
 
@@ -369,6 +381,11 @@ func (f *FacadeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
 // GetPeerInfo -
 func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
+}
+
+// GetConnectedPeersRatings -
+func (f *FacadeStub) GetConnectedPeersRatings() string {
+	return f.GetConnectedPeersRatingsCalled()
 }
 
 // GetEpochStartDataAPI -
@@ -395,7 +412,7 @@ func (f *FacadeStub) GetBlockByRound(round uint64, options api.BlockQueryOptions
 }
 
 // GetAlteredAccountsForBlock -
-func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (f *FacadeStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	if f.GetAlteredAccountsForBlockCalled != nil {
 		return f.GetAlteredAccountsForBlockCalled(options)
 	}
@@ -535,6 +552,15 @@ func (f *FacadeStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*sta
 	}
 
 	return nil, nil
+}
+
+// IsDataTrieMigrated -
+func (f *FacadeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	if f.IsDataTrieMigratedCalled != nil {
+		return f.IsDataTrieMigratedCalled(address, options)
+	}
+
+	return false, nil
 }
 
 // Trigger -

@@ -427,7 +427,7 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT)},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT), big.NewInt(int64(numOfDecimals)).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -694,13 +694,27 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		mintBurnable = false
 	}
 
+	topics := make([][]byte, 0)
+	nonce := big.NewInt(0)
+	topics = append(topics, tokenIdentifier, nonce.Bytes())
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    callerAddr,
+	}
+
 	if len(args) == 0 {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable), []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+		logEntry.Topics = topics
+		e.eei.AddLogEntry(logEntry)
+
 		return nil
 	}
 	if len(args)%2 != 0 {
 		return vm.ErrInvalidNumOfArguments
 	}
 
+	isUpgradablePropertyInArgs := false
+	isCanAddSpecialRolePropertyInArgs := false
 	for i := 0; i < len(args); i += 2 {
 		optionalArg := string(args[i])
 		val, err := checkAndGetSetting(string(args[i+1]))
@@ -726,10 +740,12 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 			token.CanWipe = val
 		case upgradable:
 			token.Upgradable = val
+			isUpgradablePropertyInArgs = true
 		case canChangeOwner:
 			token.CanChangeOwner = val
 		case canAddSpecialRoles:
 			token.CanAddSpecialRoles = val
+			isCanAddSpecialRolePropertyInArgs = true
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
 		case canCreateMultiShard:
@@ -748,15 +764,15 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		}
 	}
 
-	topics := make([][]byte, 0)
-	nonce := big.NewInt(0)
-	topics = append(topics, tokenIdentifier, nonce.Bytes())
 	topics = append(topics, args...)
-	logEntry := &vmcommon.LogEntry{
-		Identifier: []byte(upgradeProperties),
-		Address:    callerAddr,
-		Topics:     topics,
+	if !isUpgradablePropertyInArgs {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable))
 	}
+	if !isCanAddSpecialRolePropertyInArgs {
+		topics = append(topics, []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+	}
+
+	logEntry.Topics = topics
 	e.eei.AddLogEntry(logEntry)
 
 	return nil
@@ -812,6 +828,9 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
+		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -1309,8 +1328,11 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 		for _, role := range specialRole.Roles {
 			rolesAsString = append(rolesAsString, string(role))
 		}
+
+		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
+
 		roles := strings.Join(rolesAsString, ",")
-		message := fmt.Sprintf("%s:%s", e.addressPubKeyConverter.Encode(specialRole.Address), roles)
+		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
 	}
 
@@ -2212,7 +2234,7 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 		return false
 	}
 
-	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
+	encodedAddress := e.addressPubKeyConverter.SilentEncode(addressBytes, log)
 
 	return encodedAddress != ""
 }

@@ -175,14 +175,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	blsPrivateKeyMock := &PrivateKeyMock{}
-	blsSingleSignerMock := &SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) (bytes []byte, e error) {
-			return make([]byte, 0), nil
-		},
-	}
 	roundHandlerMock := &RoundHandlerMock{}
-	keyGen := &KeyGenMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
@@ -212,7 +205,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	messageSigningHandler := &MessageSigningHandlerStub{}
 	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
-	signatureHandler := &SignatureHandlerStub{}
+	signingHandler := &consensusMocks.SigningHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -223,9 +216,6 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		chronologyHandler:       chronologyHandlerMock,
 		hasher:                  hasherMock,
 		marshalizer:             marshalizerMock,
-		blsPrivateKey:           blsPrivateKeyMock,
-		blsSingleSigner:         blsSingleSignerMock,
-		keyGenerator:            keyGen,
 		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
@@ -240,7 +230,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		scheduledProcessor:      scheduledProcessor,
 		messageSigningHandler:   messageSigningHandler,
 		peerBlacklistHandler:    peerBlacklistHandler,
-		signatureHandler:        signatureHandler,
+		signingHandler:          signingHandler,
 	}
 
 	return container

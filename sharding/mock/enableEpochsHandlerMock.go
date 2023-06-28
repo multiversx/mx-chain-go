@@ -5,6 +5,8 @@ type EnableEpochsHandlerMock struct {
 	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
+	IsSCProcessorV2FlagEnabledField           bool
+	IsFixOldTokenLiquidityFlagEnabledField    bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0
@@ -531,6 +533,11 @@ func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsSCProcessorV2FlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabled() bool {
+	return mock.IsSCProcessorV2FlagEnabledField
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return false
@@ -563,6 +570,46 @@ func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() b
 
 // IsAlwaysSaveTokenMetaDataEnabled -
 func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
+// IsSetGuardianEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
+	return false
+}
+
+// IsRelayedNonceFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
+	return false
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return false
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
+	return false
+}
+
+// IsChangeUsernameEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
+	return false
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return false
+}
+
+// IsAutoBalanceDataTriesEnabled -
+func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
+	return false
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
 	return false
 }
 

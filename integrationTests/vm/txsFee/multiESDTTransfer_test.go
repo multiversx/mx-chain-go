@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +29,6 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	secondToken := []byte("second")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	tx := utils.CreateMultiTransferTX(0, sndAddr, rcvAddr, gasPrice, gasLimit, &utils.TransferESDTData{
 		Token: token,
@@ -87,7 +86,6 @@ func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
 	secondToken := []byte("second")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	tx := utils.CreateMultiTransferTX(0, sndAddr, rcvAddr, gasPrice, gasLimit, &utils.TransferESDTData{
 		Token: token,
