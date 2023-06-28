@@ -27,7 +27,7 @@ type AccountsStub struct {
 	RecreateTrieFromEpochCalled   func(options common.RootHashHolder) error
 	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled           func(rootHash []byte)
+	SnapshotStateCalled           func(rootHash []byte, epoch uint32)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
 	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
@@ -203,9 +203,9 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier state.TriePrunin
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, epoch uint32) {
 	if as.SnapshotStateCalled != nil {
-		as.SnapshotStateCalled(rootHash)
+		as.SnapshotStateCalled(rootHash, epoch)
 	}
 }
 

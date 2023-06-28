@@ -49,6 +49,11 @@ func (adb *AccountsDB) WaitForCompletionIfAppropriate(stats common.SnapshotStati
 	adb.waitForCompletionIfAppropriate(stats)
 }
 
+// WaitForStorageEpochChange
+func (adb *AccountsDB) WaitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
+	return adb.waitForStorageEpochChange(args)
+}
+
 // GetCode -
 func GetCode(account baseAccountHandler) []byte {
 	return account.GetCodeHash()

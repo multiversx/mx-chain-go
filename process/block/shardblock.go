@@ -1257,7 +1257,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 				rootHash = schRootHash
 			}
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			go accounts.SnapshotState(rootHash, sp.epochNotifier.CurrentEpoch())
 			sp.markSnapshotDoneInPeerAccounts()
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {

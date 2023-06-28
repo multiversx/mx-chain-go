@@ -490,7 +490,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 
 	tsm := nRequester.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
-	nRequester.AccntState.SnapshotState(rootHash)
+	nRequester.AccntState.SnapshotState(rootHash, nRequester.EpochNotifier.CurrentEpoch())
 	for tsm.IsPruningBlocked() {
 		time.Sleep(time.Millisecond * 100)
 	}

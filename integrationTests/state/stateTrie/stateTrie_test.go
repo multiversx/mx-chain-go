@@ -2334,7 +2334,7 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	err = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
 	assert.Nil(t, err)
 
-	adb.SnapshotState(rootHash)
+	adb.SnapshotState(rootHash, 0)
 	for tsm.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}

@@ -120,7 +120,7 @@ type AccountsAdapter interface {
 	RecreateTrieFromEpoch(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	SnapshotState(rootHash []byte)
+	SnapshotState(rootHash []byte, epoch uint32)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error

@@ -27,12 +27,21 @@ import (
 )
 
 const (
-	leavesChannelSize       = 100
-	missingNodesChannelSize = 100
-	lastSnapshot            = "lastSnapshot"
-	userTrieSnapshotMsg     = "snapshotState user trie"
-	peerTrieSnapshotMsg     = "snapshotState peer trie"
+	leavesChannelSize             = 100
+	missingNodesChannelSize       = 100
+	lastSnapshot                  = "lastSnapshot"
+	userTrieSnapshotMsg           = "snapshotState user trie"
+	peerTrieSnapshotMsg           = "snapshotState peer trie"
+	waitTimeForSnapshotEpochCheck = time.Millisecond * 100
+	snapshotWaitTimeout           = time.Minute
 )
+
+// StorageEpochChangeWaitArgs are the args needed for calling the WaitForStorageEpochChange function
+type StorageEpochChangeWaitArgs struct {
+	Epoch                         uint32
+	WaitTimeForSnapshotEpochCheck time.Duration
+	SnapshotWaitTimeout           time.Duration
+}
 
 type loadingMeasurements struct {
 	sync.Mutex
@@ -212,7 +221,7 @@ func startSnapshotAfterRestart(adb AccountsAdapter, tsm common.StorageManager, p
 
 	if tsm.ShouldTakeSnapshot() {
 		log.Debug("startSnapshotAfterRestart")
-		adb.SnapshotState(rootHash)
+		adb.SnapshotState(rootHash, epoch)
 		return
 	}
 }
@@ -1145,8 +1154,50 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
 }
 
+func (adb *AccountsDB) waitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
+	if args.SnapshotWaitTimeout < args.WaitTimeForSnapshotEpochCheck {
+		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), args.SnapshotWaitTimeout)
+	defer cancel()
+
+	for {
+		storageManager := adb.getMainTrie().GetStorageManager()
+		latestStorageEpoch, err := storageManager.GetLatestStorageEpoch()
+		if err != nil {
+			return err
+		}
+
+		if latestStorageEpoch == args.Epoch {
+			return nil
+		}
+
+		if storageManager.IsClosed() {
+			return core.ErrContextClosing
+		}
+
+		select {
+		case <-time.After(args.WaitTimeForSnapshotEpochCheck):
+			continue
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for storage epoch change, snapshot epoch %d", args.Epoch)
+		}
+	}
+}
+
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *AccountsDB) SnapshotState(rootHash []byte) {
+func (adb *AccountsDB) SnapshotState(rootHash []byte, epoch uint32) {
+	err := adb.waitForStorageEpochChange(StorageEpochChangeWaitArgs{
+		Epoch:                         epoch,
+		WaitTimeForSnapshotEpochCheck: waitTimeForSnapshotEpochCheck,
+		SnapshotWaitTimeout:           snapshotWaitTimeout,
+	})
+	if err != nil {
+		log.Error("error waiting for storage epoch change user accounts", "err", err)
+		return
+	}
+
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 

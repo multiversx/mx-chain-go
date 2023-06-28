@@ -110,7 +110,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
 
-	adb.SnapshotState([]byte("rootHash"))
+	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.True(t, snapshotCalled)
 }
 
@@ -135,7 +135,7 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
 
-	adb.SnapshotState([]byte("rootHash"))
+	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.False(t, snapshotCalled)
 }
 
@@ -474,7 +474,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 	args.Trie = trieStub
 
 	adb, _ := state.NewPeerAccountsDB(args)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	mut.RLock()

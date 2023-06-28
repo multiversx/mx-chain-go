@@ -44,7 +44,17 @@ func (adb *PeerAccountsDB) MarkSnapshotDone() {
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, epoch uint32) {
+	err := adb.waitForStorageEpochChange(StorageEpochChangeWaitArgs{
+		Epoch:                         epoch,
+		WaitTimeForSnapshotEpochCheck: waitTimeForSnapshotEpochCheck,
+		SnapshotWaitTimeout:           snapshotWaitTimeout,
+	})
+	if err != nil {
+		log.Error("error waiting for storage epoch change peer accounts", "err", err)
+		return
+	}
+
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
