@@ -190,7 +190,7 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
-	hostDriverArgs, err := scf.makeHostDriverArgs()
+	hostDriversArgs, err := scf.makeHostDriversArgs()
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
-		HostDriverArgs:            hostDriverArgs,
+		HostDriversArgs:           hostDriversArgs,
 		IsImportDB:                scf.isInImportMode,
 	}
 
@@ -250,18 +250,24 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFacto
 	}, nil
 }
 
-func (scf *statusComponentsFactory) makeHostDriverArgs() (outportDriverFactory.ArgsHostDriverFactory, error) {
-	if !scf.externalConfig.HostDriverConfig.Enabled {
-		return outportDriverFactory.ArgsHostDriverFactory{}, nil
+func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactory.ArgsHostDriverFactory, error) {
+	argsHostDriverFactorySlice := make([]outportDriverFactory.ArgsHostDriverFactory, 0, len(scf.externalConfig.HostDriversConfig))
+	for idx := 0; idx < len(scf.externalConfig.HostDriversConfig); idx++ {
+		hostConfig := scf.externalConfig.HostDriversConfig[idx]
+		if !hostConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(hostConfig.MarshallerType)
+		if err != nil {
+			return argsHostDriverFactorySlice, err
+		}
+
+		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsHostDriverFactory{
+			Marshaller: marshaller,
+			HostConfig: hostConfig,
+		})
 	}
 
-	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.HostDriverConfig.MarshallerType)
-	if err != nil {
-		return outportDriverFactory.ArgsHostDriverFactory{}, err
-	}
-
-	return outportDriverFactory.ArgsHostDriverFactory{
-		Marshaller: marshaller,
-		HostConfig: scf.externalConfig.HostDriverConfig,
-	}, nil
+	return argsHostDriverFactorySlice, nil
 }
