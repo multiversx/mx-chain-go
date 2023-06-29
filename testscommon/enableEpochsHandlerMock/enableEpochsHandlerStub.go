@@ -110,6 +110,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsSCProcessorV2FlagEnabledField                              bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
@@ -124,6 +125,7 @@ type EnableEpochsHandlerStub struct {
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
+	FixDelegationChangeOwnerOnAccountEnabledField                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -965,6 +967,14 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsSCProcessorV2FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSCProcessorV2FlagEnabledField
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	stub.RLock()
@@ -1075,6 +1085,14 @@ func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAutoBalanceDataTriesEnabledField
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixDelegationChangeOwnerOnAccountEnabledField
 }
 
 // IsInterfaceNil -

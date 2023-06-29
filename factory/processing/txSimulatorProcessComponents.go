@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
@@ -166,7 +167,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		return args, nil, nil, err
 	}
 
-	scProcArgs := smartContract.ArgsNewSmartContractProcessor{
+	scProcArgs := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              pcf.coreData.Hasher(),
@@ -184,6 +185,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		GasSchedule:         pcf.gasSchedule,
 		TxLogsProcessor:     txLogsProcessor,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		BadTxForwarder:      badTxInterim,
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
@@ -336,7 +338,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 
 	argsParser := smartContract.NewArgumentParser()
 
-	scProcArgs := smartContract.ArgsNewSmartContractProcessor{
+	scProcArgs := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
 		Hasher:              pcf.coreData.Hasher(),
@@ -354,6 +356,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		GasSchedule:         pcf.gasSchedule,
 		TxLogsProcessor:     txLogsProcessor,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		BadTxForwarder:      badTxInterim,
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
@@ -381,8 +384,10 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxLogsProcessor:     txLogsProcessor,
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)

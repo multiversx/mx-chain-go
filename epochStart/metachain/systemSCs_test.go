@@ -48,15 +48,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/storage"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -912,13 +911,13 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs := stateMock.GetStorageManagerArgs()
+	storageManagerArgs := storageMock.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 	storageManagerArgs.CheckpointsStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, stateMock.GetStorageManagerOptions())
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
 	argsAccCreator := state.ArgsAccountCreation{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
@@ -939,7 +938,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
 		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
 		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
-		StorageService:                       &storageStubs.ChainStorerStub{},
+		StorageService:                       &storageMock.ChainStorerStub{},
 		PubkeyConv:                           &testscommon.PubkeyConverterMock{},
 		PeerAdapter:                          peerAccountsDB,
 		Rater:                                &mock.RaterStub{},
@@ -965,7 +964,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 userAccountsDB,
 		PubkeyConv:               &testscommon.PubkeyConverterMock{},
-		StorageService:           &storageStubs.ChainStorerStub{},
+		StorageService:           &storageMock.ChainStorerStub{},
 		BlockChain:               blockChain,
 		ShardCoordinator:         &mock.ShardCoordinatorStub{},
 		Marshalizer:              marshalizer,
@@ -1035,6 +1034,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 			},
 		},
 		ValidatorAccountsDB: peerAccountsDB,
+		UserAccountsDB:      userAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
@@ -1240,11 +1240,9 @@ func TestSystemSCProcessor_ProcessDelegationRewards(t *testing.T) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(100),
-		RcvAddr: make([]byte, len(vm.FirstDelegationSCAddress)),
+		RcvAddr: generateSecondDelegationAddress(),
 		Epoch:   0,
 	}
-	copy(rwdTx.RcvAddr, vm.FirstDelegationSCAddress)
-	rwdTx.RcvAddr[28] = 2
 	localCache.AddTx([]byte("txHash"), rwdTx)
 
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
@@ -1270,6 +1268,16 @@ func TestSystemSCProcessor_ProcessDelegationRewards(t *testing.T) {
 
 	assert.Equal(t, len(vmOutput.ReturnData), 3)
 	assert.True(t, bytes.Equal(vmOutput.ReturnData[0], rwdTx.Value.Bytes()))
+}
+
+// generateSecondDelegationAddress will generate the address of the second delegation address (the exact next one after vm.FirstDelegationSCAddress)
+// by copying the vm.FirstDelegationSCAddress bytes and altering the corresponding position (28-th) to 2
+func generateSecondDelegationAddress() []byte {
+	address := make([]byte, len(vm.FirstDelegationSCAddress))
+	copy(address, vm.FirstDelegationSCAddress)
+	address[28] = 2
+
+	return address
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *testing.T) {
@@ -1523,9 +1531,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	args, scContainer := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(delegationAddr, vm.FirstDelegationSCAddress)
-	delegationAddr[28] = 2
+	delegationAddr := generateSecondDelegationAddress()
 
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
@@ -1613,9 +1619,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	args, scContainer := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(delegationAddr, vm.FirstDelegationSCAddress)
-	delegationAddr[28] = 2
+	delegationAddr := generateSecondDelegationAddress()
 
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
@@ -1701,9 +1705,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	args, scContainer := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
-	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(delegationAddr, vm.FirstDelegationSCAddress)
-	delegationAddr[28] = 2
+	delegationAddr := generateSecondDelegationAddress()
 
 	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
 	_ = scContainer.Add(delegationAddr, contract)
@@ -1724,9 +1726,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	addDelegationData(args.UserAccountsDB, delegationAddr, [][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"), []byte("waitingPubKey")}, args.Marshalizer)
 	_, _ = args.UserAccountsDB.Commit()
 
-	delegationAddr2 := make([]byte, len(vm.FirstDelegationSCAddress))
-	copy(delegationAddr2, vm.FirstDelegationSCAddress)
-	delegationAddr2[28] = 5
+	delegationAddr2 := generateSecondDelegationAddress()
+	delegationAddr2[28] = 5 // the fifth delegation address
 	_ = scContainer.Add(delegationAddr2, contract)
 
 	listOfKeysInWaiting := [][]byte{[]byte("waitingPubKe1"), []byte("waitingPubKe2"), []byte("waitingPubKe3"), []byte("waitingPubKe4")}

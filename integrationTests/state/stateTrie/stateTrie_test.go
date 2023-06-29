@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -2313,6 +2314,34 @@ func TestTrieDBPruning_PruningOldDataWithDataTries(t *testing.T) {
 		adb.PruneTrie(rootHashes[len(rootHashes)-2], state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 		checkAccountsDataTries(t, 10, numAccountsChances, 10, adb)
 	}
+}
+
+func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testing.T) {
+	t.Parallel()
+
+	lastSnapshotStartedKey := "lastSnapshot"
+	epochsNotifier := &mock.EpochStartNotifierStub{
+		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
+			header := &block.Header{Epoch: 1}
+			handler.EpochStartAction(header)
+		},
+	}
+	tsm := integrationTests.CreateTrieStorageManagerWithPruningStorer(testscommon.NewMultiShardsCoordinatorMock(1), epochsNotifier)
+	adb, _ := integrationTests.CreateAccountsDB(0, tsm)
+	_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+	rootHash, err := addDataTriesForAccountsStartingWithIndex(0, 1, 1, adb)
+	assert.Nil(t, err)
+	err = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
+	assert.Nil(t, err)
+
+	adb.SnapshotState(rootHash)
+	for tsm.IsPruningBlocked() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	val, err := tsm.Get([]byte(lastSnapshotStartedKey))
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
 }
 
 func addDataTriesForAccountsStartingWithIndex(
