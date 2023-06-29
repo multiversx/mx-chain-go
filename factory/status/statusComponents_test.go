@@ -286,5 +286,4 @@ func TestMakeHostDriversArgs(t *testing.T) {
 	res, err := scf.MakeHostDriversArgs()
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
-
 }
