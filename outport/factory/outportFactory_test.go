@@ -160,3 +160,31 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 
 	require.True(t, outPort.HasDrivers())
 }
+
+func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
+	args := &factory.OutportFactoryArgs{
+		RetrialInterval: time.Second,
+		EventNotifierFactoryArgs: &notifierFactory.EventNotifierFactoryArgs{
+			Enabled: false,
+		},
+		ElasticIndexerFactoryArgs: indexerFactory.ArgsIndexerFactory{
+			Enabled: false,
+		},
+		HostDriversArgs: []notifierFactory.ArgsHostDriverFactory{
+			{
+				Marshaller: &testscommon.MarshalizerMock{},
+				HostConfig: config.HostDriversConfig{
+					Enabled:            true,
+					URL:                "localhost",
+					RetryDurationInSec: 1,
+					MarshallerType:     "json",
+					Mode:               "wrong mode",
+				},
+			},
+		},
+	}
+
+	outPort, err := factory.CreateOutport(args)
+	require.Nil(t, outPort)
+	require.ErrorIs(t, err, data.ErrInvalidWebSocketHostMode)
+}

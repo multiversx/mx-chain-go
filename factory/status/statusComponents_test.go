@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -259,4 +260,31 @@ func TestStatusComponents_Close(t *testing.T) {
 
 	err = cc.Close()
 	require.NoError(t, err)
+}
+
+func TestMakeHostDriversArgs(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStatusComponentsFactoryArgs()
+	args.ExternalConfig.HostDriversConfig = []config.HostDriversConfig{
+		{
+			Enabled:            false,
+			URL:                "localhost",
+			RetryDurationInSec: 1,
+			MarshallerType:     "json",
+			Mode:               data.ModeClient,
+		},
+		{
+			Enabled:            true,
+			URL:                "localhost",
+			RetryDurationInSec: 1,
+			MarshallerType:     "json",
+			Mode:               data.ModeClient,
+		},
+	}
+	scf, _ := statusComp.NewStatusComponentsFactory(args)
+	res, err := scf.MakeHostDriversArgs()
+	require.Nil(t, err)
+	require.Equal(t, 1, len(res))
+
 }

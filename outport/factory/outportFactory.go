@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -55,8 +56,7 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
 		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
 		if err != nil {
-			log.Error("createAndSubscribeHostDriverIfNeeded", "host index", idx, "error", err)
-			return err
+			return fmt.Errorf("%w when calling createAndSubscribeHostDriverIfNeeded, host driver index %d", err, idx)
 		}
 	}
 
