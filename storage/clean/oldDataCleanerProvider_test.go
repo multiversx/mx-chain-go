@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -15,7 +14,7 @@ func TestNewOldDataCleanerProvider_NilNodeTypeProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	odcp, err := NewOldDataCleanerProvider(nil, config.StoragePruningConfig{})
-	require.True(t, check.IfNil(odcp))
+	require.Nil(t, odcp)
 	require.Equal(t, storage.ErrNilNodeTypeProvider, err)
 }
 
@@ -24,7 +23,7 @@ func TestNewOldDataCleanerProvider_ShouldWork(t *testing.T) {
 
 	odcp, err := NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
 	require.NoError(t, err)
-	require.False(t, check.IfNil(odcp))
+	require.NotNil(t, odcp)
 }
 
 func TestOldDataCleanerProvider_ShouldCleanShouldReturnObserverIfInvalidNodeType(t *testing.T) {
@@ -69,4 +68,14 @@ func TestOldDataCleanerProvider_ShouldClean(t *testing.T) {
 		},
 	}
 	require.False(t, odcp.ShouldClean())
+}
+
+func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var odcp *oldDataCleanerProvider
+	require.True(t, odcp.IsInterfaceNil())
+
+	odcp, _ = NewOldDataCleanerProvider(&nodeTypeProviderMock.NodeTypeProviderStub{}, config.StoragePruningConfig{})
+	require.False(t, odcp.IsInterfaceNil())
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -39,7 +40,6 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -92,7 +92,6 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -146,7 +145,6 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -196,7 +194,6 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(1000000)
 	txGasLimit := uint64(1000000)
@@ -290,7 +287,6 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(1000000)
 	txGasLimit := uint64(1000000)
@@ -390,7 +386,6 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(1000000)
 	txGasLimit := uint64(1000000)
@@ -440,7 +435,6 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(1000000)
 	txGasLimit := uint64(1000000)
@@ -542,7 +536,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 
 	leaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, 1),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err = testContext.Accounts.GetAllLeaves(leaves, context.Background(), roothash)
 	require.Nil(t, err)
@@ -551,6 +545,6 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 		// do nothing, just iterate
 	}
 
-	err = <-leaves.ErrChan
+	err = leaves.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 }

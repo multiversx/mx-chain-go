@@ -63,11 +63,13 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "1000000",
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:      "18446744073709551615",
-		GasPerDataByte:   "1",
-		GasPriceModifier: gasModifier,
+		MinGasPrice:            "18446744073709551615",
+		GasPerDataByte:         "1",
+		GasPriceModifier:       gasModifier,
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 
@@ -81,11 +83,13 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerMetaMiniBlock: "15000000000",
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
+				ExtraGasLimitGuardedTx:      "50000",
 			},
 		},
-		MinGasPrice:      "1000000000",
-		GasPerDataByte:   "1500",
-		GasPriceModifier: 0.01,
+		MinGasPrice:            "1000000000",
+		GasPerDataByte:         "1500",
+		GasPriceModifier:       0.01,
+		MaxGasPriceSetGuardian: "200000",
 	}
 }
 
@@ -98,6 +102,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -111,6 +116,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: handler,
+		TxVersionChecker:               &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -500,6 +506,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 2,
@@ -509,6 +516,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 
@@ -588,6 +596,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "5000000000",
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 		{
 			EnableEpoch:                 0,
@@ -597,6 +606,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerMetaMiniBlock: "15000000000",
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
+			ExtraGasLimitGuardedTx:      "50000",
 		},
 	}
 
@@ -1123,4 +1133,17 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
 	require.Nil(t, err)
 	require.Equal(t, uint64(11894070000), gasLimit)
+}
+
+func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	maxGasPriceSetGuardianString := "2000000"
+	expectedMaxGasPriceSetGuardian, err := strconv.ParseUint(maxGasPriceSetGuardianString, 10, 64)
+	require.Nil(t, err)
+	args.Economics.FeeSettings.MaxGasPriceSetGuardian = maxGasPriceSetGuardianString
+	economicData, _ := economics.NewEconomicsData(args)
+
+	require.Equal(t, expectedMaxGasPriceSetGuardian, economicData.MaxGasPriceSetGuardian())
 }

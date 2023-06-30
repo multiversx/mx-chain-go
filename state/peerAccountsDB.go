@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -56,7 +57,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	stats := newSnapshotStatistics(0, 1)
 	stats.NewSnapshotStarted()
@@ -70,7 +71,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 
 	trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, peerAccountsMetrics, epoch)
 
@@ -92,11 +93,11 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	stats.NewSnapshotStarted()
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: nil,
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var

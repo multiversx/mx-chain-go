@@ -15,7 +15,7 @@ var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilUint64Converter signals that uint64converter is nil
-var ErrNilUint64Converter = errors.New("unit64converter is nil")
+var ErrNilUint64Converter = errors.New("uint64converter is nil")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")

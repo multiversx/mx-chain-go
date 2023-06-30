@@ -95,6 +95,16 @@ type esdtTokenResponse struct {
 	Code  string                `json:"code"`
 }
 
+type guardianDataResponseData struct {
+	GuardianData api.GuardianData `json:"guardianData"`
+}
+
+type guardianDataResponse struct {
+	Data  guardianDataResponseData `json:"data"`
+	Error string                   `json:"error"`
+	Code  string                   `json:"code"`
+}
+
 type esdtNFTResponse struct {
 	Data  esdtNFTResponseData `json:"data"`
 	Error string              `json:"error"`
@@ -1047,6 +1057,86 @@ func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
 	assert.Equal(t, pairs, response.Data.Pairs)
 }
 
+func TestGetGuardianData(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	t.Run("with empty address should err", func(t *testing.T) {
+		facade := mock.FacadeStub{}
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.Nil(t, err)
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		emptyAddress := ""
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/guardian-data", emptyAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.NotEmpty(t, response)
+		assert.True(t, strings.Contains(response.Error,
+			fmt.Sprintf("%s: %s", apiErrors.ErrGetGuardianData.Error(), apiErrors.ErrEmptyAddress.Error()),
+		))
+	})
+	t.Run("with node fail should err", func(t *testing.T) {
+		expectedErr := errors.New("expected error")
+		facade := mock.FacadeStub{
+			GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+				return api.GuardianData{}, api.BlockInfo{}, expectedErr
+			},
+		}
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/guardian-data", testAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+
+	})
+	t.Run("should work", func(t *testing.T) {
+		expectedGuardianData := api.GuardianData{
+			ActiveGuardian: &api.Guardian{
+				Address:         "guardian1",
+				ActivationEpoch: 0,
+			},
+			PendingGuardian: &api.Guardian{
+				Address:         "guardian2",
+				ActivationEpoch: 10,
+			},
+			Guarded: true,
+		}
+		facade := mock.FacadeStub{
+			GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+				return expectedGuardianData, api.BlockInfo{}, nil
+			},
+		}
+
+		addrGroup, err := groups.NewAddressGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(addrGroup, "address", getAddressRoutesConfig())
+
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/guardian-data", testAddress), nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := guardianDataResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, expectedGuardianData, response.Data.GuardianData)
+	})
+}
+
 func TestGetESDTsRoles_WithEmptyAddressShouldReturnError(t *testing.T) {
 	t.Parallel()
 	facade := mock.FacadeStub{}
@@ -1180,6 +1270,7 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 				Routes: []config.RouteConfig{
 					{Name: "/:address", Open: true},
 					{Name: "/bulk", Open: true},
+					{Name: "/:address/guardian-data", Open: true},
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/code-hash", Open: true},

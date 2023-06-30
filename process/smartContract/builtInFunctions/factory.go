@@ -26,6 +26,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ShardCoordinator          sharding.Coordinator
 	EpochNotifier             vmcommon.EpochNotifier
 	EnableEpochsHandler       vmcommon.EnableEpochsHandler
+	GuardedAccountHandler     vmcommon.GuardedAccountHandler
 	AutomaticCrawlerAddresses [][]byte
 	MaxNumNodesInTransferRole uint32
 }
@@ -53,6 +54,9 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.GuardedAccountHandler) {
+		return nil, process.ErrNilGuardedAccountHandler
+	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
@@ -79,6 +83,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		Accounts:                         vmcommonAccounts,
 		ShardCoordinator:                 args.ShardCoordinator,
 		EnableEpochsHandler:              args.EnableEpochsHandler,
+		GuardedAccountHandler:            args.GuardedAccountHandler,
 		ConfigAddress:                    crawlerAllowedAddress,
 		MaxNumOfAddressesForTransferRole: args.MaxNumNodesInTransferRole,
 	}

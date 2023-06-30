@@ -102,7 +102,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 }
 
 func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	apiTx := &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeNormal),
 		Nonce:            tx.Nonce,
@@ -118,11 +118,18 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) (*transac
 		Options:          tx.Options,
 		Version:          tx.Version,
 		ChainID:          string(tx.ChainID),
-	}, nil
+	}
+
+	if len(tx.GuardianAddr) > 0 {
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.Encode(tx.GuardianAddr)
+		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	return apiTx, nil
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	apiTx := &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeInvalid),
 		Nonce:            tx.Nonce,
@@ -135,7 +142,17 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) (*transa
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
-	}, nil
+		Options:          tx.Options,
+		Version:          tx.Version,
+		ChainID:          string(tx.ChainID),
+	}
+
+	if len(tx.GuardianAddr) > 0 {
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.Encode(tx.GuardianAddr)
+		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	return apiTx, nil
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {

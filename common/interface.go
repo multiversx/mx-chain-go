@@ -13,7 +13,15 @@ import (
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
 type TrieIteratorChannels struct {
 	LeavesChan chan core.KeyValueHolder
-	ErrChan    chan error
+	ErrChan    BufferedErrChan
+}
+
+// BufferedErrChan is an interface that defines the methods for a buffered error channel
+type BufferedErrChan interface {
+	WriteInChanNonBlocking(err error)
+	ReadFromChanNonBlocking() error
+	Close()
+	IsInterfaceNil() bool
 }
 
 // Trie is an interface for Merkle Trees implementations
@@ -327,6 +335,7 @@ type EnableEpochsHandler interface {
 	IsMaxBlockchainHookCountersFlagEnabled() bool
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
+	IsSetGuardianEnabled() bool
 	IsRelayedNonceFixEnabled() bool
 
 	IsInterfaceNil() bool

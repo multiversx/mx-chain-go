@@ -346,8 +346,8 @@ func (stub *BlockChainHookStub) FilterCodeMetadataForUpgrade(input []byte) ([]by
 	return input, nil
 }
 
-// ApplyFiltersOnCodeMetadata -
-func (stub *BlockChainHookStub) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+// ApplyFiltersOnSCCodeMetadata -
+func (stub *BlockChainHookStub) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
 	if stub.ApplyFiltersOnCodeMetadataCalled != nil {
 		stub.ApplyFiltersOnCodeMetadataCalled(codeMetadata)
 	}

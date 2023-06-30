@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -110,7 +111,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -148,7 +149,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
@@ -184,7 +185,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
 			return maxGasLimitPerBlock
 		},
