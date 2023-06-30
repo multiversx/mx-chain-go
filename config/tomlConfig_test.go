@@ -444,7 +444,7 @@ func TestP2pConfig(t *testing.T) {
     ThresholdMinConnectedPeers = 0
 
     [Node.Transports]
-        QUICAddress = "/ip4/0.0.0.0/udp/%d/quic"
+        QUICAddress = "/ip4/0.0.0.0/udp/%d/quic-v1"
         WebSocketAddress = "/ip4/0.0.0.0/tcp/%d/ws" 
         WebTransportAddress = "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport"
         [Node.Transports.TCP]
@@ -484,7 +484,7 @@ func TestP2pConfig(t *testing.T) {
 					ListenAddress:    "/ip4/0.0.0.0/tcp/%d",
 					PreventPortReuse: true,
 				},
-				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic",
+				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
 				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
 				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
 			},
