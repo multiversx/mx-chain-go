@@ -567,3 +567,21 @@ var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
 
 // ErrNilTrieMigrator signals that a nil trie migrator has been provided
 var ErrNilTrieMigrator = errors.New("nil trie migrator")
+
+// ErrInvalidTypeConversion signals that a type conversion has failed
+var ErrInvalidTypeConversion = errors.New("invalid type conversion")
+
+// ErrNilShardBootstrapFactory signals that a nil shard bootstrap factory has been provided
+var ErrNilShardBootstrapFactory = errors.New("nil shard bootstrap factory")
+
+// ErrNilShardStorageBootstrapperFactory signals that a nil shard storage bootstrapper factory has been provided
+var ErrNilShardStorageBootstrapperFactory = errors.New("nil shard storage bootstrapper factory")
+
+// ErrNilResolverRequestFactoryHandler signals that a nil resolver request factory handler has been provided
+var ErrNilResolverRequestFactoryHandler = errors.New("nil resolver request factory handler")
+
+// ErrNilBlockChainHookFactory signals that a nil blockchain hook factory has been provided
+var ErrNilBlockChainHookFactory = errors.New("nil blockchain hook factory")
+
+// ErrNilEpochStartBootstrapperFactory signals that a nil epoch start bootstrapper factory has been provided
+var ErrNilEpochStartBootstrapperFactory = errors.New("nil epoch start bootstrapper factory")

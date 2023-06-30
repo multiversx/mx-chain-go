@@ -10,14 +10,25 @@ import (
 
 // CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
 func CreateBlockChainHook(chainRunType common.ChainRunType, args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
-	bh, err := NewBlockChainHookImpl(args)
+	factory, err := NewBlockChainHookFactory()
+	if err != nil {
+		return nil, err
+	}
+
+	var bhhc BlockChainHookHandlerCreator
 
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		return bh, err
+		bhhc = factory
 	case common.ChainRunTypeSovereign:
-		return NewSovereignBlockChainHook(bh)
+		sovereignFactory, sovErr := NewSovereignBlockChainHookFactory(factory)
+		if sovErr != nil {
+			return nil, sovErr
+		}
+		bhhc = sovereignFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
+
+	return bhhc.CreateBlockChainHookHandler(args)
 }

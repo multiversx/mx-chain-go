@@ -1,5 +1,12 @@
 package requestHandlers
 
+import (
+	"time"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+)
+
 // HashSliceRequester can request multiple hashes at once
 type HashSliceRequester interface {
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
@@ -25,4 +32,20 @@ type EpochRequester interface {
 type HeaderRequester interface {
 	NonceRequester
 	EpochRequester
+}
+
+// RequestHandlerCreator defines the resolver requester factory handler
+type RequestHandlerCreator interface {
+	CreateRequestHandler(resolverRequestArgs RequestHandlerArgs) (process.RequestHandler, error)
+	IsInterfaceNil() bool
+}
+
+// RequestHandlerArgs holds all dependencies required by the process data factory to create components
+type RequestHandlerArgs struct {
+	RequestersFinder      dataRetriever.RequestersFinder
+	RequestedItemsHandler dataRetriever.RequestedItemsHandler
+	WhiteListHandler      process.WhiteListHandler
+	MaxTxsToRequest       int
+	ShardID               uint32
+	RequestInterval       time.Duration
 }
