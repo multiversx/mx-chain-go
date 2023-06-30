@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -105,7 +104,7 @@ func testGasConsumedForDataTrieLoad(
 ) {
 	testContext.CleanIntermediateTransactions(t)
 
-	txData := []byte("trieLoad@" + hex.EncodeToString(key) + "@00")
+	txData := []byte("trieLoad@" + hex.EncodeToString(key) + "@aa@bb@00")
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:    nonce,
 		Value:    big.NewInt(0),
@@ -133,29 +132,12 @@ func testGasConsumedForDataTrieLoad(
 func getTrieDepthForKeys(t *testing.T, tr common.Trie, keys [][]byte) []uint32 {
 	trieLevels := make([]uint32, len(keys))
 	for i, key := range keys {
-		_, depth, err := tr.Get(key)
+		_, depth, err := tr.Get(integrationTests.TestHasher.Compute(string(key)))
 		require.Nil(t, err)
 		trieLevels[i] = depth
 	}
 
 	return trieLevels
-}
-
-func getAccount(t *testing.T, testContext *vm.VMTestContext, scAddress []byte) state.UserAccountHandler {
-	scAcc, err := testContext.Accounts.LoadAccount(scAddress)
-	require.Nil(t, err)
-	acc, ok := scAcc.(state.UserAccountHandler)
-	require.True(t, ok)
-
-	return acc
-}
-
-func getAccountDataTrie(t *testing.T, testContext *vm.VMTestContext, scAddress []byte) common.Trie {
-	acc := getAccount(t, testContext, scAddress)
-	dataTrie, ok := acc.DataTrie().(common.Trie)
-	require.True(t, ok)
-
-	return dataTrie
 }
 
 type funcParams struct {
