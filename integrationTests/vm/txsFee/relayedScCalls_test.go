@@ -29,7 +29,6 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -72,7 +71,6 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -112,7 +110,6 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -152,7 +149,6 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(5)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
@@ -191,7 +187,6 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))

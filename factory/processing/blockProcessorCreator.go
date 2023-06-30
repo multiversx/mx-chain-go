@@ -275,6 +275,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ArgsParser:          argsParser,
 		ScrForwarder:        scForwarder,
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		TxLogsProcessor:     pcf.txLogsProcessor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -579,6 +582,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -1124,6 +1129,8 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        &processDisabled.FeeHandler{},
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
+		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
 	}
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
@@ -1265,6 +1272,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
 		EpochNotifier:             pcf.coreData.EpochNotifier(),
 		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
+		GuardedAccountHandler:     pcf.bootstrapComponents.GuardedAccountHandler(),
 		AutomaticCrawlerAddresses: convertedAddresses,
 		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 	}

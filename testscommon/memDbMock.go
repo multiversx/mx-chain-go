@@ -13,6 +13,7 @@ type MemDbMock struct {
 	db        map[string][]byte
 	mutx      sync.RWMutex
 	PutCalled func(key, val []byte) error
+	GetCalled func(key []byte) ([]byte, error)
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -43,6 +44,10 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 	defer s.mutx.RUnlock()
 
 	val, ok := s.db[string(key)]
+
+	if s.GetCalled != nil {
+		return s.GetCalled(key)
+	}
 
 	if !ok {
 		return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))

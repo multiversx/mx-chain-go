@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -220,16 +221,19 @@ func (context *TestContext) initFeeHandlers() {
 						MaxGasLimitPerMetaMiniBlock: maxGasLimitPerBlock,
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				MinGasPrice:      minGasPrice,
-				GasPerDataByte:   "1",
-				GasPriceModifier: 1.0,
+				MinGasPrice:            minGasPrice,
+				GasPerDataByte:         "1",
+				GasPriceModifier:       1.0,
+				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
 		EpochNotifier:               context.EpochNotifier,
 		EnableEpochsHandler:         context.EnableEpochsHandler,
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -247,6 +251,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		EpochNotifier:             context.EpochNotifier,
 		EnableEpochsHandler:       context.EnableEpochsHandler,
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 
@@ -383,6 +388,9 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: context.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     logsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

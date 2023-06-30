@@ -45,6 +45,7 @@ type txProcessor struct {
 	scrForwarder        process.IntermediateTransactionHandler
 	signMarshalizer     marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
+	txLogsProcessor     process.TransactionLogProcessor
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
@@ -64,6 +65,9 @@ type ArgsNewTxProcessor struct {
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
+	TxLogsProcessor     process.TransactionLogProcessor
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -113,6 +117,15 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -123,6 +136,8 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 
 	txProc := &txProcessor{
@@ -135,6 +150,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		scrForwarder:        args.ScrForwarder,
 		signMarshalizer:     args.SignMarshalizer,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txLogsProcessor:     args.TxLogsProcessor,
 	}
 
 	return txProc, nil
@@ -672,6 +688,8 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) rel
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
+	originalTxHash []byte,
+	originalTx *transaction.Transaction,
 	executionErr error,
 ) error {
 	userAcnt, err := txProc.getAccountFromAddress(userTx.SndAddr)
@@ -696,12 +714,30 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		userAcnt.IncreaseNonce(1)
 	}
 
+	err = txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
+	if err != nil {
+		return err
+	}
+
 	err = txProc.accounts.SaveAccount(userAcnt)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	if !isNonExecutableError(executionErr) {
+		return nil
+	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(core.SignalErrorOperation),
+		Address:    originalTx.GetRcvAddr(),
+	}
+
+	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
@@ -735,11 +771,17 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
+	var originalTxHash []byte
+	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
+	if err != nil {
+		return 0, err
+	}
+
 	relayerAdr := originalTx.SndAddr
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -754,12 +796,6 @@ func (txProc *txProcessor) processUserTx(
 	}
 
 	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
-	if err != nil {
-		return 0, err
-	}
-
-	var originalTxHash []byte
-	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
 	if err != nil {
 		return 0, err
 	}
@@ -791,7 +827,7 @@ func (txProc *txProcessor) processUserTx(
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -949,12 +985,17 @@ func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
 		return true
 	}
 
-	// todo add not executable for guardians
-	if errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrHigherNonceInTransaction) {
+	if isNonExecutableError(executionErr) {
 		return false
 	}
 
 	return true
+}
+
+func isNonExecutableError(executionErr error) bool {
+	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrTransactionNotExecutable)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

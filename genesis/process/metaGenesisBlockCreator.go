@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
+	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -447,6 +448,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
 		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    disabled.NewDisabledTxVersionChecker(),
+		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
