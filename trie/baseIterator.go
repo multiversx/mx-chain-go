@@ -8,7 +8,7 @@ import (
 type baseIterator struct {
 	currentNode node
 	nextNodes   []node
-	db          common.DBWriteCacher
+	db          common.TrieStorageInteractor
 }
 
 // newBaseIterator creates a new instance of trie iterator

@@ -32,9 +32,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -77,7 +79,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -1242,7 +1244,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1376,7 +1378,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},

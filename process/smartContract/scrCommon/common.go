@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"math/big"
 )
 
 // TestSmartContractProcessor is a SmartContractProcessor used in integration tests
@@ -21,6 +22,11 @@ type TestSmartContractProcessor interface {
 	GetGasRemaining() uint64
 	GetAllSCRs() []data.TransactionHandler
 	CleanGasRefunded()
+}
+
+// ExecutableChecker is an interface for checking if a builtin function is executable
+type ExecutableChecker interface {
+	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -63,4 +69,23 @@ func FindVMByScAddress(container process.VirtualMachinesContainer, scAddress []b
 	}
 
 	return vm, vmType, nil
+}
+
+// CreateExecutableCheckersMap creates a map of executable checker builtin functions
+func CreateExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContainer) map[string]ExecutableChecker {
+	executableCheckers := make(map[string]ExecutableChecker)
+
+	for key := range builtinFunctions.Keys() {
+		builtinFunc, err := builtinFunctions.Get(key)
+		if err != nil {
+			continue
+		}
+		executableCheckerFunc, ok := builtinFunc.(ExecutableChecker)
+		if !ok {
+			continue
+		}
+		executableCheckers[key] = executableCheckerFunc
+	}
+
+	return executableCheckers
 }

@@ -80,7 +80,7 @@ func checkBaseSenderArgs(args argBaseSender) error {
 		return fmt.Errorf("%w for timeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
 	if args.thresholdBetweenSends < minThresholdBetweenSends || args.thresholdBetweenSends > maxThresholdBetweenSends {
-		return fmt.Errorf("%w for thresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
+		return fmt.Errorf("%w for thresholdBetweenSends, received %f, min allowed %f, max allowed %f",
 			heartbeat.ErrInvalidThreshold, args.thresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
 	}
 	if check.IfNil(args.privKey) {

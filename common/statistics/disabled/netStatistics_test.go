@@ -33,4 +33,6 @@ func TestNetStatistics_MethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, notAvailable, message)
 
 	stats.EpochConfirmed(0, 0)
+
+	assert.Nil(t, stats.Close())
 }

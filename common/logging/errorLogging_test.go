@@ -25,7 +25,7 @@ func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
 			},
 		}
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, testError, "test",
+		LogErrAsWarnExceptAsDebugIfClosingError(log, testError, "test",
 			"a", 7,
 			"b", []byte("hash"),
 			"err", testError.Error(),
@@ -45,7 +45,7 @@ func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
 			},
 		}
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogWarning, dbError, "test",
+		LogErrAsWarnExceptAsDebugIfClosingError(log, dbError, "test",
 			"a", 7,
 			"b", []byte("hash"),
 			"err", dbError.Error(),
@@ -56,8 +56,8 @@ func TestLogErrAsLevelExceptAsDebugIfClosingError(t *testing.T) {
 	t.Run("no panic on bad input", func(t *testing.T) {
 		log := logger.GetOrCreate("test")
 
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, testError, "", "a", nil)
-		logErrAsLevelExceptAsDebugIfClosingError(log, logger.LogError, nil, "", "a", nil)
-		logErrAsLevelExceptAsDebugIfClosingError(nil, logger.LogError, testError, "")
+		LogErrAsErrorExceptAsDebugIfClosingError(log, testError, "", "a", nil)
+		LogErrAsErrorExceptAsDebugIfClosingError(log, nil, "", "a", nil)
+		LogErrAsErrorExceptAsDebugIfClosingError(nil, testError, "")
 	})
 }

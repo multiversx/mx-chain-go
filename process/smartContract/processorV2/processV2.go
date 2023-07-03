@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -31,7 +30,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/multiversx/mx-chain-vm-go/vmhost/contexts"
 )
 
@@ -88,6 +87,9 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	executableCheckers    map[string]scrCommon.ExecutableChecker
+	mutExecutableCheckers sync.RWMutex
 }
 
 type sameShardExecutionDataAfterBuiltIn struct {
@@ -200,6 +202,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		enableEpochsHandler: args.EnableEpochsHandler,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
+		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
 	var err error
@@ -1447,7 +1450,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	err := sc.accounts.RevertToSnapshot(failureContext.snapshot)
 	if err != nil {
-		if !errors.IsClosingError(err) {
+		if !core.IsClosingError(err) {
 			log.Warn("revert to snapshot", "error", err.Error())
 		}
 
@@ -2737,6 +2740,43 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	err = process.ErrWrongTransaction
 	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+}
+
+// CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
+func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	functionName, arguments, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return err
+	}
+
+	if expectedBuiltinFunction != functionName {
+		return process.ErrBuiltinFunctionMismatch
+	}
+
+	gasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return err
+	}
+
+	sc.mutExecutableCheckers.RLock()
+	executableChecker, ok := sc.executableCheckers[functionName]
+	sc.mutExecutableCheckers.RUnlock()
+	if !ok {
+		return process.ErrBuiltinFunctionNotExecutable
+	}
+
+	// check if the function is executable
+	return executableChecker.CheckIsExecutable(
+		tx.GetSndAddr(),
+		tx.GetValue(),
+		tx.GetRcvAddr(),
+		gasProvided,
+		arguments,
+	)
 }
 
 func (sc *scProcessor) getGasLockedFromSCR(scr *smartContractResult.SmartContractResult) uint64 {

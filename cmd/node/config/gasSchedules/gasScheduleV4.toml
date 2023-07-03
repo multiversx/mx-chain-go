@@ -18,6 +18,8 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
+    TrieLoadPerNode          = 20000
+    TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -103,7 +105,9 @@
     GetPrevTxHash      = 10000
     GetCurrentTxHash   = 10000
     GetCallbackClosure   = 10000
-
+    GetCodeMetadata      = 10000
+    IsBuiltinFunction    = 10000
+    
 [EthAPICost]
     UseGas              = 100
     GetAddress          = 100000

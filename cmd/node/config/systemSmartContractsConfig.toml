@@ -17,7 +17,7 @@
     OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
 
 [GovernanceSystemSCConfig]
-    ChangeConfigAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
+    OwnerAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
     [GovernanceSystemSCConfig.V1]
         NumNodes           = 500
         ProposalCost       = "5000000000000000000" #5 eGLD
@@ -26,6 +26,7 @@
         MinVetoThreshold   = 50
     [GovernanceSystemSCConfig.Active]
         ProposalCost       = "1000000000000000000000" #1000 eGLD
+        LostProposalFee    = "10000000000000000000"   #10 eGLD
         MinQuorum          = 0.5  #fraction of value 0.5  - 50%
         MinPassThreshold   = 0.5  #fraction of value 0.5  - 50%
         MinVetoThreshold   = 0.33 #fraction of value 0.33 - 33%

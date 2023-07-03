@@ -88,6 +88,18 @@ var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower t
 // ErrNilPersistersTracker signals that a nil persisters tracker has been provided
 var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
 
+// ErrNilShardIDProvider signals that a nil shard id provider has been provided
+var ErrNilShardIDProvider = errors.New("nil shard id provider")
+
+// ErrNotSupportedShardIDProviderType is raised when an unsupported shard id provider type is provided
+var ErrNotSupportedShardIDProviderType = errors.New("invalid shard id provider type has been provided")
+
+// ErrInvalidFilePath signals that an invalid file path has been provided
+var ErrInvalidFilePath = errors.New("invalid file path")
+
+// ErrNilDBConfigHandler signals that a nil db config handler has been provided
+var ErrNilDBConfigHandler = errors.New("nil db config handler")
+
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 

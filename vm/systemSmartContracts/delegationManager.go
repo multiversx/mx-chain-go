@@ -200,7 +200,9 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
-	return d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.CallerAddr, args.CallValue, args.Arguments)
+	_, returnCode := d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.CallerAddr, args.CallValue, args.Arguments)
+
+	return returnCode
 }
 
 func (d *delegationManager) deployNewContract(
@@ -210,23 +212,23 @@ func (d *delegationManager) deployNewContract(
 	deployerAddr []byte,
 	depositValue *big.Int,
 	arguments [][]byte,
-) vmcommon.ReturnCode {
+) ([]byte, vmcommon.ReturnCode) {
 	delegationManagement, err := d.getDelegationManagementData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	minValue := big.NewInt(0).Set(delegationManagement.MinDeposit)
 	if args.CallValue.Cmp(minValue) < 0 && checkMinDeposit {
 		d.eei.AddReturnMessage("not enough call value")
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	delegationList, err := getDelegationContractList(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	newAddress := createNewAddress(delegationManagement.LastAddress)
@@ -234,10 +236,10 @@ func (d *delegationManager) deployNewContract(
 	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, deployerAddr, initFunction, depositValue, arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 	if returnCode != vmcommon.Ok {
-		return returnCode
+		return nil, returnCode
 	}
 
 	delegationManagement.NumOfContracts += 1
@@ -251,18 +253,26 @@ func (d *delegationManager) deployNewContract(
 	err = saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	err = d.saveDelegationContractList(delegationList)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	d.eei.Finish(newAddress)
 
-	return vmcommon.Ok
+	return newAddress, vmcommon.Ok
+}
+
+func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		return nil // backwards compatibility
+	}
+
+	return d.eei.UpdateCodeDeployerAddress(string(newAddress), caller)
 }
 
 func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -280,7 +290,18 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
-	return d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
+	newAddress, returnCode := d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.correctOwnerOnAccount(newAddress, args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

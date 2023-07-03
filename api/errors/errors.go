@@ -162,3 +162,6 @@ var ErrRegisteredNFTTokenIDs = errors.New("getting registered nft token ids erro
 
 // ErrInvalidRole signals that an invalid role was provided
 var ErrInvalidRole = errors.New("invalid role")
+
+// ErrIsDataTrieMigrated signals that an error occurred while trying to verify the migration status of the data trie
+var ErrIsDataTrieMigrated = errors.New("could not verify the migration status of the data trie")

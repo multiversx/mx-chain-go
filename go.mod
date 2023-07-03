@@ -13,22 +13,22 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-core-go v1.2.3-0.20230531140945-b7bc17bd66fe
-	github.com/multiversx/mx-chain-crypto-go v1.2.6
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.1
+	github.com/multiversx/mx-chain-communication-go v1.0.3
+	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230703090922-9bca4fc66269
+	github.com/multiversx/mx-chain-crypto-go v1.2.7
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.5
 	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-p2p-go v1.0.16
 	github.com/multiversx/mx-chain-scenario-go v1.1.3-0.20230516140717-d1799bcc9bfd
-	github.com/multiversx/mx-chain-storage-go v1.0.8
-	github.com/multiversx/mx-chain-vm-common-go v1.4.2-0.20230531140910-a909ddad23d6
-	github.com/multiversx/mx-chain-vm-go v1.5.4-0.20230531141145-a105dc8676c3
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54-0.20230512081309-5a21e9f58f75
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55-0.20230512080225-93b429c3fad7
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.81-0.20230512080139-c7f54612ba66
+	github.com/multiversx/mx-chain-storage-go v1.0.11
+	github.com/multiversx/mx-chain-vm-common-go v1.5.1-0.20230703074321-551d870ceb5c
+	github.com/multiversx/mx-chain-vm-go v1.5.5-0.20230703084454-9fd1e35c0b9c
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.59
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.60
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.86
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.7.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
@@ -74,7 +74,7 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.6.0 // indirect
-	github.com/herumi/bls-go-binary v1.0.0 // indirect
+	github.com/herumi/bls-go-binary v1.28.2 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-datastore v0.5.1 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/smartystreets/assertions v1.13.0 // indirect
+	github.com/smartystreets/assertions v1.13.1 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect

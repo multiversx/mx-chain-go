@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -906,7 +907,7 @@ func createWrappedTransaction(
 	receiverShardID uint32,
 ) *txcache.WrappedTransaction {
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	txMarshalled, _ := marshaller.Marshal(tx)
 	txHash := hasher.Compute(string(txMarshalled))
 

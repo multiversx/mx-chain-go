@@ -14,6 +14,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDelegationData_UnmarshalJSONInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	data := &DelegationData{}
+	err := data.UnmarshalJSON([]byte("invalid data"))
+	assert.Error(t, err)
+}
+
 func TestDelegationData_MarshalUnmarshalEmptyStruct(t *testing.T) {
 	t.Parallel()
 

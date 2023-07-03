@@ -46,7 +46,7 @@ func getCodeAndData(accountsDB state.AccountsAdapter, address []byte) (code []by
 
 	rootHash := userAccount.GetRootHash()
 	if len(rootHash) > 0 {
-		csvHexedData, err = getData(accountsDB, rootHash, address)
+		csvHexedData, err = getData(userAccount)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -64,36 +64,29 @@ func getCode(accountsDB state.AccountsAdapter, codeHash []byte) ([]byte, error) 
 	return code, nil
 }
 
-func getData(accountsDB state.AccountsAdapter, rootHash []byte, address []byte) ([]string, error) {
+func getData(account state.UserAccountHandler) ([]string, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
-	err := accountsDB.GetAllLeaves(leavesChannels, context.Background(), rootHash)
+	err := account.GetAllLeaves(leavesChannels, context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("%w while trying to export data on hex root hash %s, address %s",
-			err, hex.EncodeToString(rootHash), hex.EncodeToString(address))
+			err, hex.EncodeToString(account.GetRootHash()), hex.EncodeToString(account.AddressBytes()))
 	}
 
 	lines := make([]string, 0)
 	for keyVal := range leavesChannels.LeavesChan {
-		suffix := append(keyVal.Key(), address...)
-		valWithoutSuffix, errTrim := keyVal.ValueWithoutSuffix(suffix)
-		if errTrim != nil {
-			return nil, fmt.Errorf("%w while trying to export data on hex root hash %s, address %s",
-				errTrim, hex.EncodeToString(rootHash), hex.EncodeToString(address))
-		}
-
 		lines = append(lines, fmt.Sprintf("%s,%s",
 			hex.EncodeToString(keyVal.Key()),
-			hex.EncodeToString(valWithoutSuffix)))
+			hex.EncodeToString(keyVal.Value())))
 	}
 
 	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, fmt.Errorf("%w while trying to export data on hex root hash %s, address %s",
-			err, hex.EncodeToString(rootHash), hex.EncodeToString(address))
+			err, hex.EncodeToString(account.GetRootHash()), hex.EncodeToString(account.AddressBytes()))
 	}
 
 	return lines, nil
