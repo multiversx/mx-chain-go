@@ -103,6 +103,7 @@ type baseProcessor struct {
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
+	roundNotifier       process.RoundNotifier
 	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
@@ -516,7 +517,10 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.EnableRoundsHandler) {
+	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
+		return process.ErrNilRoundNotifier
+	}
+	if check.IfNil(arguments.CoreComponents.EnableRoundsHandler()) {
 		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.StatusCoreComponents) {

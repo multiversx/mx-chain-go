@@ -42,7 +42,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -94,7 +94,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
-				"Example": {
+				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
 			},
@@ -653,11 +653,13 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
-			HostDriverConfig: config.HostDriverConfig{
-				MarshallerType:     "json",
-				Mode:               "client",
-				URL:                "localhost:12345",
-				RetryDurationInSec: 1,
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType:     "json",
+					Mode:               "client",
+					URL:                "localhost:12345",
+					RetryDurationInSec: 1,
+				},
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},

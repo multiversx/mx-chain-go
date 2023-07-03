@@ -13,6 +13,7 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -134,7 +135,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
-	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
+	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		service.wasmVMChangeLocker.RUnlock()
 		return nil, err
