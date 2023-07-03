@@ -42,7 +42,6 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, senderAddr, 0, egldBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -101,7 +100,6 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 	token := []byte("miiutoken")
 	roles := [][]byte{[]byte(core.ESDTRoleNFTCreate)}
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(500000)
 	pathToContract := "testdata/minter/minter.wasm"

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
@@ -22,6 +23,7 @@ import (
 var (
 	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
 	signingMarshalizer = &marshal.JsonMarshalizer{}
+	txSignHasher       = keccak.NewKeccak()
 	signer             = &singlesig.Ed25519Signer{}
 	signingCryptoSuite = ed25519.NewEd25519()
 	contentMarshalizer = &marshal.GogoProtoMarshalizer{}
@@ -189,7 +191,7 @@ func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transac
 	privateKey, err := keyGenerator.PrivateKeyFromByteArray(senderSeed)
 	require.Nil(t, err)
 
-	dataToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer)
+	dataToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer, txSignHasher)
 	require.Nil(t, err)
 
 	signature, err := signer.Sign(privateKey, dataToSign)
