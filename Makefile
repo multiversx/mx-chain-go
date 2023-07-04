@@ -100,7 +100,7 @@ check-cli-md:
 	cd ./cmd/seednode && go build
 	cd ./cmd/termui && go build
 	cd ./cmd && bash ./CLI.md.sh
-	@status=$$(git status --porcelain); \
+	@status=$$(git status --porcelain | grep CLI); \
     	if [ ! -z "$${status}" ]; \
     	then \
     		echo "Error - please update all CLI.md files by running the 'cli-docs' or 'check-cli-md' from Makefile!"; \
