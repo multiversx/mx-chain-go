@@ -1,5 +1,5 @@
 //go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. userAccountData.proto
-package state
+package accounts
 
 import (
 	"bytes"
@@ -7,109 +7,57 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-var _ UserAccountHandler = (*userAccount)(nil)
+var _ state.UserAccountHandler = (*userAccount)(nil)
 
-// Account is the struct used in serialization/deserialization
+// userAccount holds all the information about a user account
 type userAccount struct {
-	*baseAccount
 	UserAccountData
-	marshaller          marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
+
+	dataTrieInteractor
+	dataTrieLeafParser common.TrieLeafParser
+	code               []byte
+	hasNewCode         bool
 }
 
 var zero = big.NewInt(0)
 
-// ArgsAccountCreation holds the arguments needed to create a new instance of userAccount
-type ArgsAccountCreation struct {
-	Hasher              hashing.Hasher
-	Marshaller          marshal.Marshalizer
-	EnableEpochsHandler common.EnableEpochsHandler
-}
-
-// NewUserAccount creates a new instance of userAccount
+// NewUserAccount creates a new instance of user account
 func NewUserAccount(
 	address []byte,
-	args ArgsAccountCreation,
+	trackableDataTrie state.DataTrieTracker,
+	trieLeafParser common.TrieLeafParser,
 ) (*userAccount, error) {
 	if len(address) == 0 {
-		return nil, ErrNilAddress
+		return nil, errors.ErrNilAddress
 	}
-	err := checkArgs(args)
-	if err != nil {
-		return nil, err
+	if check.IfNil(trackableDataTrie) {
+		return nil, errors.ErrNilTrackableDataTrie
 	}
-
-	tdt, err := NewTrackableDataTrie(address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
-	if err != nil {
-		return nil, err
+	if check.IfNil(trieLeafParser) {
+		return nil, errors.ErrNilTrieLeafParser
 	}
 
 	return &userAccount{
-		baseAccount: &baseAccount{
-			address:         address,
-			dataTrieTracker: tdt,
-		},
 		UserAccountData: UserAccountData{
 			DeveloperReward: big.NewInt(0),
 			Balance:         big.NewInt(0),
 			Address:         address,
 		},
-		marshaller:          args.Marshaller,
-		enableEpochsHandler: args.EnableEpochsHandler,
+		dataTrieInteractor: trackableDataTrie,
+		dataTrieLeafParser: trieLeafParser,
 	}, nil
 }
 
-// NewUserAccountFromBytes creates a new instance of userAccount from the given bytes
-func NewUserAccountFromBytes(
-	accountBytes []byte,
-	args ArgsAccountCreation,
-) (*userAccount, error) {
-	err := checkArgs(args)
-	if err != nil {
-		return nil, err
-	}
-
-	acc := &userAccount{}
-	err = args.Marshaller.Unmarshal(acc, accountBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	tdt, err := NewTrackableDataTrie(acc.Address, nil, args.Hasher, args.Marshaller, args.EnableEpochsHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	acc.baseAccount = &baseAccount{
-		address:         acc.Address,
-		dataTrieTracker: tdt,
-	}
-	acc.marshaller = args.Marshaller
-	acc.enableEpochsHandler = args.EnableEpochsHandler
-
-	return acc, nil
-}
-
-func checkArgs(args ArgsAccountCreation) error {
-	if check.IfNil(args.Marshaller) {
-		return ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return ErrNilHasher
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return ErrNilEnableEpochsHandler
-	}
-
-	return nil
+// AddressBytes returns the address associated with the account as byte slice
+func (a *userAccount) AddressBytes() []byte {
+	return a.Address
 }
 
 // SetUserName sets the users name
@@ -122,7 +70,7 @@ func (a *userAccount) SetUserName(userName []byte) {
 func (a *userAccount) AddToBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Add(a.Balance, value)
 	if newBalance.Cmp(zero) < 0 {
-		return ErrInsufficientFunds
+		return errors.ErrInsufficientFunds
 	}
 
 	a.Balance = newBalance
@@ -133,7 +81,7 @@ func (a *userAccount) AddToBalance(value *big.Int) error {
 func (a *userAccount) SubFromBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Sub(a.Balance, value)
 	if newBalance.Cmp(zero) < 0 {
-		return ErrInsufficientFunds
+		return errors.ErrInsufficientFunds
 	}
 
 	a.Balance = newBalance
@@ -148,7 +96,7 @@ func (a *userAccount) GetBalance() *big.Int {
 // ClaimDeveloperRewards returns the accumulated developer rewards and sets it to 0 in the account
 func (a *userAccount) ClaimDeveloperRewards(sndAddress []byte) (*big.Int, error) {
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
-		return nil, ErrOperationNotPermitted
+		return nil, errors.ErrOperationNotPermitted
 	}
 
 	oldValue := big.NewInt(0).Set(a.DeveloperReward)
@@ -170,10 +118,10 @@ func (a *userAccount) GetDeveloperReward() *big.Int {
 // ChangeOwnerAddress changes the owner account if operation is permitted
 func (a *userAccount) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) error {
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
-		return ErrOperationNotPermitted
+		return errors.ErrOperationNotPermitted
 	}
-	if len(newAddress) != len(a.address) {
-		return ErrInvalidAddressLength
+	if len(newAddress) != len(a.Address) {
+		return errors.ErrInvalidAddressLength
 	}
 
 	a.OwnerAddress = newAddress
@@ -218,32 +166,48 @@ func (a *userAccount) GetAllLeaves(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	dataTrie := a.dataTrieTracker.DataTrie()
-	if check.IfNil(dataTrie) {
-		return ErrNilTrie
+	dt := a.dataTrieInteractor.DataTrie()
+	if check.IfNil(dt) {
+		return errors.ErrNilTrie
 	}
 
-	rootHash, err := dataTrie.RootHash()
+	rootHash, err := dt.RootHash()
 	if err != nil {
 		return err
 	}
 
-	tlp, err := parsers.NewDataTrieLeafParser(a.Address, a.marshaller, a.enableEpochsHandler)
-	if err != nil {
-		return err
-	}
-
-	return dataTrie.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), tlp)
+	return dt.GetAllLeavesOnChannel(leavesChannels, ctx, rootHash, keyBuilder.NewKeyBuilder(), a.dataTrieLeafParser)
 }
 
 // IsDataTrieMigrated returns true if the data trie is migrated to the latest version
 func (a *userAccount) IsDataTrieMigrated() (bool, error) {
-	dt := a.dataTrieTracker.DataTrie()
+	dt := a.dataTrieInteractor.DataTrie()
 	if check.IfNil(dt) {
-		return false, ErrNilTrie
+		return false, errors.ErrNilTrie
 	}
 
 	return dt.IsMigratedToLatestVersion()
+}
+
+// SetCode sets the actual code that needs to be run in the VM
+func (a *userAccount) SetCode(code []byte) {
+	a.hasNewCode = true
+	a.code = code
+}
+
+// GetCode returns the code that needs to be run in the VM
+func (a *userAccount) GetCode() []byte {
+	return a.code
+}
+
+// HasNewCode returns true if there was a code change for the account
+func (a *userAccount) HasNewCode() bool {
+	return a.hasNewCode
+}
+
+// AccountDataHandler returns the account data handler
+func (a *userAccount) AccountDataHandler() vmcommon.AccountDataHandler {
+	return a.dataTrieInteractor
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
