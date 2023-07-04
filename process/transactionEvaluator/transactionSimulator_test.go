@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"encoding/hex"
@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -221,14 +222,20 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 }
 
 func getTxSimulatorArgs() ArgsTxSimulator {
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
+	dataFieldParser, _ := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: pubKeyConverter.Len(),
+		Marshalizer:   &mock.MarshalizerMock{},
+	})
 	return ArgsTxSimulator{
 		TransactionProcessor:      &testscommon.TxProcessorStub{},
 		IntermediateProcContainer: &mock.IntermProcessorContainerStub{},
-		AddressPubKeyConverter:    &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:    pubKeyConverter,
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		VMOutputCacher:            txcache.NewDisabledCache(),
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &hashingMocks.HasherMock{},
+		DataFieldParser:           dataFieldParser,
 	}
 }
 

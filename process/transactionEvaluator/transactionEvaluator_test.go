@@ -1,4 +1,4 @@
-package transaction
+package transactionEvaluator
 
 import (
 	"errors"
@@ -12,8 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -22,76 +21,63 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
-	t.Parallel()
+func createArgs() ArgsApiTransactionEvaluator {
+	return ArgsApiTransactionEvaluator{
+		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
+		FeeHandler:          &economicsmocks.EconomicsHandlerStub{},
+		TxSimulator:         &mock.TransactionSimulatorStub{},
+		Accounts:            &stateMock.AccountsStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+}
 
-	tce, err := NewTransactionCostEstimator(
-		nil,
-		&economicsmocks.EconomicsHandlerStub{},
-		&mock.TransactionSimulatorStub{},
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+func TestTransactionEvaluator_NilTxTypeHandler(t *testing.T) {
+	t.Parallel()
+	args := createArgs()
+	args.TxTypeHandler = nil
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
 }
 
-func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(
-		&testscommon.TxTypeHandlerMock{},
-		nil,
-		&mock.TransactionSimulatorStub{},
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-
+	args := createArgs()
+	args.FeeHandler = nil
+	tce, err := NewAPITransactionEvaluator(args)
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(
-		&testscommon.TxTypeHandlerMock{},
-		&economicsmocks.EconomicsHandlerStub{},
-		nil,
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-
+	args := createArgs()
+	args.TxSimulator = nil
+	tce, err := NewAPITransactionEvaluator(args)
 	require.Nil(t, tce)
-	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
+	require.Equal(t, ErrNilTxSimulatorProcessor, err)
 }
 
-func TestTransactionCostEstimator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+func TestTransactionEvaluator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(
-		&testscommon.TxTypeHandlerMock{},
-		&economicsmocks.EconomicsHandlerStub{},
-		&mock.TransactionSimulatorStub{},
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		nil)
+	args := createArgs()
+	args.EnableEpochsHandler = nil
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
-func TestTransactionCostEstimator_Ok(t *testing.T) {
+func TestTransactionEvaluator_Ok(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(
-		&testscommon.TxTypeHandlerMock{},
-		&economicsmocks.EconomicsHandlerStub{},
-		&mock.TransactionSimulatorStub{},
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	args := createArgs()
+	tce, err := NewAPITransactionEvaluator(args)
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -101,27 +87,33 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	t.Parallel()
 
 	consumedGasUnits := uint64(1000)
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
-	}, &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-			return &txSimData.SimulationResults{}, nil
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{}, nil
 		},
-	}, &stateMock.AccountsStub{
+	}
+	args.Accounts = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
-	}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	tce, err := NewAPITransactionEvaluator(args)
+	require.Nil(t, err)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -134,27 +126,32 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 
 	simulationErr := errors.New("invalid nonce")
 	consumedGasUnits := uint64(1000)
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
-	}, &mock.TransactionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 			return nil, simulationErr
 		},
-	}, &stateMock.AccountsStub{
+	}
+	args.Accounts = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
-	}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -164,30 +161,33 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 
 func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	consumedGasUnits := uint64(4000)
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
-	},
-		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-				return &txSimData.SimulationResults{
-					VMOutput: &vmcommon.VMOutput{
-						ReturnCode:   vmcommon.Ok,
-						GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
-					},
-				}, nil
-			},
-		}, &stateMock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
-			},
-		}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{
+				VMOutput: &vmcommon.VMOutput{
+					ReturnCode:   vmcommon.Ok,
+					GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
+				},
+			}, nil
+		},
+	}
+	args.Accounts = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -197,25 +197,28 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 
 func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
-	},
-		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-				return nil, localErr
-			},
-		}, &stateMock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
-			},
-		}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return nil, localErr
+		},
+	}
+	args.Accounts = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -224,25 +227,28 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
-	},
-		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-				return &txSimData.SimulationResults{}, nil
-			},
-		}, &stateMock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
-			},
-		}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{}, nil
+		},
+	}
+	args.Accounts = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -251,29 +257,33 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
-	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &economicsmocks.EconomicsHandlerStub{
+	}
+	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
-	},
-		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-				return &txSimData.SimulationResults{
-					VMOutput: &vmcommon.VMOutput{
-						ReturnCode: vmcommon.UserError,
-					},
-				}, nil
-			},
-		}, &stateMock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
-			},
-		}, &mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+			return &txSimData.SimulationResultsWithVMOutput{
+				VMOutput: &vmcommon.VMOutput{
+					ReturnCode: vmcommon.UserError,
+				},
+			}, nil
+		},
+	}
+	args.Accounts = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}
+
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -281,20 +291,16 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 	require.True(t, strings.Contains(cost.ReturnMessage, vmcommon.UserError.String()))
 }
 
-func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
+func TestTransactionEvaluator_RelayedTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, _ := NewTransactionCostEstimator(
-		&testscommon.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-				return process.RelayedTx, process.RelayedTx
-			},
+	args := createArgs()
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.RelayedTx, process.RelayedTx
 		},
-		&economicsmocks.EconomicsHandlerStub{},
-		&mock.TransactionSimulatorStub{},
-		&stateMock.AccountsStub{},
-		&mock.ShardCoordinatorStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	}
+	tce, _ := NewAPITransactionEvaluator(args)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
