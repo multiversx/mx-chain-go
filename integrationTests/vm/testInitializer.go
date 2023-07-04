@@ -46,8 +46,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/process/transaction"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -67,6 +67,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -136,7 +137,7 @@ type VMTestContext struct {
 	ContractOwner VMTestAccount
 	Contract      VMTestAccount
 
-	TxCostHandler    external.TransactionCostHandler
+	TxCostHandler    external.TransactionEvaluator
 	TxsLogsProcessor process.TransactionLogProcessor
 }
 
@@ -790,7 +791,7 @@ type ResultsCreateTxProcessor struct {
 	SCProc             scrCommon.TestSmartContractProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
 	EconomicsHandler   process.EconomicsDataHandler
-	CostHandler        external.TransactionCostHandler
+	CostHandler        external.TransactionEvaluator
 	TxLogProc          process.TransactionLogProcessor
 }
 
@@ -899,7 +900,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	// create transaction simulator
-	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(accnts)
+	simulationAccountsDB, err := transactionEvaluator.NewSimulationAccountsDB(accnts)
 	if err != nil {
 		return nil, err
 	}
@@ -947,24 +948,34 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	argsNewSCProcessor.TxFeeHandler = &processDisabled.FeeHandler{}
 	argsNewTxProcessor.TxFeeHandler = &processDisabled.FeeHandler{}
 
-	argsNewSCProcessor.AccountsDB = readOnlyAccountsDB
+	argsNewSCProcessor.AccountsDB = simulationAccountsDB
 
 	vmOutputCacher, _ := storageunit.NewCache(storageunit.CacheConfig{
 		Type:     storageunit.LRUCache,
 		Capacity: 10000,
 	})
-	txSimulatorProcessorArgs := txsimulator.ArgsTxSimulator{
+
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: pubkeyConv.Len(),
+		Marshalizer:   integrationtests.TestMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	txSimulatorProcessorArgs := transactionEvaluator.ArgsTxSimulator{
 		AddressPubKeyConverter: pubkeyConv,
 		ShardCoordinator:       shardCoordinator,
 		VMOutputCacher:         vmOutputCacher,
 		Marshalizer:            integrationtests.TestMarshalizer,
 		Hasher:                 integrationtests.TestHasher,
+		DataFieldParser:        dataFieldParser,
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 	proxyProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 	argsNewTxProcessor.ScProcessor = proxyProcessor
-	argsNewTxProcessor.Accounts = readOnlyAccountsDB
+	argsNewTxProcessor.Accounts = simulationAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -973,19 +984,20 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
-	txSimulator, err := txsimulator.NewTransactionSimulator(txSimulatorProcessorArgs)
+	txSimulator, err := transactionEvaluator.NewTransactionSimulator(txSimulatorProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	txCostEstimator, err := transaction.NewTransactionCostEstimator(
-		txTypeHandler,
-		economicsData,
-		txSimulator,
-		argsNewTxProcessor.Accounts,
-		shardCoordinator,
-		argsNewSCProcessor.EnableEpochsHandler,
-	)
+	argsTransactionEvaluator := transactionEvaluator.ArgsApiTransactionEvaluator{
+		TxTypeHandler:       txTypeHandler,
+		FeeHandler:          economicsData,
+		TxSimulator:         txSimulator,
+		Accounts:            simulationAccountsDB,
+		ShardCoordinator:    shardCoordinator,
+		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
+	}
+	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	if err != nil {
 		return nil, err
 	}
@@ -995,7 +1007,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		SCProc:             scProcessorProxy,
 		IntermediateTxProc: intermediateTxHandler,
 		EconomicsHandler:   economicsData,
-		CostHandler:        txCostEstimator,
+		CostHandler:        apiTransactionEvaluator,
 		TxLogProc:          logProc,
 	}, nil
 }

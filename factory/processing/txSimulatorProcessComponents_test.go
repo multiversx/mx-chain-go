@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestManagedProcessComponents_createTxSimulatorProcessor(t *testing.T) {
+func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinatorForShardID2 := mock.NewMultiShardsCoordinatorMock(3)
@@ -26,9 +26,9 @@ func TestManagedProcessComponents_createTxSimulatorProcessor(t *testing.T) {
 		processArgs.Config.VMOutputCacher.Type = "invalid"
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		txSimulator, vmContainerFactory, err := pcf.CreateTxSimulatorProcessor()
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
 		assert.NotNil(t, err)
-		assert.True(t, check.IfNil(txSimulator))
+		assert.True(t, check.IfNil(apiTransactionEvaluator))
 		assert.True(t, check.IfNil(vmContainerFactory))
 		assert.Contains(t, err.Error(), "not supported cache type")
 	})
@@ -36,18 +36,18 @@ func TestManagedProcessComponents_createTxSimulatorProcessor(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		txSimulator, vmContainerFactory, err := pcf.CreateTxSimulatorProcessor()
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(txSimulator))
+		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
 	})
 	t.Run("should work for metachain", func(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		txSimulator, vmContainerFactory, err := pcf.CreateTxSimulatorProcessor()
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
 		assert.Nil(t, err)
-		assert.False(t, check.IfNil(txSimulator))
+		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
 	})
 }

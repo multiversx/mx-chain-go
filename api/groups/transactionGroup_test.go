@@ -21,7 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/external"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -601,7 +601,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 				return expectedErr
 			},
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				require.Fail(t, "should have not been called")
 				return nil, nil
 			},
@@ -626,7 +626,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
 				return nil
 			},
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				return nil, expectedErr
 			},
 		}
@@ -646,14 +646,16 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 		processTxWasCalled := false
 
 		facade := &mock.FacadeStub{
-			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResults, error) {
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 				processTxWasCalled = true
-				return &txSimData.SimulationResults{
-					Status:     "ok",
-					FailReason: "no reason",
-					ScResults:  nil,
-					Receipts:   nil,
-					Hash:       "hash",
+				return &txSimData.SimulationResultsWithVMOutput{
+					SimulationResults: dataTx.SimulationResults{
+						Status:     "ok",
+						FailReason: "no reason",
+						ScResults:  nil,
+						Receipts:   nil,
+						Hash:       "hash",
+					},
 				}, nil
 			},
 			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
