@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/google/gops v0.3.18
 	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230703132206-b44cc03248c9
-	github.com/multiversx/mx-chain-go v1.5.9-0.20230704103417-938121b32195
+	github.com/multiversx/mx-chain-go v1.5.9-0.20230704130032-d1d35fc7862d
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230704120543-ebb0ce706b76
 	github.com/stretchr/testify v1.8.2
