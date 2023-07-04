@@ -16,12 +16,12 @@ AUTHOR:
    
 GLOBAL OPTIONS:
    --address value            Address and port number on which the application will try to connect to the mx-chain-go node (default: "127.0.0.1:8080")
-   --level value              This flag specifies the logger levels and patterns (default: "*:INFO ")
-   --file                     Will automatically log into a file
-   --working-directory value  The application will store here the logs in a subfolder.
-   --use-wss                  Will use wss instead of ws when creating the web socket
-   --correlation              Will include log correlation elements
-   --logger-name              Will include logger name
+   --log-level                This flag specifies the logger levels and patterns (default: "*:INFO ")
+   --log-save                 Will automatically log into a file
+   --log-correlation          Will include log correlation elements
+   --log-logger-name          Will include logger name   
+   --working-directory        The application will store here the logs in a subfolder.
+   --use-wss                  Will use wss instead of ws when creating the web socket                   
    --help, -h                 show help
    --version, -v              print the version
    
