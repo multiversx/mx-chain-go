@@ -643,6 +643,7 @@ func getBaseAccountSyncerArgs(
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 
@@ -683,7 +684,6 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   currentNode.GetProcessComponents().TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
