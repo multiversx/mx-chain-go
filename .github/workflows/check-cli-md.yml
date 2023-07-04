@@ -1,4 +1,4 @@
-name: Build
+name: Check CLI.md files
 
 on:
   pull_request:
