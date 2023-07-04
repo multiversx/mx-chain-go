@@ -1415,6 +1415,7 @@ func (bp *baseProcessor) setRoundNonceInitFees(
 	if err != nil {
 		return err
 	}
+	bp.roundNotifier.CheckRound(header.ShallowClone())
 
 	err = header.SetNonce(nonce)
 	if err != nil {

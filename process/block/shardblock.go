@@ -1405,9 +1405,6 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 		return nil, err
 	}
 
-	// TODO: MARIUSCIUCA CHECK THIS
-	sp.roundNotifier.CheckRound(header)
-
 	err = sp.setHeaderVersionData(shardHeader)
 	if err != nil {
 		return nil, err
