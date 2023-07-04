@@ -11,7 +11,7 @@ import (
 )
 
 type ArgsHostDriverFactory struct {
-	HostConfig config.HostDriverConfig
+	HostConfig config.HostDriversConfig
 	Marshaller marshal.Marshalizer
 }
 

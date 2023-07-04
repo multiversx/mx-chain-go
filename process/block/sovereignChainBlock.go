@@ -86,7 +86,7 @@ func NewSovereignChainBlockProcessor(
 
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	scbp.enableRoundsHandler.CheckRound(round)
+	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
 			SoftwareVersion: process.SovereignHeaderVersion,

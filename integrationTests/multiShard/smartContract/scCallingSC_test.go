@@ -163,7 +163,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/wasm/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter_old.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -492,6 +492,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		vmOutput.ReturnCode = vmcommon.Ok
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
+			Index:     1,
 			Value:     big.NewInt(0),
 			GasLimit:  200000,
 			GasLocked: vmInput.GasLocked,

@@ -79,7 +79,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
 	require.Equal(t, 2, len(intermediateTxs))
 
-	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
 }
 
@@ -201,7 +201,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
 	require.Equal(t, 2, len(intermediateTxs))
 
-	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)

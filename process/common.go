@@ -26,6 +26,8 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+const VMStoragePrefix = "VM@"
+
 //TODO: If sovereign chain will have V2, the mechanism of getting header version when a new headers is created, should be like
 //the one used in main chain through versionedHeaderFactory.Create
 
@@ -799,6 +801,15 @@ func DisplayProcessTxDetails(
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
 func IsAllowedToSaveUnderKey(key []byte) bool {
+	vmStoragePrefix := core.ProtectedKeyPrefix + VMStoragePrefix
+	vmPrefixLen := len(vmStoragePrefix)
+	if len(key) > vmPrefixLen {
+		trimmedKey := key[:len(vmStoragePrefix)]
+		if bytes.Equal(trimmedKey, []byte(vmStoragePrefix)) {
+			return true
+		}
+	}
+
 	prefixLen := len(core.ProtectedKeyPrefix)
 	if len(key) < prefixLen {
 		return true

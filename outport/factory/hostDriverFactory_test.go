@@ -14,7 +14,7 @@ func TestCreateHostDriver(t *testing.T) {
 	t.Parallel()
 
 	args := ArgsHostDriverFactory{
-		HostConfig: config.HostDriverConfig{
+		HostConfig: config.HostDriversConfig{
 			URL:                "localhost",
 			RetryDurationInSec: 1,
 			MarshallerType:     "json",
