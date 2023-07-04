@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -170,18 +169,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(
-		txTypeHandler,
-		args.CoreComponents.EconomicsData(),
-		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapterAPI(),
-		args.ProcessComponents.ShardCoordinator(),
-		args.CoreComponents.EnableEpochsHandler(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	accountsWrapper := &trieIterators.AccountsWrapper{
 		Mutex:           &sync.Mutex{},
 		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
@@ -273,7 +260,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           scQueryService,
 		StatusMetricsHandler:     args.StatusCoreComponents.StatusMetrics(),
-		TxCostHandler:            txCostHandler,
+		APITransactionEvaluator:  args.ProcessComponents.APITransactionEvaluator(),
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
 		DelegatedListHandler:     delegatedListHandler,
@@ -465,6 +452,11 @@ func createScQueryElement(
 	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
 
 	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = vmFactory.BlockChainHookImpl().SetVMContainer(vmContainer)
 	if err != nil {
 		return nil, err
 	}

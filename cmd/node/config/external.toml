@@ -41,7 +41,7 @@
     # marshalled structures in block events data
     MarshallerType = "json"
 
-[HostDriverConfig]
+[[HostDriversConfig]]
     # This flag shall only be used for observer nodes
     Enabled = false
     # This flag will start the WebSocket connector as server or client (can be "client" or "server")

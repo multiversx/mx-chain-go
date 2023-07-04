@@ -25,8 +25,8 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
-	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
+	scAddr, owner := utils.DoDeployOldCounter(t, testContextDst, pathToContract)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 	testContextDst.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -101,8 +101,8 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
-	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
+	scAddr, owner := utils.DoDeployOldCounter(t, testContextDst, pathToContract)
 	testContextDst.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
