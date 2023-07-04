@@ -34,10 +34,6 @@ func haveTimeTrue() bool {
 	return true
 }
 
-func haveTimeFalse() bool {
-	return false
-}
-
 func getNumOfCrossInterMbsAndTxsZero() (int, int) {
 	return 0, 0
 }
