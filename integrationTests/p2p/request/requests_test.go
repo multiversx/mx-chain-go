@@ -34,25 +34,6 @@ func TestRequestsInShardingEnvironmentWithConnectNewNode(t *testing.T) {
 		}
 	}()
 
-	//// metachain nodes will contain a dummy metablock in their caches
-	//metablock := &block.MetaBlock{
-	//	Nonce:                  1,
-	//	Round:                  1,
-	//	TimeStamp:              uint64(time.Now().Unix()),
-	//	RootHash:               []byte("root hash"),
-	//	PubKeysBitmap:          []byte{0},
-	//	PrevHash:               []byte("prev hash"),
-	//	Signature:              []byte("signature"),
-	//	RandSeed:               []byte("rand seed"),
-	//	PrevRandSeed:           []byte("prev rand seed"),
-	//	ValidatorStatsRootHash: []byte("validator root hash"),
-	//	ChainID:                integrationTests.ChainID,
-	//	SoftwareVersion:        []byte("version"),
-	//	AccumulatedFees:        big.NewInt(0),
-	//	AccumulatedFeesInEpoch: big.NewInt(0),
-	//	DeveloperFees:          big.NewInt(0),
-	//	DevFeesInEpoch:         big.NewInt(0),
-	//}
 	mb := &block.MiniBlock{
 		TxHashes:        [][]byte{[]byte("tx hash1")},
 		ReceiverShardID: 1,
@@ -68,6 +49,7 @@ func TestRequestsInShardingEnvironmentWithConnectNewNode(t *testing.T) {
 			continue
 		}
 
+		// shard 0 nodes will contain this miniblock
 		node.DataPool.MiniBlocks().Put(hash, mb, 0)
 	}
 
@@ -102,7 +84,7 @@ func TestRequestsInShardingEnvironmentWithConnectNewNode(t *testing.T) {
 	onlyNewNodeList := []*integrationTests.TestProcessorNode{newNode}
 	integrationTests.DisplayAndStartNodes(onlyNewNodeList)
 
-	// the shard nodes will request this metablock
+	// the shard nodes will request this miniblock
 	for i := 0; i < 10; i++ {
 		requestHashOnShardNodes(onlyNewNodeList, hash)
 		lastIdxMissing = checkAllNodesHaveBlock(onlyNewNodeList, hash)

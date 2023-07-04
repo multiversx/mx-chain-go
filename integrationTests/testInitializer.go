@@ -132,7 +132,7 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 			Port: "0",
 			Transports: p2pConfig.P2PTransportConfig{
 				TCP: p2pConfig.P2PTCPTransport{
-					ListenAddress: p2p.ListenLocalhostAddrWithIp4AndTcp,
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
 		},
@@ -235,7 +235,7 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 			Port: "0",
 			Transports: p2pConfig.P2PTransportConfig{
 				TCP: p2pConfig.P2PTCPTransport{
-					ListenAddress: p2p.ListenLocalhostAddrWithIp4AndTcp,
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
 		},
@@ -262,7 +262,7 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 			Port: "0",
 			Transports: p2pConfig.P2PTransportConfig{
 				TCP: p2pConfig.P2PTCPTransport{
-					ListenAddress: p2p.ListenLocalhostAddrWithIp4AndTcp,
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
 		},

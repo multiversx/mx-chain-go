@@ -19,7 +19,7 @@ func createDefaultConfig() p2pConfig.P2PConfig {
 			Port: "0",
 			Transports: p2pConfig.P2PTransportConfig{
 				TCP: p2pConfig.P2PTCPTransport{
-					ListenAddress: p2p.ListenLocalhostAddrWithIp4AndTcp,
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
 		},

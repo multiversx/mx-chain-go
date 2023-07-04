@@ -19,10 +19,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.20.3
+      - name: Set up Go 1.20.5
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20.3
+          go-version: 1.20.5
         id: go
 
       - name: Check out code into the Go module directory

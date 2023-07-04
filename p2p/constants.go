@@ -22,5 +22,5 @@ const NilListSharder = p2p.NilListSharder
 // ConnectionWatcherTypePrint - new connection found will be printed in the log file
 const ConnectionWatcherTypePrint = p2p.ConnectionWatcherTypePrint
 
-// ListenLocalhostAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
-const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/%d"
+// LocalHostListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
+const LocalHostListenAddrWithIp4AndTcp = p2p.LocalHostListenAddrWithIp4AndTcp
