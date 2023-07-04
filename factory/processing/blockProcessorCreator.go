@@ -257,8 +257,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
-	//  pcf.epochNotifier here
-	scProcessor, err := smartContract.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
+
+	scProcessorProxy, err := smartContract.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}

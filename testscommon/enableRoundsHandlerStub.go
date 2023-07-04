@@ -14,6 +14,9 @@ func (stub *EnableRoundsHandlerStub) IsDisableAsyncCallV1Enabled() bool {
 	return false
 }
 
+func (stub *EnableRoundsHandlerStub) RoundConfirmed(_ uint64, _ uint64) {
+}
+
 // IsInterfaceNil -
 func (stub *EnableRoundsHandlerStub) IsInterfaceNil() bool {
 	return stub == nil

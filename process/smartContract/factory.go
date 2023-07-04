@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
 // SCRProcessorHandler defines a scr processor handler
@@ -15,7 +16,7 @@ type SCRProcessorHandler interface {
 }
 
 // CreateSCRProcessor creates a scr processor based on the chain run type (normal/sovereign)
-func CreateSCRProcessor(chainRunType common.ChainRunType, scProcArgs ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
+func CreateSCRProcessor(chainRunType common.ChainRunType, scProcArgs scrCommon.ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
 	scrProc, err := NewSmartContractProcessor(scProcArgs)
 
 	switch chainRunType {
