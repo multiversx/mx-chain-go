@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -73,7 +73,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 

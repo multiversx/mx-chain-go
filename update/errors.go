@@ -292,3 +292,6 @@ var ErrNilAppStatusHandler = errors.New("nil app status handler")
 
 // ErrNilAddressConverter signals that a nil address converter was provided
 var ErrNilAddressConverter = errors.New("nil address converter")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

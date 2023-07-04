@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -30,7 +31,12 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 				Password:       "pass",
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
-			WebSocketConnector: config.WebSocketDriverConfig{
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType: "json",
+				},
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
 				MarshallerType: "json",
 			},
 		},
@@ -184,8 +190,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockStatusComponentsFactoryArgs()
-		args.ExternalConfig.WebSocketConnector.Enabled = true
-		args.ExternalConfig.WebSocketConnector.MarshallerType = "invalid type"
+		args.ExternalConfig.HostDriversConfig[0].Enabled = true
+		args.ExternalConfig.HostDriversConfig[0].MarshallerType = "invalid type"
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
 		require.NotNil(t, scf)
 
@@ -201,7 +207,7 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 			return core.MetachainShardId // coverage
 		}
 		args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
-		args.ExternalConfig.WebSocketConnector.Enabled = true // coverage
+		args.ExternalConfig.HostDriversConfig[0].Enabled = true // coverage
 		scf, err := statusComp.NewStatusComponentsFactory(args)
 		require.Nil(t, err)
 
@@ -254,4 +260,30 @@ func TestStatusComponents_Close(t *testing.T) {
 
 	err = cc.Close()
 	require.NoError(t, err)
+}
+
+func TestMakeHostDriversArgs(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStatusComponentsFactoryArgs()
+	args.ExternalConfig.HostDriversConfig = []config.HostDriversConfig{
+		{
+			Enabled:            false,
+			URL:                "localhost",
+			RetryDurationInSec: 1,
+			MarshallerType:     "json",
+			Mode:               data.ModeClient,
+		},
+		{
+			Enabled:            true,
+			URL:                "localhost",
+			RetryDurationInSec: 1,
+			MarshallerType:     "json",
+			Mode:               data.ModeClient,
+		},
+	}
+	scf, _ := statusComp.NewStatusComponentsFactory(args)
+	res, err := scf.MakeHostDriversArgs()
+	require.Nil(t, err)
+	require.Equal(t, 1, len(res))
 }

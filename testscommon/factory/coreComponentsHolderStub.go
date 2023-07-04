@@ -94,6 +94,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		ProcessStatusHandlerCalled:          coreComponents.ProcessStatusHandler,
 		HardforkTriggerPubKeyCalled:         coreComponents.HardforkTriggerPubKey,
 		EnableEpochsHandlerCalled:           coreComponents.EnableEpochsHandler,
+		RoundNotifierCalled:                 coreComponents.RoundNotifier,
 	}
 }
 

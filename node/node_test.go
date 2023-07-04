@@ -49,15 +49,19 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	mockStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -89,10 +93,21 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
+func createAcc(address []byte) state.UserAccountHandler {
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	acc, _ := state.NewUserAccount(address, argsAccCreation)
+
+	return acc
+}
+
 func getAccAdapter(balance *big.Int) *stateMock.AccountsStub {
 	accDB := &stateMock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(address)
+		acc := createAcc(address)
 		_ = acc.AddToBalance(balance)
 		acc.IncreaseNonce(1)
 
@@ -256,7 +271,12 @@ func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.Balance = big.NewInt(100)
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{
@@ -289,7 +309,12 @@ func TestGetUsername(t *testing.T) {
 
 	expectedUsername := []byte("elrond")
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.UserName = expectedUsername
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -360,7 +385,12 @@ func TestGetCodeHash(t *testing.T) {
 
 	expectedCodeHash := []byte("hash")
 
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
 	testAccount.CodeHash = expectedCodeHash
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -429,7 +459,7 @@ func TestNode_GetKeyValuePairsAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestNode_GetKeyValuePairs(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc := createAcc([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
 	k2, v2 := []byte("key2"), []byte("value2")
@@ -437,14 +467,14 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB := &stateMock.AccountsStub{}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
 					suffix := append(k1, acc.AddressBytes()...)
-					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
+					trieLeaf, _ := tlp.ParseLeaf(k1, append(v1, suffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
 					suffix = append(k2, acc.AddressBytes()...)
-					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
+					trieLeaf2, _ := tlp.ParseLeaf(k2, append(v2, suffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf2
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -497,14 +527,14 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc := createAcc([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
 
 	expectedErr := errors.New("expected err")
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(leavesChannels.LeavesChan)
@@ -552,12 +582,12 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc := createAcc([]byte("newaddress"))
 
 	accDB := &stateMock.AccountsStub{}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
@@ -647,7 +677,7 @@ func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestNode_GetValueForKey(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc := createAcc([]byte("newaddress"))
 
 	k1, v1 := []byte("key1"), []byte("value1")
 	_ = acc.SaveKeyValue(k1, v1)
@@ -729,7 +759,7 @@ func TestNode_GetESDTDataAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestNode_GetESDTData(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
@@ -778,7 +808,7 @@ func TestNode_GetESDTData(t *testing.T) {
 func TestNode_GetESDTDataForNFT(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	nonce := int64(100)
 
@@ -823,7 +853,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 func TestNode_GetAllESDTTokens(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
 
@@ -837,7 +867,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
 					leavesChannels.LeavesChan <- trieLeaf
@@ -891,12 +921,12 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	expectedErr := errors.New("expected error")
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(leavesChannels.LeavesChan)
@@ -947,11 +977,11 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
@@ -1043,7 +1073,7 @@ func TestNode_GetAllESDTsAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount(testscommon.TestPubKeyAlice)
+	acc := createAcc(testscommon.TestPubKeyAlice)
 
 	esdtToken := "TKKR-7q8w9e"
 	esdtKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -1076,7 +1106,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	}
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
@@ -1139,7 +1169,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	t.Parallel()
 
-	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	acc := createAcc([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
 	nftToken := []byte("NFT-RANDOM")
@@ -1162,15 +1192,15 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
-					trieLeaf = keyValStorage.NewKeyValStorage(sftToken, append(sftMarshalledData, sftSuffix...))
+					trieLeaf, _ = tlp.ParseLeaf(sftToken, append(sftMarshalledData, sftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
-					trieLeaf = keyValStorage.NewKeyValStorage(nftToken, append(nftMarshalledData, nftSuffix...))
+					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1236,7 +1266,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes)
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	specialRoles := []*systemSmartContracts.ESDTRoles{
@@ -1254,9 +1284,9 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1316,7 +1346,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes)
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	specialRoles := []*systemSmartContracts.ESDTRoles{
@@ -1334,9 +1364,9 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1388,7 +1418,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes)
+	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
@@ -1399,9 +1429,9 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					trieLeaf, _ := tlp.ParseLeaf(esdtToken, append(marshalledData, esdtSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1453,11 +1483,11 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	t.Parallel()
 
 	addrBytes := testscommon.TestPubKeyAlice
-	acc, _ := state.NewUserAccount(addrBytes)
+	acc := createAcc(addrBytes)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					time.Sleep(time.Second)
 					close(leavesChannels.LeavesChan)
@@ -1624,7 +1654,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount(address)
+			return createAcc(address), nil
 		},
 	}
 	privateKey := getPrivateKey()
@@ -1771,7 +1801,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	nonce := uint64(7)
 	accAdapter := &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			acc, _ := state.NewUserAccount(address)
+			acc := createAcc(address)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.IncreaseNonce(nonce)
 
@@ -2739,7 +2769,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	stateComponents.AccountsAPI = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount([]byte("address"))
+			return createAcc([]byte("address")), nil
 		},
 	}
 
@@ -3367,7 +3397,7 @@ func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount(testscommon.TestPubKeyBob)
+	accnt := createAcc(testscommon.TestPubKeyBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
@@ -4101,7 +4131,7 @@ func TestNode_GetProofDataTrieShouldWork(t *testing.T) {
 						return dataTrieProof, dataTrieValue, nil
 					}
 
-					return nil, nil, nil
+					return nil, nil, fmt.Errorf("key not found")
 				},
 			}, nil
 		},
@@ -4183,6 +4213,118 @@ func TestNode_VerifyProof(t *testing.T) {
 	response, err := n.VerifyProof(rootHash, address, proof)
 	assert.True(t, response)
 	assert.Nil(t, err)
+}
+
+func TestNode_IsDataTrieMigrated(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid address", func(t *testing.T) {
+		t.Parallel()
+
+		n, _ := node.NewNode(
+			node.WithStateComponents(getDefaultStateComponents()),
+			node.WithCoreComponents(getDefaultCoreComponents()),
+		)
+
+		isMigrated, err := n.IsDataTrieMigrated("invalid address", api.AccountQueryOptions{})
+		assert.False(t, isMigrated)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("load account err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("load account error")
+		stateComponents := getDefaultStateComponents()
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		n, _ := node.NewNode(
+			node.WithStateComponents(stateComponents),
+			node.WithCoreComponents(getDefaultCoreComponents()),
+		)
+
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
+		assert.False(t, isMigrated)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("wrong type assertion", func(t *testing.T) {
+		t.Parallel()
+
+		stateComponents := getDefaultStateComponents()
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return &stateMock.AccountWrapMock{}, nil, nil
+			},
+		}
+
+		n, _ := node.NewNode(
+			node.WithStateComponents(stateComponents),
+			node.WithCoreComponents(getDefaultCoreComponents()),
+		)
+
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
+		assert.False(t, isMigrated)
+		assert.True(t, strings.Contains(err.Error(), "wrong type assertion"))
+	})
+
+	t.Run("should work and return false", func(t *testing.T) {
+		t.Parallel()
+
+		acc := createAcc([]byte("000000000000000000010000000000000000000000000000000000000001ffff"))
+		acc.SetDataTrie(&trieMock.TrieStub{
+			IsMigratedToLatestVersionCalled: func() (bool, error) {
+				return false, nil
+			},
+		})
+
+		stateComponents := getDefaultStateComponents()
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
+			},
+		}
+
+		n, _ := node.NewNode(
+			node.WithStateComponents(stateComponents),
+			node.WithCoreComponents(getDefaultCoreComponents()),
+		)
+
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
+		assert.False(t, isMigrated)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should work and return true", func(t *testing.T) {
+		t.Parallel()
+
+		acc := createAcc([]byte("000000000000000000010000000000000000000000000000000000000001ffff"))
+		acc.SetDataTrie(&trieMock.TrieStub{
+			IsMigratedToLatestVersionCalled: func() (bool, error) {
+				return true, nil
+			},
+		})
+
+		stateComponents := getDefaultStateComponents()
+		stateComponents.AccountsRepo = &stateMock.AccountsRepositoryStub{
+			GetAccountWithBlockInfoCalled: func(_ []byte, _ api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
+				return acc, nil, nil
+			},
+		}
+
+		n, _ := node.NewNode(
+			node.WithStateComponents(stateComponents),
+			node.WithCoreComponents(getDefaultCoreComponents()),
+		)
+
+		isMigrated, err := n.IsDataTrieMigrated("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", api.AccountQueryOptions{})
+		assert.True(t, isMigrated)
+		assert.Nil(t, err)
+	})
 }
 
 func TestGetESDTSupplyError(t *testing.T) {
@@ -4590,7 +4732,12 @@ func TestNode_setTxGuardianData(t *testing.T) {
 
 func TestNode_GetGuardianData(t *testing.T) {
 	userAddressBytes := bytes.Repeat([]byte{3}, 32)
-	testAccount, _ := state.NewUserAccount(userAddressBytes)
+	argsAccCreation := state.ArgsAccountCreation{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	testAccount, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
 	testAccountsDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return testAccount, nil, nil
@@ -4776,7 +4923,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Nil(t, err)
 	})
 	t.Run("one active and one pending and account guarded", func(t *testing.T) {
-		acc, _ := state.NewUserAccount(userAddressBytes)
+		acc, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
 		acc.CodeMetadata = (&vmcommon.CodeMetadata{Guarded: true}).ToBytes()
 		accDB := &stateMock.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -4928,9 +5075,9 @@ func TestNode_getPendingAndActiveGuardians(t *testing.T) {
 
 func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 	return &nodeMockFactory.CoreComponentsMock{
-		IntMarsh:            &testscommon.MarshalizerMock{},
-		TxMarsh:             &testscommon.MarshalizerMock{},
-		VmMarsh:             &testscommon.MarshalizerMock{},
+		IntMarsh:            &marshallerMock.MarshalizerMock{},
+		TxMarsh:             &marshallerMock.MarshalizerMock{},
+		VmMarsh:             &marshallerMock.MarshalizerMock{},
 		TxSignHasherField:   &testscommon.HasherStub{},
 		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
@@ -5017,7 +5164,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &trieMock.TriesHolderStub{},
-			StorageManagers: map[string]common.StorageManager{"0": &testscommon.StorageManagerStub{}},
+			StorageManagers: map[string]common.StorageManager{"0": &storageManager.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},

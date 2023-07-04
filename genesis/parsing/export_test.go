@@ -43,7 +43,7 @@ func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler
 func (ap *accountsParser) SetScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*outport.Pool,
+	txsPoolPerShard map[uint32]*outport.TransactionPool,
 ) {
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 }
@@ -53,10 +53,11 @@ func (ap *accountsParser) CreateMintTransaction(ia genesis.InitialAccountHandler
 }
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
+	addrBytes, _ := pubkeyConverter.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
 	return &accountsParser{
 		pubkeyConverter:    pubkeyConverter,
 		initialAccounts:    make([]*data.InitialAccount, 0),
-		minterAddressBytes: []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"),
+		minterAddressBytes: addrBytes,
 		keyGenerator:       &mock.KeyGeneratorStub{},
 		hasher:             &hashingMocks.HasherMock{},
 		marshalizer:        &mock.MarshalizerMock{},

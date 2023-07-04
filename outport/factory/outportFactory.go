@@ -1,25 +1,21 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
-	wsDriverFactory "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/factory"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
-// WrappedOutportDriverWebSocketSenderFactoryArgs extends the wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs structure with the Enabled field
-type WrappedOutportDriverWebSocketSenderFactoryArgs struct {
-	Enabled bool
-	wsDriverFactory.OutportDriverWebSocketSenderFactoryArgs
-}
-
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval                  time.Duration
-	ElasticIndexerFactoryArgs        indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs         *EventNotifierFactoryArgs
-	WebSocketSenderDriverFactoryArgs WrappedOutportDriverWebSocketSenderFactoryArgs
+	IsImportDB                bool
+	RetrialInterval           time.Duration
+	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
+	HostDriversArgs           []ArgsHostDriverFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -29,7 +25,11 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		return nil, err
 	}
 
-	outportHandler, err := outport.NewOutport(args.RetrialInterval)
+	cfg := outportcore.OutportConfig{
+		IsInImportDBMode: args.IsImportDB,
+	}
+
+	outportHandler, err := outport.NewOutport(args.RetrialInterval, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,14 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeWebSocketDriver(outport, args.WebSocketSenderDriverFactoryArgs)
+	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
+		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
+		if err != nil {
+			return fmt.Errorf("%w when calling createAndSubscribeHostDriverIfNeeded, host driver index %d", err, idx)
+		}
+	}
+
+	return nil
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
@@ -96,23 +103,18 @@ func checkArguments(args *OutportFactoryArgs) error {
 	return nil
 }
 
-func createAndSubscribeWebSocketDriver(
+func createAndSubscribeHostDriverIfNeeded(
 	outport outport.OutportHandler,
-	args WrappedOutportDriverWebSocketSenderFactoryArgs,
+	args ArgsHostDriverFactory,
 ) error {
-	if !args.Enabled {
+	if !args.HostConfig.Enabled {
 		return nil
 	}
 
-	wsFactory, err := wsDriverFactory.NewOutportDriverWebSocketSenderFactory(args.OutportDriverWebSocketSenderFactoryArgs)
+	hostDriver, err := CreateHostDriver(args)
 	if err != nil {
 		return err
 	}
 
-	wsDriver, err := wsFactory.Create()
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(wsDriver)
+	return outport.SubscribeDriver(hostDriver)
 }

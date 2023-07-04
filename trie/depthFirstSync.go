@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -22,7 +21,7 @@ type depthFirstTrieSyncer struct {
 	waitTimeBetweenChecks     time.Duration
 	marshaller                marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        common.DBWriteCacher
+	db                        common.TrieStorageInteractor
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -32,6 +31,7 @@ type depthFirstTrieSyncer struct {
 	checkNodesOnDisk          bool
 	nodes                     *trieNodesHandler
 	requestedHashes           map[string]*request
+	leavesChan                chan core.KeyValueHolder
 }
 
 // NewDepthFirstTrieSyncer creates a new instance of trieSyncer that uses the depth-first algorithm
@@ -59,6 +59,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 		checkNodesOnDisk:          arg.CheckNodesOnDisk,
+		leavesChan:                arg.LeavesChan,
 	}
 
 	return d, nil
@@ -104,7 +105,7 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 		case <-time.After(d.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
-			return errors.ErrContextClosing
+			return core.ErrContextClosing
 		}
 	}
 }
@@ -251,6 +252,8 @@ func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
 	}
 	d.trieSyncStatistics.AddNumBytesReceived(uint64(numBytes))
 	d.updateStats(uint64(numBytes), element)
+
+	writeLeafNodeToChan(element, d.leavesChan)
 
 	return nil
 }

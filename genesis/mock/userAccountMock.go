@@ -1,9 +1,11 @@
 package mock
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -140,11 +142,16 @@ func (uam *UserAccountMock) GetUserName() []byte {
 }
 
 // SaveDirtyData -
-func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) (map[string][]byte, error) {
+func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
 }
 
 // IsGuarded -
 func (uam *UserAccountMock) IsGuarded() bool {
 	return false
+}
+
+// GetAllLeaves -
+func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
+	return nil
 }

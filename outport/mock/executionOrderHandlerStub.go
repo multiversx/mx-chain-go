@@ -11,7 +11,7 @@ type ExecutionOrderHandlerStub struct {
 
 // PutExecutionOrderInTransactionPool -
 func (e *ExecutionOrderHandlerStub) PutExecutionOrderInTransactionPool(
-	_ *outport.Pool,
+	_ *outport.TransactionPool,
 	_ data.HeaderHandler,
 	_ data.BodyHandler,
 	_ data.HeaderHandler,

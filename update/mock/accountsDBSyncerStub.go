@@ -7,7 +7,7 @@ import (
 // AccountsDBSyncerStub -
 type AccountsDBSyncerStub struct {
 	GetSyncedTriesCalled func() map[string]common.Trie
-	SyncAccountsCalled   func(rootHash []byte) error
+	SyncAccountsCalled   func(rootHash []byte, storageMarker common.StorageMarker) error
 }
 
 // GetSyncedTries -
@@ -19,9 +19,9 @@ func (a *AccountsDBSyncerStub) GetSyncedTries() map[string]common.Trie {
 }
 
 // SyncAccounts -
-func (a *AccountsDBSyncerStub) SyncAccounts(rootHash []byte) error {
+func (a *AccountsDBSyncerStub) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
 	if a.SyncAccountsCalled != nil {
-		return a.SyncAccountsCalled(rootHash)
+		return a.SyncAccountsCalled(rootHash, storageMarker)
 	}
 	return nil
 }

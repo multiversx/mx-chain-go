@@ -35,7 +35,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, rcvAddr, 0, big.NewInt(0))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(100000000))
 
-	sndAddrUserName := utils.GenerateUserNameForMyDNSContract()
+	sndAddrUserName := utils.GenerateUserNameForDefaultDNSContract()
 	txData := []byte("register@" + hex.EncodeToString(sndAddrUserName))
 	// create user name for sender
 	innerTx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, txData)
@@ -57,7 +57,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	dnsUserNameAddr := ret.ReturnData[0]
 	require.Equal(t, sndAddr, dnsUserNameAddr)
 
-	rcvAddrUserName := utils.GenerateUserNameForMyDNSContract()
+	rcvAddrUserName := utils.GenerateUserNameForDefaultDNSContract()
 	txData = []byte("register@" + hex.EncodeToString(rcvAddrUserName))
 	// create user name for receiver
 	innerTx = vm.CreateTransaction(0, big.NewInt(0), rcvAddr, scAddress, gasPrice, gasLimit, txData)

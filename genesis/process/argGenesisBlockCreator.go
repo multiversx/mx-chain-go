@@ -61,7 +61,6 @@ type ArgsGenesisBlockCreator struct {
 	SystemSCConfig       config.SystemSmartContractsConfig
 	RoundConfig          *config.RoundConfig
 	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
 

@@ -182,12 +182,12 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	newScCode string,
 ) {
 
-	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
+	shardCoordinatorForShard1, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShard1, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
-		shardCoordinatorForShard0,
+		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
@@ -207,7 +207,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	// step 1. deploy the first contract
 	scAddress, owner := utils.DoDeployWithCustomParams(
 		t,
-		testContextShard0,
+		testContextShard1,
 		"./testdata/first/first.wasm",
 		big.NewInt(100000000000),
 		2000,
@@ -216,20 +216,20 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	assert.Equal(t, 32, len(owner))
 	assert.Equal(t, 32, len(scAddress))
 
-	intermediates := testContextShard0.GetIntermediateTransactions(t)
+	intermediates := testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 2. call a dummy function on the first version of the contract
 
 	tx := utils.CreateSmartContractCall(1, owner, scAddress, 10, 2000, "callMe", nil)
-	code, err := testContextShard0.TxProcessor.ProcessTransaction(tx)
+	code, err := testContextShard1.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, code)
 
-	intermediates = testContextShard0.GetIntermediateTransactions(t)
+	intermediates = testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 3. upgrade to the second contract
 
@@ -242,13 +242,13 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		hex.EncodeToString([]byte("dummyArg")),
 	}, "@")
 	tx = utils.CreateSmartContractCall(2, owner, scAddress, 10, 10000000, txData, nil)
-	code, err = testContextShard0.TxProcessor.ProcessTransaction(tx)
+	code, err = testContextShard1.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, code)
 
-	intermediates = testContextShard0.GetIntermediateTransactions(t)
+	intermediates = testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 4. execute scr on metachain, should fail
 
@@ -263,7 +263,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 
 	// step 5. execute generated metachain scr on the contract
 	scr = intermediates[0].(*smartContractResult.SmartContractResult)
-	code, err = testContextShard0.ScProcessor.ProcessSmartContractResult(scr)
+	code, err = testContextShard1.ScProcessor.ProcessSmartContractResult(scr)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, code)
 
@@ -314,12 +314,12 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	pathToSecondSC string,
 ) {
-	shardCoordinatorForShard0, _ := sharding.NewMultiShardCoordinator(3, 1)
+	shardCoordinatorForShard1, _ := sharding.NewMultiShardCoordinator(3, 1)
 	shardCoordinatorForShardMeta, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
-	testContextShard0, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+	testContextShard1, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
-		shardCoordinatorForShard0,
+		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
 		integrationTests.GetDefaultRoundsConfig(),
@@ -339,7 +339,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	// step 1. deploy the first contract
 	scAddressFirst, firstOwner := utils.DoDeployWithCustomParams(
 		t,
-		testContextShard0,
+		testContextShard1,
 		"./testdata/first/first.wasm",
 		big.NewInt(100000000000),
 		2000,
@@ -348,26 +348,26 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	assert.Equal(t, 32, len(firstOwner))
 	assert.Equal(t, 32, len(scAddressFirst))
 
-	intermediates := testContextShard0.GetIntermediateTransactions(t)
+	intermediates := testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 2. call a dummy function on the first contract
 
 	tx := utils.CreateSmartContractCall(1, firstOwner, scAddressFirst, 10, 2000, "callMe", nil)
-	code, err := testContextShard0.TxProcessor.ProcessTransaction(tx)
+	code, err := testContextShard1.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, code)
 
-	intermediates = testContextShard0.GetIntermediateTransactions(t)
+	intermediates = testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 3. deploy the second contract that does an async on init function
 
 	scAddressSecond, secondOwner := utils.DoDeployWithCustomParams(
 		t,
-		testContextShard0,
+		testContextShard1,
 		pathToSecondSC,
 		big.NewInt(100000000000),
 		10000000,
@@ -380,9 +380,9 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	assert.Equal(t, 32, len(secondOwner))
 	assert.Equal(t, 32, len(scAddressSecond))
 
-	intermediates = testContextShard0.GetIntermediateTransactions(t)
+	intermediates = testContextShard1.GetIntermediateTransactions(t)
 	assert.Equal(t, 1, len(intermediates))
-	testContextShard0.CleanIntermediateTransactions(t)
+	testContextShard1.CleanIntermediateTransactions(t)
 
 	// step 4. execute scr on metachain, should fail
 
@@ -397,7 +397,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 
 	// step 5. execute generated metachain scr on the contract
 	scr = intermediates[0].(*smartContractResult.SmartContractResult)
-	code, err = testContextShard0.ScProcessor.ProcessSmartContractResult(scr)
+	code, err = testContextShard1.ScProcessor.ProcessSmartContractResult(scr)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, code)
 

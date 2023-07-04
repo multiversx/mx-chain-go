@@ -1131,6 +1131,9 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
+// ErrNilBlockProcessingCutoffHandler signals that a nil block processing cutoff handler has been provided
+var ErrNilBlockProcessingCutoffHandler = errors.New("nil block processing cutoff handler")
+
 // ErrNilESDTGlobalSettingsHandler signals that nil global settings handler was provided
 var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handler")
 
@@ -1205,3 +1208,9 @@ var ErrGasPriceTooHigh = errors.New("gas price is too high for the transaction")
 
 // ErrGuardedTransactionNotExpected signals that a guarded transaction was received for processing but the account is not guarded
 var ErrGuardedTransactionNotExpected = errors.New("guarded transaction not expected")
+
+// ErrBuiltinFunctionMismatch signals that a builtin function mismatch was detected
+var ErrBuiltinFunctionMismatch = errors.New("builtin function mismatch")
+
+// ErrBuiltinFunctionNotExecutable signals that a builtin function is not executable
+var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executable")

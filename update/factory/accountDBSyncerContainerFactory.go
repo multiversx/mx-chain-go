@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	containers "github.com/multiversx/mx-chain-go/update/container"
 	"github.com/multiversx/mx-chain-go/update/genesis"
@@ -36,6 +35,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
 	AddressPubKeyConverter    core.PubkeyConverter
+	EnableEpochsHandler       common.EnableEpochsHandler
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -53,6 +53,7 @@ type accountDBSyncersContainerFactory struct {
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
 	addressPubKeyConverter    core.PubkeyConverter
+	enableEpochsHandler       common.EnableEpochsHandler
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -88,6 +89,9 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, update.ErrNilPubKeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, update.ErrNilEnableEpochsHandler
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,
@@ -103,6 +107,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		addressPubKeyConverter:    args.AddressPubKeyConverter,
+		enableEpochsHandler:       args.EnableEpochsHandler,
 	}
 
 	return t, nil
@@ -150,9 +155,9 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -180,9 +185,9 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)
