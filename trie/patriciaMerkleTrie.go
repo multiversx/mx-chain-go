@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -41,6 +42,7 @@ type patriciaMerkleTrie struct {
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	mutOperation            sync.RWMutex
+	stateStatictics         storage.StateStatisticsHandler
 
 	oldHashes            [][]byte
 	oldRoot              []byte
@@ -55,6 +57,7 @@ func NewTrie(
 	hsh hashing.Hasher,
 	enableEpochsHandler common.EnableEpochsHandler,
 	maxTrieLevelInMemory uint,
+	stateStatictics storage.StateStatisticsHandler,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -88,6 +91,7 @@ func NewTrie(
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
+		stateStatictics:         stateStatictics,
 	}, nil
 }
 
@@ -300,6 +304,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.hasher,
 			tr.enableEpochsHandler,
 			tr.maxTrieLevelInMemory,
+			tr.stateStatictics,
 		)
 	}
 
@@ -381,6 +386,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tr.hasher,
 		tr.enableEpochsHandler,
 		tr.maxTrieLevelInMemory,
+		tr.stateStatictics,
 	)
 	if err != nil {
 		return nil, nil, err

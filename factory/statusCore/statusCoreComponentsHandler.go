@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ factory.ComponentHandler = (*managedStatusCoreComponents)(nil)
@@ -167,6 +168,18 @@ func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.Persi
 	}
 
 	return mscc.statusCoreComponents.persistentHandler
+}
+
+// StateStatistics returns the state statistics instance
+func (mscc *managedStatusCoreComponents) StateStatistics() storage.StateStatisticsHandler {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.stateStatistics
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

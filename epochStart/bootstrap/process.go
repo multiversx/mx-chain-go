@@ -116,6 +116,7 @@ type epochStartBootstrap struct {
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
+	stateStatistics            storage.StateStatisticsHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -180,6 +181,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	NodeProcessingMode         common.NodeProcessingMode
+	StateStatistics            storage.StateStatisticsHandler
 }
 
 type dataToSync struct {
@@ -490,6 +492,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
+		e.stateStatistics,
 	)
 	if err != nil {
 		return err
@@ -769,6 +772,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatistics,
 	)
 	if err != nil {
 		return err
@@ -782,6 +786,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatistics,
 	)
 	if err != nil {
 		return err
@@ -939,6 +944,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatistics,
 	)
 	if err != nil {
 		return err
@@ -952,6 +958,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatistics,
 	)
 	if err != nil {
 		return err
@@ -1084,6 +1091,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
+			StateStatistics:                   e.stateStatistics,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1125,6 +1133,7 @@ func (e *epochStartBootstrap) createStorageService(
 			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
+			StateStatistics:               e.stateStatistics,
 		})
 	if err != nil {
 		return nil, err
@@ -1157,6 +1166,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
+			StateStatistics:                   e.stateStatistics,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

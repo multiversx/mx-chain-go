@@ -8,6 +8,7 @@ import (
 	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	disabledStorage "github.com/multiversx/mx-chain-go/storage/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -21,7 +22,7 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory, disabledStorage.NewStateStatistics())
 	if err != nil {
 		return nil, err
 	}

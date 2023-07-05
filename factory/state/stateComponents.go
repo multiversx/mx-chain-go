@@ -85,6 +85,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		scf.config,
 		scf.core,
 		scf.storageService,
+		scf.statusCore.StateStatistics(),
 	)
 	if err != nil {
 		return nil, err

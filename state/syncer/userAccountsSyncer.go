@@ -92,6 +92,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
 		enableEpochsHandler:               args.EnableEpochsHandler,
+		stateStatistics:                   args.StateStatistics,
 	}
 
 	u := &userAccountsSyncer{
