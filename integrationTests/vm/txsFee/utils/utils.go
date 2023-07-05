@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
@@ -88,6 +89,28 @@ func doDeployInternal(
 	return scAddr, owner
 }
 
+func generateRandomArray(length int) []byte {
+	rand.Seed(time.Now().UnixNano())
+
+	charset := "0123456789"
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		result[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return result
+}
+
+func generateAddressForContextShardID(testContext *vm.VMTestContext) []byte {
+	shardID := testContext.ShardCoordinator.SelfId()
+	for {
+		address := generateRandomArray(32)
+		if testContext.ShardCoordinator.ComputeId(address) == shardID {
+			return address
+		}
+	}
+}
+
 // DoDeployWithCustomParams -
 func DoDeployWithCustomParams(
 	tb testing.TB,
@@ -97,13 +120,14 @@ func DoDeployWithCustomParams(
 	gasLimit uint64,
 	contractHexParams []string,
 ) (scAddr []byte, owner []byte) {
-	owner = []byte("12345678901234567890123456789011")
+	owner = generateAddressForContextShardID(testContext)
 	account, err := testContext.Accounts.LoadAccount(owner)
 	require.Nil(tb, err)
 	senderNonce := account.GetNonce()
 	gasPrice := uint64(10)
 
-	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+	_, err = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+	require.Nil(tb, err)
 
 	scCode := wasm.GetSCCode(pathToContract)
 	txData := wasm.CreateDeployTxData(scCode)
