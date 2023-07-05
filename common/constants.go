@@ -603,6 +603,9 @@ const (
 
 	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
 	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
 )
 
 const (

@@ -578,6 +578,11 @@ func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false
 }
 
+// IsScToScEventLogEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsScToScEventLogEnabled() bool {
+	return false
+}
+
 // IsRelayedNonceFixEnabled -
 func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
 	return false

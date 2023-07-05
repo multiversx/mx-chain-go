@@ -882,6 +882,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeUsernameEnableEpoch:                         85,
 			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
+			ScToScLogEventEnableEpoch:                         88,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -138,6 +138,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
 			SetGuardianEnableEpoch:                      36,
+			ScToScLogEventEnableEpoch:                   37,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
