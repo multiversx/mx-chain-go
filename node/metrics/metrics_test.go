@@ -138,6 +138,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
 			SetGuardianEnableEpoch:                      36,
+			ScToScLogEventEnableEpoch:                   37,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -192,6 +193,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_max_nodes_change_enable_epoch0_max_num_nodes":              uint32(1),
 		"erd_max_nodes_change_enable_epoch0_nodes_to_shuffle_per_shard": uint32(2),
 		"erd_set_guardian_feature_enable_epoch":                         uint32(36),
+		"erd_set_sc_to_sc_log_event_enable_epoch":                       uint32(37),
 	}
 
 	economicsConfig := config.EconomicsConfig{
