@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -153,7 +153,6 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
-		sesb.stateStatistics,
 	)
 	if err != nil {
 		return err

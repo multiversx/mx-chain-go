@@ -1498,7 +1498,6 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
-			StateStatistics:               pcf.statusCoreComponents.StateStatistics(),
 		},
 	)
 	if err != nil {

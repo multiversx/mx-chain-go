@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/statusHandler/persister"
-	"github.com/multiversx/mx-chain-go/storage"
-	storageStatistics "github.com/multiversx/mx-chain-go/storage/statistics"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -48,7 +46,6 @@ type statusCoreComponents struct {
 	appStatusHandler   core.AppStatusHandler
 	statusMetrics      external.StatusMetricsHandler
 	persistentHandler  factory.PersistentStatusHandler
-	stateStatistics    storage.StateStatisticsHandler
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -97,8 +94,6 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
-	stateStats := storageStatistics.NewStateStatistics()
-
 	ssc := &statusCoreComponents{
 		resourceMonitor:    resourceMonitor,
 		networkStatistics:  netStats,
@@ -106,7 +101,6 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		appStatusHandler:   appStatusHandler,
 		statusMetrics:      statusMetrics,
 		persistentHandler:  persistentStatusHandler,
-		stateStatistics:    stateStats,
 	}
 
 	return ssc, nil

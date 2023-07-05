@@ -34,7 +34,6 @@ type baseAccountsSyncer struct {
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	appStatusHandler                  core.AppStatusHandler
 	enableEpochsHandler               common.EnableEpochsHandler
-	stateStatistics                   storage.StateStatisticsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -58,7 +57,6 @@ type ArgsNewBaseAccountsSyncer struct {
 	MaxHardCapForMissingNodes         int
 	TrieSyncerVersion                 int
 	CheckNodesOnDisk                  bool
-	StateStatistics                   storage.StateStatisticsHandler
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -217,7 +215,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory, b.stateStatistics)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

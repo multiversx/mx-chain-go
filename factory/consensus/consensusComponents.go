@@ -511,7 +511,6 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 		UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		EnableEpochsHandler:               ccf.coreComponents.EnableEpochsHandler(),
-		StateStatistics:                   ccf.statusCoreComponents.StateStatistics(),
 	}
 }
 

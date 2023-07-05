@@ -115,7 +115,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
-		e.stateStatistics,
 	)
 	if err != nil {
 		return Parameters{}, err
