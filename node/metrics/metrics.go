@@ -129,6 +129,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(enableEpochs.SetGuardianEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, uint64(enableEpochs.ScToScLogEventEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)

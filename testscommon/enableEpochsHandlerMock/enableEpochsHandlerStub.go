@@ -119,6 +119,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
@@ -1037,6 +1038,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSetGuardianEnabledField
+}
+
+// IsScToScEventLogEnabled -
+func (stub *EnableEpochsHandlerStub) IsScToScEventLogEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsScToScEventLogEnabledField
 }
 
 // IsRelayedNonceFixEnabled -

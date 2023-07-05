@@ -1632,7 +1632,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 		Identifier: []byte(generalSCRIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 	if len(returnMessage) > 0 {
 		newLog.Topics = append(newLog.Topics, returnMessage)
@@ -1652,7 +1652,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 		Identifier: []byte(signalError),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 
 	return newLog
