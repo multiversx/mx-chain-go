@@ -53,6 +53,7 @@ type StorageServiceFactory struct {
 	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
+	stateStatistics               storage.StateStatisticsHandler
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -70,6 +71,7 @@ type StorageServiceFactoryArgs struct {
 	NodeProcessingMode            common.NodeProcessingMode
 	SnapshotsEnabled              bool
 	RepopulateTokensSupplies      bool
+	StateStatistics               storage.StateStatisticsHandler
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -105,6 +107,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
+		stateStatistics:               args.StateStatistics,
 	}, nil
 }
 
@@ -120,6 +123,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.StateStatistics) {
+		return storage.ErrNilStatsCollector
 	}
 
 	return nil
@@ -604,6 +610,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 		PersistersTracker:         pruning.NewPersistersTracker(epochsData),
 		EpochsData:                epochsData,
+		StatsCollector:            psf.stateStatistics,
 	}
 
 	return args, nil

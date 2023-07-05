@@ -22,6 +22,7 @@ type StorerArgs struct {
 	PruningEnabled            bool
 	EnabledDbLookupExtensions bool
 	PersistersTracker         PersistersTracker
+	StatsCollector            storage.StateStatisticsHandler
 }
 
 // EpochArgs will hold the arguments needed for persistersTracker

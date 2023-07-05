@@ -99,6 +99,7 @@ type PruningStorer struct {
 	numOfActivePersisters  uint32
 	epochForPutOperation   uint32
 	pruningEnabled         bool
+	statsCollector         storage.StateStatisticsHandler
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -158,6 +159,7 @@ func initPruningStorer(
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
+	pdb.statsCollector = args.StatsCollector
 
 	return pdb, nil
 }
@@ -192,6 +194,9 @@ func checkArgs(args StorerArgs) error {
 	}
 	if check.IfNil(args.PersistersTracker) {
 		return storage.ErrNilPersistersTracker
+	}
+	if check.IfNil(args.StatsCollector) {
+		return storage.ErrNilStatsCollector
 	}
 
 	return nil
@@ -427,6 +432,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
+		ps.statsCollector.AddNumCache(1)
 		return v.([]byte), nil
 	}
 
@@ -445,6 +451,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 			continue
 		}
+		ps.statsCollector.AddNumPersister(1)
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
@@ -456,6 +463,10 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+}
+
+func (ps *PruningStorer) GetStorerStats() storage.StateStatisticsHandler {
+	return ps.statsCollector
 }
 
 // Close will close PruningStorer
