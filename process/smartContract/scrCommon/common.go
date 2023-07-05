@@ -2,7 +2,6 @@ package scrCommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -12,21 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"math/big"
 )
 
-// TestSmartContractProcessor is a SmartContractProcessor used in integration tests
-type TestSmartContractProcessor interface {
-	process.SmartContractProcessorFacade
-	GetCompositeTestError() error
-	GetGasRemaining() uint64
-	GetAllSCRs() []data.TransactionHandler
-	CleanGasRefunded()
-}
-
-// ExecutableChecker is an interface for checking if a builtin function is executable
-type ExecutableChecker interface {
-	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
+type ScrProcessingData struct {
+	Hash        []byte
+	Snapshot    int
+	Sender      state.UserAccountHandler
+	Destination state.UserAccountHandler
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -54,6 +45,8 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
+	AccountGetter       AccountGetter
+	SCRChecker          SCRChecker
 }
 
 // FindVMByScAddress is exported for use in all version of scr processors

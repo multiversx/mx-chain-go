@@ -1,4 +1,4 @@
-package smartContract
+package processorV2
 
 import "errors"
 

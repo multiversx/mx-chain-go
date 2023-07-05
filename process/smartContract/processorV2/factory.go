@@ -1,4 +1,4 @@
-package smartContract
+package processorV2
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type SCRProcessorHandler interface {
 
 // CreateSCRProcessor creates a scr processor based on the chain run type (normal/sovereign)
 func CreateSCRProcessor(chainRunType common.ChainRunType, scProcArgs scrCommon.ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
-	scrProc, err := NewSmartContractProcessor(scProcArgs)
+	scrProc, err := NewSmartContractProcessorV2(scProcArgs)
 
 	switch chainRunType {
 	case common.ChainRunTypeRegular:

@@ -90,6 +90,9 @@ type scProcessor struct {
 
 	executableCheckers    map[string]scrCommon.ExecutableChecker
 	mutExecutableCheckers sync.RWMutex
+
+	accGetter  scrCommon.AccountGetter
+	scrChecker scrCommon.SCRChecker
 }
 
 type sameShardExecutionDataAfterBuiltIn struct {

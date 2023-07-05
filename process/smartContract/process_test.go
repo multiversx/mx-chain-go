@@ -85,7 +85,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian] = setGuardianCost
 
-	return scrCommon.ArgsNewSmartContractProcessor{
+	args := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
@@ -126,6 +126,20 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		WasmVMChangeLocker: &sync.RWMutex{},
 		VMOutputCacher:     txcache.NewDisabledCache(),
 	}
+
+	accGetter, _ := scrCommon.NewSCRAccountGetter(args.AccountsDB, args.ShardCoordinator)
+	scrChecker, _ := scrCommon.NewSCRChecker(&scrCommon.ArgsSCRChecker{
+		Hasher:     args.Hasher,
+		Marshaller: args.Marshalizer,
+		PubKeyConv: args.PubkeyConv,
+		Accounts:   args.AccountsDB,
+		AccGetter:  accGetter,
+	})
+
+	args.AccountGetter = accGetter
+	args.SCRChecker = scrChecker
+
+	return args
 }
 
 // ===================== TestNewSmartContractProcessor =====================
@@ -2094,7 +2108,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("SRC"))
+	acc, err := sc.accGetter.GetAccountFromAddress([]byte("SRC"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 }
@@ -2125,7 +2139,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.accGetter.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 1, getCalled)
@@ -2157,7 +2171,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.accGetter.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -2190,7 +2204,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.accGetter.GetAccountFromAddress([]byte("DST"))
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 1, getCalled)
