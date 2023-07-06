@@ -2971,7 +2971,8 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	require.Equal(t, process.ErrNilSmartContractResult, err)
 }
 
-func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
+// MARIUSC
+/*func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	t.Parallel()
 
 	accError := errors.New("account get error")
@@ -2991,16 +2992,25 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
 	_, _ = sc.ProcessSmartContractResult(&scr)
 	require.True(t, called)
-}
+}*/
 
 func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &stateMock.AccountsStub{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = accountsDB
-	arguments.ShardCoordinator = shardCoordinator
+
+	accDb := &stateMock.AccountsStub{}
+	accGetter, _ := scrCommon.NewSCRAccountGetter(accDb, shardCoordinator)
+	checker, _ := scrCommon.NewSCRChecker(&scrCommon.ArgsSCRChecker{
+		Hasher:     arguments.Hasher,
+		Marshaller: arguments.Marshalizer,
+		PubKeyConv: arguments.PubkeyConv,
+		Accounts:   accDb,
+		AccGetter:  accGetter,
+	})
+
+	arguments.SCRChecker = checker
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)

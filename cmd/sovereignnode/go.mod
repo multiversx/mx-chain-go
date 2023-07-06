@@ -2,6 +2,10 @@ module github.com/multiversx/mx-chain-go/sovereignnode
 
 go 1.17
 
+replace (
+	github.com/multiversx/mx-chain-go => ../../../mx-chain-go
+)
+
 require (
 	github.com/google/gops v0.3.18
 	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230703132206-b44cc03248c9

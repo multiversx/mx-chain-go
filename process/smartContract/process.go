@@ -212,8 +212,6 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
-		accGetter:           args.AccountGetter,
-		scrChecker:          args.SCRChecker,
 	}
 
 	var err error
@@ -221,17 +219,6 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 	if err != nil {
 		return nil, err
 	}
-	sc.accGetter, err = scrCommon.NewSCRAccountGetter(args.AccountsDB, args.ShardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-	sc.scrChecker, err = scrCommon.NewSCRChecker(&scrCommon.ArgsSCRChecker{
-		Hasher:     args.Hasher,
-		Marshaller: args.Marshalizer,
-		PubKeyConv: args.PubkeyConv,
-		Accounts:   args.AccountsDB,
-		AccGetter:  args.AccountGetter,
-	})
 
 	args.GasSchedule.RegisterNotifyHandler(sc)
 

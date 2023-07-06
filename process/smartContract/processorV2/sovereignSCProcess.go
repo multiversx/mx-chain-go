@@ -15,8 +15,6 @@ type sovereignSCProcessor struct {
 	*scProcessor
 }
 
-// TODO: use scrProcessorV2 when feat/vm1.5 is merged into feat/chain-sdk-go
-
 // NewSovereignSCRProcessor creates a sovereign scr processor
 func NewSovereignSCRProcessor(scrProc *scProcessor) (*sovereignSCProcessor, error) {
 	if check.IfNil(scrProc) {
@@ -42,7 +40,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, fmt.Errorf("%w, expected ESDTSCAddress", errInvalidSenderAddress)
 	}
 
-	scrData, err := sc.scrChecker.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}

@@ -90,9 +90,6 @@ type scProcessor struct {
 
 	executableCheckers    map[string]scrCommon.ExecutableChecker
 	mutExecutableCheckers sync.RWMutex
-
-	accGetter  scrCommon.AccountGetter
-	scrChecker scrCommon.SCRChecker
 }
 
 type sameShardExecutionDataAfterBuiltIn struct {
@@ -2743,6 +2740,44 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	err = process.ErrWrongTransaction
 	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+}
+
+func (sc *scProcessor) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (*scrCommon.ScrProcessingData, error) {
+	scrHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return nil, err
+	}
+
+	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
+	if err != nil {
+		return nil, err
+	}
+	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if check.IfNil(dstAcc) {
+		err = process.ErrNilSCDestAccount
+		return nil, err
+	}
+
+	snapshot := sc.accounts.JournalLen()
+	process.DisplayProcessTxDetails(
+		"ProcessSmartContractResult: receiver account details",
+		dstAcc,
+		scr,
+		scrHash,
+		sc.pubkeyConv,
+	)
+
+	return &scrCommon.ScrProcessingData{
+		Hash:        scrHash,
+		Snapshot:    snapshot,
+		Sender:      sndAcc,
+		Destination: dstAcc,
+	}, nil
 }
 
 // CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
