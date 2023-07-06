@@ -34,7 +34,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return 0, process.ErrNilSmartContractResult
 	}
 
-	log.Debug("sovereignSCProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
+	log.Trace("sovereignSCProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
 
 	var err error
 	returnCode := vmcommon.UserError
