@@ -1,10 +1,7 @@
 package scrCommon
 
 import (
-	"math/big"
-
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -15,20 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
-
-// TestSmartContractProcessor is a SmartContractProcessor used in integration tests
-type TestSmartContractProcessor interface {
-	process.SmartContractProcessorFacade
-	GetCompositeTestError() error
-	GetGasRemaining() uint64
-	GetAllSCRs() []data.TransactionHandler
-	CleanGasRefunded()
-}
-
-// ExecutableChecker is an interface for checking if a builtin function is executable
-type ExecutableChecker interface {
-	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
-}
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
@@ -55,6 +38,14 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
+}
+
+// ScrProcessingData is a struct placeholder for scr data to be processed after validation checks
+type ScrProcessingData struct {
+	Hash        []byte
+	Snapshot    int
+	Sender      state.UserAccountHandler
+	Destination state.UserAccountHandler
 }
 
 // FindVMByScAddress is exported for use in all version of scr processors
@@ -89,17 +80,4 @@ func CreateExecutableCheckersMap(builtinFunctions vmcommon.BuiltInFunctionContai
 	}
 
 	return executableCheckers
-}
-
-// SCRProcessorHandler defines a scr processor handler
-type SCRProcessorHandler interface {
-	process.SmartContractProcessor
-	process.SmartContractResultProcessor
-}
-
-type ScrProcessingData struct {
-	Hash        []byte
-	Snapshot    int
-	Sender      state.UserAccountHandler
-	Destination state.UserAccountHandler
 }
