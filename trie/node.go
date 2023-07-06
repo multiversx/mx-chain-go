@@ -136,20 +136,29 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
+type trieStorageManagerWithStats interface {
+	IncrementTrieOp()
+	Print()
+}
+
 func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 
-	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos, db)
-		if err != nil {
-			return err
+	if !n.isPosCollapsed(int(pos)) {
+		dbWithStats, ok := db.(trieStorageManagerWithStats)
+		if !ok {
+			log.Error("resolveIfCollapsed: invalid storage manager type %T", db)
+		} else {
+			dbWithStats.IncrementTrieOp()
 		}
+
+		return nil
 	}
 
-	return nil
+	return n.resolveCollapsed(pos, db)
 }
 
 func concat(s1 []byte, s2 ...byte) []byte {

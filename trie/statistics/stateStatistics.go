@@ -67,6 +67,17 @@ func (ss *stateStatistics) NumTrie() int {
 	return ss.numTrie
 }
 
+func (ss *stateStatistics) Print() {
+	ss.RLock()
+	defer ss.RUnlock()
+
+	log.Debug("trie storage statistics",
+		"num cache op", ss.numCache,
+		"num persister op", ss.numPersister,
+		"max trie op", ss.numTrie,
+	)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ss *stateStatistics) IsInterfaceNil() bool {
 	return ss == nil

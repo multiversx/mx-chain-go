@@ -3,10 +3,11 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type syncTrieStorageManager struct {
-	common.StorageManager
+	common.StorageManagerWithStats
 	epoch uint32
 }
 
@@ -21,9 +22,14 @@ func NewSyncTrieStorageManager(tsm common.StorageManager) (*syncTrieStorageManag
 		return nil, err
 	}
 
+	tsmWithStats, ok := tsm.(common.StorageManagerWithStats)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+
 	return &syncTrieStorageManager{
-		StorageManager: tsm,
-		epoch:          epoch,
+		StorageManagerWithStats: tsmWithStats,
+		epoch:                   epoch,
 	}, nil
 }
 

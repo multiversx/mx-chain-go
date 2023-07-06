@@ -116,6 +116,12 @@ type StorageManager interface {
 	IsInterfaceNil() bool
 }
 
+type StorageManagerWithStats interface {
+	StorageManager
+	IncrementTrieOp()
+	Print()
+}
+
 // TrieStorageInteractor defines the methods used for interacting with the trie storage
 type TrieStorageInteractor interface {
 	BaseStorer

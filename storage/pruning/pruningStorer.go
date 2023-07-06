@@ -99,7 +99,6 @@ type PruningStorer struct {
 	numOfActivePersisters  uint32
 	epochForPutOperation   uint32
 	pruningEnabled         bool
-	statsCollector         storage.StateStatisticsHandler
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -159,7 +158,6 @@ func initPruningStorer(
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
-	pdb.statsCollector = args.StatsCollector
 
 	return pdb, nil
 }
@@ -194,9 +192,6 @@ func checkArgs(args StorerArgs) error {
 	}
 	if check.IfNil(args.PersistersTracker) {
 		return storage.ErrNilPersistersTracker
-	}
-	if check.IfNil(args.StatsCollector) {
-		return storage.ErrNilStatsCollector
 	}
 
 	return nil
@@ -430,10 +425,14 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 
 // Get searches the key in the cache. In case it is not found, the key may be in the db.
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
+	v, _, err := ps.getWithCacheStatus(key)
+	return v, err
+}
+
+func (ps *PruningStorer) getWithCacheStatus(key []byte) ([]byte, bool, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
-		ps.statsCollector.AddNumCache(1)
-		return v.([]byte), nil
+		return v.([]byte), true, nil
 	}
 
 	// not found in cache
@@ -451,22 +450,17 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 			continue
 		}
-		ps.statsCollector.AddNumPersister(1)
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
-		return val, nil
+		return val, false, nil
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, storage.ErrDBIsClosed
+		return nil, false, storage.ErrDBIsClosed
 	}
 
-	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
-}
-
-func (ps *PruningStorer) GetStorerStats() storage.StateStatisticsHandler {
-	return ps.statsCollector
+	return nil, false, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // Close will close PruningStorer

@@ -266,6 +266,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
+	dbWithStats, ok := tr.trieStorage.(trieStorageManagerWithStats)
+	if !ok {
+		log.Error("failed to cast trieStorage", "type", fmt.Sprintf("%T", tr.trieStorage))
+	} else {
+		log.Debug("patriciaMerkleTrie: will try to print db storage stats")
+		dbWithStats.Print()
+	}
+
 	return nil
 }
 

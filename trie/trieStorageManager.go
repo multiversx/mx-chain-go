@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -33,6 +35,7 @@ type trieStorageManager struct {
 	closed                 bool
 	idleProvider           IdleNodeProvider
 	identifier             string
+	statsCollector         storage.StateStatisticsHandler
 }
 
 type snapshotsQueueEntry struct {
@@ -55,6 +58,7 @@ type NewTrieStorageManagerArgs struct {
 	CheckpointHashesHolder CheckpointHashesHolder
 	IdleProvider           IdleNodeProvider
 	Identifier             string
+	StatsCollector         storage.StateStatisticsHandler
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -80,6 +84,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if len(args.Identifier) == 0 {
 		return nil, ErrInvalidIdentifier
 	}
+	if check.IfNil(args.StatsCollector) {
+		return nil, storage.ErrNilStatsCollector
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -94,6 +101,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		closer:                 closing.NewSafeChanCloser(),
 		idleProvider:           args.IdleProvider,
 		identifier:             args.Identifier,
+		statsCollector:         args.StatsCollector,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
@@ -184,15 +192,36 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, core.ErrContextClosing
 	}
 
-	val, err := tsm.mainStorer.Get(key)
+	storerWithStats, ok := tsm.mainStorer.(storage.StorerWithStats)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+
+	val, foundInCache, err := storerWithStats.GetWithStats(key)
 	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
+		if foundInCache {
+			log.Trace("TSM Get: increased num cache")
+			tsm.statsCollector.AddNumCache(1)
+		} else {
+			log.Trace("TSM Get: increased num persister")
+			tsm.statsCollector.AddNumPersister(1)
+		}
+
 		return val, nil
 	}
 
 	return tsm.getFromOtherStorers(key)
+}
+
+func (tsm *trieStorageManager) IncrementTrieOp() {
+	tsm.statsCollector.AddNumTrie(1)
+}
+
+func (tsm *trieStorageManager) Print() {
+	tsm.statsCollector.Print()
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found

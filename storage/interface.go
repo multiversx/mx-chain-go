@@ -91,6 +91,12 @@ type StorerWithPutInEpoch interface {
 	SetEpochForPutOperation(epoch uint32)
 }
 
+// StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations
+type StorerWithStats interface {
+	Storer
+	GetWithStats(key []byte) ([]byte, bool, error)
+}
+
 // PathManagerHandler defines which actions should be done for generating paths for databases directories
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
@@ -216,5 +222,6 @@ type StateStatisticsHandler interface {
 	NumPersister() int
 	AddNumTrie(value int)
 	NumTrie() int
+	Print()
 	IsInterfaceNil() bool
 }

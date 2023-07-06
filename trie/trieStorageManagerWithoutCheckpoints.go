@@ -1,13 +1,15 @@
 package trie
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
 type trieStorageManagerWithoutCheckpoints struct {
-	common.StorageManager
+	common.StorageManagerWithStats
 }
 
 // NewTrieStorageManagerWithoutCheckpoints creates a new instance of trieStorageManagerWithoutCheckpoints
@@ -16,8 +18,13 @@ func NewTrieStorageManagerWithoutCheckpoints(tsm common.StorageManager) (*trieSt
 		return nil, ErrNilTrieStorage
 	}
 
+	tsmWithStats, ok := tsm.GetBaseTrieStorageManager().(common.StorageManagerWithStats)
+	if !ok {
+		return nil, fmt.Errorf("invalid storage manager type %T", tsm.GetBaseTrieStorageManager())
+	}
+
 	return &trieStorageManagerWithoutCheckpoints{
-		StorageManager: tsm,
+		StorageManagerWithStats: tsmWithStats,
 	}, nil
 }
 
