@@ -133,6 +133,30 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
+// SnapshotsManager defines the methods for the snapshot manager
+type SnapshotsManager interface {
+	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
+	SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager)
+	StartSnapshotAfterRestartIfNeeded(trieStorageManager common.StorageManager) error
+	IsSnapshotInProgress() bool
+	SetSyncer(syncer AccountsDBSyncer) error
+	IsInterfaceNil() bool
+}
+
+// StateMetrics defines the methods for the state metrics
+type StateMetrics interface {
+	UpdateMetricsOnSnapshotStart()
+	UpdateMetricsOnSnapshotCompletion(stats common.SnapshotStatisticsHandler)
+	GetSnapshotMessage() string
+	IsInterfaceNil() bool
+}
+
+// IteratorChannelsProvider defines the methods for the iterator channels provider
+type IteratorChannelsProvider interface {
+	GetIteratorChannels() *common.TrieIteratorChannels
+	IsInterfaceNil() bool
+}
+
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error

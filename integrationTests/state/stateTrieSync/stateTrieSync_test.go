@@ -396,6 +396,10 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 	return acc.GetRootHash()
 }
 
+type snapshotWatcher interface {
+	IsSnapshotInProgress() bool
+}
+
 func TestSyncMissingSnapshotNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -491,7 +495,10 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	tsm := nRequester.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
 	nRequester.AccntState.SnapshotState(rootHash, nRequester.EpochNotifier.CurrentEpoch())
-	for tsm.IsPruningBlocked() {
+	sw, ok := nRequester.AccntState.(snapshotWatcher)
+	assert.True(t, ok)
+
+	for sw.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
 	_ = nRequester.AccntState.RecreateTrie(rootHash)
