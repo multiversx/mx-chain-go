@@ -881,6 +881,10 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	adb.mutOp.Lock()
 	defer func() {
 		adb.mainTrie.GetStorageManager().SetEpochForPutOperation(currentEpoch)
+		log.Debug("trie storage statistics",
+			"storage manager", adb.mainTrie.GetStorageManager().GetIdentifier(),
+			"stats", adb.mainTrie.GetStats(),
+		)
 		adb.mutOp.Unlock()
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()

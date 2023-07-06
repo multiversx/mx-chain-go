@@ -266,15 +266,16 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	dbWithStats, ok := tr.trieStorage.(trieStorageManagerWithStats)
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) GetStats() string {
+	dbWithStats, ok := tr.trieStorage.(storageManagerWithStats)
 	if !ok {
-		log.Error("failed to cast trieStorage", "type", fmt.Sprintf("%T", tr.trieStorage))
-	} else {
-		log.Debug("patriciaMerkleTrie: will try to print db storage stats")
-		dbWithStats.Print()
+		log.Warn("invalid trie storage type %T", tr.trieStorage)
 	}
 
-	return nil
+	return dbWithStats.ToString()
 }
 
 // Recreate returns a new trie that has the given root hash and database

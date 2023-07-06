@@ -56,6 +56,7 @@ type Trie interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
+	GetStats() string
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -118,8 +119,8 @@ type StorageManager interface {
 
 type StorageManagerWithStats interface {
 	StorageManager
-	IncrementTrieOp()
-	Print()
+	IncrTrieOp()
+	ToString() string
 }
 
 // TrieStorageInteractor defines the methods used for interacting with the trie storage
@@ -220,6 +221,19 @@ type TriesStatisticsCollector interface {
 	Add(trieStats TrieStatisticsHandler, trieType TrieType)
 	Print()
 	GetNumNodes() uint64
+}
+
+// StateStatisticsHandler -
+type StateStatisticsHandler interface {
+	Reset()
+	IncrCacheOp()
+	CacheOp() uint64
+	IncrPersisterOp()
+	PersisterOp() uint64
+	IncrTrieOp()
+	TrieOp() uint64
+	ToString() string
+	IsInterfaceNil() bool
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and

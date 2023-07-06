@@ -35,7 +35,7 @@ type trieStorageManager struct {
 	closed                 bool
 	idleProvider           IdleNodeProvider
 	identifier             string
-	statsCollector         storage.StateStatisticsHandler
+	statsCollector         common.StateStatisticsHandler
 }
 
 type snapshotsQueueEntry struct {
@@ -58,7 +58,7 @@ type NewTrieStorageManagerArgs struct {
 	CheckpointHashesHolder CheckpointHashesHolder
 	IdleProvider           IdleNodeProvider
 	Identifier             string
-	StatsCollector         storage.StateStatisticsHandler
+	StatsCollector         common.StateStatisticsHandler
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -203,11 +203,9 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 	if len(val) != 0 {
 		if foundInCache {
-			log.Trace("TSM Get: increased num cache")
-			tsm.statsCollector.AddNumCache(1)
+			tsm.statsCollector.IncrCacheOp()
 		} else {
-			log.Trace("TSM Get: increased num persister")
-			tsm.statsCollector.AddNumPersister(1)
+			tsm.statsCollector.IncrPersisterOp()
 		}
 
 		return val, nil
@@ -216,12 +214,12 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
-func (tsm *trieStorageManager) IncrementTrieOp() {
-	tsm.statsCollector.AddNumTrie(1)
+func (tsm *trieStorageManager) IncrTrieOp() {
+	tsm.statsCollector.IncrTrieOp()
 }
 
-func (tsm *trieStorageManager) Print() {
-	tsm.statsCollector.Print()
+func (tsm *trieStorageManager) ToString() string {
+	return tsm.statsCollector.ToString()
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found

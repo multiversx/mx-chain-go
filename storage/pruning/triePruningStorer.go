@@ -155,8 +155,7 @@ func (ps *triePruningStorer) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 // GetWithStats searches the key in the cache. In case it is not found, the key may be in the db.
 // it will return true if the key has been found in cache
 func (ps *triePruningStorer) GetWithStats(key []byte) ([]byte, bool, error) {
-	v, foundInCache, err := ps.getWithCacheStatus(key)
-	return v, foundInCache, err
+	return ps.getWithCacheStatus(key)
 }
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister

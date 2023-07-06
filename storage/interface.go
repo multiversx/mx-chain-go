@@ -213,15 +213,3 @@ type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }
-
-type StateStatisticsHandler interface {
-	Reset()
-	AddNumCache(value int)
-	NumCache() int
-	AddNumPersister(value int)
-	NumPersister() int
-	AddNumTrie(value int)
-	NumTrie() int
-	Print()
-	IsInterfaceNil() bool
-}

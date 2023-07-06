@@ -4,169 +4,78 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTrieSyncStatistics_ShouldWork(t *testing.T) {
+func TestNewStateStatistics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tss := NewTrieSyncStatistics()
+	ss := NewStateStatistics()
 
-	assert.False(t, check.IfNil(tss))
+	assert.False(t, check.IfNil(ss))
 }
 
-func TestTrieSyncStatistics_Processed(t *testing.T) {
+func TestStateStatistics_Operations(t *testing.T) {
 	t.Parallel()
 
-	tss := NewTrieSyncStatistics()
+	t.Run("trie operations", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Equal(t, 0, tss.NumProcessed())
+		ss := NewStateStatistics()
 
-	tss.AddNumProcessed(2)
-	assert.Equal(t, 2, tss.NumProcessed())
+		assert.Equal(t, uint64(0), ss.TrieOp())
 
-	tss.AddNumProcessed(4)
-	assert.Equal(t, 6, tss.NumProcessed())
+		ss.IncrTrieOp()
+		ss.IncrTrieOp()
+		assert.Equal(t, uint64(2), ss.TrieOp())
 
-	tss.Reset()
-	assert.Equal(t, 0, tss.NumProcessed())
-}
+		ss.IncrTrieOp()
+		assert.Equal(t, uint64(3), ss.TrieOp())
 
-func TestTrieSyncStatistics_Missing(t *testing.T) {
-	t.Parallel()
-
-	tss := NewTrieSyncStatistics()
-
-	assert.Equal(t, 0, tss.NumMissing())
-	assert.Equal(t, 0, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh1"), 2)
-	assert.Equal(t, 2, tss.NumMissing())
-	assert.Equal(t, 1, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh1"), 4)
-	assert.Equal(t, 4, tss.NumMissing())
-	assert.Equal(t, 1, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh2"), 6)
-	assert.Equal(t, 10, tss.NumMissing())
-	assert.Equal(t, 2, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh3"), 0)
-	assert.Equal(t, 10, tss.NumMissing())
-	assert.Equal(t, 2, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh1"), 0)
-	assert.Equal(t, 6, tss.NumMissing())
-	assert.Equal(t, 1, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh2"), 0)
-	assert.Equal(t, 0, tss.NumMissing())
-	assert.Equal(t, 0, tss.NumTries())
-
-	tss.SetNumMissing([]byte("rh1"), 67)
-	assert.Equal(t, 67, tss.NumMissing())
-	assert.Equal(t, 1, tss.NumTries())
-
-	tss.Reset()
-	assert.Equal(t, 0, tss.NumMissing())
-	assert.Equal(t, 0, tss.NumTries())
-}
-
-func TestTrieSyncStatistics_Large(t *testing.T) {
-	t.Parallel()
-
-	tss := NewTrieSyncStatistics()
-
-	assert.Equal(t, 0, tss.NumLarge())
-
-	tss.AddNumLarge(2)
-	assert.Equal(t, 2, tss.NumLarge())
-
-	tss.AddNumLarge(4)
-	assert.Equal(t, 6, tss.NumLarge())
-
-	tss.Reset()
-	assert.Equal(t, 0, tss.NumLarge())
-}
-
-func TestTrieSyncStatistics_BytesReceived(t *testing.T) {
-	t.Parallel()
-
-	tss := NewTrieSyncStatistics()
-
-	assert.Equal(t, uint64(0), tss.NumBytesReceived())
-
-	tss.AddNumBytesReceived(2)
-	assert.Equal(t, uint64(2), tss.NumBytesReceived())
-
-	tss.AddNumBytesReceived(4)
-	assert.Equal(t, uint64(6), tss.NumBytesReceived())
-
-	tss.Reset()
-	assert.Equal(t, uint64(0), tss.NumBytesReceived())
-}
-
-func TestTrieSyncStatistics_IncrementIteration(t *testing.T) {
-	t.Parallel()
-
-	tss := NewTrieSyncStatistics()
-
-	assert.Equal(t, 0, tss.NumIterations())
-
-	tss.IncrementIteration()
-	assert.Equal(t, 1, tss.NumIterations())
-
-	tss.IncrementIteration()
-	assert.Equal(t, 2, tss.NumIterations())
-
-	tss.Reset()
-	assert.Equal(t, 0, tss.NumIterations())
-}
-
-func TestTrieSyncStatistics_AddProcessingTime(t *testing.T) {
-	t.Parallel()
-
-	t.Run("one go routine", func(t *testing.T) {
-		tss := NewTrieSyncStatistics()
-
-		assert.Equal(t, time.Duration(0), tss.ProcessingTime())
-
-		tss.AddProcessingTime(time.Second)
-		assert.Equal(t, time.Second, tss.ProcessingTime())
-
-		tss.AddProcessingTime(time.Millisecond)
-		assert.Equal(t, time.Second+time.Millisecond, tss.ProcessingTime())
-
-		tss.Reset()
-		assert.Equal(t, time.Duration(0), tss.ProcessingTime())
+		ss.Reset()
+		assert.Equal(t, uint64(0), ss.TrieOp())
 	})
-	t.Run("more go routines", func(t *testing.T) {
-		wg := &sync.WaitGroup{}
-		tss := NewTrieSyncStatistics()
 
-		numGoRoutines := 10
-		processingTime := time.Millisecond * 50
-		wg.Add(numGoRoutines)
-		for i := 0; i < numGoRoutines; i++ {
-			go func() {
-				time.Sleep(time.Millisecond * 10)
+	t.Run("persister operations", func(t *testing.T) {
+		t.Parallel()
 
-				tss.AddProcessingTime(processingTime)
-				wg.Done()
-			}()
-		}
+		ss := NewStateStatistics()
 
-		wg.Wait()
+		assert.Equal(t, uint64(0), ss.PersisterOp())
 
-		assert.Equal(t, time.Duration(numGoRoutines)*processingTime, tss.ProcessingTime())
+		ss.IncrPersisterOp()
+		ss.IncrPersisterOp()
+		assert.Equal(t, uint64(2), ss.PersisterOp())
+
+		ss.IncrPersisterOp()
+		assert.Equal(t, uint64(3), ss.PersisterOp())
+
+		ss.Reset()
+		assert.Equal(t, uint64(0), ss.PersisterOp())
+	})
+
+	t.Run("cache operations", func(t *testing.T) {
+		t.Parallel()
+
+		ss := NewStateStatistics()
+
+		assert.Equal(t, uint64(0), ss.CacheOp())
+
+		ss.IncrCacheOp()
+		ss.IncrCacheOp()
+		assert.Equal(t, uint64(2), ss.CacheOp())
+
+		ss.IncrCacheOp()
+		assert.Equal(t, uint64(3), ss.CacheOp())
+
+		ss.Reset()
+		assert.Equal(t, uint64(0), ss.CacheOp())
 	})
 }
 
-func TestParallelOperationsShouldNotPanic(t *testing.T) {
+func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -176,45 +85,36 @@ func TestParallelOperationsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	tss := NewTrieSyncStatistics()
 	numIterations := 10000
+
+	ss := NewStateStatistics()
+
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
+
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			switch idx {
+			switch idx % 11 {
 			case 0:
-				tss.Reset()
+				ss.Reset()
 			case 1:
-				tss.AddNumProcessed(1)
+				ss.IncrCacheOp()
 			case 2:
-				tss.AddNumBytesReceived(2)
+				ss.IncrPersisterOp()
 			case 3:
-				tss.AddNumLarge(3)
-			case 4:
-				tss.SetNumMissing([]byte("root hash"), 4)
-			case 5:
-				tss.AddProcessingTime(time.Millisecond)
-			case 6:
-				tss.IncrementIteration()
+				ss.IncrTrieOp()
 			case 7:
-				_ = tss.NumProcessed()
+				_ = ss.CacheOp()
 			case 8:
-				_ = tss.NumLarge()
+				_ = ss.PersisterOp()
 			case 9:
-				_ = tss.NumMissing()
+				_ = ss.TrieOp()
 			case 10:
-				_ = tss.NumBytesReceived()
-			case 11:
-				_ = tss.NumTries()
-			case 12:
-				_ = tss.ProcessingTime()
-			case 13:
-				_ = tss.NumIterations()
+				_ = ss.ToString()
 			}
 
 			wg.Done()
-		}(i % 14)
+		}(i)
 	}
 
 	wg.Wait()

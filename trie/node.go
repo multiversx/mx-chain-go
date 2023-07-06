@@ -136,11 +136,6 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-type trieStorageManagerWithStats interface {
-	IncrementTrieOp()
-	Print()
-}
-
 func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
@@ -148,17 +143,20 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 	}
 
 	if !n.isPosCollapsed(int(pos)) {
-		dbWithStats, ok := db.(trieStorageManagerWithStats)
-		if !ok {
-			log.Error("resolveIfCollapsed: invalid storage manager type %T", db)
-		} else {
-			dbWithStats.IncrementTrieOp()
-		}
-
+		handleStorageInteractorStats(db)
 		return nil
 	}
 
 	return n.resolveCollapsed(pos, db)
+}
+
+func handleStorageInteractorStats(db common.TrieStorageInteractor) {
+	dbWithStats, ok := db.(storageManagerWithStats)
+	if !ok {
+		log.Warn("invalid trie storage interector type %T", db)
+	} else {
+		dbWithStats.IncrTrieOp()
+	}
 }
 
 func concat(s1 []byte, s2 ...byte) []byte {
