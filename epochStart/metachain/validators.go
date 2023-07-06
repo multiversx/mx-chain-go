@@ -2,7 +2,8 @@ package metachain
 
 import (
 	"bytes"
-	"sort"
+	"encoding/hex"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/compatibility"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -128,13 +130,12 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	miniBlock.TxHashes = make([][]byte, len(validatorsInfo))
 	miniBlock.Type = block.PeerBlock
 
-	validatorCopy := make([]*state.ValidatorInfo, len(validatorsInfo))
-	copy(validatorCopy, validatorsInfo)
-	sort.Slice(validatorCopy, func(a, b int) bool {
-		return bytes.Compare(validatorCopy[a].PublicKey, validatorCopy[b].PublicKey) < 0
-	})
+	validatorsCopy := make([]*state.ValidatorInfo, len(validatorsInfo))
+	copy(validatorsCopy, validatorsInfo)
 
-	for index, validator := range validatorCopy {
+	vic.sortValidators(validatorsCopy)
+
+	for index, validator := range validatorsCopy {
 		shardValidatorInfo := createShardValidatorInfo(validator)
 
 		shardValidatorInfoData, err := vic.getShardValidatorInfoData(shardValidatorInfo)
@@ -146,6 +147,18 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 	}
 
 	return miniBlock, nil
+}
+
+func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInfo) {
+	// TODO add flag and properly resolve the issue when we have 2 entries with the same public key
+
+	swap := func(a, b int) {
+		validators[a], validators[b] = validators[b], validators[a]
+	}
+	less := func(a, b int) bool {
+		return bytes.Compare(validators[a].PublicKey, validators[b].PublicKey) < 0
+	}
+	compatibility.SortSlice(swap, less, len(validators))
 }
 
 func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo) ([]byte, error) {
@@ -222,7 +235,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(miniBlocks []*blo
 
 		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
 		if !ok {
-			// TODO: add display debug prints of mini blocks contents
+			vic.printAllMiniBlocks(hashesToMiniBlocks, miniBlocks)
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
 	}
@@ -232,6 +245,34 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(miniBlocks []*blo
 	}
 
 	return nil
+}
+
+func (vic *validatorInfoCreator) printAllMiniBlocks(created map[string]*block.MiniBlock, received []*block.MiniBlock) {
+	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing created")
+	for _, mb := range created {
+		vic.printMiniBlock(mb)
+	}
+
+	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing received")
+	for _, mb := range received {
+		vic.printMiniBlock(mb)
+	}
+}
+
+func (vic *validatorInfoCreator) printMiniBlock(mb *block.MiniBlock) {
+	hashes := make([]string, 0, len(mb.TxHashes))
+	for _, hash := range mb.TxHashes {
+		hashes = append(hashes, hex.EncodeToString(hash))
+	}
+
+	mbHash, _ := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
+	txHashSeparator := "\n   "
+	log.Debug(" miniblock",
+		"hash", mbHash,
+		"type", mb.Type.String(),
+		"sender shard ID", mb.SenderShardID,
+		"receiver shard ID", mb.ReceiverShardID,
+		"hashes", txHashSeparator+strings.Join(hashes, txHashSeparator))
 }
 
 // GetLocalValidatorInfoCache returns the local validator info cache which holds all the validator info for the current epoch
