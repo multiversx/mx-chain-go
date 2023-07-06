@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 	"math"
 	"math/big"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
