@@ -2684,24 +2684,59 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	var err error
 	returnCode := vmcommon.UserError
-	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
+	scrData, err := sc.checkSCRBeforeProcessing(scr)
+	if err != nil {
+		return returnCode, err
+	}
+
+	gasLocked := sc.getGasLockedFromSCR(scr)
+
+	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
+	switch txType {
+	case process.MoveBalance:
+		err = sc.processSimpleSCR(scr, scrData.Hash, scrData.Destination)
+		if err != nil {
+			return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+		}
+		return vmcommon.Ok, nil
+	case process.SCDeployment:
+		err = process.ErrSCDeployFromSCRIsNotPermitted
+		return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+	case process.SCInvoking:
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
+		return returnCode, err
+	case process.BuiltInFunctionCall:
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
+			return returnCode, err
+		}
+		returnCode, err = sc.ExecuteBuiltInFunction(scr, scrData.Sender, scrData.Destination)
+		return returnCode, err
+	}
+
+	err = process.ErrWrongTransaction
+	return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+}
+
+func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (*scrCommon.ScrProcessingData, error) {
+	scrHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
 	if err != nil {
 		log.Debug("CalculateHash error", "error", err)
-		return returnCode, err
+		return nil, err
 	}
 
 	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
-		return returnCode, err
+		return nil, err
 	}
 	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
 	if err != nil {
-		return returnCode, err
+		return nil, err
 	}
 
 	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
-		return returnCode, err
+		return nil, err
 	}
 
 	snapshot := sc.accounts.JournalLen()
@@ -2709,37 +2744,16 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		"ProcessSmartContractResult: receiver account details",
 		dstAcc,
 		scr,
-		txHash,
+		scrHash,
 		sc.pubkeyConv,
 	)
 
-	gasLocked := sc.getGasLockedFromSCR(scr)
-
-	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
-	switch txType {
-	case process.MoveBalance:
-		err = sc.processSimpleSCR(scr, txHash, dstAcc)
-		if err != nil {
-			return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
-		}
-		return vmcommon.Ok, nil
-	case process.SCDeployment:
-		err = process.ErrSCDeployFromSCRIsNotPermitted
-		return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
-	case process.SCInvoking:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
-		return returnCode, err
-	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
-			return returnCode, err
-		}
-		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
-		return returnCode, err
-	}
-
-	err = process.ErrWrongTransaction
-	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+	return &scrCommon.ScrProcessingData{
+		Hash:        scrHash,
+		Snapshot:    snapshot,
+		Sender:      sndAcc,
+		Destination: dstAcc,
+	}, nil
 }
 
 // CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it

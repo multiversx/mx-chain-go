@@ -56,13 +56,6 @@ type ExecutableChecker interface {
 	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
 }
 
-type scrProcessingData struct {
-	hash        []byte
-	snapshot    int
-	sender      state.UserAccountHandler
-	destination state.UserAccountHandler
-}
-
 type scProcessor struct {
 	accounts           state.AccountsAdapter
 	blockChainHook     process.BlockChainHookHandler
@@ -2759,31 +2752,31 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
-		err = sc.processSimpleSCR(scr, scrData.hash, scrData.destination)
+		err = sc.processSimpleSCR(scr, scrData.Hash, scrData.Destination)
 		if err != nil {
-			return returnCode, sc.ProcessIfError(scrData.sender, scrData.hash, scr, err.Error(), scr.ReturnMessage, scrData.snapshot, gasLocked)
+			return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
 		}
 		return vmcommon.Ok, nil
 	case process.SCDeployment:
 		err = process.ErrSCDeployFromSCRIsNotPermitted
-		return returnCode, sc.ProcessIfError(scrData.sender, scrData.hash, scr, err.Error(), scr.ReturnMessage, scrData.snapshot, gasLocked)
+		return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
 	case process.SCInvoking:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.sender, scrData.destination)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
 		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.sender, scrData.destination)
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
 			return returnCode, err
 		}
-		returnCode, err = sc.ExecuteBuiltInFunction(scr, scrData.sender, scrData.destination)
+		returnCode, err = sc.ExecuteBuiltInFunction(scr, scrData.Sender, scrData.Destination)
 		return returnCode, err
 	}
 
 	err = process.ErrWrongTransaction
-	return returnCode, sc.ProcessIfError(scrData.sender, scrData.hash, scr, err.Error(), scr.ReturnMessage, scrData.snapshot, gasLocked)
+	return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
 }
 
-func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (*scrProcessingData, error) {
+func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (*scrCommon.ScrProcessingData, error) {
 	scrHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
 	if err != nil {
 		log.Debug("CalculateHash error", "error", err)
@@ -2813,11 +2806,11 @@ func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartCo
 		sc.pubkeyConv,
 	)
 
-	return &scrProcessingData{
-		hash:        scrHash,
-		snapshot:    snapshot,
-		sender:      sndAcc,
-		destination: dstAcc,
+	return &scrCommon.ScrProcessingData{
+		Hash:        scrHash,
+		Snapshot:    snapshot,
+		Sender:      sndAcc,
+		Destination: dstAcc,
 	}, nil
 }
 

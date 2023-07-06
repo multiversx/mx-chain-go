@@ -86,6 +86,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -1621,7 +1622,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 	}
-	sc, _ := smartContract.CreateSCRProcessor(tpn.ChainRunType, argsNewScProcessor)
+	sc, _ := processorV2.CreateSCRProcessor(tpn.ChainRunType, argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)

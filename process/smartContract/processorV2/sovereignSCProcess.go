@@ -1,4 +1,4 @@
-package smartContract
+package processorV2
 
 import (
 	"bytes"
@@ -55,12 +55,12 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.ExecuteBuiltInFunction(scr, nil, scrData.destination)
+		return sc.ExecuteBuiltInFunction(scr, nil, scrData.Destination)
 	default:
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, sc.ProcessIfError(scrData.sender, scrData.hash, scr, err.Error(), scr.ReturnMessage, scrData.snapshot, 0)
+	return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, 0)
 }
 
 func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {

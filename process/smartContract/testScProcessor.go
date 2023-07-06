@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
 // TestScProcessor extends scProcessor and is used in tests as it exposes some functions
@@ -18,14 +19,10 @@ type TestScProcessor struct {
 }
 
 // NewTestScProcessor -
-func NewTestScProcessor(scProcHandler SCRProcessorHandler) *TestScProcessor {
+func NewTestScProcessor(scProcHandler scrCommon.SCRProcessorHandler) *TestScProcessor {
 	scProc, ok := scProcHandler.(*scProcessor)
 	if ok {
 		return &TestScProcessor{scProc}
-	}
-	sovScProc, ok := scProcHandler.(*sovereignSCProcessor)
-	if ok {
-		return &TestScProcessor{sovScProc.scProcessor}
 	}
 
 	panic("invalid sc processor handler provided")
