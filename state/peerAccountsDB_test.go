@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"sync"
 	"testing"
 	"time"
@@ -146,7 +147,8 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 	t.Parallel()
 
-	checkpointInProgress := true
+	checkpointInProgress := atomic.Flag{}
+	checkpointInProgress.SetValue(true)
 	checkpointCalled := false
 	args := createMockAccountsDBArgs()
 	args.Trie = &trieMock.TrieStub{
@@ -157,7 +159,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 					stats.SnapshotFinished()
 				},
 				ExitPruningBufferingModeCalled: func() {
-					checkpointInProgress = false
+					checkpointInProgress.SetValue(false)
 				},
 			}
 		},
@@ -168,7 +170,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 	assert.False(t, check.IfNil(adb))
 
 	adb.SetStateCheckpoint([]byte("rootHash"))
-	for checkpointInProgress {
+	for checkpointInProgress.IsSet() {
 		time.Sleep(10 * time.Millisecond)
 	}
 	assert.True(t, checkpointCalled)

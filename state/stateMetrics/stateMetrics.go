@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"sync"
 )
 
 const (
@@ -24,6 +25,7 @@ type ArgsStateMetrics struct {
 
 type stateMetrics struct {
 	appStatusHandler core.AppStatusHandler
+	mutex            sync.RWMutex
 
 	snapshotInProgressKey   string
 	lastSnapshotDurationKey string
@@ -43,17 +45,24 @@ func NewStateMetrics(args ArgsStateMetrics, appStatusHandler core.AppStatusHandl
 		snapshotInProgressKey:   args.SnapshotInProgressKey,
 		lastSnapshotDurationKey: args.LastSnapshotDurationKey,
 		snapshotMessage:         args.SnapshotMessage,
+		mutex:                   sync.RWMutex{},
 	}, nil
 }
 
 // UpdateMetricsOnSnapshotStart will update the metrics on snapshot start
 func (sm *stateMetrics) UpdateMetricsOnSnapshotStart() {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
 	sm.appStatusHandler.SetUInt64Value(sm.snapshotInProgressKey, 1)
 	sm.appStatusHandler.SetInt64Value(sm.lastSnapshotDurationKey, 0)
 }
 
 // UpdateMetricsOnSnapshotCompletion will update the metrics on snapshot completion
 func (sm *stateMetrics) UpdateMetricsOnSnapshotCompletion(stats common.SnapshotStatisticsHandler) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
 	sm.appStatusHandler.SetUInt64Value(sm.snapshotInProgressKey, 0)
 	sm.appStatusHandler.SetInt64Value(sm.lastSnapshotDurationKey, stats.GetSnapshotDuration())
 	if sm.snapshotMessage == UserTrieSnapshotMsg {
