@@ -37,7 +37,7 @@ func newAPITransactionResultProcessor(
 	shardCoordinator sharding.Coordinator,
 	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
-	refundDetector := newRefundDetector()
+	refundDetector := NewRefundDetector()
 
 	return &apiTransactionResultsProcessor{
 		txUnmarshaller:         txUnmarshaller,
@@ -169,7 +169,7 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 }
 
 func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
-	isRefund := arp.refundDetector.isRefund(refundDetectorInput{
+	isRefund := arp.refundDetector.IsRefund(RefundDetectorInput{
 		Value:         scr.Value.String(),
 		Data:          scr.Data,
 		ReturnMessage: string(scr.ReturnMessage),

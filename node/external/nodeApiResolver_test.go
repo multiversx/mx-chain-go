@@ -31,7 +31,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:           &mock.SCQueryServiceStub{},
 		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
-		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
+		APITransactionEvaluator:  &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},
 		DelegatedListHandler:     &mock.DelegatedListProcessorStub{},
@@ -72,11 +72,11 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.TxCostHandler = nil
+	arg.APITransactionEvaluator = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, nar)
-	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
+	assert.Equal(t, external.ErrNilAPITransactionEvaluator, err)
 }
 
 func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {

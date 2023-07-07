@@ -15,8 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -35,7 +36,7 @@ type FacadeStub struct {
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler                  func() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsHandler                  func() (map[string]*accounts.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
@@ -48,7 +49,7 @@ type FacadeStub struct {
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetAllESDTTokensCalled                      func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetESDTsWithRoleCalled                      func(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
@@ -305,7 +306,7 @@ func (f *FacadeStub) GetTransaction(hash string, withResults bool) (*transaction
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method
-func (f *FacadeStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (f *FacadeStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return f.SimulateTransactionExecutionHandler(tx)
 }
 
@@ -325,7 +326,7 @@ func (f *FacadeStub) ValidateTransactionForSimulation(tx *transaction.Transactio
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
-func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return f.ValidatorStatisticsHandler()
 }
 

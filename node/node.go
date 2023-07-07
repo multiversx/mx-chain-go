@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -994,7 +995,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 

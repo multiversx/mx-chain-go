@@ -561,3 +561,31 @@ var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
 
 // ErrNilTrieMigrator signals that a nil trie migrator has been provided
 var ErrNilTrieMigrator = errors.New("nil trie migrator")
+
+// ErrNilAddress defines the error when trying to work with a nil address
+var ErrNilAddress = errors.New("nil address")
+
+// ErrInsufficientFunds signals the funds are insufficient for the move balance operation but the
+// transaction fee is covered by the current balance
+var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
+var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
+
+// ErrNilTrieLeafParser signals that a nil trie leaf parser has been provided
+var ErrNilTrieLeafParser = errors.New("nil trie leaf parser")
+
+// ErrNilTrie signals that a trie is nil and no operation can be made
+var ErrNilTrie = errors.New("trie is nil")
+
+// ErrNilBLSPublicKey signals that the provided BLS public key is nil
+var ErrNilBLSPublicKey = errors.New("bls public key is nil")
+
+// ErrEmptyAddress defines the error when trying to work with an empty address
+var ErrEmptyAddress = errors.New("empty Address")

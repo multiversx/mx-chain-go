@@ -723,7 +723,6 @@ func (nr *nodeRunner) createApiFacade(
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   currentNode.processComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
