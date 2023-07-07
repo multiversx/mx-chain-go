@@ -235,7 +235,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(miniBlocks []*blo
 
 		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
 		if !ok {
-			vic.printAllMiniBlocks(hashesToMiniBlocks, miniBlocks)
+			vic.printAllMiniBlocks(createdMiniBlocks, miniBlocks)
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
 	}
@@ -247,25 +247,41 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(miniBlocks []*blo
 	return nil
 }
 
-func (vic *validatorInfoCreator) printAllMiniBlocks(created map[string]*block.MiniBlock, received []*block.MiniBlock) {
+func (vic *validatorInfoCreator) printAllMiniBlocks(created []*block.MiniBlock, received []*block.MiniBlock) {
 	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing created")
-	for _, mb := range created {
-		vic.printMiniBlock(mb)
+	for i, mb := range created {
+		if mb == nil {
+			log.Warn("nil miniblock found in printAllMiniBlocks, range on created", "index", i)
+			continue
+		}
+
+		vic.printMiniBlock(mb, i)
 	}
 
 	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing received")
-	for _, mb := range received {
-		vic.printMiniBlock(mb)
+	for i, mb := range received {
+		if mb == nil {
+			log.Warn("nil miniblock found in printAllMiniBlocks, range on received", "index", i)
+			continue
+		}
+
+		vic.printMiniBlock(mb, i)
 	}
 }
 
-func (vic *validatorInfoCreator) printMiniBlock(mb *block.MiniBlock) {
+func (vic *validatorInfoCreator) printMiniBlock(mb *block.MiniBlock, index int) {
 	hashes := make([]string, 0, len(mb.TxHashes))
 	for _, hash := range mb.TxHashes {
 		hashes = append(hashes, hex.EncodeToString(hash))
 	}
 
-	mbHash, _ := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
+	mbHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
+	if err != nil {
+		log.Warn("error computing hash in validatorInfoCreator.printMiniBlock",
+			"index", index, "error", err)
+		return
+	}
+
 	txHashSeparator := "\n   "
 	log.Debug(" miniblock",
 		"hash", mbHash,
