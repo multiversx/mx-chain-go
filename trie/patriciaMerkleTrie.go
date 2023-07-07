@@ -273,6 +273,7 @@ func (tr *patriciaMerkleTrie) GetStats() string {
 	dbWithStats, ok := tr.trieStorage.(storageManagerWithStats)
 	if !ok {
 		log.Warn("invalid trie storage type %T", tr.trieStorage)
+		return ""
 	}
 
 	return dbWithStats.GetStatsCollector().ToString()

@@ -39,6 +39,12 @@ func (s *MemDbMock) Put(key, val []byte) error {
 	return nil
 }
 
+// GetWithStats gets the value associated to the key, or reports an error
+func (s *MemDbMock) GetWithStats(key []byte) ([]byte, bool, error) {
+	v, err := s.Get(key)
+	return v, false, err
+}
+
 // Get gets the value associated to the key, or reports an error
 func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 	s.mutx.RLock()

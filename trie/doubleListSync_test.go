@@ -25,6 +25,15 @@ import (
 var marshalizer = &marshallerMock.MarshalizerMock{}
 var hasherMock = &hashingMocks.HasherMock{}
 
+type storerWithStats struct {
+	storage.Storer
+}
+
+func (ss *storerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
+	v, err := ss.Get(key)
+	return v, false, err
+}
+
 func createMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
@@ -32,8 +41,9 @@ func createMemUnit() storage.Storer {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(100000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
+	unitt := &storerWithStats{unit}
 
-	return unit
+	return unitt
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
@@ -59,8 +69,9 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	unit, _ := storageunit.NewStorageUnit(cache, db)
+	unitt := &storerWithStats{unit}
 
-	tsm, _ := createTrieStorageManager(unit)
+	tsm, _ := createTrieStorageManager(unitt)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
 
 	return tr, unit
