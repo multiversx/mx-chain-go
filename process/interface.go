@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -316,7 +317,7 @@ type TransactionLogProcessorDatabase interface {
 
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
-	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	GetLatestValidators() map[string]*accounts.ValidatorApiResponse
 	IsInterfaceNil() bool
 	Close() error
 }

@@ -26,8 +26,9 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -42,7 +43,6 @@ func createMockArguments() ArgNodeFacade {
 		Node:                   &mock.NodeStub{},
 		ApiResolver:            &mock.ApiResolverStub{},
 		RestAPIServerDebugMode: false,
-		TxSimulatorProcessor:   &mock.TxExecutionSimulatorStub{},
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
 			SimultaneousRequests:               1,
 			SameSourceRequests:                 1,
@@ -95,16 +95,6 @@ func TestNewNodeFacade(t *testing.T) {
 
 		require.Nil(t, nf)
 		require.Equal(t, ErrNilApiResolver, err)
-	})
-	t.Run("nil TxSimulatorProcessor should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArguments()
-		arg.TxSimulatorProcessor = nil
-		nf, err := NewNodeFacade(arg)
-
-		require.Nil(t, nf)
-		require.Equal(t, ErrNilTransactionSimulatorProcessor, err)
 	})
 	t.Run("invalid ApiRoutesConfig should error", func(t *testing.T) {
 		t.Parallel()
@@ -559,10 +549,10 @@ func TestNodeFacade_RestInterface(t *testing.T) {
 func TestNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
-	mapToRet := make(map[string]*state.ValidatorApiResponse)
-	mapToRet["test"] = &state.ValidatorApiResponse{NumLeaderFailure: 5}
+	mapToRet := make(map[string]*accounts.ValidatorApiResponse)
+	mapToRet["test"] = &accounts.ValidatorApiResponse{NumLeaderFailure: 5}
 	node := &mock.NodeStub{
-		ValidatorStatisticsApiCalled: func() (map[string]*state.ValidatorApiResponse, error) {
+		ValidatorStatisticsApiCalled: func() (map[string]*accounts.ValidatorApiResponse, error) {
 			return mapToRet, nil
 		},
 	}
@@ -2049,16 +2039,18 @@ func TestNodeFacade_ValidateTransaction(t *testing.T) {
 func TestNodeFacade_SimulateTransactionExecution(t *testing.T) {
 	t.Parallel()
 
-	providedResponse := &txSimData.SimulationResults{
-		Status:     "ok",
-		FailReason: "no reason",
-		ScResults:  nil,
-		Receipts:   nil,
-		Hash:       "hash",
+	providedResponse := &txSimData.SimulationResultsWithVMOutput{
+		SimulationResults: transaction.SimulationResults{
+			Status:     "ok",
+			FailReason: "no reason",
+			ScResults:  nil,
+			Receipts:   nil,
+			Hash:       "hash",
+		},
 	}
 	args := createMockArguments()
-	args.TxSimulatorProcessor = &mock.TxExecutionSimulatorStub{
-		ProcessTxCalled: func(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+	args.ApiResolver = &mock.ApiResolverStub{
+		SimulateTransactionExecutionHandler: func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 			return providedResponse, nil
 		},
 	}

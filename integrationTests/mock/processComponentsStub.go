@@ -43,7 +43,7 @@ type ProcessComponentsStub struct {
 	HeaderConstructValidator             process.HeaderConstructionValidator
 	MainPeerMapper                       process.NetworkShardingCollector
 	FullArchivePeerMapper                process.NetworkShardingCollector
-	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
+	TxCostSimulator                      factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
@@ -210,9 +210,9 @@ func (pcs *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHead
 	return pcs.FallbackHdrValidator
 }
 
-// TransactionSimulatorProcessor -
-func (pcs *ProcessComponentsStub) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
-	return pcs.TxSimulatorProcessor
+// APITransactionEvaluator -
+func (pcs *ProcessComponentsStub) APITransactionEvaluator() factory.TransactionEvaluator {
+	return pcs.TxCostSimulator
 }
 
 // WhiteListHandler -

@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import (
 	"context"
@@ -18,16 +18,16 @@ import (
 func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(nil)
-	require.True(t, check.IfNil(roAccDb))
+	simAccountsDB, err := NewSimulationAccountsDB(nil)
+	require.True(t, check.IfNil(simAccountsDB))
 	require.Equal(t, ErrNilAccountsAdapter, err)
 }
 
 func TestNewReadOnlyAccountsDB(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(&stateMock.AccountsStub{})
-	require.False(t, check.IfNil(roAccDb))
+	simAccountsDB, err := NewSimulationAccountsDB(&stateMock.AccountsStub{})
+	require.False(t, check.IfNil(simAccountsDB))
 	require.NoError(t, err)
 }
 
@@ -74,33 +74,33 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 		},
 	}
 
-	roAccDb, _ := NewReadOnlyAccountsDB(accDb)
-	require.NotNil(t, roAccDb)
+	simAccountsDB, _ := NewSimulationAccountsDB(accDb)
+	require.NotNil(t, simAccountsDB)
 
-	err := roAccDb.SaveAccount(nil)
+	err := simAccountsDB.SaveAccount(nil)
 	require.NoError(t, err)
 
-	err = roAccDb.RemoveAccount(nil)
+	err = simAccountsDB.RemoveAccount(nil)
 	require.NoError(t, err)
 
-	_, err = roAccDb.Commit()
+	_, err = simAccountsDB.Commit()
 	require.NoError(t, err)
 
-	err = roAccDb.RevertToSnapshot(0)
+	err = simAccountsDB.RevertToSnapshot(0)
 	require.NoError(t, err)
 
-	err = roAccDb.RecreateTrie(nil)
+	err = simAccountsDB.RecreateTrie(nil)
 	require.NoError(t, err)
 
-	roAccDb.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
+	simAccountsDB.PruneTrie(nil, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
-	roAccDb.CancelPrune(nil, state.NewRoot)
+	simAccountsDB.CancelPrune(nil, state.NewRoot)
 
-	roAccDb.SnapshotState(nil)
+	simAccountsDB.SnapshotState(nil)
 
-	roAccDb.SetStateCheckpoint(nil)
+	simAccountsDB.SetStateCheckpoint(nil)
 
-	_, err = roAccDb.RecreateAllTries(nil)
+	_, err = simAccountsDB.RecreateAllTries(nil)
 	require.NoError(t, err)
 }
 
@@ -129,32 +129,32 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		},
 	}
 
-	roAccDb, _ := NewReadOnlyAccountsDB(accDb)
-	require.NotNil(t, roAccDb)
+	simAccountsDB, _ := NewSimulationAccountsDB(accDb)
+	require.NotNil(t, simAccountsDB)
 
-	actualAcc, err := roAccDb.GetExistingAccount(nil)
+	actualAcc, err := simAccountsDB.GetExistingAccount(nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedAcc, actualAcc)
 
-	actualAcc, err = roAccDb.LoadAccount(nil)
+	actualAcc, err = simAccountsDB.LoadAccount(nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedAcc, actualAcc)
 
-	actualJournalLen := roAccDb.JournalLen()
+	actualJournalLen := simAccountsDB.JournalLen()
 	require.Equal(t, expectedJournalLen, actualJournalLen)
 
-	actualRootHash, err := roAccDb.RootHash()
+	actualRootHash, err := simAccountsDB.RootHash()
 	require.NoError(t, err)
 	require.Equal(t, expectedRootHash, actualRootHash)
 
-	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
+	actualIsPruningEnabled := simAccountsDB.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
 	allLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = roAccDb.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewMainTrieLeafParser())
+	err = simAccountsDB.GetAllLeaves(allLeaves, context.Background(), nil, parsers.NewMainTrieLeafParser())
 	require.NoError(t, err)
 
 	err = allLeaves.ErrChan.ReadFromChanNonBlocking()
