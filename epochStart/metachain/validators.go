@@ -161,8 +161,9 @@ func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInf
 
 func (vic *validatorInfoCreator) deterministicSortValidators(validators []*state.ValidatorInfo) {
 	sort.SliceStable(validators, func(a, b int) bool {
-		if !bytes.Equal(validators[a].PublicKey, validators[b].PublicKey) {
-			return bytes.Compare(validators[a].PublicKey, validators[b].PublicKey) < 0
+		result := bytes.Compare(validators[a].PublicKey, validators[b].PublicKey)
+		if result != 0 {
+			return result < 0
 		}
 
 		aValidatorString := validators[a].GoString()
