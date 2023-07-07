@@ -1,6 +1,8 @@
 package testscommon
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+)
 
 // SnapshotPruningStorerMock -
 type SnapshotPruningStorerMock struct {
@@ -57,4 +59,9 @@ func (spsm *SnapshotPruningStorerMock) RemoveFromAllActiveEpochs(_ []byte) error
 // RemoveFromCurrentEpoch -
 func (spsm *SnapshotPruningStorerMock) RemoveFromCurrentEpoch(key []byte) error {
 	return spsm.Remove(key)
+}
+
+func (spsm *SnapshotPruningStorerMock) GetWithStats(key []byte) ([]byte, bool, error) {
+	v, err := spsm.Get(key)
+	return v, false, err
 }

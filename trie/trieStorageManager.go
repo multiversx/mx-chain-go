@@ -214,12 +214,8 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
-func (tsm *trieStorageManager) IncrTrieOp() {
-	tsm.statsCollector.IncrTrieOp()
-}
-
-func (tsm *trieStorageManager) ToString() string {
-	return tsm.statsCollector.ToString()
+func (tsm *trieStorageManager) GetStatsCollector() common.StateStatisticsHandler {
+	return tsm.statsCollector
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found

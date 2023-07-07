@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -187,6 +188,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 		Identifier:             "identifier",
+		StatsCollector:         disabled.NewStateStatistics(),
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)

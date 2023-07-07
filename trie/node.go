@@ -155,7 +155,7 @@ func handleStorageInteractorStats(db common.TrieStorageInteractor) {
 	if !ok {
 		log.Warn("invalid trie storage interector type %T", db)
 	} else {
-		dbWithStats.IncrTrieOp()
+		dbWithStats.GetStatsCollector().IncrTrieOp()
 	}
 }
 

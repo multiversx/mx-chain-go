@@ -881,10 +881,7 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	adb.mutOp.Lock()
 	defer func() {
 		adb.mainTrie.GetStorageManager().SetEpochForPutOperation(currentEpoch)
-		log.Debug("trie storage statistics",
-			"storage manager", adb.mainTrie.GetStorageManager().GetIdentifier(),
-			"stats", adb.mainTrie.GetStats(),
-		)
+		adb.printTrieStorageStatistics()
 		adb.mutOp.Unlock()
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()
@@ -892,6 +889,17 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	adb.mainTrie.GetStorageManager().SetEpochForPutOperation(epochToCommit)
 
 	return adb.commit()
+}
+
+func (adb *AccountsDB) printTrieStorageStatistics() {
+	stats := adb.mainTrie.GetStats()
+	if stats != "" {
+		log.Debug("trie storage statistics",
+			"storage manager", adb.mainTrie.GetStorageManager().GetIdentifier(),
+			"stats", adb.mainTrie.GetStats(),
+		)
+	}
+
 }
 
 // Commit will persist all data inside the trie

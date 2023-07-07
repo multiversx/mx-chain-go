@@ -31,6 +31,7 @@ type StorageManagerStub struct {
 	GetIdentifierCalled                    func() string
 	CloseCalled                            func() error
 	RemoveFromAllActiveEpochsCalled        func(hash []byte) error
+	GetStatsCollectorCalled                func() common.StateStatisticsHandler
 }
 
 // Put -
@@ -236,6 +237,15 @@ func (sms *StorageManagerStub) GetIdentifier() string {
 	}
 
 	return ""
+}
+
+// GetStatsCollector -
+func (sms *StorageManagerStub) GetStatsCollector() common.StateStatisticsHandler {
+	if sms.GetStatsCollectorCalled != nil {
+		return sms.GetStatsCollectorCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

@@ -298,6 +298,7 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	StateStatisticsEnabled      bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager

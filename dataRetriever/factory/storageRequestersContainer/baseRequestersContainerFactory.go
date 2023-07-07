@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	disabledRequesters "github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters/disabled"
-	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -261,15 +261,16 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:         mainStorer,
-		CheckpointsStorer:  checkpointsStorer,
-		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   brcf.snapshotsEnabled,
-		IdleProvider:       disabled.NewProcessStatusHandler(),
-		Identifier:         storageIdentifier.String(),
-		EnableEpochsHandler: handler,
+		MainStorer:             mainStorer,
+		CheckpointsStorer:      checkpointsStorer,
+		PruningEnabled:         brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:     brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:      brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:       brcf.snapshotsEnabled,
+		IdleProvider:           disabled.NewProcessStatusHandler(),
+		Identifier:             storageIdentifier.String(),
+		EnableEpochsHandler:    handler,
+		StateStatisticsEnabled: brcf.generalConfig.StateTriesConfig.StateStatisticsEnabled,
 	}
 	return trieFactoryInstance.Create(args)
 }

@@ -9,7 +9,8 @@ import (
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
 type trieStorageManagerWithoutCheckpoints struct {
-	common.StorageManagerWithStats
+	common.StorageManager
+	storerWithStats common.StorageManagerWithStats
 }
 
 // NewTrieStorageManagerWithoutCheckpoints creates a new instance of trieStorageManagerWithoutCheckpoints
@@ -24,7 +25,8 @@ func NewTrieStorageManagerWithoutCheckpoints(tsm common.StorageManager) (*trieSt
 	}
 
 	return &trieStorageManagerWithoutCheckpoints{
-		StorageManagerWithStats: tsmWithStats,
+		StorageManager:  tsm,
+		storerWithStats: tsmWithStats,
 	}, nil
 }
 
@@ -47,4 +49,9 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 // AddDirtyCheckpointHashes returns false
 func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
+}
+
+// GetStatsCollector -
+func (tsm *trieStorageManagerWithoutCheckpoints) GetStatsCollector() common.StateStatisticsHandler {
+	return tsm.storerWithStats.GetStatsCollector()
 }

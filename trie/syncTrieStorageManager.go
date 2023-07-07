@@ -3,12 +3,19 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
 type syncTrieStorageManager struct {
-	common.StorageManagerWithStats
+	common.StorageManager
 	epoch uint32
+}
+
+type disabledStatsCollector struct {
+}
+
+func (dsc *disabledStatsCollector) GetStatsCollector() common.StateStatisticsHandler {
+	return disabled.NewStateStatistics()
 }
 
 // NewSyncTrieStorageManager creates a new instance of syncTrieStorageManager
@@ -22,14 +29,14 @@ func NewSyncTrieStorageManager(tsm common.StorageManager) (*syncTrieStorageManag
 		return nil, err
 	}
 
-	tsmWithStats, ok := tsm.(common.StorageManagerWithStats)
-	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
-	}
+	// tsmWithStats, ok := tsm.(common.StorageManagerWithStats)
+	// if !ok {
+	// 	tsmWithStats = &disabledStatsCollector{}
+	// }
 
 	return &syncTrieStorageManager{
-		StorageManagerWithStats: tsmWithStats,
-		epoch:                   epoch,
+		StorageManager: tsm,
+		epoch:          epoch,
 	}, nil
 }
 

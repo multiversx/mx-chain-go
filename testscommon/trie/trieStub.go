@@ -34,6 +34,7 @@ type TrieStub struct {
 	CloseCalled                     func() error
 	CollectLeavesForMigrationCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsMigratedToLatestVersionCalled func() (bool, error)
+	GetStatsCalled                  func() string
 }
 
 // GetStorageManager -
@@ -223,6 +224,15 @@ func (ts *TrieStub) IsMigratedToLatestVersion() (bool, error) {
 	}
 
 	return false, nil
+}
+
+// GetStats -
+func (ts *TrieStub) GetStats() string {
+	if ts.GetStatsCalled != nil {
+		return ts.GetStatsCalled()
+	}
+
+	return ""
 }
 
 // Close -

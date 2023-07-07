@@ -2,34 +2,48 @@ package disabled
 
 type stateStatistics struct{}
 
+// NewStateStatistics will create a new disabled statistics component
 func NewStateStatistics() *stateStatistics {
 	return &stateStatistics{}
 }
 
+// Reset does nothing
 func (s *stateStatistics) Reset() {
 }
 
-func (s *stateStatistics) AddNumCache(value int) {
+// IncrCacheOp does nothing
+func (s *stateStatistics) IncrCacheOp() {
 }
 
-func (s *stateStatistics) NumCache() int {
+// CacheOp returns zero
+func (s *stateStatistics) CacheOp() uint64 {
 	return 0
 }
 
-func (s *stateStatistics) AddNumPersister(value int) {
+// IncrPersisterOp does nothing
+func (s *stateStatistics) IncrPersisterOp() {
 }
 
-func (s *stateStatistics) NumPersister() int {
+// PersisterOp returns zero
+func (s *stateStatistics) PersisterOp() uint64 {
 	return 0
 }
 
-func (s *stateStatistics) AddNumTrie(value int) {
+// IncrTrieOp does nothing
+func (s *stateStatistics) IncrTrieOp() {
 }
 
-func (s *stateStatistics) NumTrie() int {
+// TrieOp returns zero
+func (s *stateStatistics) TrieOp() uint64 {
 	return 0
 }
 
+// ToString returns empty string
+func (s *stateStatistics) ToString() string {
+	return ""
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
 func (s *stateStatistics) IsInterfaceNil() bool {
 	return s == nil
 }

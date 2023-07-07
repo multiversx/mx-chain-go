@@ -118,9 +118,7 @@ type StorageManager interface {
 }
 
 type StorageManagerWithStats interface {
-	StorageManager
-	IncrTrieOp()
-	ToString() string
+	GetStatsCollector() StateStatisticsHandler
 }
 
 // TrieStorageInteractor defines the methods used for interacting with the trie storage

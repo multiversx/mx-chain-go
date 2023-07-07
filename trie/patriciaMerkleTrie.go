@@ -275,7 +275,7 @@ func (tr *patriciaMerkleTrie) GetStats() string {
 		log.Warn("invalid trie storage type %T", tr.trieStorage)
 	}
 
-	return dbWithStats.ToString()
+	return dbWithStats.GetStatsCollector().ToString()
 }
 
 // Recreate returns a new trie that has the given root hash and database

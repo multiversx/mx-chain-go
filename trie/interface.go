@@ -127,6 +127,5 @@ type storageManagerExtension interface {
 }
 
 type storageManagerWithStats interface {
-	IncrTrieOp()
-	ToString() string
+	GetStatsCollector() common.StateStatisticsHandler
 }
