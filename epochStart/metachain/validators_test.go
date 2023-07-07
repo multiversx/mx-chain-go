@@ -1066,10 +1066,20 @@ func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.
 func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T) {
 	t.Parallel()
 
+	t.Run("legacy mode", func(t *testing.T) {
+		testCreateMiniblockBackwardsCompatibility(t, false, "./testdata/expected-legacy.data")
+	})
+	t.Run("full deterministic mode", func(t *testing.T) {
+		//this will prevent from changes the deterministic algorithm as to not create future backwards compatibility issues
+		testCreateMiniblockBackwardsCompatibility(t, true, "./testdata/expected-deterministic.data")
+	})
+}
+
+func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabled bool, expectedDataFilename string) {
 	inputRAW, err := os.ReadFile("./testdata/input.data")
 	require.Nil(t, err)
 
-	expectedRAW, err := os.ReadFile("./testdata/expected.data")
+	expectedRAW, err := os.ReadFile(expectedDataFilename)
 	require.Nil(t, err)
 
 	filterCutSet := " \r\n\t"
@@ -1094,7 +1104,8 @@ func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField: false,
+		IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
 	}
 
 	storer := createMemUnit()
@@ -1108,5 +1119,79 @@ func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T
 	require.Equal(t, len(expected), len(mb.TxHashes))
 	for i, hash := range mb.TxHashes {
 		assert.Equal(t, expected[i], hex.EncodeToString(hash), "not matching for index %d", i)
+	}
+}
+
+func TestValidatorInfoCreator_sortValidators(t *testing.T) {
+	t.Parallel()
+
+	firstValidator := createTestValidatorInfo()
+	firstValidator.List = "a"
+
+	secondValidator := createTestValidatorInfo()
+	secondValidator.List = "b"
+
+	thirdValidator := createTestValidatorInfo()
+	thirdValidator.List = "b"
+	thirdValidator.PublicKey = []byte("xxxx")
+
+	t.Run("legacy sort should not change order", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+			IsDeterministicSortOnValidatorsInfoFixEnabledField: false,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
+
+		assert.Equal(t, list[0], secondValidator) // order not changed for the ones with same public key
+		assert.Equal(t, list[1], firstValidator)
+		assert.Equal(t, list[2], thirdValidator)
+	})
+	t.Run("deterministic sort should change order taking into consideration all fields", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+			IsDeterministicSortOnValidatorsInfoFixEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
+
+		assert.Equal(t, list[0], firstValidator) // proper sorting
+		assert.Equal(t, list[1], secondValidator)
+		assert.Equal(t, list[2], thirdValidator)
+	})
+}
+
+func createTestValidatorInfo() *state.ValidatorInfo {
+	return &state.ValidatorInfo{
+		PublicKey:                       []byte("pubkey"),
+		ShardId:                         1,
+		List:                            "new",
+		Index:                           2,
+		TempRating:                      3,
+		Rating:                          4,
+		RatingModifier:                  5,
+		RewardAddress:                   []byte("reward address"),
+		LeaderSuccess:                   6,
+		LeaderFailure:                   7,
+		ValidatorSuccess:                8,
+		ValidatorFailure:                9,
+		ValidatorIgnoredSignatures:      10,
+		NumSelectedInSuccessBlocks:      11,
+		AccumulatedFees:                 big.NewInt(12),
+		TotalLeaderSuccess:              13,
+		TotalLeaderFailure:              14,
+		TotalValidatorSuccess:           15,
+		TotalValidatorFailure:           16,
+		TotalValidatorIgnoredSignatures: 17,
 	}
 }
