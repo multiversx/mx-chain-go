@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
-	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -24,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -57,7 +57,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		Hasher:     &hashingMocks.HasherMock{},
 		Marshaller: &marshallerMock.MarshalizerMock{},
 		AccountFactory: &stateMock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte, _ hashing.Hasher, _ marshal.Marshalizer) (vmcommon.AccountHandler, error) {
+			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return stateMock.NewAccountWrapMock(address), nil
 			},
 		},
@@ -69,16 +69,8 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 	}
 }
 
-func getDefaultArgsAccountCreation() state.ArgsAccountCreation {
-	return state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-}
-
 func createUserAcc(address []byte) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address, getDefaultArgsAccountCreation())
+	acc, _ := accounts.NewUserAccount(address, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	return acc
 }
 
@@ -86,8 +78,8 @@ func generateAccountDBFromTrie(trie common.Trie) *state.AccountsDB {
 	args := createMockAccountsDBArgs()
 	args.Trie = trie
 
-	accounts, _ := state.NewAccountsDB(args)
-	return accounts
+	adb, _ := state.NewAccountsDB(args)
+	return adb
 }
 
 func generateAccount() *stateMock.AccountWrapMock {
@@ -138,7 +130,7 @@ func getDefaultStateComponents(
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -344,16 +336,28 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 			updateCalled++
 			return nil
 		},
-		RecreateCalled: func(root []byte) (d common.Trie, err error) {
-			return trieStub, nil
-		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
 	})
 
+	dtt := &trieMock.DataTrieTrackerStub{
+		SaveDirtyDataCalled: func(_ common.Trie) ([]core.TrieData, error) {
+			return []core.TrieData{
+				{
+					Key:     []byte("key"),
+					Value:   []byte("value"),
+					Version: 0,
+				},
+			}, nil
+		},
+		DataTrieCalled: func() common.Trie {
+			return trieStub
+		},
+	}
+
 	accCode := []byte("code")
-	acc := createUserAcc([]byte("someAddress"))
+	acc, _ := accounts.NewUserAccount([]byte("someAddress"), dtt, &trieMock.TrieLeafParserStub{})
 	acc.SetCode(accCode)
 	_ = acc.SaveKeyValue([]byte("key"), []byte("value"))
 
@@ -1802,16 +1806,16 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	hasher := &hashingMocks.HasherMock{}
 	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := storage.GetStorageManagerArgs()
-	storageManager, _ := trie.NewTrieStorageManager(args)
+	tsm, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -1884,15 +1888,15 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 
 	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := storage.GetStorageManagerArgs()
-	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -2312,14 +2316,14 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 
 	args := storage.GetStorageManagerArgs()
-	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -2480,7 +2484,7 @@ func TestAccountsDB_Close(t *testing.T) {
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -2495,29 +2499,113 @@ func TestAccountsDB_Close(t *testing.T) {
 	assert.True(t, closeCalled)
 }
 
-func TestAccountsDB_GetAccountFromBytesInvalidAddress(t *testing.T) {
-	t.Parallel()
-
-	_, adb := getDefaultTrieAndAccountsDb()
-
-	acc, err := adb.GetAccountFromBytes([]byte{}, []byte{})
-	assert.Nil(t, acc)
-	assert.Error(t, err)
-	assert.True(t, strings.Contains(err.Error(), state.ErrNilAddress.Error()))
-}
-
 func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &marshallerMock.MarshalizerMock{}
-	adr := make([]byte, 32)
-	accountExpected := createUserAcc(adr)
-	accountBytes, _ := marshaller.Marshal(accountExpected)
-	_, adb := getDefaultTrieAndAccountsDb()
+	t.Run("nil address", func(t *testing.T) {
+		t.Parallel()
 
-	acc, err := adb.GetAccountFromBytes(adr, accountBytes)
-	assert.Nil(t, err)
-	assert.Equal(t, accountExpected, acc)
+		adb, _ := state.NewAccountsDB(createMockAccountsDBArgs())
+
+		acc, err := adb.GetAccountFromBytes(nil, []byte{})
+		assert.Nil(t, acc)
+		assert.True(t, strings.Contains(err.Error(), state.ErrNilAddress.Error()))
+	})
+
+	t.Run("accountFactory error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		args := createMockAccountsDBArgs()
+		args.AccountFactory = &stateMock.AccountsFactoryStub{
+			CreateAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		adb, _ := state.NewAccountsDB(args)
+
+		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
+		assert.Nil(t, acc)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("unmarshal error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		args := createMockAccountsDBArgs()
+		args.Marshaller = &marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(_ interface{}, _ []byte) error {
+				return expectedErr
+			},
+		}
+		adb, _ := state.NewAccountsDB(args)
+
+		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
+		assert.Nil(t, acc)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("return peer account directly", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAccount := &stateMock.PeerAccountHandlerMock{}
+		args := createMockAccountsDBArgs()
+		args.AccountFactory = &stateMock.AccountsFactoryStub{
+			CreateAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return expectedAccount, nil
+			},
+		}
+		args.Marshaller = &marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(_ interface{}, _ []byte) error {
+				return nil
+			},
+		}
+		adb, _ := state.NewAccountsDB(args)
+
+		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAccount, acc)
+	})
+
+	t.Run("loads data trie for user account", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash := []byte("root hash")
+		setDataTrieCalled := false
+		expectedAccount := &stateMock.UserAccountStub{
+			SetDataTrieCalled: func(_ common.Trie) {
+				setDataTrieCalled = true
+			},
+			GetRootHashCalled: func() []byte {
+				return rootHash
+			},
+		}
+
+		args := createMockAccountsDBArgs()
+		args.AccountFactory = &stateMock.AccountsFactoryStub{
+			CreateAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return expectedAccount, nil
+			},
+		}
+		args.Marshaller = &marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(_ interface{}, _ []byte) error {
+				return nil
+			},
+		}
+		args.Trie = &trieMock.TrieStub{
+			RecreateCalled: func(root []byte) (common.Trie, error) {
+				assert.Equal(t, rootHash, root)
+				return &trieMock.TrieStub{}, nil
+			},
+		}
+		adb, _ := state.NewAccountsDB(args)
+
+		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAccount, acc)
+		assert.True(t, setDataTrieCalled)
+	})
 }
 
 func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
@@ -2704,15 +2792,15 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	hasher := &hashingMocks.HasherMock{}
 
 	args := storage.GetStorageManagerArgs()
-	storageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(storageManager, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tsm, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -3071,13 +3159,13 @@ func testAccountMethodsConcurrency(
 	wg.Add(numOperations)
 
 	numAccToLoad := 10
-	accounts := make([]vmcommon.AccountHandler, numAccToLoad)
+	accountsSlice := make([]vmcommon.AccountHandler, numAccToLoad)
 	for i := 0; i < numAccToLoad; i++ {
 		acc, err := adb.GetExistingAccount(addresses[i])
 		assert.Nil(t, err)
-		accounts[i] = acc
+		accountsSlice[i] = acc
 	}
-	accountBytes, err := marshaller.Marshal(accounts[0])
+	accountBytes, err := marshaller.Marshal(accountsSlice[0])
 	assert.Nil(t, err)
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
@@ -3085,11 +3173,11 @@ func testAccountMethodsConcurrency(
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 1:
-				_, _ = adb.GetAccountFromBytes(accounts[0].AddressBytes(), accountBytes)
+				_, _ = adb.GetAccountFromBytes(accountsSlice[0].AddressBytes(), accountBytes)
 			case 2:
 				_, _ = adb.LoadAccount(addresses[idx])
 			case 3:
-				_ = adb.SaveAccount(accounts[idx%numAccToLoad])
+				_ = adb.SaveAccount(accountsSlice[idx%numAccToLoad])
 			case 4:
 				_ = adb.RemoveAccount(rootHash)
 			case 5:
