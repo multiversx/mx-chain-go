@@ -448,6 +448,14 @@ func TestP2pConfig(t *testing.T) {
     Port = "` + port + `"
     ThresholdMinConnectedPeers = 0
 
+    [Node.Transports]
+        QUICAddress = "/ip4/0.0.0.0/udp/%d/quic-v1"
+        WebSocketAddress = "/ip4/0.0.0.0/tcp/%d/ws" 
+        WebTransportAddress = "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport"
+        [Node.Transports.TCP]
+            ListenAddress = "/ip4/0.0.0.0/tcp/%d"
+            PreventPortReuse = true
+
 [KadDhtPeerDiscovery]
     Enabled = false
     Type = ""
@@ -476,6 +484,15 @@ func TestP2pConfig(t *testing.T) {
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: port,
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress:    "/ip4/0.0.0.0/tcp/%d",
+					PreventPortReuse: true,
+				},
+				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
+				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
+				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
