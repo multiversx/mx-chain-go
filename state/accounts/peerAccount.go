@@ -1,53 +1,43 @@
 //go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
-package state
+package accounts
 
 import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/disabled"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // PeerAccount is the struct used in serialization/deserialization
 type peerAccount struct {
-	//TODO investigate if *baseAccount is needed in peerAccount, and remove if not
-	*baseAccount
 	PeerAccountData
-}
-
-// NewEmptyPeerAccount returns an empty peerAccount
-func NewEmptyPeerAccount() *peerAccount {
-	return &peerAccount{
-		baseAccount: &baseAccount{},
-		PeerAccountData: PeerAccountData{
-			AccumulatedFees: big.NewInt(0),
-			UnStakedEpoch:   common.DefaultUnstakedEpoch,
-		},
-	}
 }
 
 // NewPeerAccount creates a new instance of peerAccount
 func NewPeerAccount(address []byte) (*peerAccount, error) {
 	if len(address) == 0 {
-		return nil, ErrNilAddress
+		return nil, errors.ErrNilAddress
 	}
 
 	return &peerAccount{
-		baseAccount: &baseAccount{
-			address:         address,
-			dataTrieTracker: disabled.NewDisabledTrackableDataTrie(),
-		},
 		PeerAccountData: PeerAccountData{
+			BLSPublicKey:    address,
 			AccumulatedFees: big.NewInt(0),
 			UnStakedEpoch:   common.DefaultUnstakedEpoch,
 		},
 	}, nil
 }
 
+// AddressBytes returns the account's address
+func (pa *peerAccount) AddressBytes() []byte {
+	return pa.BLSPublicKey
+}
+
 // SetBLSPublicKey sets the account's bls public key, saving the old key before changing
 func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
 	if len(pubKey) < 1 {
-		return ErrNilBLSPublicKey
+		return errors.ErrNilBLSPublicKey
 	}
 
 	pa.BLSPublicKey = pubKey
@@ -57,7 +47,7 @@ func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
 // SetRewardAddress sets the account's reward address, saving the old address before changing
 func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	if len(address) < 1 {
-		return ErrEmptyAddress
+		return errors.ErrEmptyAddress
 	}
 
 	pa.RewardAddress = address
@@ -146,6 +136,26 @@ func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 // IncreaseNonce adds the given value to the current nonce
 func (pa *peerAccount) IncreaseNonce(value uint64) {
 	pa.Nonce = pa.Nonce + value
+}
+
+// GetLeaderSuccessRate returns the leader success rate
+func (pa *peerAccount) GetLeaderSuccessRate() state.SignRate {
+	return &pa.LeaderSuccessRate
+}
+
+// GetValidatorSuccessRate returns the validator success rate
+func (pa *peerAccount) GetValidatorSuccessRate() state.SignRate {
+	return &pa.ValidatorSuccessRate
+}
+
+// GetTotalLeaderSuccessRate returns the total leader success rate
+func (pa *peerAccount) GetTotalLeaderSuccessRate() state.SignRate {
+	return &pa.TotalLeaderSuccessRate
+}
+
+// GetTotalValidatorSuccessRate returns the total validator success rate
+func (pa *peerAccount) GetTotalValidatorSuccessRate() state.SignRate {
+	return &pa.TotalValidatorSuccessRate
 }
 
 // IsInterfaceNil return if there is no value under the interface

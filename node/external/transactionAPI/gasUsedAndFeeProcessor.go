@@ -31,9 +31,9 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = tx.InitiallyPaidFee
 	}
 
-	hasRefund := false
+	hasRefundForSender := false
 	for _, scr := range tx.SmartContractResults {
-		if !scr.IsRefund {
+		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
 			continue
 		}
 		if scr.RcvAddr != tx.Sender {
@@ -41,11 +41,11 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		}
 
 		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, scr.Value)
-		hasRefund = true
+		hasRefundForSender = true
 		break
 	}
 
-	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefund)
+	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
 }
 
 func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(

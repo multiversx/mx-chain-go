@@ -1,4 +1,4 @@
-package mock
+package state
 
 import (
 	"math/big"
@@ -29,6 +29,7 @@ type PeerAccountHandlerMock struct {
 	SetListAndIndexCalled                        func(shardID uint32, list string, index uint32)
 	GetListCalled                                func() string
 	GetUnStakedEpochCalled                       func() uint32
+	AddressBytesCalled                           func() []byte
 }
 
 // GetUnStakedEpoch -
@@ -54,11 +55,6 @@ func (p *PeerAccountHandlerMock) GetList() string {
 // GetIndexInList -
 func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
-}
-
-// GetBLSPublicKey -
-func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
-	return nil
 }
 
 // SetBLSPublicKey -
@@ -163,12 +159,12 @@ func (p *PeerAccountHandlerMock) IncreaseNumSelectedInSuccessBlocks() {
 
 // GetLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) GetLeaderSuccessRate() state.SignRate {
-	return state.SignRate{}
+	return &SignRate{}
 }
 
 // GetValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
-	return state.SignRate{}
+	return &SignRate{}
 }
 
 // GetValidatorIgnoredSignaturesRate -
@@ -178,12 +174,12 @@ func (p *PeerAccountHandlerMock) GetValidatorIgnoredSignaturesRate() uint32 {
 
 // GetTotalLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
-	return state.SignRate{}
+	return &SignRate{}
 }
 
 // GetTotalValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
-	return state.SignRate{}
+	return &SignRate{}
 }
 
 // GetTotalValidatorIgnoredSignaturesRate -
@@ -222,6 +218,10 @@ func (p *PeerAccountHandlerMock) ResetAtNewEpoch() {
 
 // AddressBytes -
 func (p *PeerAccountHandlerMock) AddressBytes() []byte {
+	if p.AddressBytesCalled != nil {
+		return p.AddressBytesCalled()
+	}
+
 	return nil
 }
 

@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -259,9 +259,10 @@ type NetworkComponentsHandler interface {
 	NetworkComponentsHolder
 }
 
-// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
-type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+// TransactionEvaluator defines the transaction evaluator actions
+type TransactionEvaluator interface {
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
 }
 
@@ -292,7 +293,7 @@ type ProcessComponentsHolder interface {
 	PeerShardMapper() process.NetworkShardingCollector
 	FullArchivePeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
-	TransactionSimulatorProcessor() TransactionSimulatorProcessor
+	APITransactionEvaluator() TransactionEvaluator
 	WhiteListHandler() process.WhiteListHandler
 	WhiteListerVerifiedTxs() process.WhiteListHandler
 	HistoryRepository() dblookupext.HistoryRepository

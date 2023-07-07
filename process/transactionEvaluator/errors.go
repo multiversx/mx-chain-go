@@ -1,4 +1,4 @@
-package txsimulator
+package transactionEvaluator
 
 import "errors"
 
@@ -25,3 +25,6 @@ var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher provided")
+
+// ErrNilDataFieldParser signals that a nil data field parser has been provided
+var ErrNilDataFieldParser = errors.New("nil data field parser")
