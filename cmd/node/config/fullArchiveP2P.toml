@@ -36,7 +36,7 @@
 
     # ProtocolID represents the protocol that this node will advertize to other peers
     # To connect to other nodes, those nodes should have the same ProtocolID string
-    ProtocolID = "/erd/kad/1.0.0"
+    ProtocolID = "/erd/kad/1.0.1"
 
     # InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
     # The address will be in a self-describing addressing format.
@@ -69,4 +69,4 @@
     #   `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
     #               the shard membership of the connected peers
     #   `NilListSharder` will disable conection trimming (sharder is off)
-    Type = "ListsSharder"
+    Type = "OneListSharder"
