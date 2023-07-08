@@ -1,5 +1,4 @@
 FROM golang:1.17.6 as builder
-MAINTAINER MultiversX
 
 RUN apt-get update && apt-get install -y
 WORKDIR /go/mx-chain-go
@@ -12,7 +11,7 @@ RUN cp /go/pkg/mod/github.com/multiversx/$(cat /go/mx-chain-go/go.mod | grep mx-
 
 WORKDIR /go/mx-chain-go/cmd/node
 # ===== SECOND STAGE ======
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 COPY --from=builder "/go/mx-chain-go/cmd/node" "/go/mx-chain-go/cmd/node/"
 COPY --from=builder "/lib/libwasmer_linux_amd64.so" "/lib/libwasmer_linux_amd64.so"
 WORKDIR /go/mx-chain-go/cmd/node/
