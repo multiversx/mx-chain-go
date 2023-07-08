@@ -1183,7 +1183,7 @@ func TestValidatorInfoCreator_printAllMiniBlocksShouldNotPanic(t *testing.T) {
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	// run all these tests in parallel to be caught by the main defer function
+	// do not run these tests in parallel so the panic will be caught by the main defer function
 	t.Run("nil and empty slices, should not panic", func(t *testing.T) {
 		vic.printAllMiniBlocks(nil, make([]*block.MiniBlock, 0))
 		vic.printAllMiniBlocks(make([]*block.MiniBlock, 0), nil)
