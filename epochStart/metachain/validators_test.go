@@ -2,10 +2,14 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -340,7 +344,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNumberNoMatch(t 
 	require.Equal(t, epochStart.ErrValidatorInfoMiniBlocksNumDoesNotMatch, err)
 }
 
-func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashNoMatchT(t *testing.T) {
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashDoNotMatch(t *testing.T) {
 	t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
@@ -1057,4 +1061,136 @@ func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.
 			[]byte("c"),
 		},
 	}
+}
+
+// TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility will test the sorting call for the backwards compatibility issues
+func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T) {
+	t.Parallel()
+
+	inputRAW, err := os.ReadFile("./testdata/input.data")
+	require.Nil(t, err)
+
+	expectedRAW, err := os.ReadFile("./testdata/expected.data")
+	require.Nil(t, err)
+
+	filterCutSet := " \r\n\t"
+	input := strings.Split(strings.Trim(string(inputRAW), filterCutSet), "\n")
+	expected := strings.Split(strings.Trim(string(expectedRAW), filterCutSet), "\n")
+
+	require.Equal(t, len(input), len(expected))
+
+	validators := make([]*state.ValidatorInfo, 0, len(input))
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	for _, marshalledData := range input {
+		vinfo := &state.ValidatorInfo{}
+		buffMarshalledData, errDecode := hex.DecodeString(marshalledData)
+		require.Nil(t, errDecode)
+
+		err = marshaller.Unmarshal(vinfo, buffMarshalledData)
+		require.Nil(t, err)
+
+		validators = append(validators, vinfo)
+	}
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
+	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		IsRefactorPeersMiniBlocksFlagEnabledField: false,
+	}
+
+	storer := createMemUnit()
+	arguments.ValidatorInfoStorage = storer
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	mb, err := vic.createMiniBlock(validators)
+	require.Nil(t, err)
+
+	// test all generated miniblock's "txhashes" are the same with the expected ones
+	require.Equal(t, len(expected), len(mb.TxHashes))
+	for i, hash := range mb.TxHashes {
+		assert.Equal(t, expected[i], hex.EncodeToString(hash), "not matching for index %d", i)
+	}
+}
+
+func TestValidatorInfoCreator_printAllMiniBlocksShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+		}
+	}()
+
+	testSlice := []*block.MiniBlock{
+		{
+			TxHashes:        nil,
+			ReceiverShardID: 0,
+			SenderShardID:   0,
+			Type:            -1,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        make([][]byte, 0),
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            0,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 1"), []byte("tx hash 2")},
+			ReceiverShardID: 0,
+			SenderShardID:   0,
+			Type:            1,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 3"), nil, []byte("tx hash 4")}, // a nil tx hash should not cause panic
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            block.PeerBlock,
+			Reserved:        nil,
+		},
+	}
+
+	testSliceWithNilMiniblock := []*block.MiniBlock{
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 3"), []byte("tx hash 4")},
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            block.PeerBlock,
+			Reserved:        nil,
+		},
+		nil,
+		{
+			TxHashes:        make([][]byte, 0),
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            0,
+			Reserved:        nil,
+		},
+	}
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	// run all these tests in parallel to be caught by the main defer function
+	t.Run("nil and empty slices, should not panic", func(t *testing.T) {
+		vic.printAllMiniBlocks(nil, make([]*block.MiniBlock, 0))
+		vic.printAllMiniBlocks(make([]*block.MiniBlock, 0), nil)
+		vic.printAllMiniBlocks(make([]*block.MiniBlock, 0), testSlice)
+		vic.printAllMiniBlocks(nil, testSlice)
+	})
+	t.Run("slice contains a nil miniblock, should not panic", func(t *testing.T) {
+		vic.printAllMiniBlocks(testSlice, testSliceWithNilMiniblock)
+		vic.printAllMiniBlocks(testSliceWithNilMiniblock, testSlice)
+	})
+	t.Run("marshal outputs error, should not panic", func(t *testing.T) {
+		localArguments := arguments
+		localArguments.Marshalizer = &testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, fmt.Errorf("marshal error")
+			},
+		}
+		instance, _ := NewValidatorInfoCreator(localArguments)
+		instance.printAllMiniBlocks(testSlice, testSlice)
+	})
 }
