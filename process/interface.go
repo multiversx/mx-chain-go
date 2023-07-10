@@ -1308,3 +1308,14 @@ type Debugger interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger Debugger) error
+}
+
+// DebuggerBlockProcessor is the interface for block execution engine with debugger
+type DebuggerBlockProcessor interface {
+	BlockProcessor
+	ProcessDebuggerSetter
+}

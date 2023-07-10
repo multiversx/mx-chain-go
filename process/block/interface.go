@@ -3,6 +3,7 @@ package block
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type blockProcessor interface {
@@ -32,4 +33,10 @@ type validatorStatsRootHashGetter interface {
 
 type extendedShardHeaderHashesGetter interface {
 	GetExtendedShardHeaderHashes() [][]byte
+}
+
+// BlockProcessorCreator defines the block processor factory handler
+type BlockProcessorCreator interface {
+	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
 }

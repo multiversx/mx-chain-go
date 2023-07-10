@@ -460,6 +460,12 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 	}
 }
 
+// BlockProcessorCreator defines the block processor factory handler
+type BlockProcessorCreator interface {
+	CreateBlockProcessor(argumentsBaseProcessor block.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
+}
+
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,

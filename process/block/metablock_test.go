@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"math/big"
 	"reflect"
 	"sync"
@@ -147,6 +148,7 @@ func createMockMetaArguments(
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
