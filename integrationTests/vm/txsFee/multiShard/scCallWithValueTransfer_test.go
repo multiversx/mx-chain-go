@@ -17,22 +17,20 @@ import (
 )
 
 func TestDeployContractAndTransferValueSCProcessorV1(t *testing.T) {
-	testDeployContractAndTransferValue(t, false)
+	testDeployContractAndTransferValue(t, 1000)
 }
 
 func TestDeployContractAndTransferValueSCProcessorV2(t *testing.T) {
-	testDeployContractAndTransferValue(t, true)
+	testDeployContractAndTransferValue(t, 0)
 }
 
-func testDeployContractAndTransferValue(t *testing.T, scProcessorV2Enabled bool) {
+func testDeployContractAndTransferValue(t *testing.T, scProcessorV2EnabledEpoch uint32) {
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
 	configEnabledEpochs := config.EnableEpochs{}
-	if !scProcessorV2Enabled {
-		configEnabledEpochs.SCDeployEnableEpoch = 1000
-	}
+	configEnabledEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnabledEpoch
 
 	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, configEnabledEpochs)
 	require.Nil(t, err)

@@ -2,15 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
@@ -90,13 +89,8 @@ func doDeployInternal(
 }
 
 func generateRandomArray(length int) []byte {
-	rand.Seed(time.Now().UnixNano())
-
-	charset := "0123456789"
 	result := make([]byte, length)
-	for i := 0; i < length; i++ {
-		result[i] = charset[rand.Intn(len(charset))]
-	}
+	_, _ = rand.Read(result)
 
 	return result
 }
@@ -395,7 +389,8 @@ const letterBytes = "abcdefghijklmnopqrstuvwxyz"
 func randStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		idxBig, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterBytes))))
+		b[i] = letterBytes[idxBig.Int64()]
 	}
 	return string(b)
 }
