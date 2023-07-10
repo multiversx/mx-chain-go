@@ -18,17 +18,14 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -818,41 +815,58 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPools(t *testing.T) {
 func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	t.Parallel()
 
+	nonExistentAccountAddress := []byte("address")
+	peerAccountAddress := []byte("addressPeer")
+	userAccountAddress := []byte("addressUser")
+
 	args := getBaseRewardsArguments()
+	args.UserAccountsDB = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			if bytes.Equal(addressContainer, nonExistentAccountAddress) {
+				return nil, fmt.Errorf("account does not exist")
+			}
+
+			if bytes.Equal(addressContainer, peerAccountAddress) {
+				peerAccount := &stateMock.PeerAccountHandlerMock{
+					AddressBytesCalled: func() []byte {
+						return peerAccountAddress
+					},
+				}
+
+				return peerAccount, nil
+			}
+
+			if bytes.Equal(addressContainer, userAccountAddress) {
+				userAccount := &stateMock.UserAccountStub{
+					RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+						if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
+							return []byte("delegation"), 0, nil
+						}
+						return nil, 0, fmt.Errorf("not found")
+					},
+				}
+
+				return userAccount, nil
+			}
+
+			return &stateMock.UserAccountStub{}, nil
+		},
+	}
 	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
 	// not existing account
-	isDelegationSCAddress := rwd.isSystemDelegationSC([]byte("address"))
+	isDelegationSCAddress := rwd.isSystemDelegationSC(nonExistentAccountAddress)
 	require.False(t, isDelegationSCAddress)
 
 	// peer account
-	peerAccount, err := state.NewPeerAccount([]byte("addressPeer"))
-	require.Nil(t, err)
-	err = rwd.userAccountsDB.SaveAccount(peerAccount)
-	require.Nil(t, err)
-	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccount.AddressBytes())
+	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccountAddress)
 	require.False(t, isDelegationSCAddress)
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"), argsAccCreation)
-	require.Nil(t, err)
-
-	userAccount.SetDataTrie(&trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
-			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
-				return []byte("delegation"), 0, nil
-			}
-			return nil, 0, fmt.Errorf("not found")
-		},
-	})
-
+	isDelegationSCAddress = rwd.isSystemDelegationSC(userAccountAddress)
+	require.True(t, isDelegationSCAddress)
 }
 
 func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
@@ -1148,7 +1162,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	storageManagerArgs.Hasher = hasher
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
