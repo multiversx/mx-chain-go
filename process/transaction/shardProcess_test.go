@@ -90,9 +90,9 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args

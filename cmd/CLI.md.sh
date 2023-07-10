@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 
 generate() {
-    generateForNode
+    generateForAssessmentTool
     generateForKeyGenerator
-    generateForTermUi
     generateForLogViewer
+    generateForNode
     generateForSeedNode
+    generateForTermUi
 }
 
-generateForNode() {
+generateForAssessmentTool() {
     HELP="
-# Node CLI
+# Assessment Tool CLI
 
-The **MultiversX Node** exposes the following Command Line Interface:
+The **Assessment Tool** exposes the following Command Line Interface:
 $(code)
-\$ node --help
+\$ assessment --help
 
-$(./node/node --help | head -n -3)
+$(./assessment/assessment --help | head -n -3)
 $(code)
 "
-    echo "$HELP" > ./node/CLI.md
+    echo "$HELP" > ./assessment/CLI.md
 }
 
 generateForKeyGenerator() {
@@ -36,20 +37,6 @@ $(code)
     echo "$HELP" > ./keygenerator/CLI.md
 }
 
-generateForTermUi() {
-    HELP="
-# MultiversX TermUI CLI
-
-The **MultiversX Term UI** exposes the following Command Line Interface:
-$(code)
-\$ termui --help
-
-$(./termui/termui --help | head -n -3)
-$(code)
-"
-    echo "$HELP" > ./termui/CLI.md
-}
-
 generateForLogViewer() {
     HELP="
 # Logviewer App
@@ -64,6 +51,20 @@ $(code)
     echo "$HELP" > ./logviewer/CLI.md
 }
 
+generateForNode() {
+    HELP="
+# Node CLI
+
+The **MultiversX Node** exposes the following Command Line Interface:
+$(code)
+\$ node --help
+
+$(./node/node --help | head -n -3)
+$(code)
+"
+    echo "$HELP" > ./node/CLI.md
+}
+
 generateForSeedNode() {
     HELP="
 # MultiversX SeedNode CLI
@@ -76,6 +77,20 @@ $(./seednode/seednode --help | head -n -3)
 $(code)
 "
     echo "$HELP" > ./seednode/CLI.md
+}
+
+generateForTermUi() {
+    HELP="
+# MultiversX TermUI CLI
+
+The **MultiversX Term UI** exposes the following Command Line Interface:
+$(code)
+\$ termui --help
+
+$(./termui/termui --help | head -n -3)
+$(code)
+"
+    echo "$HELP" > ./termui/CLI.md
 }
 
 code() {
