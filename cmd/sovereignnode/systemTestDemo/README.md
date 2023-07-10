@@ -82,3 +82,54 @@ cd scripts
 ./local-testnet.sh stop
 ./sovereign-shard.sh stop
 ```
+
+## Alternative demo (lighter version)
+
+To set up a fully customized environment for a sovereign shard receiving incoming transactions on a local testnet/main
+chain, there are several prerequisites involved, such as deploying smart contracts, issuing tokens, and performing
+transfers. It's worth noting that running two local chains and a notifier on the same machine can be resource-intensive.
+
+To simplify the testing process for incoming ESDT/NFT transfers on the sovereign shard, you can utilize the provided
+"mockNotifier" tool. This tool functions as an observer notifier specifically designed for a sovereign shard. It
+triggers the transmission of blocks, starting from an arbitrary nonce, with incoming events occurring every 3 blocks.
+Each event includes the transfer of an NFT and an ESDT token. The periodic transmission consists of 2 NFTs
+(ASH-a642d1-01 & ASH-a642d1-02) and one ESDT token (WEGLD-bd4d79).
+
+To verify the success of token transfers, you can utilize the sovereign proxy for the subscribed address, which can be
+found in the [notifierConfig.toml](../../sovereignnode/config/notifierConfig.toml) file. By using the following API
+endpoint: `http://127.0.0.1:7950/address/:subscribed-address/esdt`, you can check the status of the token transfers.
+It's important to note that the blocks are sent with an arbitrary period between them, allowing for flexibility in the
+testing process.
+
+### How to use
+
+1. Go to [scripts](../../../scripts/testnet)
+2. Prepare and start the sovereign chain
+
+```bash
+./prerequisites.sh 
+./clean.sh
+./config.sh
+./sovereignStart.sh
+```
+
+3. Go to [mock notifier](mockNotifier) and start it:
+
+```bash
+ go build
+ ./mockNotifier
+```
+
+Once started, one should see a similar log:
+
+```
+INFO [2023-06-23 12:35:06.682]   wsServer.initializeServer(): initializing WebSocket server url = localhost:22111 path = /save 
+INFO [2023-06-23 12:35:06.682]   sending block                            nonce = 10 hash = 81c7e3552bab0b475c330642dbc17c91df23afeba72700a3376e32f2cc05c1fc prev hash = 70d6e2419a3a83de44a5f59cc4725ae1fd3b697d85e0fd0e59a74b338eea797a rand seed = 962657265827606ec30140fd770292f0bd9d403c640bdac8fcaa7babe98d4930 prev rand seed = 2d04a4641ebd0ce0f0d5852c44507b5737d08574a5aa31d04e9843348a37a819 
+WARN [2023-06-23 12:35:06.682]   could not send data                      topic = SaveBlock error = no client connected 
+INFO [2023-06-23 12:35:08.730]   new connection                           route = /save remote address = 127.0.0.1:35446 
+INFO [2023-06-23 12:35:08.811]   new connection                           route = /save remote address = 127.0.0.1:35454 
+INFO [2023-06-23 12:35:09.489]   new connection                           route = /save remote address = 127.0.0.1:35466 
+INFO [2023-06-23 12:35:16.813]   sending block                            nonce = 11 hash = 39c0eac07606eb13e3361ceca67b9ed6f3c4ac2fdfe80b58fe6defd19cb4162c prev hash = 81c7e3552bab0b475c330642dbc17c91df23afeba72700a3376e32f2cc05c1fc rand seed = 1c8c74f9f9057c363807bb2d7f37547f06419a3a8c5aec280934ebfbd5df7074 prev rand seed = 962657265827606ec30140fd770292f0bd9d403c640bdac8fcaa7babe98d4930 
+INFO [2023-06-23 12:35:19.815]   sending block                            nonce = 12 hash = de9edd62acebc22509267589cbf31e4fed519b5705085bb94a0fe5615262bf78 prev hash = 39c0eac07606eb13e3361ceca67b9ed6f3c4ac2fdfe80b58fe6defd19cb4162c rand seed = d1d35aee2e74e6a0674d8d158b11da2475c67c1280d80af489d28f15f4e2c4af prev rand seed = 1c8c74f9f9057c363807bb2d7f37547f06419a3a8c5aec280934ebfbd5df7074 
+
+```

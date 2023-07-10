@@ -148,6 +148,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.metaBlockFinality = process.BlockFinality
 	sp.requestMissingHeadersFunc = sp.requestMissingHeaders
+	sp.cleanupPoolsForCrossShardFunc = sp.cleanupPoolsForCrossShard
+	sp.cleanupBlockTrackerPoolsForShardFunc = sp.cleanupBlockTrackerPoolsForShard
 
 	return &sp, nil
 }

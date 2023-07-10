@@ -487,7 +487,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	sovereignWsReceiver, err := createSovereignWsReceiver(managedDataComponents.Datapool(), configs.NotifierConfig)
+	sovereignWsReceiver, err := createSovereignWsReceiver(
+		managedDataComponents.Datapool(),
+		configs.NotifierConfig,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -1664,7 +1667,7 @@ func createSovereignWsReceiver(
 
 	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
 		HeadersPool: dataPool.Headers(),
-		TxPool:      dataPool.Transactions(),
+		TxPool:      dataPool.UnsignedTransactions(),
 		Marshaller:  marshaller,
 		Hasher:      hasher,
 	}
@@ -1686,6 +1689,7 @@ func createSovereignWsReceiver(
 			RetryDuration:      config.WebSocketConfig.RetryDuration,
 			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}

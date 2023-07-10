@@ -73,7 +73,7 @@ func getMetricsFromHeader(
 	appStatusHandler core.AppStatusHandler,
 ) {
 	headerSize := uint64(0)
-	marshalizedHeader, err := marshalizer.Marshal(header)
+	marshalizedHeader, err := marshalizer.Marshal(header.ShallowClone())
 	if err == nil {
 		headerSize = uint64(len(marshalizedHeader))
 	}
