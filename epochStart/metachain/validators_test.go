@@ -1071,7 +1071,7 @@ func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T
 		testCreateMiniblockBackwardsCompatibility(t, false, "./testdata/expected-legacy.data")
 	})
 	t.Run("full deterministic mode", func(t *testing.T) {
-		//this will prevent from changes the deterministic algorithm as to not create future backwards compatibility issues
+		// this will prevent changes to the deterministic algorithm and ensure the backward compatibility
 		testCreateMiniblockBackwardsCompatibility(t, true, "./testdata/expected-deterministic.data")
 	})
 }
