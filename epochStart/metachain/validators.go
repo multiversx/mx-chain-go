@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"sort"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -150,8 +151,34 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 }
 
 func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInfo) {
-	// TODO add flag and properly resolve the issue when we have 2 entries with the same public key
+	if vic.enableEpochsHandler.IsDeterministicSortOnValidatorsInfoFixEnabled() {
+		vic.deterministicSortValidators(validators)
+		return
+	}
 
+	vic.legacySortValidators(validators)
+}
+
+func (vic *validatorInfoCreator) deterministicSortValidators(validators []*state.ValidatorInfo) {
+	sort.SliceStable(validators, func(a, b int) bool {
+		result := bytes.Compare(validators[a].PublicKey, validators[b].PublicKey)
+		if result != 0 {
+			return result < 0
+		}
+
+		aValidatorString := validators[a].GoString()
+		bValidatorString := validators[b].GoString()
+		// possible issues as we have 2 entries with the same public key. Print & assure deterministic sorting
+		log.Warn("found 2 entries in validatorInfoCreator.deterministicSortValidators with the same public key",
+			"validator a", aValidatorString, "validator b", bValidatorString)
+
+		// since the GoString will include all fields, we do not need to marshal the struct again. Strings comparison will
+		// suffice in this case.
+		return aValidatorString < bValidatorString
+	})
+}
+
+func (vic *validatorInfoCreator) legacySortValidators(validators []*state.ValidatorInfo) {
 	swap := func(a, b int) {
 		validators[a], validators[b] = validators[b], validators[a]
 	}
