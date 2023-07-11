@@ -563,30 +563,37 @@ func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabledInE
 	return false
 }
 
+// IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
 
+// IsGasPriceModifierFlagEnabledInEpoch returns false
 func (mock *EnableEpochsHandlerMock) IsGasPriceModifierFlagEnabledInEpoch(_ uint32) bool {
 	return false
 }
 
+// IsStakingV2OwnerFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsStakingV2OwnerFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
 
+// IsESDTFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsESDTFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
 
+// IsGovernanceFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsGovernanceFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
 
+// IsDelegationSmartContractFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsDelegationSmartContractFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
 
+// IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly returns false
 func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(_ uint32) bool {
 	return false
 }
