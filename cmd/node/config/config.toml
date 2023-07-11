@@ -157,6 +157,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[ExtendedShardHeaderStorage]
+    [ExtendedShardHeaderStorage.Cache]
+        Name = "ExtendedShardHeaderStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHeaderStorage.DB]
+        FilePath = "ExtendedShardHeader"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [BootstrapStorage]
     [BootstrapStorage.Cache]
         Name = "BootstrapStorage"
@@ -294,6 +307,19 @@
         SizeInBytes = 3145728 #3MB
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ExtendedShardHdrNonceHashStorage]
+    [ExtendedShardHdrNonceHashStorage.Cache]
+        Name = "ExtendedShardHdrNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHdrNonceHashStorage.DB]
+        FilePath = "ExtendedShardHdrNonceHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100

@@ -234,6 +234,30 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 
+	log.Info("BLLLLLLLLLLLLA 11111111")
+	// -------- sovereign
+	extendedHeaderUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ExtendedShardHeaderStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	extendedHeaderUnit, err := psf.createPruningPersister(extendedHeaderUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHeaderStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersUnit, extendedHeaderUnit)
+
+	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.ExtendedShardHdrNonceHashStorage.DB)
+	dbPath = psf.pathManager.PathForStatic(shardID, psf.generalConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
+	extendedShardHdrHashNonceConfig.FilePath = dbPath
+	extendedShardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.ExtendedShardHdrNonceHashStorage.Cache),
+		extendedShardHdrHashNonceConfig)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHdrNonceHashStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit, extendedShardHdrHashNonceUnit)
+	// -------- sovereign
+	log.Info("BLLLLLLLLLLLLA 222222222222222")
 	userAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return fmt.Errorf("%w for AccountsTrieStorage", err)
