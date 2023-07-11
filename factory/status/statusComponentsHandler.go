@@ -102,6 +102,9 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 	if check.IfNil(msc.statusHandler) {
 		return errors.ErrNilStatusHandler
 	}
+	if check.IfNil(msc.managedPeersMonitor) {
+		return errors.ErrNilManagedPeersMonitor
+	}
 
 	return nil
 }
@@ -163,6 +166,18 @@ func (msc *managedStatusComponents) SoftwareVersionChecker() statistics.Software
 	}
 
 	return msc.statusComponents.softwareVersion
+}
+
+// ManagedPeersMonitor returns the managed peers monitor
+func (msc *managedStatusComponents) ManagedPeersMonitor() common.ManagedPeersMonitor {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
+
+	if msc.statusComponents == nil {
+		return nil
+	}
+
+	return msc.managedPeersMonitor
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -140,6 +140,10 @@ type ApiResolver interface {
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetGasConfigs() map[string]map[string]uint64
+	GetManagedKeysCount() int
+	GetManagedKeys() []string
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	Close() error
 	IsInterfaceNil() bool
 }
