@@ -991,7 +991,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 		}
 
-		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabledInEpoch(currentEpoch) {
 			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
 		}
 
@@ -1016,7 +1016,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
 	if !isSCCallCrossShard {
-		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+		if sc.enableEpochsHandler.IsRepairCallbackFlagEnabledInEpoch(currentEpoch) {
 			sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
 		}
 
@@ -2101,7 +2101,7 @@ func (sc *scProcessor) createSCRsWhenError(
 			}
 
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
-			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+			if sc.enableEpochsHandler.IsRepairCallbackFlagEnabledInEpoch(currentEpoch) {
 				accumulatedSCRData += "@" + hex.EncodeToString(returnMessage)
 			}
 		} else {
@@ -2186,7 +2186,8 @@ func (sc *scProcessor) addVMOutputResultsToSCR(vmOutput *vmcommon.VMOutput, resu
 	result.GasLimit = vmOutput.GasRemaining
 	result.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
 
-	if vmOutput.ReturnCode != vmcommon.Ok && sc.enableEpochsHandler.IsRepairCallbackFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if vmOutput.ReturnCode != vmcommon.Ok && sc.enableEpochsHandler.IsRepairCallbackFlagEnabledInEpoch(currentEpoch) {
 		encodedReturnMessage := "@" + hex.EncodeToString([]byte(vmOutput.ReturnMessage))
 		result.Data = append(result.Data, encodedReturnMessage...)
 	}

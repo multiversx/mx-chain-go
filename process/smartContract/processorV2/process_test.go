@@ -49,6 +49,8 @@ import (
 
 const maxEpoch = math.MaxUint32
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
 
@@ -4157,7 +4159,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledField: true,
+			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},

@@ -5,9 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	gasPriceModifierFlag                       *atomic.Flag
-	repairCallbackFlag                         *atomic.Flag
-	balanceWaitingListsFlag                    *atomic.Flag
 	returnDataToLastTransferFlag               *atomic.Flag
 	senderInOutTransferFlag                    *atomic.Flag
 	stakeFlag                                  *atomic.Flag
@@ -92,9 +89,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		gasPriceModifierFlag:                       &atomic.Flag{},
-		repairCallbackFlag:                         &atomic.Flag{},
-		balanceWaitingListsFlag:                    &atomic.Flag{},
 		returnDataToLastTransferFlag:               &atomic.Flag{},
 		senderInOutTransferFlag:                    &atomic.Flag{},
 		stakeFlag:                                  &atomic.Flag{},
@@ -176,21 +170,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsGasPriceModifierFlagEnabled returns true if gasPriceModifierFlag is enabled
-func (holder *epochFlagsHolder) IsGasPriceModifierFlagEnabled() bool {
-	return holder.gasPriceModifierFlag.IsSet()
-}
-
-// IsRepairCallbackFlagEnabled returns true if repairCallbackFlag is enabled
-func (holder *epochFlagsHolder) IsRepairCallbackFlagEnabled() bool {
-	return holder.repairCallbackFlag.IsSet()
-}
-
-// IsBalanceWaitingListsFlagEnabled returns true if balanceWaitingListsFlag is enabled
-func (holder *epochFlagsHolder) IsBalanceWaitingListsFlagEnabled() bool {
-	return holder.balanceWaitingListsFlag.IsSet()
 }
 
 // IsReturnDataToLastTransferFlagEnabled returns true if returnDataToLastTransferFlag is enabled

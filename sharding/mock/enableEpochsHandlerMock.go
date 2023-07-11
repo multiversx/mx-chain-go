@@ -158,11 +158,6 @@ func (mock *EnableEpochsHandlerMock) IsRepairCallbackFlagEnabledInEpoch(_ uint32
 	return false
 }
 
-// IsBalanceWaitingListsFlagEnabledInEpoch -
-func (mock *EnableEpochsHandlerMock) IsBalanceWaitingListsFlagEnabledInEpoch(_ uint32) bool {
-	return false
-}
-
 // IsSenderInOutTransferFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsSenderInOutTransferFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -599,21 +594,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsGasPriceModifierFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsGasPriceModifierFlagEnabled() bool {
-	return false
-}
-
-// IsRepairCallbackFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRepairCallbackFlagEnabled() bool {
-	return false
-}
-
-// IsBalanceWaitingListsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBalanceWaitingListsFlagEnabled() bool {
-	return false
-}
 
 // IsReturnDataToLastTransferFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsReturnDataToLastTransferFlagEnabled() bool {

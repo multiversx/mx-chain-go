@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var activeEpochHandler = func(epoch uint32) bool { return true }
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func createMockBaseTxProcessor() *baseTxProcessor {
 	baseProc := baseTxProcessor{
@@ -43,7 +43,7 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: activeEpochHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
@@ -213,7 +213,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: activeEpochHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},

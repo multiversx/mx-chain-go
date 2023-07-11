@@ -42,9 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch, handler.gasPriceModifierFlag, "gasPriceModifierFlag", epoch, handler.enableEpochsConfig.GasPriceModifierEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch, handler.repairCallbackFlag, "repairCallbackFlag", epoch, handler.enableEpochsConfig.RepairCallbackEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch, handler.balanceWaitingListsFlag, "balanceWaitingListsFlag", epoch, handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch)
 	handler.setFlagValue(epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch, handler.returnDataToLastTransferFlag, "returnDataToLastTransferFlag", epoch, handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SenderInOutTransferEnableEpoch, handler.senderInOutTransferFlag, "senderInOutTransferFlag", epoch, handler.enableEpochsConfig.SenderInOutTransferEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeEnableEpoch, handler.stakeFlag, "stakeFlag", epoch, handler.enableEpochsConfig.StakeEnableEpoch)
@@ -294,11 +291,6 @@ func (handler *enableEpochsHandler) IsGasPriceModifierFlagEnabledInEpoch(epoch u
 // IsRepairCallbackFlagEnabledInEpoch returns true if RepairCallbackEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch
-}
-
-// IsBalanceWaitingListsFlagEnabledInEpoch returns true if BalanceWaitingListsEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsBalanceWaitingListsFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
 }
 
 // IsReturnDataToLastTransferFlagEnabledAfterEpoch returns true if ReturnDataToLastTransferEnableEpoch is lower or equal with the provided epoch

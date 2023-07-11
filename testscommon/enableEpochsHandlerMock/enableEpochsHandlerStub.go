@@ -36,7 +36,6 @@ type EnableEpochsHandlerStub struct {
 	IsAheadOfTimeGasUsageFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsGasPriceModifierFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	IsRepairCallbackFlagEnabledInEpochCalled                          func(epoch uint32) bool
-	IsBalanceWaitingListsFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsSenderInOutTransferFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsStakeFlagEnabledInEpochCalled                                   func(epoch uint32) bool
 	IsStakingV2FlagEnabledInEpochCalled                               func(epoch uint32) bool
@@ -124,9 +123,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsGasPriceModifierFlagEnabledField                       bool
-	IsRepairCallbackFlagEnabledField                         bool
-	IsBalanceWaitingListsFlagEnabledField                    bool
 	IsReturnDataToLastTransferFlagEnabledField               bool
 	IsSenderInOutTransferFlagEnabledField                    bool
 	IsStakeFlagEnabledField                                  bool
@@ -461,14 +457,6 @@ func (stub *EnableEpochsHandlerStub) IsGasPriceModifierFlagEnabledInEpoch(epoch 
 func (stub *EnableEpochsHandlerStub) IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsRepairCallbackFlagEnabledInEpochCalled != nil {
 		return stub.IsRepairCallbackFlagEnabledInEpochCalled(epoch)
-	}
-	return false
-}
-
-// IsBalanceWaitingListsFlagEnabledInEpoch -
-func (stub *EnableEpochsHandlerStub) IsBalanceWaitingListsFlagEnabledInEpoch(epoch uint32) bool {
-	if stub.IsBalanceWaitingListsFlagEnabledInEpochCalled != nil {
-		return stub.IsBalanceWaitingListsFlagEnabledInEpochCalled(epoch)
 	}
 	return false
 }
@@ -1162,30 +1150,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsGasPriceModifierFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsGasPriceModifierFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsGasPriceModifierFlagEnabledField
-}
-
-// IsRepairCallbackFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsRepairCallbackFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRepairCallbackFlagEnabledField
-}
-
-// IsBalanceWaitingListsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBalanceWaitingListsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBalanceWaitingListsFlagEnabledField
-}
 
 // IsReturnDataToLastTransferFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsReturnDataToLastTransferFlagEnabled() bool {

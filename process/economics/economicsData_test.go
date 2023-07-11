@@ -25,6 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.EconomicsConfig {
 	return &config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
@@ -100,7 +102,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledField: true,
+			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
@@ -114,7 +116,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledField: true,
+			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		BuiltInFunctionsCostHandler: handler,
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
