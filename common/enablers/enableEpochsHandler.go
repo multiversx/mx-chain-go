@@ -39,11 +39,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	atomic.StoreUint32(&handler.currentEpoch, epoch)
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch, handler.builtInFunctionsFlag, "builtInFunctionsFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedTransactionsEnableEpoch, handler.relayedTransactionsFlag, "relayedTransactionsFlag", epoch, handler.enableEpochsConfig.RelayedTransactionsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch, handler.penalizedTooMuchGasFlag, "penalizedTooMuchGasFlag", epoch, handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch, handler.switchJailWaitingFlag, "switchJailWaitingFlag", epoch, handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch, handler.belowSignedThresholdFlag, "belowSignedThresholdFlag", epoch, handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesFlag, "switchHysteresisForMinNodesFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesCurrentEpochFlag, "switchHysteresisForMinNodesCurrentEpochFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch, handler.transactionSignedWithTxHashFlag, "transactionSignedWithTxHashFlag", epoch, handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch)

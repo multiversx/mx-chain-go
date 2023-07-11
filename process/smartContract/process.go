@@ -913,7 +913,8 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 	}
 
 	snapshot := sc.accounts.JournalLen()
-	if !sc.enableEpochsHandler.IsBuiltInFunctionsFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsBuiltInFunctionsFlagEnabledInEpoch(currentEpoch) {
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
@@ -1865,7 +1866,8 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	cost := sc.economicsFee.ComputeTxFee(tx)
-	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 	cost = cost.Add(cost, tx.GetValue())
@@ -1988,7 +1990,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	gasProvidedForProcessing uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
-	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		return
 	}
 	if callType == vmData.AsynchronousCall {
@@ -2016,7 +2019,6 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
-	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	if sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		vmOutput.ReturnMessage += "@"
 		if !isSmartContractResult(tx) {
@@ -2078,11 +2080,11 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
-	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
-	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {

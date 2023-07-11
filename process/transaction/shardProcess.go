@@ -194,7 +194,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			}
 		}
 
-		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+		currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabledInEpoch(currentEpoch) {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return vmcommon.UserError, receiptErr
@@ -391,7 +392,9 @@ func (txProc *txProcessor) processTxFee(
 
 	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalCost := txProc.economicsFee.ComputeTxFee(tx)
-	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+
+	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
@@ -651,7 +654,8 @@ func (txProc *txProcessor) processRelayedTx(
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabledInEpoch(currentEpoch) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 

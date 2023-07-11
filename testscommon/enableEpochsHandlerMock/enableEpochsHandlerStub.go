@@ -5,7 +5,6 @@ import "sync"
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
 	sync.RWMutex
-	ResetPenalizedTooMuchGasFlagCalled                                func()
 	GetCurrentEpochCalled                                             func() uint32
 	BlockGasAndFeesReCheckEnableEpochField                            uint32
 	StakingV2EnableEpochField                                         uint32
@@ -126,11 +125,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsBuiltInFunctionsFlagEnabledField                           bool
-	IsRelayedTransactionsFlagEnabledField                        bool
-	IsPenalizedTooMuchGasFlagEnabledField                        bool
-	IsSwitchJailWaitingFlagEnabledField                          bool
-	IsBelowSignedThresholdFlagEnabledField                       bool
 	IsSwitchHysteresisForMinNodesFlagEnabledField                bool
 	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpochField bool
 	IsTransactionSignedWithTxHashFlagEnabledField                bool
@@ -227,13 +221,6 @@ type EnableEpochsHandlerStub struct {
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
-}
-
-// ResetPenalizedTooMuchGasFlag -
-func (stub *EnableEpochsHandlerStub) ResetPenalizedTooMuchGasFlag() {
-	if stub.ResetPenalizedTooMuchGasFlagCalled != nil {
-		stub.ResetPenalizedTooMuchGasFlagCalled()
-	}
 }
 
 // GetCurrentEpoch -
@@ -1189,46 +1176,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsBuiltInFunctionsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBuiltInFunctionsFlagEnabledField
-}
-
-// IsRelayedTransactionsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsRelayedTransactionsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRelayedTransactionsFlagEnabledField
-}
-
-// IsPenalizedTooMuchGasFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsPenalizedTooMuchGasFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsPenalizedTooMuchGasFlagEnabledField
-}
-
-// IsSwitchJailWaitingFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSwitchJailWaitingFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSwitchJailWaitingFlagEnabledField
-}
-
-// IsBelowSignedThresholdFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBelowSignedThresholdFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBelowSignedThresholdFlagEnabledField
-}
 
 // IsSwitchHysteresisForMinNodesFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsSwitchHysteresisForMinNodesFlagEnabled() bool {

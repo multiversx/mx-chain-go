@@ -287,8 +287,8 @@ type EnableEpochsHandler interface {
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
-
 	GetCurrentEpoch() uint32
+
 	IsSCDeployFlagEnabledInEpoch(epoch uint32) bool
 	IsBuiltInFunctionsFlagEnabledInEpoch(epoch uint32) bool
 	IsRelayedTransactionsFlagEnabledInEpoch(epoch uint32) bool
@@ -391,12 +391,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsBuiltInFunctionsFlagEnabled() bool
-	IsRelayedTransactionsFlagEnabled() bool
-	IsPenalizedTooMuchGasFlagEnabled() bool
-	ResetPenalizedTooMuchGasFlag()
-	IsSwitchJailWaitingFlagEnabled() bool
-	IsBelowSignedThresholdFlagEnabled() bool
 	IsSwitchHysteresisForMinNodesFlagEnabled() bool
 	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool
 	IsTransactionSignedWithTxHashFlagEnabled() bool

@@ -227,7 +227,8 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 		isNodeLeaving := (peerType == common.WaitingList || peerType == common.EligibleList) && peerAcc.GetList() == string(common.LeavingList)
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
-		isNodeJailed := vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && peerType == common.InactiveList && isNodeWithLowRating
+		currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+		isNodeJailed := vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) && peerType == common.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index))
 		} else if isNodeLeaving {
@@ -483,7 +484,8 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
 	list := ""
-	if vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+	if vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
 		list = peerAccount.GetList()
 	} else {
 		list = getActualList(peerAccount)
@@ -534,7 +536,8 @@ func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.P
 }
 
 func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
-	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
 		return
 	}
 
@@ -637,7 +640,8 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 
 	if computedThreshold <= signedThreshold {
 		increasedRatingTimes := uint32(0)
-		if !vs.enableEpochsHandler.IsBelowSignedThresholdFlagEnabled() {
+		currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+		if !vs.enableEpochsHandler.IsBelowSignedThresholdFlagEnabledInEpoch(currentEpoch) {
 			increasedRatingTimes = validator.ValidatorFailure
 		} else {
 			increasedRatingTimes = validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
@@ -709,7 +713,8 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
-	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
 		return
 	}
 

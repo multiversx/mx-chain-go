@@ -5,11 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	builtInFunctionsFlag                        *atomic.Flag
-	relayedTransactionsFlag                     *atomic.Flag
-	penalizedTooMuchGasFlag                     *atomic.Flag
-	switchJailWaitingFlag                       *atomic.Flag
-	belowSignedThresholdFlag                    *atomic.Flag
 	switchHysteresisForMinNodesFlag             *atomic.Flag
 	switchHysteresisForMinNodesCurrentEpochFlag *atomic.Flag
 	transactionSignedWithTxHashFlag             *atomic.Flag
@@ -102,11 +97,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		builtInFunctionsFlag:                        &atomic.Flag{},
-		relayedTransactionsFlag:                     &atomic.Flag{},
-		penalizedTooMuchGasFlag:                     &atomic.Flag{},
-		switchJailWaitingFlag:                       &atomic.Flag{},
-		belowSignedThresholdFlag:                    &atomic.Flag{},
 		switchHysteresisForMinNodesFlag:             &atomic.Flag{},
 		switchHysteresisForMinNodesCurrentEpochFlag: &atomic.Flag{},
 		transactionSignedWithTxHashFlag:             &atomic.Flag{},
@@ -196,36 +186,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 	}
-}
-
-// IsBuiltInFunctionsFlagEnabled returns true if builtInFunctionsFlag is enabled
-func (holder *epochFlagsHolder) IsBuiltInFunctionsFlagEnabled() bool {
-	return holder.builtInFunctionsFlag.IsSet()
-}
-
-// IsRelayedTransactionsFlagEnabled returns true if relayedTransactionsFlag is enabled
-func (holder *epochFlagsHolder) IsRelayedTransactionsFlagEnabled() bool {
-	return holder.relayedTransactionsFlag.IsSet()
-}
-
-// IsPenalizedTooMuchGasFlagEnabled returns true if penalizedTooMuchGasFlag is enabled
-func (holder *epochFlagsHolder) IsPenalizedTooMuchGasFlagEnabled() bool {
-	return holder.penalizedTooMuchGasFlag.IsSet()
-}
-
-// ResetPenalizedTooMuchGasFlag resets the penalizedTooMuchGasFlag
-func (holder *epochFlagsHolder) ResetPenalizedTooMuchGasFlag() {
-	holder.penalizedTooMuchGasFlag.Reset()
-}
-
-// IsSwitchJailWaitingFlagEnabled returns true if switchJailWaitingFlag is enabled
-func (holder *epochFlagsHolder) IsSwitchJailWaitingFlagEnabled() bool {
-	return holder.switchJailWaitingFlag.IsSet()
-}
-
-// IsBelowSignedThresholdFlagEnabled returns true if belowSignedThresholdFlag is enabled
-func (holder *epochFlagsHolder) IsBelowSignedThresholdFlagEnabled() bool {
-	return holder.belowSignedThresholdFlag.IsSet()
 }
 
 // IsSwitchHysteresisForMinNodesFlagEnabled returns true if switchHysteresisForMinNodesFlag is enabled

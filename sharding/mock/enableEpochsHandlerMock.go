@@ -598,35 +598,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsBuiltInFunctionsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionsFlagEnabled() bool {
-	return false
-}
-
-// IsRelayedTransactionsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsFlagEnabled() bool {
-	return false
-}
-
-// IsPenalizedTooMuchGasFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsPenalizedTooMuchGasFlagEnabled() bool {
-	return false
-}
-
-// ResetPenalizedTooMuchGasFlag does nothing
-func (mock *EnableEpochsHandlerMock) ResetPenalizedTooMuchGasFlag() {
-}
-
-// IsSwitchJailWaitingFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchJailWaitingFlagEnabled() bool {
-	return false
-}
-
-// IsBelowSignedThresholdFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBelowSignedThresholdFlagEnabled() bool {
-	return false
-}
-
 // IsSwitchHysteresisForMinNodesFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabled() bool {
 	return false

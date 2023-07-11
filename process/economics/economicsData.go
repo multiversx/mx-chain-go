@@ -446,6 +446,7 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
 	if ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
@@ -462,7 +463,7 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 		return moveBalanceFee
 	}
 
-	if ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+	if ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
@@ -639,7 +640,8 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 	}
 
 	txFee := ed.ComputeTxFee(tx)
-	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled()
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch)
 	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled()
 	flagCorrectTxFee := !isPenalizedTooMuchGasFlagEnabled && !isGasPriceModifierFlagEnabled
 	if flagCorrectTxFee {

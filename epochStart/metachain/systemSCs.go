@@ -220,7 +220,8 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
