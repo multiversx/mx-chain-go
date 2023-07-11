@@ -1,7 +1,7 @@
 package enablers
 
 import (
-	"sync/atomic"
+	"sync"
 
 	coreAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -16,6 +16,7 @@ type enableEpochsHandler struct {
 	*epochFlagsHolder
 	enableEpochsConfig config.EnableEpochs
 	currentEpoch       uint32
+	epochMut           sync.RWMutex
 }
 
 // NewEnableEpochsHandler creates a new instance of enableEpochsHandler
@@ -36,7 +37,9 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	atomic.StoreUint32(&handler.currentEpoch, epoch)
+	handler.epochMut.Lock()
+	handler.currentEpoch = epoch
+	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch, handler.gasPriceModifierFlag, "gasPriceModifierFlag", epoch, handler.enableEpochsConfig.GasPriceModifierEnableEpoch)
@@ -226,7 +229,11 @@ func (handler *enableEpochsHandler) RelayedNonceFixEnableEpoch() uint32 {
 
 // GetCurrentEpoch returns the current epoch
 func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
-	return atomic.LoadUint32(&handler.currentEpoch)
+	handler.epochMut.RLock()
+	currentEpoch := handler.currentEpoch
+	handler.epochMut.RUnlock()
+
+	return currentEpoch
 }
 
 // IsSCDeployFlagEnabledInEpoch returns true if SCDeployEnableEpoch is lower than the provided epoch
@@ -364,12 +371,12 @@ func (handler *enableEpochsHandler) IsDelegationSmartContractFlagEnabledInSpecif
 	return epoch == handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
 }
 
-// IsCorrectLastUnJailedFlagEnabledInEpoch returns true if correctLastUnJailedFlag is lower than the provided epoch
+// IsCorrectLastUnJailedFlagEnabledInEpoch returns true if CorrectLastUnjailedEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsCorrectLastUnJailedFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
 }
 
-// IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly returns true if correctLastUnJailedCurrentEpochFlag is the provided epoch
+// IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly returns true if CorrectLastUnjailedEnableEpoch is the provided epoch
 func (handler *enableEpochsHandler) IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(epoch uint32) bool {
 	return epoch == handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
 }
