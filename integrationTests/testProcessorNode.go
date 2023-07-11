@@ -2124,6 +2124,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

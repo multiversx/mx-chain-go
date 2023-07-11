@@ -88,6 +88,7 @@ type baseProcessor struct {
 	mutProcessDebugger      sync.RWMutex
 	processDebugger         process.Debugger
 	processStatusHandler    common.ProcessStatusHandler
+	managedPeersHolder      common.ManagedPeersHolder
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -546,6 +547,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockProcessingCutoffHandler) {
 		return process.ErrNilBlockProcessingCutoffHandler
+	}
+	if check.IfNil(arguments.ManagedPeersHolder) {
+		return process.ErrNilManagedPeersHolder
 	}
 
 	return nil

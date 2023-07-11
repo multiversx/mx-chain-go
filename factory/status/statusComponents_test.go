@@ -58,7 +58,10 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{},
 		StateComponents:   &mock.StateComponentsHolderStub{},
-		IsInImportMode:    false,
+		CryptoComponents: &mock.CryptoComponentsMock{
+			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+		},
+		IsInImportMode: false,
 	}
 }
 
@@ -129,6 +132,15 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		scf, err := statusComp.NewStatusComponentsFactory(args)
 		require.Nil(t, scf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
+	})
+	t.Run("nil CryptoComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStatusComponentsFactoryArgs()
+		args.CryptoComponents = nil
+		scf, err := statusComp.NewStatusComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errorsMx.ErrNilCryptoComponents, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
