@@ -150,7 +150,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsPenalizedTooMuchGasFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabledInEpoch(math.MaxUint32))
-		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(math.MaxUint32))
 		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(currentEpoch)) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsMetaProtectionFlagEnabledInEpoch(math.MaxUint32))
@@ -268,7 +267,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsPenalizedTooMuchGasFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsSwitchJailWaitingFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsBelowSignedThresholdFlagEnabledInEpoch(math.MaxUint32))
-		assert.True(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(math.MaxUint32))
 		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(math.MaxUint32)) // epoch == limit
 		assert.True(t, handler.IsTransactionSignedWithTxHashFlagEnabledInEpoch(math.MaxUint32))
 		assert.True(t, handler.IsMetaProtectionFlagEnabledInEpoch(math.MaxUint32))
@@ -381,7 +379,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsPenalizedTooMuchGasFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsSwitchJailWaitingFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsBelowSignedThresholdFlagEnabledInEpoch(0))
-		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(0)) // epoch == limit
 		assert.False(t, handler.IsTransactionSignedWithTxHashFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsMetaProtectionFlagEnabledInEpoch(0))

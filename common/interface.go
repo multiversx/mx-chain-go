@@ -295,7 +295,6 @@ type EnableEpochsHandler interface {
 	IsPenalizedTooMuchGasFlagEnabledInEpoch(epoch uint32) bool
 	IsSwitchJailWaitingFlagEnabledInEpoch(epoch uint32) bool
 	IsBelowSignedThresholdFlagEnabledInEpoch(epoch uint32) bool
-	IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(epoch uint32) bool
 	IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(epoch uint32) bool
 	IsTransactionSignedWithTxHashFlagEnabledInEpoch(epoch uint32) bool
 	IsMetaProtectionFlagEnabledInEpoch(epoch uint32) bool
@@ -391,11 +390,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsSwitchHysteresisForMinNodesFlagEnabled() bool
-	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool
-	IsTransactionSignedWithTxHashFlagEnabled() bool
-	IsMetaProtectionFlagEnabled() bool
-	IsAheadOfTimeGasUsageFlagEnabled() bool
 	IsGasPriceModifierFlagEnabled() bool
 	IsRepairCallbackFlagEnabled() bool
 	IsBalanceWaitingListsFlagEnabled() bool

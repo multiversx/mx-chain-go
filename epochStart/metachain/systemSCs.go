@@ -178,7 +178,8 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	nonce uint64,
 	epoch uint32,
 ) error {
-	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
 			return err
@@ -220,7 +221,6 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
 	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {

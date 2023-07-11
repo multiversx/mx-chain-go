@@ -39,11 +39,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	atomic.StoreUint32(&handler.currentEpoch, epoch)
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesFlag, "switchHysteresisForMinNodesFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesCurrentEpochFlag, "switchHysteresisForMinNodesCurrentEpochFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch, handler.transactionSignedWithTxHashFlag, "transactionSignedWithTxHashFlag", epoch, handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaProtectionEnableEpoch, handler.metaProtectionFlag, "metaProtectionFlag", epoch, handler.enableEpochsConfig.MetaProtectionEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch, handler.aheadOfTimeGasUsageFlag, "aheadOfTimeGasUsageFlag", epoch, handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch, handler.gasPriceModifierFlag, "gasPriceModifierFlag", epoch, handler.enableEpochsConfig.GasPriceModifierEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch, handler.repairCallbackFlag, "repairCallbackFlag", epoch, handler.enableEpochsConfig.RepairCallbackEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch, handler.balanceWaitingListsFlag, "balanceWaitingListsFlag", epoch, handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch)
@@ -262,11 +257,6 @@ func (handler *enableEpochsHandler) IsSwitchJailWaitingFlagEnabledInEpoch(epoch 
 // IsBelowSignedThresholdFlagEnabledInEpoch returns true if BelowSignedThresholdEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsBelowSignedThresholdFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch
-}
-
-// IsSwitchHysteresisForMinNodesFlagEnabledInEpoch returns true if SwitchHysteresisForMinNodesEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch
 }
 
 // IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly returns true if SwitchHysteresisForMinNodesEnableEpoch is the provided epoch

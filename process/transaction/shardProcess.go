@@ -337,7 +337,8 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	if check.IfNil(acntSnd) || isUserTxOfRelayed {
 		return nil
 	}
-	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && core.IsSmartContractAddress(tx.RcvAddr)
+	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsMetaProtectionFlagEnabledInEpoch(currentEpoch) && core.IsSmartContractAddress(tx.RcvAddr)
 	if destShardTxType != process.MoveBalance || shouldCreateReceiptBackwardCompatible {
 		return nil
 	}
@@ -400,7 +401,7 @@ func (txProc *txProcessor) processTxFee(
 
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if dstShardTxType != process.MoveBalance ||
-		(!txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && isCrossShardSCCall) {
+		(!txProc.enableEpochsHandler.IsMetaProtectionFlagEnabledInEpoch(currentEpoch) && isCrossShardSCCall) {
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -431,7 +432,8 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 		return process.ErrInvalidMetaTransaction
 	}
 
-	if txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() {
+	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+	if txProc.enableEpochsHandler.IsMetaProtectionFlagEnabledInEpoch(currentEpoch) {
 		// additional check
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
 			return fmt.Errorf("%w: not enough gas", process.ErrInvalidMetaTransaction)

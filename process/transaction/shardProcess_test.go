@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var activeEpochHandler = func(epoch uint32) bool { return true }
+
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
 	_, _ = rand.Reader.Read(buff)
@@ -1542,7 +1544,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMetaProtectionFlagEnabledField: true,
+		IsMetaProtectionFlagEnabledInEpochCalled: activeEpochHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 

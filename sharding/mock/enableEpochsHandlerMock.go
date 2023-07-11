@@ -138,11 +138,6 @@ func (mock *EnableEpochsHandlerMock) IsBelowSignedThresholdFlagEnabledInEpoch(_ 
 	return false
 }
 
-// IsSwitchHysteresisForMinNodesFlagEnabledInEpoch -
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(_ uint32) bool {
-	return false
-}
-
 // IsTransactionSignedWithTxHashFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsTransactionSignedWithTxHashFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -597,31 +592,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsSwitchHysteresisForMinNodesFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabled() bool {
-	return false
-}
-
-// IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
-	return false
-}
-
-// IsTransactionSignedWithTxHashFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsTransactionSignedWithTxHashFlagEnabled() bool {
-	return false
-}
-
-// IsMetaProtectionFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsMetaProtectionFlagEnabled() bool {
-	return false
-}
-
-// IsAheadOfTimeGasUsageFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsAheadOfTimeGasUsageFlagEnabled() bool {
-	return false
-}
 
 // IsGasPriceModifierFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsGasPriceModifierFlagEnabled() bool {
