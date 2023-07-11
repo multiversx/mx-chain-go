@@ -11,7 +11,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -68,6 +70,88 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 		fmt.Println("trie level", trieKeysDepth[i])
 		gasLimit := uint64(trieLoadCost) + 10000
 		testGasConsumedForDataTrieLoad(t, testContext, sndNonce, key, sndAddr, scAddress, gasPrice, gasLimit, expectedGasCost)
+		sndNonce++
+	}
+}
+
+func TestDynamicGasCostForDataTrieStorageLoadWithExport(t *testing.T) {
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 0,
+	}
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 1)
+	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	gasPrice := uint64(10)
+
+	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "./testdata/dynamicGasCost/storage_operations.wasm")
+	acc := getAccount(t, testContext, scAddress)
+	require.Nil(t, acc.DataTrie())
+
+	sndNonce := uint64(0)
+	sndAddr := []byte("12345678901234567890123456789112")
+	senderBalance := big.NewInt(100000000)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, sndNonce, senderBalance)
+
+	hexKeys := make([]string, 0)
+	err = core.LoadJsonFile(&hexKeys, "./testdata/dynamicGasCost/inputKeys.json")
+	require.Nil(t, err)
+
+	keys := make([][]byte, 0)
+	for _, hexKey := range hexKeys {
+		key, _ := hex.DecodeString(hexKey)
+		keys = append(keys, key)
+	}
+
+	for _, key := range keys {
+		err := acc.SaveKeyValue(key, key)
+		require.Nil(t, err)
+	}
+	err = testContext.Accounts.SaveAccount(acc)
+	require.Nil(t, err)
+
+	dataTrie := getAccountDataTrie(t, testContext, scAddress)
+	trieKeysDepth := getTrieDepthForKeys(t, dataTrie, keys)
+
+	fmt.Println(hex.EncodeToString(acc.GetRootHash()))
+
+	for i, key := range keys {
+		testContext.CleanIntermediateTransactions(t)
+
+		trieLoadCost := getExpectedConsumedGasForTrieLoad(testContext, int64(trieKeysDepth[i]))
+
+		gasDelta := uint64(10000)
+		gasLimit := uint64(trieLoadCost) + gasDelta
+
+		txData := []byte("get@" + hex.EncodeToString(key))
+
+		tx := &transaction.Transaction{
+			Nonce:    sndNonce,
+			Value:    big.NewInt(0),
+			RcvAddr:  scAddress,
+			SndAddr:  sndAddr,
+			GasLimit: gasLimit,
+			GasPrice: gasPrice,
+			Data:     txData,
+			ChainID:  integrationTests.ChainID,
+			Version:  integrationTests.MinTransactionVersion,
+		}
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+
+		require.Nil(t, errProcess)
+		require.Equal(t, vmcommon.Ok, returnCode)
+
+		intermediate := testContext.GetIntermediateTransactions(t)
+		require.Equal(t, 1, len(intermediate))
+
+		gasConsumed := gasLimit - intermediate[0].GetGasLimit()
+
+		fmt.Println("trie level", trieKeysDepth[i])
+		fmt.Println("gas consumed", gasConsumed)
+
 		sndNonce++
 	}
 }
