@@ -113,6 +113,11 @@ func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionsFlagEnabledInEpoch(_ uint
 	return false
 }
 
+// IsFixOOGReturnCodeFlagEnabledInEpoch -
+func (mock *EnableEpochsHandlerMock) IsFixOOGReturnCodeFlagEnabledInEpoch(_ uint32) bool {
+	return false
+}
+
 // IsRelayedTransactionsFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -592,11 +597,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsSCDeployFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSCDeployFlagEnabled() bool {
-	return false
-}
 
 // IsBuiltInFunctionsFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionsFlagEnabled() bool {

@@ -39,7 +39,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	atomic.StoreUint32(&handler.currentEpoch, epoch)
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCDeployEnableEpoch, handler.scDeployFlag, "scDeployFlag", epoch, handler.enableEpochsConfig.SCDeployEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch, handler.builtInFunctionsFlag, "builtInFunctionsFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedTransactionsEnableEpoch, handler.relayedTransactionsFlag, "relayedTransactionsFlag", epoch, handler.enableEpochsConfig.RelayedTransactionsEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch, handler.penalizedTooMuchGasFlag, "penalizedTooMuchGasFlag", epoch, handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch)

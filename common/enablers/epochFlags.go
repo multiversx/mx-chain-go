@@ -5,7 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	scDeployFlag                                *atomic.Flag
 	builtInFunctionsFlag                        *atomic.Flag
 	relayedTransactionsFlag                     *atomic.Flag
 	penalizedTooMuchGasFlag                     *atomic.Flag
@@ -103,7 +102,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		scDeployFlag:                                &atomic.Flag{},
 		builtInFunctionsFlag:                        &atomic.Flag{},
 		relayedTransactionsFlag:                     &atomic.Flag{},
 		penalizedTooMuchGasFlag:                     &atomic.Flag{},
@@ -198,11 +196,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 	}
-}
-
-// IsSCDeployFlagEnabled returns true if scDeployFlag is enabled
-func (holder *epochFlagsHolder) IsSCDeployFlagEnabled() bool {
-	return holder.scDeployFlag.IsSet()
 }
 
 // IsBuiltInFunctionsFlagEnabled returns true if builtInFunctionsFlag is enabled

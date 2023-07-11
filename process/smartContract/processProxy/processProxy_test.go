@@ -2,11 +2,12 @@ package processProxy
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -71,7 +72,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledField: true,
+			IsSCDeployFlagEnabledInEpochCalled: func(epoch uint32) bool {
+				return true
+			},
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		WasmVMChangeLocker:  &sync.RWMutex{},

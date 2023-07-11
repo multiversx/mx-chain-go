@@ -124,8 +124,8 @@ type EnableEpochsHandlerStub struct {
 	IsChangeUsernameEnabledInEpochCalled                              func(epoch uint32) bool
 	IsAutoBalanceDataTriesEnabledInEpochCalled                        func(epoch uint32) bool
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
+	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsSCDeployFlagEnabledField                                   bool
 	IsBuiltInFunctionsFlagEnabledField                           bool
 	IsRelayedTransactionsFlagEnabledField                        bool
 	IsPenalizedTooMuchGasFlagEnabledField                        bool
@@ -1180,15 +1180,15 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabledInE
 	return false
 }
 
-// TODO[Sorin]: Remove the methods below
-
-// IsSCDeployFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSCDeployFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSCDeployFlagEnabledField
+// IsFixOOGReturnCodeFlagEnabledInEpoch -
+func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool {
+	if stub.IsFixOOGReturnCodeFlagEnabledInEpochCalled != nil {
+		return stub.IsFixOOGReturnCodeFlagEnabledInEpochCalled(epoch)
+	}
+	return false
 }
+
+// TODO[Sorin]: Remove the methods below
 
 // IsBuiltInFunctionsFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionsFlagEnabled() bool {

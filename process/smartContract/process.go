@@ -588,7 +588,8 @@ func (sc *scProcessor) updateDeveloperRewardsV2(
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() && !sc.isSelfShard(tx.GetSndAddr()) {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) && !sc.isSelfShard(tx.GetSndAddr()) {
 		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
@@ -786,7 +787,8 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
 
@@ -1393,7 +1395,8 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 		return err
 	}
 
-	if len(returnMessage) == 0 && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if len(returnMessage) == 0 && sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		returnMessage = []byte(returnCode)
 	}
 
@@ -1451,7 +1454,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
-	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		// move balance was already consumed in sender shard
 		return nil
 	}
@@ -1721,7 +1724,8 @@ func (sc *scProcessor) doDeploySmartContract(
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
-	shouldAllowDeploy := sc.enableEpochsHandler.IsSCDeployFlagEnabled() || sc.isGenesisProcessing
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	shouldAllowDeploy := sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot, 0)
@@ -1816,7 +1820,8 @@ func (sc *scProcessor) updateDeveloperRewardsProxy(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) error {
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		return sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
 	}
 
@@ -1963,7 +1968,8 @@ func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) err
 		return nil
 	}
 
-	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() && core.IsSmartContractAddress(address) {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) && core.IsSmartContractAddress(address) {
 		userAcc.AddToDeveloperReward(value)
 	} else {
 		err = userAcc.AddToBalance(value)
@@ -2010,7 +2016,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
-	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		vmOutput.ReturnMessage += "@"
 		if !isSmartContractResult(tx) {
 			gasUsed += sc.economicsFee.ComputeGasLimit(tx)
@@ -2075,7 +2082,8 @@ func (sc *scProcessor) createSCRsWhenError(
 		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
 			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
@@ -2238,7 +2246,8 @@ func (sc *scProcessor) createSCRIfNoOutputTransfer(
 		return true, []data.TransactionHandler{result}
 	}
 
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		result := createBaseSCR(outAcc, tx, txHash, 0)
 		result.Code = outAcc.Code
 		result.Value.Set(outAcc.BalanceDelta)
@@ -2435,7 +2444,8 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	// backward compatibility - there should be no refund as the storage pay was already distributed among validators
 	// this would only create additional inflation
 	// backward compatibility - direct smart contract results were created with gasLimit - there is no need for them
-	if !sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		storageFreeRefund = big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 		gasRemaining = vmOutput.GasRemaining
 	}

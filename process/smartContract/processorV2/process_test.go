@@ -125,7 +125,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledField: true,
+			IsSCDeployFlagEnabledInEpochCalled: func(epoch uint32) bool {
+				return true
+			},
 		},
 		GasSchedule:        testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		WasmVMChangeLocker: &sync.RWMutex{},

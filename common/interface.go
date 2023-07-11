@@ -267,7 +267,7 @@ type PidQueueHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
+// EnableEpochsHandler is used to verify which flags are set in a specific epoch based on EnableEpochs config
 type EnableEpochsHandler interface {
 	BlockGasAndFeesReCheckEnableEpoch() uint32
 	StakingV2EnableEpoch() uint32
@@ -287,7 +287,110 @@ type EnableEpochsHandler interface {
 	StorageAPICostOptimizationEnableEpoch() uint32
 	MiniBlockPartialExecutionEnableEpoch() uint32
 	RefactorPeersMiniBlocksEnableEpoch() uint32
-	IsSCDeployFlagEnabled() bool
+
+	GetCurrentEpoch() uint32
+	IsSCDeployFlagEnabledInEpoch(epoch uint32) bool
+	IsBuiltInFunctionsFlagEnabledInEpoch(epoch uint32) bool
+	IsRelayedTransactionsFlagEnabledInEpoch(epoch uint32) bool
+	IsPenalizedTooMuchGasFlagEnabledInEpoch(epoch uint32) bool
+	IsSwitchJailWaitingFlagEnabledInEpoch(epoch uint32) bool
+	IsBelowSignedThresholdFlagEnabledInEpoch(epoch uint32) bool
+	IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(epoch uint32) bool
+	IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsTransactionSignedWithTxHashFlagEnabledInEpoch(epoch uint32) bool
+	IsMetaProtectionFlagEnabledInEpoch(epoch uint32) bool
+	IsAheadOfTimeGasUsageFlagEnabledInEpoch(epoch uint32) bool
+	IsGasPriceModifierFlagEnabledInEpoch(epoch uint32) bool
+	IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool
+	IsBalanceWaitingListsFlagEnabledInEpoch(epoch uint32) bool
+	IsSenderInOutTransferFlagEnabledInEpoch(epoch uint32) bool
+	IsStakeFlagEnabledInEpoch(epoch uint32) bool
+	IsStakingV2FlagEnabledInEpoch(epoch uint32) bool
+	IsStakingV2OwnerFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsStakingV2FlagEnabledAfterEpoch(epoch uint32) bool
+	IsDoubleKeyProtectionFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsGovernanceFlagEnabledInEpoch(epoch uint32) bool
+	IsGovernanceFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsDelegationManagerFlagEnabledInEpoch(epoch uint32) bool
+	IsDelegationSmartContractFlagEnabledInEpoch(epoch uint32) bool
+	IsDelegationSmartContractFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsCorrectLastUnJailedFlagEnabledInEpoch(epoch uint32) bool
+	IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(epoch uint32) bool
+	IsRelayedTransactionsV2FlagEnabledInEpoch(epoch uint32) bool
+	IsUnBondTokensV2FlagEnabledInEpoch(epoch uint32) bool
+	IsSaveJailedAlwaysFlagEnabledInEpoch(epoch uint32) bool
+	IsReDelegateBelowMinCheckFlagEnabledInEpoch(epoch uint32) bool
+	IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool
+	IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool
+	IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTMultiTransferFlagEnabledInEpoch(epoch uint32) bool
+	IsGlobalMintBurnFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTTransferRoleFlagEnabledInEpoch(epoch uint32) bool
+	IsBuiltInFunctionOnMetaFlagEnabledInEpoch(epoch uint32) bool
+	IsComputeRewardCheckpointFlagEnabledInEpoch(epoch uint32) bool
+	IsSCRSizeInvariantCheckFlagEnabledInEpoch(epoch uint32) bool
+	IsBackwardCompSaveKeyValueFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTNFTCreateOnMultiShardFlagEnabledInEpoch(epoch uint32) bool
+	IsMetaESDTSetFlagEnabledInEpoch(epoch uint32) bool
+	IsAddTokensToDelegationFlagEnabledInEpoch(epoch uint32) bool
+	IsMultiESDTTransferFixOnCallBackFlagEnabledInEpoch(epoch uint32) bool
+	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
+	IsCorrectFirstQueuedFlagEnabledInEpoch(epoch uint32) bool
+	IsDeleteDelegatorAfterClaimRewardsFlagEnabledInEpoch(epoch uint32) bool
+	IsRemoveNonUpdatedStorageFlagEnabledInEpoch(epoch uint32) bool
+	IsOptimizeNFTStoreFlagEnabledInEpoch(epoch uint32) bool
+	IsCreateNFTThroughExecByCallerFlagEnabledInEpoch(epoch uint32) bool
+	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledInEpoch(epoch uint32) bool
+	IsFrontRunningProtectionFlagEnabledInEpoch(epoch uint32) bool
+	IsPayableBySCFlagEnabledInEpoch(epoch uint32) bool
+	IsCleanUpInformativeSCRsFlagEnabledInEpoch(epoch uint32) bool
+	IsStorageAPICostOptimizationFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(epoch uint32) bool
+	IsScheduledMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(epoch uint32) bool
+	IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(epoch uint32) bool
+	IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(epoch uint32) bool
+	IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpoch(epoch uint32) bool
+	IsFailExecutionOnEveryAPIErrorFlagEnabledInEpoch(epoch uint32) bool
+	IsMiniBlockPartialExecutionFlagEnabledInEpoch(epoch uint32) bool
+	IsManagedCryptoAPIsFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(epoch uint32) bool
+	IsDisableExecByCallerFlagEnabledInEpoch(epoch uint32) bool
+	IsRefactorContextFlagEnabledInEpoch(epoch uint32) bool
+	IsCheckFunctionArgumentFlagEnabledInEpoch(epoch uint32) bool
+	IsCheckExecuteOnReadOnlyFlagEnabledInEpoch(epoch uint32) bool
+	IsSetSenderInEeiOutputTransferFlagEnabledInEpoch(epoch uint32) bool
+	IsFixAsyncCallbackCheckFlagEnabledInEpoch(epoch uint32) bool
+	IsSaveToSystemAccountFlagEnabledInEpoch(epoch uint32) bool
+	IsCheckFrozenCollectionFlagEnabledInEpoch(epoch uint32) bool
+	IsSendAlwaysFlagEnabledInEpoch(epoch uint32) bool
+	IsValueLengthCheckFlagEnabledInEpoch(epoch uint32) bool
+	IsCheckTransferFlagEnabledInEpoch(epoch uint32) bool
+	IsTransferToMetaFlagEnabledInEpoch(epoch uint32) bool
+	IsESDTNFTImprovementV1FlagEnabledInEpoch(epoch uint32) bool
+	IsChangeDelegationOwnerFlagEnabledInEpoch(epoch uint32) bool
+	IsRefactorPeersMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
+	IsSCProcessorV2FlagEnabledInEpoch(epoch uint32) bool
+	IsFixAsyncCallBackArgsListFlagEnabledInEpoch(epoch uint32) bool
+	IsFixOldTokenLiquidityEnabledInEpoch(epoch uint32) bool
+	IsRuntimeMemStoreLimitEnabledInEpoch(epoch uint32) bool
+	IsRuntimeCodeSizeFixEnabledInEpoch(epoch uint32) bool
+	IsMaxBlockchainHookCountersFlagEnabledInEpoch(epoch uint32) bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledInEpoch(epoch uint32) bool
+	IsAlwaysSaveTokenMetaDataEnabledInEpoch(epoch uint32) bool
+	IsSetGuardianEnabledInEpoch(epoch uint32) bool
+	IsRelayedNonceFixEnabledInEpoch(epoch uint32) bool
+	IsConsistentTokensValuesLengthCheckEnabledInEpoch(epoch uint32) bool
+	IsKeepExecOrderOnCreatedSCRsEnabledInEpoch(epoch uint32) bool
+	IsMultiClaimOnDelegationEnabledInEpoch(epoch uint32) bool
+	IsChangeUsernameEnabledInEpoch(epoch uint32) bool
+	IsAutoBalanceDataTriesEnabledInEpoch(epoch uint32) bool
+	FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch uint32) bool
+	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
+
+	// TODO[Sorin] remove these methods
 	IsBuiltInFunctionsFlagEnabled() bool
 	IsRelayedTransactionsFlagEnabled() bool
 	IsPenalizedTooMuchGasFlagEnabled() bool
@@ -392,129 +495,6 @@ type EnableEpochsHandler interface {
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
-}
-
-// EnableEpochsHandlerTemp - TODO[Sorin] replace the main interface with this one
-type EnableEpochsHandlerTemp interface {
-	GetCurrentEpoch() uint32
-	BlockGasAndFeesReCheckEnableEpoch() uint32
-	StakingV2EnableEpoch() uint32
-	ScheduledMiniBlocksEnableEpoch() uint32
-	SwitchJailWaitingEnableEpoch() uint32
-	BalanceWaitingListsEnableEpoch() uint32
-	WaitingListFixEnableEpoch() uint32
-	MultiESDTTransferAsyncCallBackEnableEpoch() uint32
-	FixOOGReturnCodeEnableEpoch() uint32
-	RemoveNonUpdatedStorageEnableEpoch() uint32
-	CreateNFTThroughExecByCallerEnableEpoch() uint32
-	FixFailExecutionOnErrorEnableEpoch() uint32
-	ManagedCryptoAPIEnableEpoch() uint32
-	DisableExecByCallerEnableEpoch() uint32
-	RefactorContextEnableEpoch() uint32
-	CheckExecuteReadOnlyEnableEpoch() uint32
-	StorageAPICostOptimizationEnableEpoch() uint32
-	MiniBlockPartialExecutionEnableEpoch() uint32
-	RefactorPeersMiniBlocksEnableEpoch() uint32
-
-	IsSCDeployFlagEnabledInEpoch(epoch uint32) bool
-	IsBuiltInFunctionsFlagEnabledInEpoch(epoch uint32) bool
-	IsRelayedTransactionsFlagEnabledInEpoch(epoch uint32) bool
-	IsPenalizedTooMuchGasFlagEnabledInEpoch(epoch uint32) bool
-	IsSwitchJailWaitingFlagEnabledInEpoch(epoch uint32) bool
-	IsBelowSignedThresholdFlagEnabledInEpoch(epoch uint32) bool
-	IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(epoch uint32) bool
-	IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsTransactionSignedWithTxHashFlagEnabledInEpoch(epoch uint32) bool
-	IsMetaProtectionFlagEnabledInEpoch(epoch uint32) bool
-	IsAheadOfTimeGasUsageFlagEnabledInEpoch(epoch uint32) bool
-	IsGasPriceModifierFlagEnabledInEpoch(epoch uint32) bool
-	IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool
-	IsBalanceWaitingListsFlagEnabledInEpoch(epoch uint32) bool
-	IsSenderInOutTransferFlagEnabledInEpoch(epoch uint32) bool
-	IsStakeFlagEnabledInEpoch(epoch uint32) bool
-	IsStakingV2FlagEnabledInEpoch(epoch uint32) bool
-	IsStakingV2OwnerFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsStakingV2FlagEnabledAfterEpoch(epoch uint32) bool
-	IsDoubleKeyProtectionFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsGovernanceFlagEnabledInEpoch(epoch uint32) bool
-	IsGovernanceFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsDelegationManagerFlagEnabledInEpoch(epoch uint32) bool
-	IsDelegationSmartContractFlagEnabledInEpoch(epoch uint32) bool
-	IsDelegationSmartContractFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsCorrectLastUnJailedFlagEnabledInEpoch(epoch uint32) bool
-	IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(epoch uint32) bool
-	IsRelayedTransactionsV2FlagEnabledInEpoch(epoch uint32) bool
-	IsUnBondTokensV2FlagEnabledInEpoch(epoch uint32) bool
-	IsSaveJailedAlwaysFlagEnabledInEpoch(epoch uint32) bool
-	IsReDelegateBelowMinCheckFlagEnabledInEpoch(epoch uint32) bool
-	IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool
-	IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTMultiTransferFlagEnabledInEpoch(epoch uint32) bool
-	IsGlobalMintBurnFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTTransferRoleFlagEnabledInEpoch(epoch uint32) bool
-	IsBuiltInFunctionOnMetaFlagEnabledInEpoch(epoch uint32) bool
-	IsComputeRewardCheckpointFlagEnabledInEpoch(epoch uint32) bool
-	IsSCRSizeInvariantCheckFlagEnabledInEpoch(epoch uint32) bool
-	IsBackwardCompSaveKeyValueFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTNFTCreateOnMultiShardFlagEnabledInEpoch(epoch uint32) bool
-	IsMetaESDTSetFlagEnabledInEpoch(epoch uint32) bool
-	IsAddTokensToDelegationFlagEnabledInEpoch(epoch uint32) bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabledInEpoch(epoch uint32) bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
-	IsCorrectFirstQueuedFlagEnabledInEpoch(epoch uint32) bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabledInEpoch(epoch uint32) bool
-	IsRemoveNonUpdatedStorageFlagEnabledInEpoch(epoch uint32) bool
-	IsOptimizeNFTStoreFlagEnabledInEpoch(epoch uint32) bool
-	IsCreateNFTThroughExecByCallerFlagEnabledInEpoch(epoch uint32) bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledInEpoch(epoch uint32) bool
-	IsFrontRunningProtectionFlagEnabledInEpoch(epoch uint32) bool
-	IsPayableBySCFlagEnabledInEpoch(epoch uint32) bool
-	IsCleanUpInformativeSCRsFlagEnabledInEpoch(epoch uint32) bool
-	IsStorageAPICostOptimizationFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(epoch uint32) bool
-	IsScheduledMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(epoch uint32) bool
-	IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(epoch uint32) bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(epoch uint32) bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpoch(epoch uint32) bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabledInEpoch(epoch uint32) bool
-	IsMiniBlockPartialExecutionFlagEnabledInEpoch(epoch uint32) bool
-	IsManagedCryptoAPIsFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(epoch uint32) bool
-	IsDisableExecByCallerFlagEnabledInEpoch(epoch uint32) bool
-	IsRefactorContextFlagEnabledInEpoch(epoch uint32) bool
-	IsCheckFunctionArgumentFlagEnabledInEpoch(epoch uint32) bool
-	IsCheckExecuteOnReadOnlyFlagEnabledInEpoch(epoch uint32) bool
-	IsSetSenderInEeiOutputTransferFlagEnabledInEpoch(epoch uint32) bool
-	IsFixAsyncCallbackCheckFlagEnabledInEpoch(epoch uint32) bool
-	IsSaveToSystemAccountFlagEnabledInEpoch(epoch uint32) bool
-	IsCheckFrozenCollectionFlagEnabledInEpoch(epoch uint32) bool
-	IsSendAlwaysFlagEnabledInEpoch(epoch uint32) bool
-	IsValueLengthCheckFlagEnabledInEpoch(epoch uint32) bool
-	IsCheckTransferFlagEnabledInEpoch(epoch uint32) bool
-	IsTransferToMetaFlagEnabledInEpoch(epoch uint32) bool
-	IsESDTNFTImprovementV1FlagEnabledInEpoch(epoch uint32) bool
-	IsChangeDelegationOwnerFlagEnabledInEpoch(epoch uint32) bool
-	IsRefactorPeersMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
-	IsSCProcessorV2FlagEnabledInEpoch(epoch uint32) bool
-	IsFixAsyncCallBackArgsListFlagEnabledInEpoch(epoch uint32) bool
-	IsFixOldTokenLiquidityEnabledInEpoch(epoch uint32) bool
-	IsRuntimeMemStoreLimitEnabledInEpoch(epoch uint32) bool
-	IsRuntimeCodeSizeFixEnabledInEpoch(epoch uint32) bool
-	IsMaxBlockchainHookCountersFlagEnabledInEpoch(epoch uint32) bool
-	IsWipeSingleNFTLiquidityDecreaseEnabledInEpoch(epoch uint32) bool
-	IsAlwaysSaveTokenMetaDataEnabledInEpoch(epoch uint32) bool
-	IsSetGuardianEnabledInEpoch(epoch uint32) bool
-	IsRelayedNonceFixEnabledInEpoch(epoch uint32) bool
-	IsConsistentTokensValuesLengthCheckEnabledInEpoch(epoch uint32) bool
-	IsKeepExecOrderOnCreatedSCRsEnabledInEpoch(epoch uint32) bool
-	IsMultiClaimOnDelegationEnabledInEpoch(epoch uint32) bool
-	IsChangeUsernameEnabledInEpoch(epoch uint32) bool
-	IsAutoBalanceDataTriesEnabledInEpoch(epoch uint32) bool
-	FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch uint32) bool
 }
 
 // ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
