@@ -1234,6 +1234,7 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		ChainRunType:                  common.ChainRunTypeSovereign,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
