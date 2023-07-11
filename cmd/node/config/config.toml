@@ -490,8 +490,8 @@
     Type = "LRU"
 
 [PeersRatingConfig]
-    TopRatedCacheCapacity           = 5000
-    BadRatedCacheCapacity           = 5000
+    TopRatedCacheCapacity = 5000
+    BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
