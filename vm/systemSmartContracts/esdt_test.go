@@ -2957,7 +2957,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpochCalled = flagActiveFalseHandler
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
@@ -3049,7 +3049,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpochCalled = flagActiveFalseHandler
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
