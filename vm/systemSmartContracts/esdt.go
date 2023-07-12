@@ -388,7 +388,8 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -546,7 +547,8 @@ func getTokenType(compressed []byte) (bool, []byte, error) {
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

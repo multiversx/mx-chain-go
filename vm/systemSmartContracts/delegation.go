@@ -466,7 +466,8 @@ func (d *delegation) updateDelegationStatusFromValidatorData(
 		case active:
 			dStatus.StakedKeys = append(dStatus.StakedKeys, nodesData)
 		case unStaked:
-			if d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+			currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+			if d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpoch(currentEpoch) {
 				dStatus.UnStakedKeys = append(dStatus.UnStakedKeys, nodesData)
 			} else {
 				dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
@@ -2048,7 +2049,8 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	var wasDeleted bool
-	if d.enableEpochsHandler.IsDeleteDelegatorAfterClaimRewardsFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if d.enableEpochsHandler.IsDeleteDelegatorAfterClaimRewardsFlagEnabledInEpoch(currentEpoch) {
 		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -2425,7 +2427,8 @@ func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -2879,7 +2882,8 @@ func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) addTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}

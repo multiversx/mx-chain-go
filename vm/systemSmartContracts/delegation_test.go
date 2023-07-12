@@ -46,14 +46,14 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsDelegationSmartContractFlagEnabledInEpochCalled:  flagActiveTrueHandler,
-			IsStakingV2FlagEnabledAfterEpochCalled:             flagActiveTrueHandler,
-			IsAddTokensToDelegationFlagEnabledField:            true,
-			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField: true,
-			IsComputeRewardCheckpointFlagEnabledInEpochCalled:  flagActiveTrueHandler,
-			IsValidatorToDelegationFlagEnabledInEpochCalled:    flagActiveTrueHandler,
-			IsReDelegateBelowMinCheckFlagEnabledInEpochCalled:  flagActiveTrueHandler,
-			IsMultiClaimOnDelegationEnabledField:               true,
+			IsDelegationSmartContractFlagEnabledInEpochCalled:          flagActiveTrueHandler,
+			IsStakingV2FlagEnabledAfterEpochCalled:                     flagActiveTrueHandler,
+			IsAddTokensToDelegationFlagEnabledInEpochCalled:            flagActiveTrueHandler,
+			IsDeleteDelegatorAfterClaimRewardsFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsComputeRewardCheckpointFlagEnabledInEpochCalled:          flagActiveTrueHandler,
+			IsValidatorToDelegationFlagEnabledInEpochCalled:            flagActiveTrueHandler,
+			IsReDelegateBelowMinCheckFlagEnabledInEpochCalled:          flagActiveTrueHandler,
+			IsMultiClaimOnDelegationEnabledField:                       true,
 		},
 	}
 }
@@ -4580,13 +4580,13 @@ func TestDelegation_AddTokens(t *testing.T) {
 	vmInput.CallValue = big.NewInt(20)
 	vmInput.CallerAddr = vm.EndOfEpochAddress
 
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" can be called by whitelisted address only")
@@ -4601,12 +4601,12 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
 
 	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "correctNodesStatus is an unknown function")
 
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.Execute(vmInput)

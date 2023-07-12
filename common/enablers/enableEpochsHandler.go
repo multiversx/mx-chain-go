@@ -42,14 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaESDTSetEnableEpoch, handler.metaESDTSetFlag, "metaESDTSetFlag", epoch, handler.enableEpochsConfig.MetaESDTSetEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch, handler.addTokensToDelegationFlag, "addTokensToDelegationFlag", epoch, handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch, handler.multiESDTTransferFixOnCallBackFlag, "multiESDTTransferFixOnCallBackFlag", epoch, handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch, handler.optimizeGasUsedInCrossMiniBlocksFlag, "optimizeGasUsedInCrossMiniBlocksFlag", epoch, handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CorrectFirstQueuedEpoch, handler.correctFirstQueuedFlag, "correctFirstQueuedFlag", epoch, handler.enableEpochsConfig.CorrectFirstQueuedEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch, handler.deleteDelegatorAfterClaimRewardsFlag, "deleteDelegatorAfterClaimRewardsFlag", epoch, handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch, handler.fixOOGReturnCodeFlag, "fixOOGReturnCodeFlag", epoch, handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch, handler.removeNonUpdatedStorageFlag, "removeNonUpdatedStorageFlag", epoch, handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch, handler.optimizeNFTStoreFlag, "optimizeNFTStoreFlag", epoch, handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch, handler.createNFTThroughExecByCallerFlag, "createNFTThroughExecByCallerFlag", epoch, handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch, handler.stopDecreasingValidatorRatingWhenStuckFlag, "stopDecreasingValidatorRatingWhenStuckFlag", epoch, handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch)

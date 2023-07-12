@@ -295,6 +295,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			return err
 		}
 
+		currentEpoch := scr.enableEpochsHandler.GetCurrentEpoch()
 		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
@@ -314,7 +315,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+			if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
@@ -590,6 +591,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		)
 	}()
 
+	currentEpoch := scr.enableEpochsHandler.GetCurrentEpoch()
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockScrs); txIndex++ {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
@@ -607,7 +609,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			break
 		}
 
-		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				break

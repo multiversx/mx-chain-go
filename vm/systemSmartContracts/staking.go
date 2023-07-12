@@ -886,7 +886,8 @@ func (s *stakingSC) insertAfterLastJailed(
 			NextKey:      previousFirstKey,
 		}
 
-		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && len(previousFirstKey) > 0 {
+		currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && len(previousFirstKey) > 0 {
 			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
 			if err != nil {
 				return err
@@ -980,8 +981,10 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	isFirstElementBeforeFix := !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
-	isFirstElementAfterFix := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	isCorrectFirstQueueFlagEnabled := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch)
+	isFirstElementBeforeFix := !isCorrectFirstQueueFlagEnabled && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
+	isFirstElementAfterFix := isCorrectFirstQueueFlagEnabled && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
 	if isFirstElementBeforeFix || isFirstElementAfterFix {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
@@ -997,7 +1000,6 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
 	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
@@ -1005,7 +1007,7 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 
 	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
-	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && previousElement == nil {
+	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && previousElement == nil {
 		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
 		if err != nil {
 			return err
@@ -1947,7 +1949,8 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -2018,7 +2021,8 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

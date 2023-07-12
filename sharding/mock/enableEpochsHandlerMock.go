@@ -595,46 +595,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsMetaESDTSetFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsMetaESDTSetFlagEnabled() bool {
-	return false
-}
-
-// IsAddTokensToDelegationFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsAddTokensToDelegationFlagEnabled() bool {
-	return false
-}
-
-// IsMultiESDTTransferFixOnCallBackFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsMultiESDTTransferFixOnCallBackFlagEnabled() bool {
-	return false
-}
-
-// IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool {
-	return false
-}
-
-// IsCorrectFirstQueuedFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCorrectFirstQueuedFlagEnabled() bool {
-	return false
-}
-
-// IsDeleteDelegatorAfterClaimRewardsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool {
-	return false
-}
-
-// IsFixOOGReturnCodeFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsFixOOGReturnCodeFlagEnabled() bool {
-	return false
-}
-
-// IsRemoveNonUpdatedStorageFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRemoveNonUpdatedStorageFlagEnabled() bool {
-	return false
-}
-
 // IsOptimizeNFTStoreFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsOptimizeNFTStoreFlagEnabled() bool {
 	return false

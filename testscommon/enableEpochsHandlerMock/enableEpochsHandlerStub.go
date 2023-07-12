@@ -123,14 +123,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsMetaESDTSetFlagEnabledField                            bool
-	IsAddTokensToDelegationFlagEnabledField                  bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabledField         bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField       bool
-	IsCorrectFirstQueuedFlagEnabledField                     bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabledField       bool
-	IsFixOOGReturnCodeFlagEnabledField                       bool
-	IsRemoveNonUpdatedStorageFlagEnabledField                bool
 	IsOptimizeNFTStoreFlagEnabledField                       bool
 	IsCreateNFTThroughExecByCallerFlagEnabledField           bool
 	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField bool
@@ -1117,70 +1109,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsMetaESDTSetFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsMetaESDTSetFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsMetaESDTSetFlagEnabledField
-}
-
-// IsAddTokensToDelegationFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsAddTokensToDelegationFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsAddTokensToDelegationFlagEnabledField
-}
-
-// IsMultiESDTTransferFixOnCallBackFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsMultiESDTTransferFixOnCallBackFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsMultiESDTTransferFixOnCallBackFlagEnabledField
-}
-
-// IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField
-}
-
-// IsCorrectFirstQueuedFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCorrectFirstQueuedFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCorrectFirstQueuedFlagEnabledField
-}
-
-// IsDeleteDelegatorAfterClaimRewardsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsDeleteDelegatorAfterClaimRewardsFlagEnabledField
-}
-
-// IsFixOOGReturnCodeFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFixOOGReturnCodeFlagEnabledField
-}
-
-// IsRemoveNonUpdatedStorageFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsRemoveNonUpdatedStorageFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRemoveNonUpdatedStorageFlagEnabledField
-}
 
 // IsOptimizeNFTStoreFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsOptimizeNFTStoreFlagEnabled() bool {

@@ -389,14 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsMetaESDTSetFlagEnabled() bool
-	IsAddTokensToDelegationFlagEnabled() bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabled() bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool
-	IsCorrectFirstQueuedFlagEnabled() bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool
-	IsFixOOGReturnCodeFlagEnabled() bool
-	IsRemoveNonUpdatedStorageFlagEnabled() bool
 	IsOptimizeNFTStoreFlagEnabled() bool
 	IsCreateNFTThroughExecByCallerFlagEnabled() bool
 	IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool

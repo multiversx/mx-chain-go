@@ -2894,7 +2894,7 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
+		IsMultiESDTTransferFixOnCallBackFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -3630,7 +3630,7 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	}
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledField: true,
+		IsMultiESDTTransferFixOnCallBackFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -4051,9 +4051,9 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	}
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:                 flagActiveTrueHandler,
-		IsCleanUpInformativeSCRsFlagEnabledField:           true,
-		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField: true,
+		IsSCDeployFlagEnabledInEpochCalled:                         flagActiveTrueHandler,
+		IsCleanUpInformativeSCRsFlagEnabledField:                   true,
+		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 
 	sc, _ := NewSmartContractProcessor(arguments)

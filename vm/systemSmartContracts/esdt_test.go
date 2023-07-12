@@ -38,7 +38,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
 			IsGlobalMintBurnFlagEnabledInEpochCalled:            flagActiveTrueHandler,
-			IsMetaESDTSetFlagEnabledField:                       true,
+			IsMetaESDTSetFlagEnabledInEpochCalled:               flagActiveTrueHandler,
 			IsESDTRegisterAndSetAllRolesFlagEnabledField:        true,
 			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled: flagActiveTrueHandler,
 			IsESDTTransferRoleFlagEnabledInEpochCalled:          flagActiveTrueHandler,
@@ -3971,7 +3971,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -3979,7 +3979,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4020,7 +4020,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4028,7 +4028,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
+	enableEpochsHandler.IsMetaESDTSetFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")

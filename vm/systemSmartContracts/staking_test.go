@@ -56,7 +56,7 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
 			IsCorrectLastUnJailedFlagEnabledInEpochCalled:        flagActiveTrueHandler,
-			IsCorrectFirstQueuedFlagEnabledField:                 true,
+			IsCorrectFirstQueuedFlagEnabledInEpochCalled:         flagActiveTrueHandler,
 			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
 			IsValidatorToDelegationFlagEnabledInEpochCalled:      flagActiveTrueHandler,
 		},
@@ -2386,16 +2386,16 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		flag bool
+		name        string
+		flagHandler func(epoch uint32) bool
 	}{
 		{
-			name: "BeforeFix",
-			flag: false,
+			name:        "BeforeFix",
+			flagHandler: flagActiveFalseHandler,
 		},
 		{
-			name: "AfterFix",
-			flag: true,
+			name:        "AfterFix",
+			flagHandler: flagActiveTrueHandler,
 		},
 	}
 
@@ -2431,7 +2431,7 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 			args.Marshalizer = marshalizer
 			args.Eei = eei
 			enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-			enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = tt.flag
+			enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = tt.flagHandler
 			sc, _ := NewStakingSmartContract(args)
 			err := sc.removeFromWaitingList(firstBLS)
 
@@ -2481,7 +2481,7 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *tes
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = flagActiveFalseHandler
 	sc, _ := NewStakingSmartContract(args)
 
 	err := sc.removeFromWaitingList(secondBLS)
@@ -2630,7 +2630,7 @@ func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = flagActiveFalseHandler
 	sc, _ := NewStakingSmartContract(args)
 	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
 	assert.Nil(t, err)
@@ -2800,7 +2800,7 @@ func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
 		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
 		alterWaitingListLength(t, eei, marshalizer)
 		enableEpochsHandler, _ := sc.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+		enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = flagActiveFalseHandler
 		eei.SetGasProvided(500000000)
 
 		arguments := CreateVmContractCallInput()
@@ -3249,13 +3249,13 @@ func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
 
 	eei.returnMessage = ""
 	enableEpochsHandler, _ := sc.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = flagActiveFalseHandler
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 	assert.Equal(t, "invalid method to call", eei.returnMessage)
 
 	eei.returnMessage = ""
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = true
+	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpochCalled = flagActiveTrueHandler
 	arguments.CallValue = big.NewInt(10)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)

@@ -5,14 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	metaESDTSetFlag                            *atomic.Flag
-	addTokensToDelegationFlag                  *atomic.Flag
-	multiESDTTransferFixOnCallBackFlag         *atomic.Flag
-	optimizeGasUsedInCrossMiniBlocksFlag       *atomic.Flag
-	correctFirstQueuedFlag                     *atomic.Flag
-	deleteDelegatorAfterClaimRewardsFlag       *atomic.Flag
-	fixOOGReturnCodeFlag                       *atomic.Flag
-	removeNonUpdatedStorageFlag                *atomic.Flag
 	optimizeNFTStoreFlag                       *atomic.Flag
 	createNFTThroughExecByCallerFlag           *atomic.Flag
 	stopDecreasingValidatorRatingWhenStuckFlag *atomic.Flag
@@ -58,14 +50,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		metaESDTSetFlag:                            &atomic.Flag{},
-		addTokensToDelegationFlag:                  &atomic.Flag{},
-		multiESDTTransferFixOnCallBackFlag:         &atomic.Flag{},
-		optimizeGasUsedInCrossMiniBlocksFlag:       &atomic.Flag{},
-		correctFirstQueuedFlag:                     &atomic.Flag{},
-		deleteDelegatorAfterClaimRewardsFlag:       &atomic.Flag{},
-		fixOOGReturnCodeFlag:                       &atomic.Flag{},
-		removeNonUpdatedStorageFlag:                &atomic.Flag{},
 		optimizeNFTStoreFlag:                       &atomic.Flag{},
 		createNFTThroughExecByCallerFlag:           &atomic.Flag{},
 		stopDecreasingValidatorRatingWhenStuckFlag: &atomic.Flag{},
@@ -108,46 +92,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsMetaESDTSetFlagEnabled returns true if metaESDTSetFlag is enabled
-func (holder *epochFlagsHolder) IsMetaESDTSetFlagEnabled() bool {
-	return holder.metaESDTSetFlag.IsSet()
-}
-
-// IsAddTokensToDelegationFlagEnabled returns true if addTokensToDelegationFlag is enabled
-func (holder *epochFlagsHolder) IsAddTokensToDelegationFlagEnabled() bool {
-	return holder.addTokensToDelegationFlag.IsSet()
-}
-
-// IsMultiESDTTransferFixOnCallBackFlagEnabled returns true if multiESDTTransferFixOnCallBackFlag is enabled
-func (holder *epochFlagsHolder) IsMultiESDTTransferFixOnCallBackFlagEnabled() bool {
-	return holder.multiESDTTransferFixOnCallBackFlag.IsSet()
-}
-
-// IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled returns true if optimizeGasUsedInCrossMiniBlocksFlag is enabled
-func (holder *epochFlagsHolder) IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool {
-	return holder.optimizeGasUsedInCrossMiniBlocksFlag.IsSet()
-}
-
-// IsCorrectFirstQueuedFlagEnabled returns true if correctFirstQueuedFlag is enabled
-func (holder *epochFlagsHolder) IsCorrectFirstQueuedFlagEnabled() bool {
-	return holder.correctFirstQueuedFlag.IsSet()
-}
-
-// IsDeleteDelegatorAfterClaimRewardsFlagEnabled returns true if deleteDelegatorAfterClaimRewardsFlag is enabled
-func (holder *epochFlagsHolder) IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool {
-	return holder.deleteDelegatorAfterClaimRewardsFlag.IsSet()
-}
-
-// IsFixOOGReturnCodeFlagEnabled returns true if fixOOGReturnCodeFlag is enabled
-func (holder *epochFlagsHolder) IsFixOOGReturnCodeFlagEnabled() bool {
-	return holder.fixOOGReturnCodeFlag.IsSet()
-}
-
-// IsRemoveNonUpdatedStorageFlagEnabled returns true if removeNonUpdatedStorageFlag is enabled
-func (holder *epochFlagsHolder) IsRemoveNonUpdatedStorageFlagEnabled() bool {
-	return holder.removeNonUpdatedStorageFlag.IsSet()
 }
 
 // IsOptimizeNFTStoreFlagEnabled returns true if removeNonUpdatedStorageFlag is enabled
