@@ -50,7 +50,6 @@ type ArgPrepareOutportSaveBlockData struct {
 }
 
 type outportDataProvider struct {
-	isImportDBMode           bool
 	shardID                  uint32
 	numOfShards              uint32
 	alteredAccountsProvider  AlteredAccountsProviderHandler
