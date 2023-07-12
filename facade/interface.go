@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -84,7 +85,7 @@ type NodeHandler interface {
 	IsInterfaceNil() bool
 
 	// ValidatorStatisticsApi return the statistics for all the validators
-	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
 	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 

@@ -12,8 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -481,4 +483,93 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 	defer mut.RUnlock()
 	assert.True(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
+}
+
+func TestGetPeerAccountAndReturnIfNew(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error if failed account creation", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error if wrong type of existent account", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &testState.UserAccountStub{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, state.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return error if wrong type of created accounts", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return &testState.UserAccountStub{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, state.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should work if account exists", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &testState.PeerAccountHandlerMock{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.NotNil(t, acc)
+		assert.False(t, isNew)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create account if missing", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return &testState.PeerAccountHandlerMock{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.NotNil(t, acc)
+		assert.True(t, isNew)
+		assert.Nil(t, err)
+	})
 }
