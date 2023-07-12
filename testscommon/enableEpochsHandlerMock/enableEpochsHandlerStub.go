@@ -57,7 +57,6 @@ type EnableEpochsHandlerStub struct {
 	IsSaveJailedAlwaysFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	IsReDelegateBelowMinCheckFlagEnabledInEpochCalled                 func(epoch uint32) bool
 	IsValidatorToDelegationFlagEnabledInEpochCalled                   func(epoch uint32) bool
-	IsWaitingListFixFlagEnabledInEpochCalled                          func(epoch uint32) bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabledInEpochCalled        func(epoch uint32) bool
 	IsESDTMultiTransferFlagEnabledInEpochCalled                       func(epoch uint32) bool
 	IsGlobalMintBurnFlagEnabledInEpochCalled                          func(epoch uint32) bool
@@ -124,11 +123,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsWaitingListFixFlagEnabledField                         bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabledField       bool
-	IsESDTMultiTransferFlagEnabledField                      bool
-	IsGlobalMintBurnFlagEnabledField                         bool
-	IsESDTTransferRoleFlagEnabledField                       bool
 	IsBuiltInFunctionOnMetaFlagEnabledField                  bool
 	IsComputeRewardCheckpointFlagEnabledField                bool
 	IsSCRSizeInvariantCheckFlagEnabledField                  bool
@@ -171,7 +165,6 @@ type EnableEpochsHandlerStub struct {
 	IsValueLengthCheckFlagEnabledField                       bool
 	IsCheckTransferFlagEnabledField                          bool
 	IsTransferToMetaFlagEnabledField                         bool
-	IsESDTNFTImprovementV1FlagEnabledField                   bool
 	IsSetSenderInEeiOutputTransferFlagEnabledField           bool
 	IsChangeDelegationOwnerFlagEnabledField                  bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                bool
@@ -605,14 +598,6 @@ func (stub *EnableEpochsHandlerStub) IsReDelegateBelowMinCheckFlagEnabledInEpoch
 func (stub *EnableEpochsHandlerStub) IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsValidatorToDelegationFlagEnabledInEpochCalled != nil {
 		return stub.IsValidatorToDelegationFlagEnabledInEpochCalled(epoch)
-	}
-	return false
-}
-
-// IsWaitingListFixFlagEnabledInEpoch -
-func (stub *EnableEpochsHandlerStub) IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool {
-	if stub.IsWaitingListFixFlagEnabledInEpochCalled != nil {
-		return stub.IsWaitingListFixFlagEnabledInEpochCalled(epoch)
 	}
 	return false
 }
@@ -1139,46 +1124,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 
 // TODO[Sorin]: Remove the methods below
 
-// IsWaitingListFixFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsWaitingListFixFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsWaitingListFixFlagEnabledField
-}
-
-// IsIncrementSCRNonceInMultiTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsIncrementSCRNonceInMultiTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsIncrementSCRNonceInMultiTransferFlagEnabledField
-}
-
-// IsESDTMultiTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTMultiTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTMultiTransferFlagEnabledField
-}
-
-// IsGlobalMintBurnFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsGlobalMintBurnFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsGlobalMintBurnFlagEnabledField
-}
-
-// IsESDTTransferRoleFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTTransferRoleFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTTransferRoleFlagEnabledField
-}
-
 // IsBuiltInFunctionOnMetaFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionOnMetaFlagEnabled() bool {
 	stub.RLock()
@@ -1513,14 +1458,6 @@ func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsTransferToMetaFlagEnabledField
-}
-
-// IsESDTNFTImprovementV1FlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTNFTImprovementV1FlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTNFTImprovementV1FlagEnabledField
 }
 
 // IsSetSenderInEeiOutputTransferFlagEnabled -

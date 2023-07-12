@@ -238,11 +238,6 @@ func (mock *EnableEpochsHandlerMock) IsValidatorToDelegationFlagEnabledInEpoch(_
 	return false
 }
 
-// IsWaitingListFixFlagEnabledInEpoch -
-func (mock *EnableEpochsHandlerMock) IsWaitingListFixFlagEnabledInEpoch(_ uint32) bool {
-	return false
-}
-
 // IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -600,31 +595,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsWaitingListFixFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsWaitingListFixFlagEnabled() bool {
-	return false
-}
-
-// IsIncrementSCRNonceInMultiTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsIncrementSCRNonceInMultiTransferFlagEnabled() bool {
-	return false
-}
-
-// IsESDTMultiTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTMultiTransferFlagEnabled() bool {
-	return false
-}
-
-// IsGlobalMintBurnFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsGlobalMintBurnFlagEnabled() bool {
-	return false
-}
-
-// IsESDTTransferRoleFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTTransferRoleFlagEnabled() bool {
-	return false
-}
-
 // IsBuiltInFunctionOnMetaFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionOnMetaFlagEnabled() bool {
 	return false
@@ -832,11 +802,6 @@ func (mock *EnableEpochsHandlerMock) IsCheckTransferFlagEnabled() bool {
 
 // IsTransferToMetaFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsTransferToMetaFlagEnabled() bool {
-	return false
-}
-
-// IsESDTNFTImprovementV1FlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTNFTImprovementV1FlagEnabled() bool {
 	return false
 }
 

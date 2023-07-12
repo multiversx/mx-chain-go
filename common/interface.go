@@ -322,7 +322,6 @@ type EnableEpochsHandler interface {
 	IsSaveJailedAlwaysFlagEnabledInEpoch(epoch uint32) bool
 	IsReDelegateBelowMinCheckFlagEnabledInEpoch(epoch uint32) bool
 	IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool
-	IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch(epoch uint32) bool
 	IsESDTMultiTransferFlagEnabledInEpoch(epoch uint32) bool
 	IsGlobalMintBurnFlagEnabledInEpoch(epoch uint32) bool
@@ -390,11 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsWaitingListFixFlagEnabled() bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
-	IsESDTMultiTransferFlagEnabled() bool
-	IsGlobalMintBurnFlagEnabled() bool
-	IsESDTTransferRoleFlagEnabled() bool
 	IsBuiltInFunctionOnMetaFlagEnabled() bool
 	IsComputeRewardCheckpointFlagEnabled() bool
 	IsSCRSizeInvariantCheckFlagEnabled() bool
@@ -437,7 +431,6 @@ type EnableEpochsHandler interface {
 	IsValueLengthCheckFlagEnabled() bool
 	IsCheckTransferFlagEnabled() bool
 	IsTransferToMetaFlagEnabled() bool
-	IsESDTNFTImprovementV1FlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool

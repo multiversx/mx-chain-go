@@ -42,11 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch, handler.waitingListFixFlag, "waitingListFixFlag", epoch, handler.enableEpochsConfig.WaitingListFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch, handler.incrementSCRNonceInMultiTransferFlag, "incrementSCRNonceInMultiTransferFlag", epoch, handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch, handler.esdtMultiTransferFlag, "esdtMultiTransferFlag", epoch, handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch)
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnFlag, "globalMintBurnFlag", epoch, handler.enableEpochsConfig.GlobalMintBurnDisableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch, handler.esdtTransferRoleFlag, "esdtTransferRoleFlag", epoch, handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.builtInFunctionOnMetaFlag, "builtInFunctionOnMetaFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch, handler.computeRewardCheckpointFlag, "computeRewardCheckpointFlag", epoch, handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch, handler.scrSizeInvariantCheckFlag, "scrSizeInvariantCheckFlag", epoch, handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch)
@@ -375,11 +370,6 @@ func (handler *enableEpochsHandler) IsReDelegateBelowMinCheckFlagEnabledInEpoch(
 // IsValidatorToDelegationFlagEnabledInEpoch returns true if ValidatorToDelegationEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch
-}
-
-// IsWaitingListFixFlagEnabledInEpoch returns true if WaitingListFixEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
 }
 
 // IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch returns true if IncrementSCRNonceInMultiTransferEnableEpoch is lower than the provided epoch

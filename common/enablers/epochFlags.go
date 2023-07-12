@@ -5,11 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	waitingListFixFlag                         *atomic.Flag
-	incrementSCRNonceInMultiTransferFlag       *atomic.Flag
-	esdtMultiTransferFlag                      *atomic.Flag
-	globalMintBurnFlag                         *atomic.Flag
-	esdtTransferRoleFlag                       *atomic.Flag
 	builtInFunctionOnMetaFlag                  *atomic.Flag
 	computeRewardCheckpointFlag                *atomic.Flag
 	scrSizeInvariantCheckFlag                  *atomic.Flag
@@ -68,11 +63,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		waitingListFixFlag:                         &atomic.Flag{},
-		incrementSCRNonceInMultiTransferFlag:       &atomic.Flag{},
-		esdtMultiTransferFlag:                      &atomic.Flag{},
-		globalMintBurnFlag:                         &atomic.Flag{},
-		esdtTransferRoleFlag:                       &atomic.Flag{},
 		builtInFunctionOnMetaFlag:                  &atomic.Flag{},
 		computeRewardCheckpointFlag:                &atomic.Flag{},
 		scrSizeInvariantCheckFlag:                  &atomic.Flag{},
@@ -128,31 +118,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsWaitingListFixFlagEnabled returns true if waitingListFixFlag is enabled
-func (holder *epochFlagsHolder) IsWaitingListFixFlagEnabled() bool {
-	return holder.waitingListFixFlag.IsSet()
-}
-
-// IsIncrementSCRNonceInMultiTransferFlagEnabled returns true if incrementSCRNonceInMultiTransferFlag is enabled
-func (holder *epochFlagsHolder) IsIncrementSCRNonceInMultiTransferFlagEnabled() bool {
-	return holder.incrementSCRNonceInMultiTransferFlag.IsSet()
-}
-
-// IsESDTMultiTransferFlagEnabled returns true if esdtMultiTransferFlag is enabled
-func (holder *epochFlagsHolder) IsESDTMultiTransferFlagEnabled() bool {
-	return holder.esdtMultiTransferFlag.IsSet()
-}
-
-// IsGlobalMintBurnFlagEnabled returns true if globalMintBurnFlag is enabled
-func (holder *epochFlagsHolder) IsGlobalMintBurnFlagEnabled() bool {
-	return holder.globalMintBurnFlag.IsSet()
-}
-
-// IsESDTTransferRoleFlagEnabled returns true if esdtTransferRoleFlag is enabled
-func (holder *epochFlagsHolder) IsESDTTransferRoleFlagEnabled() bool {
-	return holder.esdtTransferRoleFlag.IsSet()
 }
 
 // IsBuiltInFunctionOnMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
@@ -375,12 +340,6 @@ func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
 // this is a duplicate for BuiltInFunctionOnMetaEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
 	return holder.builtInFunctionOnMetaFlag.IsSet()
-}
-
-// IsESDTNFTImprovementV1FlagEnabled returns true if esdtMultiTransferFlag is enabled
-// this is a duplicate for ESDTMultiTransferEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsESDTNFTImprovementV1FlagEnabled() bool {
-	return holder.esdtMultiTransferFlag.IsSet()
 }
 
 // IsChangeDelegationOwnerFlagEnabled returns true if the change delegation owner feature is enabled

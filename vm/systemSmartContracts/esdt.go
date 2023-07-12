@@ -266,7 +266,8 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
-	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() && initialSupply.Cmp(zero) == 0)
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpoch(currentEpoch) && initialSupply.Cmp(zero) == 0)
 	if isInvalidSupply {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
@@ -797,7 +798,8 @@ func getStringFromBool(val bool) string {
 }
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("global burn is no more enabled, use local burn")
 		return vmcommon.UserError
 	}
@@ -853,7 +855,8 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("global mint is no more enabled, use local mint")
 		return vmcommon.UserError
 	}
@@ -1503,7 +1506,8 @@ func (e *esdt) isSpecialRoleValidForFungible(argument string) error {
 	case core.ESDTRoleLocalBurn:
 		return nil
 	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpoch(currentEpoch) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -1521,7 +1525,8 @@ func (e *esdt) isSpecialRoleValidForSemiFungible(argument string) error {
 	case core.ESDTRoleNFTCreate:
 		return nil
 	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpoch(currentEpoch) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -1531,23 +1536,24 @@ func (e *esdt) isSpecialRoleValidForSemiFungible(argument string) error {
 }
 
 func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
 	switch argument {
 	case core.ESDTRoleNFTBurn:
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
 	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpoch(currentEpoch) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
 	case core.ESDTRoleNFTUpdateAttributes:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpoch(currentEpoch) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
 	case core.ESDTRoleNFTAddURI:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabledInEpoch(currentEpoch) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
