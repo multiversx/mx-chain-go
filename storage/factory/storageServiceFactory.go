@@ -290,7 +290,7 @@ func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
 ) error {
 	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
 
-	extendedHeaderUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ExtendedShardHeaderStorage, disabledCustomDatabaseRemover)
+	extendedHeaderUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage, disabledCustomDatabaseRemover)
 	if err != nil {
 		return err
 	}
@@ -300,11 +300,11 @@ func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
 	}
 	store.AddStorer(dataRetriever.ExtendedShardHeadersUnit, extendedHeaderUnit)
 
-	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.ExtendedShardHdrNonceHashStorage.DB)
-	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
+	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB)
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
 	extendedShardHdrHashNonceConfig.FilePath = dbPath
 	extendedShardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
-		GetCacherFromConfig(psf.generalConfig.ExtendedShardHdrNonceHashStorage.Cache),
+		GetCacherFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache),
 		extendedShardHdrHashNonceConfig)
 	if err != nil {
 		return fmt.Errorf("%w for ExtendedShardHdrNonceHashStorage", err)

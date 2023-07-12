@@ -5,7 +5,8 @@ import "github.com/multiversx/mx-chain-go/config"
 // SovereignConfig holds sovereign node config
 type SovereignConfig struct {
 	*config.Configs
-	NotifierConfig *NotifierConfig
+	SovereignExtraConfig *config.SovereignConfig
+	NotifierConfig       *NotifierConfig
 }
 
 // NotifierConfig holds sovereign notifier configuration

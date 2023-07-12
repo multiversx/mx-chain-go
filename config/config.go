@@ -135,23 +135,21 @@ type HeartbeatV2Config struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage                StorageConfig
-	PeerBlockBodyStorage             StorageConfig
-	BlockHeaderStorage               StorageConfig
-	TxStorage                        StorageConfig
-	UnsignedTransactionStorage       StorageConfig
-	RewardTxStorage                  StorageConfig
-	ShardHdrNonceHashStorage         StorageConfig
-	ExtendedShardHdrNonceHashStorage StorageConfig
-	MetaHdrNonceHashStorage          StorageConfig
-	StatusMetricsStorage             StorageConfig
-	ReceiptsStorage                  StorageConfig
-	ScheduledSCRsStorage             StorageConfig
-	SmartContractsStorage            StorageConfig
-	SmartContractsStorageForSCQuery  StorageConfig
-	TrieEpochRootHashStorage         StorageConfig
-	SmartContractsStorageSimulate    StorageConfig
-	ExtendedShardHeaderStorage       StorageConfig
+	MiniBlocksStorage               StorageConfig
+	PeerBlockBodyStorage            StorageConfig
+	BlockHeaderStorage              StorageConfig
+	TxStorage                       StorageConfig
+	UnsignedTransactionStorage      StorageConfig
+	RewardTxStorage                 StorageConfig
+	ShardHdrNonceHashStorage        StorageConfig
+	MetaHdrNonceHashStorage         StorageConfig
+	StatusMetricsStorage            StorageConfig
+	ReceiptsStorage                 StorageConfig
+	ScheduledSCRsStorage            StorageConfig
+	SmartContractsStorage           StorageConfig
+	SmartContractsStorageForSCQuery StorageConfig
+	TrieEpochRootHashStorage        StorageConfig
+	SmartContractsStorageSimulate   StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -222,6 +220,10 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+
+	// TODO: (RaduChis): When we have separate factories to pass configs from node runners,
+	// we need to remove this from here
+	SovereignConfig SovereignConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
