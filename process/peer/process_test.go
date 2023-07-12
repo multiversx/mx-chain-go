@@ -126,8 +126,8 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSwitchJailWaitingFlagEnabledInEpochCalled:    func(epoch uint32) bool { return true },
-			IsBelowSignedThresholdFlagEnabledInEpochCalled: func(epoch uint32) bool { return true },
+			IsSwitchJailWaitingFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsBelowSignedThresholdFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 	return arguments

@@ -1227,7 +1227,7 @@ func (s *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 
 func (s *stakingSC) updateConfigMaxNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1443,7 +1443,7 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 		}
 	} else {
 		remaining := s.unBondPeriod - passedNonce
-		if s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+		if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
 			s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
@@ -1524,7 +1524,7 @@ func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcom
 
 func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1553,7 +1553,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1660,7 +1660,7 @@ func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
 
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

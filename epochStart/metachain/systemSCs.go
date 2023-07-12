@@ -276,7 +276,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
 	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 
