@@ -18,4 +18,4 @@ COPY --from=builder "/lib/libwasmer_linux_amd64.so" "/lib/libwasmer_linux_amd64.
 COPY --from=builder "/lib/libvmexeccapi.so" "/lib/libvmexeccapi.so"
 WORKDIR /go/mx-chain-go/cmd/node/
 EXPOSE 8080
-ENTRYPOINT ["/go/mx-chain-go/cmd/node/node", "-no-key"]
+ENTRYPOINT ["/go/mx-chain-go/cmd/node/node"]
