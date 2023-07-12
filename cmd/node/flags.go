@@ -617,9 +617,9 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		processDbLookupExtensionMode(log, configs)
 	}
 
-	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
-	if isInLiteObserverMode {
-		processLiteObserverMode(log, configs)
+	isInSnapshotLessObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
+	if isInSnapshotLessObserverMode {
+		processSnapshotLessObserverMode(log, configs)
 	}
 
 	return nil
@@ -657,7 +657,7 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 	)
 }
 
-func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
+func processSnapshotLessObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
