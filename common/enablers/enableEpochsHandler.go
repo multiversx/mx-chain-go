@@ -42,7 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch, handler.cleanUpInformativeSCRsFlag, "cleanUpInformativeSCRsFlag", epoch, handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch, handler.storageAPICostOptimizationFlag, "storageAPICostOptimizationFlag", epoch, handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch, handler.esdtRegisterAndSetAllRolesFlag, "esdtRegisterAndSetAllRolesFlag", epoch, handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch, handler.scheduledMiniBlocksFlag, "scheduledMiniBlocksFlag", epoch, handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch)

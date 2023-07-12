@@ -4052,7 +4052,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsSCDeployFlagEnabledInEpochCalled:                         flagActiveTrueHandler,
-		IsCleanUpInformativeSCRsFlagEnabledField:                   true,
+		IsCleanUpInformativeSCRsFlagEnabledInEpochCalled:           flagActiveTrueHandler,
 		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 
@@ -4139,7 +4139,7 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	assert.Equal(t, len(finalSCRs), len(scrs))
 	assert.Equal(t, 1, len(logs))
 
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
+	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledInEpochCalled = flagActiveTrueHandler
 	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))
@@ -4403,7 +4403,7 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 		TooMuchGasProvidedMessage, 1, 10)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledField = true
+	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledInEpochCalled = flagActiveTrueHandler
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
 	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
 	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",

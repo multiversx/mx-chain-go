@@ -595,11 +595,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsCleanUpInformativeSCRsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCleanUpInformativeSCRsFlagEnabled() bool {
-	return false
-}
-
 // IsStorageAPICostOptimizationFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsStorageAPICostOptimizationFlagEnabled() bool {
 	return false

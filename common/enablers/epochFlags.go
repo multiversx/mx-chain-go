@@ -5,7 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	cleanUpInformativeSCRsFlag              *atomic.Flag
 	storageAPICostOptimizationFlag          *atomic.Flag
 	esdtRegisterAndSetAllRolesFlag          *atomic.Flag
 	scheduledMiniBlocksFlag                 *atomic.Flag
@@ -45,7 +44,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		cleanUpInformativeSCRsFlag:              &atomic.Flag{},
 		storageAPICostOptimizationFlag:          &atomic.Flag{},
 		esdtRegisterAndSetAllRolesFlag:          &atomic.Flag{},
 		scheduledMiniBlocksFlag:                 &atomic.Flag{},
@@ -82,11 +80,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:   &atomic.Flag{},
 	}
-}
-
-// IsCleanUpInformativeSCRsFlagEnabled returns true if cleanUpInformativeSCRsFlag is enabled
-func (holder *epochFlagsHolder) IsCleanUpInformativeSCRsFlagEnabled() bool {
-	return holder.cleanUpInformativeSCRsFlag.IsSet()
 }
 
 // IsStorageAPICostOptimizationFlagEnabled returns true if storageAPICostOptimizationFlag is enabled

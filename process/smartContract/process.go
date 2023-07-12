@@ -489,7 +489,8 @@ func (sc *scProcessor) cleanInformativeOnlySCRs(scrs []data.TransactionHandler) 
 		cleanedUPSCrs = append(cleanedUPSCrs, scr)
 	}
 
-	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) {
 		return scrs, logsFromSCRs
 	}
 
@@ -642,7 +643,8 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 
 func (sc *scProcessor) isSelfShard(address []byte) bool {
 	addressShardID := sc.shardCoordinator.ComputeId(address)
-	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() && core.IsEmptyAddress(address) {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) && core.IsEmptyAddress(address) {
 		addressShardID = 0
 	}
 
@@ -1418,7 +1420,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
-	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() || !sc.isInformativeTxHandler(scrIfError) {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) || !sc.isInformativeTxHandler(scrIfError) {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 		if err != nil {
 			return err
@@ -1558,7 +1560,8 @@ func (sc *scProcessor) processForRelayerWhenError(
 		ReturnMessage:  returnMessage,
 	}
 
-	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() || scrForRelayer.Value.Cmp(zero) > 0 {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) || scrForRelayer.Value.Cmp(zero) > 0 {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
 		if err != nil {
 			return nil, err
@@ -2035,7 +2038,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		sc.gasHandler.SetGasPenalized(vmOutput.GasRemaining, txHash)
 	}
 
-	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
+	if !sc.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) {
 		vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
 			TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	} else {

@@ -389,7 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsCleanUpInformativeSCRsFlagEnabled() bool
 	IsStorageAPICostOptimizationFlagEnabled() bool
 	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
 	IsScheduledMiniBlocksFlagEnabled() bool

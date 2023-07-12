@@ -123,7 +123,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsCleanUpInformativeSCRsFlagEnabledField              bool
 	IsStorageAPICostOptimizationFlagEnabledField          bool
 	IsESDTRegisterAndSetAllRolesFlagEnabledField          bool
 	IsScheduledMiniBlocksFlagEnabledField                 bool
@@ -1100,14 +1099,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsCleanUpInformativeSCRsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCleanUpInformativeSCRsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCleanUpInformativeSCRsFlagEnabledField
-}
 
 // IsStorageAPICostOptimizationFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsStorageAPICostOptimizationFlagEnabled() bool {
