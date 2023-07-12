@@ -32,14 +32,14 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:         testscommon.CreateMemUnit(),
-		CheckpointsStorer:  testscommon.CreateMemUnit(),
-		PruningEnabled:     false,
-		CheckpointsEnabled: false,
-		SnapshotsEnabled:   true,
-		MaxTrieLevelInMem:  5,
-		IdleProvider:       &testscommon.ProcessStatusHandlerStub{},
-		Identifier:         dataRetriever.UserAccountsUnit.String(),
+		MainStorer:          testscommon.CreateMemUnit(),
+		CheckpointsStorer:   testscommon.CreateMemUnit(),
+		PruningEnabled:      false,
+		CheckpointsEnabled:  false,
+		SnapshotsEnabled:    true,
+		MaxTrieLevelInMem:   5,
+		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
+		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
@@ -194,7 +194,6 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 		t.Parallel()
 
 		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
-			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
 				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
@@ -220,7 +219,6 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 		t.Parallel()
 
 		holder, storageManager, err := factory.CreateTriesComponentsForShardId(
-			false,
 			testscommon.GetGeneralConfig(),
 			&mock.CoreComponentsStub{
 				InternalMarshalizerField:     &marshallerMock.MarshalizerMock{},
