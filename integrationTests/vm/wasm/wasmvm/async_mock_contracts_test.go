@@ -196,13 +196,17 @@ func TestMockContract_NewAsync_BackTransfer_CrossShard(t *testing.T) {
 		GasProvidedToChild: 1_000_000,
 		GasUsedByParent:    400,
 
+		ParentAddress:             parentAddress,
 		ChildAddress:              childAddress,
+		NephewAddress:             nephewAddress,
 		ThirdPartyAddress:         thirdPartyAddress,
 		VaultAddress:              vaultAddress,
 		TransferFromParentToChild: 8,
 
 		SuccessCallback: "myCallback",
 		ErrorCallback:   "myCallback",
+
+		ESDTTokensToTransfer: 5,
 	}
 
 	InitializeMockContracts(
@@ -242,4 +246,12 @@ func TestMockContract_NewAsync_BackTransfer_CrossShard(t *testing.T) {
 	parentValueA, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyA)
 	require.Nil(t, err)
 	require.Equal(t, []byte("ok"), parentValueA)
+
+	expectedEgld := big.NewInt(0)
+	expectedEgld.Add(MockInitialBalance, big.NewInt(testConfig.TransferFromChildToParent))
+	require.Equal(t, expectedEgld, parentHandler.GetBalance())
+
+	esdtData, err := net.NodesSharded[0][0].BlockchainHook.GetESDTToken(parentAddress, EsdtTokenIdentifier, 0)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(int64(InitialEsdt+testConfig.ESDTTokensToTransfer)), esdtData.Value)
 }
