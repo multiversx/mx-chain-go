@@ -42,12 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch, handler.returnDataToLastTransferFlag, "returnDataToLastTransferFlag", epoch, handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SenderInOutTransferEnableEpoch, handler.senderInOutTransferFlag, "senderInOutTransferFlag", epoch, handler.enableEpochsConfig.SenderInOutTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeEnableEpoch, handler.stakeFlag, "stakeFlag", epoch, handler.enableEpochsConfig.StakeEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2Flag, "stakingV2Flag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2OwnerFlag, "stakingV2OwnerFlag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2GreaterEpochFlag, "stakingV2GreaterEpochFlag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch, handler.doubleKeyProtectionFlag, "doubleKeyProtectionFlag", epoch, handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtFlag, "esdtFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtCurrentEpochFlag, "esdtCurrentEpochFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)

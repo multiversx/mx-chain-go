@@ -616,7 +616,8 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
 	var devRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
@@ -776,8 +777,9 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	var totalDevRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 		totalDevRwd = core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 	} else {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
@@ -787,7 +789,6 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
-	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	if !sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) {
 		totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
@@ -1636,7 +1637,8 @@ func (sc *scProcessor) addBackTxValues(
 		scrIfError.Value = big.NewInt(0).Set(valueForSnd)
 	}
 
-	isOriginalTxAsyncCallBack := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabled() &&
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	isOriginalTxAsyncCallBack := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabledInEpoch(currentEpoch) &&
 		determineCallType(originalTx) == vmData.AsynchronousCallBack &&
 		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
 	if isOriginalTxAsyncCallBack {
@@ -2312,6 +2314,7 @@ func (sc *scProcessor) createSmartContractResults(
 
 	createdAsyncCallBack := false
 	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	for i, outputTransfer := range outAcc.OutputTransfers {
 		result = sc.preprocessOutTransferToSCR(i, outputTransfer, outAcc, tx, txHash)
 
@@ -2331,7 +2334,7 @@ func (sc *scProcessor) createSmartContractResults(
 			}
 		}
 
-		useSenderAddressFromOutTransfer := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabled() &&
+		useSenderAddressFromOutTransfer := sc.enableEpochsHandler.IsSenderInOutTransferFlagEnabledInEpoch(currentEpoch) &&
 			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
 			sc.shardCoordinator.ComputeId(outputTransfer.SenderAddress) == sc.shardCoordinator.SelfId()
 		if useSenderAddressFromOutTransfer {
@@ -2370,7 +2373,8 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	result *smartContractResult.SmartContractResult,
 	isCrossShard bool,
 ) bool {
-	if len(vmOutput.ReturnData) > 0 && !sc.enableEpochsHandler.IsReturnDataToLastTransferFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if len(vmOutput.ReturnData) > 0 && !sc.enableEpochsHandler.IsReturnDataToLastTransferFlagEnabledAfterEpoch(currentEpoch) {
 		return false
 	}
 

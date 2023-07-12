@@ -3778,8 +3778,8 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 		},
 	}
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:                     flagActiveTrueHandler,
-		IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
+		IsSCDeployFlagEnabledInEpochCalled:     flagActiveTrueHandler,
+		IsStakingV2FlagEnabledAfterEpochCalled: flagActiveTrueHandler,
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -3868,8 +3868,8 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 				},
 			}
 			arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsSCDeployFlagEnabledInEpochCalled:                     flagActiveTrueHandler,
-				IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
+				IsSCDeployFlagEnabledInEpochCalled:     flagActiveTrueHandler,
+				IsStakingV2FlagEnabledAfterEpochCalled: flagActiveTrueHandler,
 			}
 
 			sc, err := NewSmartContractProcessor(arguments)

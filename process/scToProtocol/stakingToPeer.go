@@ -265,7 +265,8 @@ func (stp *stakingToPeer) updatePeerState(
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
-	if !stp.enableEpochsHandler.IsStakeFlagEnabled() {
+	currentEpoch := stp.enableEpochsHandler.GetCurrentEpoch()
+	if !stp.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch) {
 		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
 	}
 

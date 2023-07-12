@@ -602,10 +602,11 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 		epoch = epoch - 1
 	}
 
+	currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			if !vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+			if !vs.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 				if validator.List != string(common.EligibleList) {
 					continue
 				}
@@ -1017,13 +1018,14 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
+		currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
 		switch actionType {
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			var leaderAccumulatedFees *big.Int
-			if vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+			if vs.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			} else {
 				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())

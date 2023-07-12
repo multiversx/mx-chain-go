@@ -46,14 +46,14 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsDelegationSmartContractFlagEnabledField:              true,
-			IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
-			IsAddTokensToDelegationFlagEnabledField:                true,
-			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField:     true,
-			IsComputeRewardCheckpointFlagEnabledField:              true,
-			IsValidatorToDelegationFlagEnabledField:                true,
-			IsReDelegateBelowMinCheckFlagEnabledField:              true,
-			IsMultiClaimOnDelegationEnabledField:                   true,
+			IsDelegationSmartContractFlagEnabledField:          true,
+			IsStakingV2FlagEnabledAfterEpochCalled:             flagActiveTrueHandler,
+			IsAddTokensToDelegationFlagEnabledField:            true,
+			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField: true,
+			IsComputeRewardCheckpointFlagEnabledField:          true,
+			IsValidatorToDelegationFlagEnabledField:            true,
+			IsReDelegateBelowMinCheckFlagEnabledField:          true,
+			IsMultiClaimOnDelegationEnabledField:               true,
 		},
 	}
 }
@@ -78,7 +78,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 		}
 
 		if bytes.Equal(key, vm.ValidatorSCAddress) {
-			enableEpochsHandler.IsStakingV2FlagEnabledField = true
+			enableEpochsHandler.IsStakingV2FlagEnabledInEpochCalled = flagActiveTrueHandler
 			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
@@ -1080,7 +1080,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.IsStakingV2FlagEnabledInEpochCalled = flagActiveTrueHandler
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 

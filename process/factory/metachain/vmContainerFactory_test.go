@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
 	return ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
@@ -69,7 +71,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledField: true,
+			IsStakeFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 }

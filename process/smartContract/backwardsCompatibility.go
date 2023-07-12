@@ -56,8 +56,9 @@ func (sc *scProcessor) addToDevRewardsV1(address []byte, gasUsed uint64, gasPric
 
 	consumedFee := core.SafeMul(gasPrice, gasUsed)
 
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	var devRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+	if sc.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())

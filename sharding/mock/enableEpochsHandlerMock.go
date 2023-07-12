@@ -158,6 +158,11 @@ func (mock *EnableEpochsHandlerMock) IsRepairCallbackFlagEnabledInEpoch(_ uint32
 	return false
 }
 
+// IsReturnDataToLastTransferFlagEnabledAfterEpoch returns false
+func (mock *EnableEpochsHandlerMock) IsReturnDataToLastTransferFlagEnabledAfterEpoch(_ uint32) bool {
+	return false
+}
+
 // IsSenderInOutTransferFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsSenderInOutTransferFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -594,36 +599,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsReturnDataToLastTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsReturnDataToLastTransferFlagEnabled() bool {
-	return false
-}
-
-// IsSenderInOutTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSenderInOutTransferFlagEnabled() bool {
-	return false
-}
-
-// IsStakeFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakeFlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2FlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2FlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2OwnerFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2OwnerFlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2FlagEnabledForActivationEpochCompleted returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
-	return false
-}
 
 // IsDoubleKeyProtectionFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsDoubleKeyProtectionFlagEnabled() bool {

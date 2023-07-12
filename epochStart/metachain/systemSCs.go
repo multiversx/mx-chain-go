@@ -186,7 +186,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabled() {
+	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
@@ -233,7 +233,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		err := s.prepareRewardsData(validatorInfos)
 		if err != nil {
 			return err
@@ -275,7 +275,8 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
 		return nil
 	}
 

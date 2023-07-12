@@ -5,12 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	returnDataToLastTransferFlag               *atomic.Flag
-	senderInOutTransferFlag                    *atomic.Flag
-	stakeFlag                                  *atomic.Flag
-	stakingV2Flag                              *atomic.Flag
-	stakingV2OwnerFlag                         *atomic.Flag
-	stakingV2GreaterEpochFlag                  *atomic.Flag
 	doubleKeyProtectionFlag                    *atomic.Flag
 	esdtFlag                                   *atomic.Flag
 	esdtCurrentEpochFlag                       *atomic.Flag
@@ -89,12 +83,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		returnDataToLastTransferFlag:               &atomic.Flag{},
-		senderInOutTransferFlag:                    &atomic.Flag{},
-		stakeFlag:                                  &atomic.Flag{},
-		stakingV2Flag:                              &atomic.Flag{},
-		stakingV2OwnerFlag:                         &atomic.Flag{},
-		stakingV2GreaterEpochFlag:                  &atomic.Flag{},
 		doubleKeyProtectionFlag:                    &atomic.Flag{},
 		esdtFlag:                                   &atomic.Flag{},
 		esdtCurrentEpochFlag:                       &atomic.Flag{},
@@ -170,36 +158,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsReturnDataToLastTransferFlagEnabled returns true if returnDataToLastTransferFlag is enabled
-func (holder *epochFlagsHolder) IsReturnDataToLastTransferFlagEnabled() bool {
-	return holder.returnDataToLastTransferFlag.IsSet()
-}
-
-// IsSenderInOutTransferFlagEnabled returns true if senderInOutTransferFlag is enabled
-func (holder *epochFlagsHolder) IsSenderInOutTransferFlagEnabled() bool {
-	return holder.senderInOutTransferFlag.IsSet()
-}
-
-// IsStakeFlagEnabled returns true if stakeFlag is enabled
-func (holder *epochFlagsHolder) IsStakeFlagEnabled() bool {
-	return holder.stakeFlag.IsSet()
-}
-
-// IsStakingV2FlagEnabled returns true if stakingV2Flag is enabled
-func (holder *epochFlagsHolder) IsStakingV2FlagEnabled() bool {
-	return holder.stakingV2Flag.IsSet()
-}
-
-// IsStakingV2OwnerFlagEnabled returns true if stakingV2OwnerFlag is enabled
-func (holder *epochFlagsHolder) IsStakingV2OwnerFlagEnabled() bool {
-	return holder.stakingV2OwnerFlag.IsSet()
-}
-
-// IsStakingV2FlagEnabledForActivationEpochCompleted returns true if stakingV2GreaterEpochFlag is enabled (epoch is greater than the one used for staking v2 activation)
-func (holder *epochFlagsHolder) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
-	return holder.stakingV2GreaterEpochFlag.IsSet()
 }
 
 // IsDoubleKeyProtectionFlagEnabled returns true if doubleKeyProtectionFlag is enabled

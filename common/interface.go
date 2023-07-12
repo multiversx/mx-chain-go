@@ -301,6 +301,7 @@ type EnableEpochsHandler interface {
 	IsAheadOfTimeGasUsageFlagEnabledInEpoch(epoch uint32) bool
 	IsGasPriceModifierFlagEnabledInEpoch(epoch uint32) bool
 	IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool
+	IsReturnDataToLastTransferFlagEnabledAfterEpoch(epoch uint32) bool
 	IsSenderInOutTransferFlagEnabledInEpoch(epoch uint32) bool
 	IsStakeFlagEnabledInEpoch(epoch uint32) bool
 	IsStakingV2FlagEnabledInEpoch(epoch uint32) bool
@@ -389,12 +390,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsReturnDataToLastTransferFlagEnabled() bool
-	IsSenderInOutTransferFlagEnabled() bool
-	IsStakeFlagEnabled() bool
-	IsStakingV2FlagEnabled() bool
-	IsStakingV2OwnerFlagEnabled() bool
-	IsStakingV2FlagEnabledForActivationEpochCompleted() bool
 	IsDoubleKeyProtectionFlagEnabled() bool
 	IsESDTFlagEnabled() bool
 	IsESDTFlagEnabledForCurrentEpoch() bool

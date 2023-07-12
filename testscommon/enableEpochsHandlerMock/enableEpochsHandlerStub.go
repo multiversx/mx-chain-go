@@ -36,6 +36,7 @@ type EnableEpochsHandlerStub struct {
 	IsAheadOfTimeGasUsageFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsGasPriceModifierFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	IsRepairCallbackFlagEnabledInEpochCalled                          func(epoch uint32) bool
+	IsReturnDataToLastTransferFlagEnabledAfterEpochCalled             func(epoch uint32) bool
 	IsSenderInOutTransferFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsStakeFlagEnabledInEpochCalled                                   func(epoch uint32) bool
 	IsStakingV2FlagEnabledInEpochCalled                               func(epoch uint32) bool
@@ -123,12 +124,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsReturnDataToLastTransferFlagEnabledField               bool
-	IsSenderInOutTransferFlagEnabledField                    bool
-	IsStakeFlagEnabledField                                  bool
-	IsStakingV2FlagEnabledField                              bool
-	IsStakingV2OwnerFlagEnabledField                         bool
-	IsStakingV2FlagEnabledForActivationEpochCompletedField   bool
 	IsDoubleKeyProtectionFlagEnabledField                    bool
 	IsESDTFlagEnabledField                                   bool
 	IsESDTFlagEnabledForCurrentEpochField                    bool
@@ -457,6 +452,14 @@ func (stub *EnableEpochsHandlerStub) IsGasPriceModifierFlagEnabledInEpoch(epoch 
 func (stub *EnableEpochsHandlerStub) IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsRepairCallbackFlagEnabledInEpochCalled != nil {
 		return stub.IsRepairCallbackFlagEnabledInEpochCalled(epoch)
+	}
+	return false
+}
+
+// IsReturnDataToLastTransferFlagEnabledAfterEpoch -
+func (stub *EnableEpochsHandlerStub) IsReturnDataToLastTransferFlagEnabledAfterEpoch(epoch uint32) bool {
+	if stub.IsReturnDataToLastTransferFlagEnabledAfterEpochCalled != nil {
+		return stub.IsReturnDataToLastTransferFlagEnabledAfterEpochCalled(epoch)
 	}
 	return false
 }
@@ -1150,54 +1153,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsReturnDataToLastTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsReturnDataToLastTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsReturnDataToLastTransferFlagEnabledField
-}
-
-// IsSenderInOutTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSenderInOutTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSenderInOutTransferFlagEnabledField
-}
-
-// IsStakeFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakeFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakeFlagEnabledField
-}
-
-// IsStakingV2FlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakingV2FlagEnabledField
-}
-
-// IsStakingV2OwnerFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStakingV2OwnerFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakingV2OwnerFlagEnabledField
-}
-
-// IsStakingV2FlagEnabledForActivationEpochCompleted -
-func (stub *EnableEpochsHandlerStub) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStakingV2FlagEnabledForActivationEpochCompletedField
-}
 
 // IsDoubleKeyProtectionFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsDoubleKeyProtectionFlagEnabled() bool {
