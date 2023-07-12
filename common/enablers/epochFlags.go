@@ -5,21 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	doubleKeyProtectionFlag                    *atomic.Flag
-	esdtFlag                                   *atomic.Flag
-	esdtCurrentEpochFlag                       *atomic.Flag
-	governanceFlag                             *atomic.Flag
-	governanceCurrentEpochFlag                 *atomic.Flag
-	delegationManagerFlag                      *atomic.Flag
-	delegationSmartContractFlag                *atomic.Flag
-	delegationSmartContractCurrentEpochFlag    *atomic.Flag
-	correctLastUnJailedFlag                    *atomic.Flag
-	correctLastUnJailedCurrentEpochFlag        *atomic.Flag
-	relayedTransactionsV2Flag                  *atomic.Flag
-	unBondTokensV2Flag                         *atomic.Flag
-	saveJailedAlwaysFlag                       *atomic.Flag
-	reDelegateBelowMinCheckFlag                *atomic.Flag
-	validatorToDelegationFlag                  *atomic.Flag
 	waitingListFixFlag                         *atomic.Flag
 	incrementSCRNonceInMultiTransferFlag       *atomic.Flag
 	esdtMultiTransferFlag                      *atomic.Flag
@@ -83,21 +68,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		doubleKeyProtectionFlag:                    &atomic.Flag{},
-		esdtFlag:                                   &atomic.Flag{},
-		esdtCurrentEpochFlag:                       &atomic.Flag{},
-		governanceFlag:                             &atomic.Flag{},
-		governanceCurrentEpochFlag:                 &atomic.Flag{},
-		delegationManagerFlag:                      &atomic.Flag{},
-		delegationSmartContractFlag:                &atomic.Flag{},
-		delegationSmartContractCurrentEpochFlag:    &atomic.Flag{},
-		correctLastUnJailedFlag:                    &atomic.Flag{},
-		correctLastUnJailedCurrentEpochFlag:        &atomic.Flag{},
-		relayedTransactionsV2Flag:                  &atomic.Flag{},
-		unBondTokensV2Flag:                         &atomic.Flag{},
-		saveJailedAlwaysFlag:                       &atomic.Flag{},
-		reDelegateBelowMinCheckFlag:                &atomic.Flag{},
-		validatorToDelegationFlag:                  &atomic.Flag{},
 		waitingListFixFlag:                         &atomic.Flag{},
 		incrementSCRNonceInMultiTransferFlag:       &atomic.Flag{},
 		esdtMultiTransferFlag:                      &atomic.Flag{},
@@ -158,81 +128,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsDoubleKeyProtectionFlagEnabled returns true if doubleKeyProtectionFlag is enabled
-func (holder *epochFlagsHolder) IsDoubleKeyProtectionFlagEnabled() bool {
-	return holder.doubleKeyProtectionFlag.IsSet()
-}
-
-// IsESDTFlagEnabled returns true if esdtFlag is enabled
-func (holder *epochFlagsHolder) IsESDTFlagEnabled() bool {
-	return holder.esdtFlag.IsSet()
-}
-
-// IsESDTFlagEnabledForCurrentEpoch returns true if esdtCurrentEpochFlag is enabled
-func (holder *epochFlagsHolder) IsESDTFlagEnabledForCurrentEpoch() bool {
-	return holder.esdtCurrentEpochFlag.IsSet()
-}
-
-// IsGovernanceFlagEnabled returns true if governanceFlag is enabled
-func (holder *epochFlagsHolder) IsGovernanceFlagEnabled() bool {
-	return holder.governanceFlag.IsSet()
-}
-
-// IsGovernanceFlagEnabledForCurrentEpoch returns true if governanceCurrentEpochFlag is enabled
-func (holder *epochFlagsHolder) IsGovernanceFlagEnabledForCurrentEpoch() bool {
-	return holder.governanceCurrentEpochFlag.IsSet()
-}
-
-// IsDelegationManagerFlagEnabled returns true if delegationManagerFlag is enabled
-func (holder *epochFlagsHolder) IsDelegationManagerFlagEnabled() bool {
-	return holder.delegationManagerFlag.IsSet()
-}
-
-// IsDelegationSmartContractFlagEnabled returns true if delegationSmartContractFlag is enabled
-func (holder *epochFlagsHolder) IsDelegationSmartContractFlagEnabled() bool {
-	return holder.delegationSmartContractFlag.IsSet()
-}
-
-// IsDelegationSmartContractFlagEnabledForCurrentEpoch returns true if delegationSmartContractCurrentEpochFlag is enabled
-func (holder *epochFlagsHolder) IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool {
-	return holder.delegationSmartContractCurrentEpochFlag.IsSet()
-}
-
-// IsCorrectLastUnJailedFlagEnabled returns true if correctLastUnJailedFlag is enabled
-func (holder *epochFlagsHolder) IsCorrectLastUnJailedFlagEnabled() bool {
-	return holder.correctLastUnJailedFlag.IsSet()
-}
-
-// IsCorrectLastUnJailedFlagEnabledForCurrentEpoch returns true if correctLastUnJailedCurrentEpochFlag is enabled
-func (holder *epochFlagsHolder) IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool {
-	return holder.correctLastUnJailedCurrentEpochFlag.IsSet()
-}
-
-// IsRelayedTransactionsV2FlagEnabled returns true if relayedTransactionsV2Flag is enabled
-func (holder *epochFlagsHolder) IsRelayedTransactionsV2FlagEnabled() bool {
-	return holder.relayedTransactionsV2Flag.IsSet()
-}
-
-// IsUnBondTokensV2FlagEnabled returns true if unBondTokensV2Flag is enabled
-func (holder *epochFlagsHolder) IsUnBondTokensV2FlagEnabled() bool {
-	return holder.unBondTokensV2Flag.IsSet()
-}
-
-// IsSaveJailedAlwaysFlagEnabled returns true if saveJailedAlwaysFlag is enabled
-func (holder *epochFlagsHolder) IsSaveJailedAlwaysFlagEnabled() bool {
-	return holder.saveJailedAlwaysFlag.IsSet()
-}
-
-// IsReDelegateBelowMinCheckFlagEnabled returns true if reDelegateBelowMinCheckFlag is enabled
-func (holder *epochFlagsHolder) IsReDelegateBelowMinCheckFlagEnabled() bool {
-	return holder.reDelegateBelowMinCheckFlag.IsSet()
-}
-
-// IsValidatorToDelegationFlagEnabled returns true if validatorToDelegationFlag is enabled
-func (holder *epochFlagsHolder) IsValidatorToDelegationFlagEnabled() bool {
-	return holder.validatorToDelegationFlag.IsSet()
 }
 
 // IsWaitingListFixFlagEnabled returns true if waitingListFixFlag is enabled

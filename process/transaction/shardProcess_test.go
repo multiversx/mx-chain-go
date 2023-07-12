@@ -2012,7 +2012,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsV2FlagEnabledField: true,
+		IsRelayedTransactionsV2FlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 

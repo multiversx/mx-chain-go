@@ -200,21 +200,21 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
@@ -255,7 +255,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsESDTFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsESDTFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.initESDT()
 		if err != nil {
 			//not a critical error
@@ -263,7 +263,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsGovernanceFlagEnabledInSpecificEpochOnly(currentEpoch) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
@@ -346,7 +346,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
@@ -755,7 +756,8 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabled() {
+		currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabledInEpoch(currentEpoch) {
 			err := s.processSCOutputAccounts(vmOutput)
 			if err != nil {
 				return nil, err

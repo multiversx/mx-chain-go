@@ -46,13 +46,13 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsDelegationSmartContractFlagEnabledField:          true,
+			IsDelegationSmartContractFlagEnabledInEpochCalled:  flagActiveTrueHandler,
 			IsStakingV2FlagEnabledAfterEpochCalled:             flagActiveTrueHandler,
 			IsAddTokensToDelegationFlagEnabledField:            true,
 			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField: true,
 			IsComputeRewardCheckpointFlagEnabledField:          true,
-			IsValidatorToDelegationFlagEnabledField:            true,
-			IsReDelegateBelowMinCheckFlagEnabledField:          true,
+			IsValidatorToDelegationFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsReDelegateBelowMinCheckFlagEnabledInEpochCalled:  flagActiveTrueHandler,
 			IsMultiClaimOnDelegationEnabledField:               true,
 		},
 	}
@@ -305,7 +305,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationSystemSC(args)
-	enableEpochsHandler.IsDelegationSmartContractFlagEnabledField = false
+	enableEpochsHandler.IsDelegationSmartContractFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{})
 
 	output := d.Execute(vmInput)
@@ -2601,7 +2601,11 @@ func prepareReDelegateRewardsComponents(
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledField = extraCheckEpoch == 0
+	if extraCheckEpoch == 0 {
+		enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
+	} else {
+		enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpochCalled = flagActiveFalseHandler
+	}
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)
@@ -3908,12 +3912,12 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	eei.returnMessage = ""
 	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4047,12 +4051,12 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4176,12 +4180,12 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(mergeValidatorDataToDelegation, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, mergeValidatorDataToDelegation+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4317,12 +4321,12 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("whitelistForMerge", [][]byte{[]byte("address")})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "whitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
@@ -4396,12 +4400,12 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("deleteWhitelistForMerge", [][]byte{[]byte("address")})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "deleteWhitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
 	vmInput.CallerAddr = []byte("address0")
 
@@ -4454,12 +4458,12 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "getWhitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	addr := []byte("address1")
 	vmInput = getDefaultVmInputForFunc("whitelistForMerge", [][]byte{addr})

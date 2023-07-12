@@ -390,21 +390,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsDoubleKeyProtectionFlagEnabled() bool
-	IsESDTFlagEnabled() bool
-	IsESDTFlagEnabledForCurrentEpoch() bool
-	IsGovernanceFlagEnabled() bool
-	IsGovernanceFlagEnabledForCurrentEpoch() bool
-	IsDelegationManagerFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool
-	IsCorrectLastUnJailedFlagEnabled() bool
-	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
-	IsRelayedTransactionsV2FlagEnabled() bool
-	IsUnBondTokensV2FlagEnabled() bool
-	IsSaveJailedAlwaysFlagEnabled() bool
-	IsReDelegateBelowMinCheckFlagEnabled() bool
-	IsValidatorToDelegationFlagEnabled() bool
 	IsWaitingListFixFlagEnabled() bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
 	IsESDTMultiTransferFlagEnabled() bool

@@ -122,7 +122,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
+	currentEpoch := g.enableEpochsHandler.GetCurrentEpoch()
+	if !g.enableEpochsHandler.IsGovernanceFlagEnabledInEpoch(currentEpoch) {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}

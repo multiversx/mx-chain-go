@@ -36,7 +36,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledField:                          true,
+			IsESDTFlagEnabledInEpochCalled:                  flagActiveTrueHandler,
 			IsGlobalMintBurnFlagEnabledField:                true,
 			IsMetaESDTSetFlagEnabledField:                   true,
 			IsESDTRegisterAndSetAllRolesFlagEnabledField:    true,
@@ -902,7 +902,7 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTFlagEnabledField = false
+	enableEpochsHandler.IsESDTFlagEnabledInEpochCalled = flagActiveFalseHandler
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)

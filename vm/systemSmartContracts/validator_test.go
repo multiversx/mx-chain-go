@@ -62,11 +62,11 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledInEpochCalled:         flagActiveTrueHandler,
-			IsUnBondTokensV2FlagEnabledField:        true,
-			IsValidatorToDelegationFlagEnabledField: true,
-			IsDoubleKeyProtectionFlagEnabledField:   true,
-			IsMultiClaimOnDelegationEnabledField:    true,
+			IsStakeFlagEnabledInEpochCalled:                 flagActiveTrueHandler,
+			IsUnBondTokensV2FlagEnabledInEpochCalled:        flagActiveTrueHandler,
+			IsValidatorToDelegationFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsDoubleKeyProtectionFlagEnabledInEpochCalled:   flagActiveTrueHandler,
+			IsMultiClaimOnDelegationEnabledField:            true,
 		},
 	}
 
@@ -429,7 +429,7 @@ func TestStakingValidatorSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledField = false
+	enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledInEpochCalled = flagActiveFalseHandler
 	validatorSc, _ := NewValidatorSmartContract(args)
 
 	arguments.Function = "stake"
@@ -443,7 +443,7 @@ func TestStakingValidatorSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	_ = validatorSc.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 2, len(registeredData.BlsPubKeys))
 
-	enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledField = true
+	enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledInEpochCalled = flagActiveTrueHandler
 	arguments.Function = "cleanRegisteredData"
 	arguments.CallValue = big.NewInt(0)
 	arguments.Arguments = [][]byte{}
@@ -3156,7 +3156,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -3762,7 +3762,7 @@ func TestStakingValidatorSC_UnBondTokensV1ShouldWork(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandler.IsUnBondTokensV2FlagEnabledField = false
+	enableEpochsHandler.IsUnBondTokensV2FlagEnabledInEpochCalled = flagActiveTrueHandler
 	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
@@ -4723,7 +4723,7 @@ func TestValidatorSC_getMinUnStakeTokensValueDelegationManagerNotActive(t *testi
 	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsDelegationManagerFlagEnabledField = false
+	enableEpochsHandler.IsDelegationManagerFlagEnabledInEpochCalled = flagActiveFalseHandler
 	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
@@ -4750,7 +4750,7 @@ func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManager(t *testing.T)
 
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsDelegationManagerFlagEnabledField = true
+	enableEpochsHandler.IsDelegationManagerFlagEnabledInEpochCalled = flagActiveTrueHandler
 	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
@@ -4774,12 +4774,12 @@ func TestStakingValidatorSC_checkInputArgsForValidatorToDelegationErrors(t *test
 	sc, _ := NewValidatorSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid method to call")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	eei.returnMessage = ""
 	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -5118,7 +5118,7 @@ func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFai
 
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsDelegationManagerFlagEnabledField = true
+	enableEpochsHandler.IsDelegationManagerFlagEnabledInEpochCalled = flagActiveTrueHandler
 	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)

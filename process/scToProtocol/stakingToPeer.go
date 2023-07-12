@@ -285,7 +285,7 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
-		if stp.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+		if stp.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 			log.Debug("new reward address", "blsKey", blsPubKey, "rwdAddr", stakingData.RewardAddress)
 			err = account.SetRewardAddress(stakingData.RewardAddress)
 			if err != nil {

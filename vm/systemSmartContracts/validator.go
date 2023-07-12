@@ -457,7 +457,8 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 }
 
 func (v *validatorSC) extraChecksForChangeRewardAddress(newAddress []byte) error {
-	if !v.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 
@@ -706,7 +707,8 @@ func checkDoubleBLSKeys(blsKeys [][]byte) bool {
 }
 
 func (v *validatorSC) cleanRegisteredData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsDoubleKeyProtectionFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -961,7 +963,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		v.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
 		return vmcommon.UserError
 	}
-	if v.enableEpochsHandler.IsDoubleKeyProtectionFlagEnabled() && checkDoubleBLSKeys(blsKeys) {
+	if v.enableEpochsHandler.IsDoubleKeyProtectionFlagEnabledInEpoch(currentEpoch) && checkDoubleBLSKeys(blsKeys) {
 		v.eei.AddReturnMessage("invalid arguments, found same bls key twice")
 		return vmcommon.UserError
 	}
@@ -1576,7 +1578,8 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (v *validatorSC) getMinUnStakeTokensValue() (*big.Int, error) {
-	if v.enableEpochsHandler.IsDelegationManagerFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if v.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch) {
 		delegationManagement, err := getDelegationManagement(v.eei, v.marshalizer, v.delegationMgrSCAddress)
 		if err != nil {
 			return nil, err
@@ -1745,7 +1748,8 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	registrationData *ValidatorDataV2,
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
-	isV1Active := !v.enableEpochsHandler.IsUnBondTokensV2FlagEnabled()
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	isV1Active := !v.enableEpochsHandler.IsUnBondTokensV2FlagEnabledInEpoch(currentEpoch)
 	if isV1Active {
 		return v.unBondTokensFromRegistrationDataV1(registrationData, valueToUnBond)
 	}
@@ -1944,7 +1948,8 @@ func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCa
 }
 
 func (v *validatorSC) checkInputArgsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

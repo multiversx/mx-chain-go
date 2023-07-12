@@ -163,7 +163,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if !d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsDelegationSmartContractFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage("delegation contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -360,7 +361,8 @@ func (d *delegation) initDelegationStructures(
 }
 
 func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -581,7 +583,8 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 }
 
 func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -643,7 +646,8 @@ func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) v
 }
 
 func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -1584,7 +1588,8 @@ func (d *delegation) finishDelegateUser(
 }
 
 func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
-	if !d.enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 
@@ -3123,7 +3128,7 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegation) CanUseContract() bool {
-	return d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled()
+	return d.enableEpochsHandler.IsDelegationSmartContractFlagEnabledInEpoch(d.enableEpochsHandler.GetCurrentEpoch())
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -127,7 +127,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.init(args)
 	}
 
-	if !e.enableEpochsHandler.IsESDTFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsESDTFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("ESDT SC disabled")
 		return vmcommon.UserError
 	}

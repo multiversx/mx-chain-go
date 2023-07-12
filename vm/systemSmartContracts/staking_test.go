@@ -55,10 +55,10 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsStakeFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
-			IsCorrectLastUnJailedFlagEnabledField:                true,
+			IsCorrectLastUnJailedFlagEnabledInEpochCalled:        flagActiveTrueHandler,
 			IsCorrectFirstQueuedFlagEnabledField:                 true,
 			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
-			IsValidatorToDelegationFlagEnabledField:              true,
+			IsValidatorToDelegationFlagEnabledInEpochCalled:      flagActiveTrueHandler,
 		},
 	}
 }
@@ -2327,14 +2327,14 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("thirddKey"))
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveFalseHandler
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "changeOwnerAndRewardAddress"
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpochCalled = flagActiveTrueHandler
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)

@@ -635,7 +635,8 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || s.canStakeIfOneRemoved()
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || s.canStakeIfOneRemoved()
 	if addOneFromQueue {
 		_, err = s.moveFirstFromWaitingToStaked()
 		if err != nil {
@@ -996,7 +997,8 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
@@ -1575,7 +1577,8 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 }
 
 func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		// backward compatibility
 		return vmcommon.UserError
 	}
@@ -1685,7 +1688,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		nodePriceToUse.Set(s.stakeValue)
 	}
 
@@ -1732,7 +1735,8 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1773,7 +1777,8 @@ func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
