@@ -91,5 +91,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		GasConsumedProvider:      arg.GasConsumedProvider,
 		EconomicsData:            arg.EconomicsData,
 		ExecutionOrderHandler:    executionOrderHandler,
+		Hasher:                   arg.Hasher,
 	})
 }
