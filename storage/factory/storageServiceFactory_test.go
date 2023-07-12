@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -45,6 +46,10 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			StatusMetricsStorage:               createMockStorageConfig("StatusMetricsStorage"),
 			PeerBlockBodyStorage:               createMockStorageConfig("PeerBlockBodyStorage"),
 			TrieEpochRootHashStorage:           createMockStorageConfig("TrieEpochRootHashStorage"),
+			SovereignConfig: config.SovereignConfig{
+				ExtendedShardHdrNonceHashStorage: createMockStorageConfig("ExtendedShardHdrNonceHashStorage"),
+				ExtendedShardHeaderStorage:       createMockStorageConfig("ExtendedShardHeaderStorage"),
+			},
 			DbLookupExtensions: config.DbLookupExtensionsConfig{
 				Enabled:                            true,
 				DbLookupMaxActivePersisters:        10,
@@ -447,6 +452,55 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		expectedStorers := 25 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
+}
+
+func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
+	t.Parallel()
+
+	expectedErrForCacheString := "not supported cache type"
+
+	t.Run("wrong config for ExtendedShardHeaderStorage, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		args.Config.SovereignConfig.ExtendedShardHeaderStorage.Cache.Type = ""
+
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Equal(t, expectedErrForCacheString+" for ExtendedShardHeaderStorage", err.Error())
+		require.True(t, check.IfNil(storageService))
+	})
+
+	t.Run("wrong config for ExtendedShardHdrNonceHashStorage should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		args.Config.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache.Type = ""
+
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Equal(t, expectedErrForCacheString+" for ExtendedShardHdrNonceHashStorage", err.Error())
+		require.True(t, check.IfNil(storageService))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Nil(t, err)
+		require.False(t, check.IfNil(storageService))
+
+		allStorers := storageService.GetAllStorers()
+		expectedStorers := 27
+		require.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
 }
