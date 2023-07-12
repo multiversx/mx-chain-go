@@ -1948,7 +1948,7 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
-		if d.enableEpochsHandler.IsComputeRewardCheckpointFlagEnabled() {
+		if d.enableEpochsHandler.IsComputeRewardCheckpointFlagEnabledInEpoch(currentEpoch) {
 			delegator.RewardsCheckpoint = currentEpoch + 1
 		}
 		return nil

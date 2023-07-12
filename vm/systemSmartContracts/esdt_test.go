@@ -36,13 +36,13 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledInEpochCalled:                  flagActiveTrueHandler,
-			IsGlobalMintBurnFlagEnabledInEpochCalled:        flagActiveTrueHandler,
-			IsMetaESDTSetFlagEnabledField:                   true,
-			IsESDTRegisterAndSetAllRolesFlagEnabledField:    true,
-			IsESDTNFTCreateOnMultiShardFlagEnabledField:     true,
-			IsESDTTransferRoleFlagEnabledInEpochCalled:      flagActiveTrueHandler,
-			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+			IsESDTFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
+			IsGlobalMintBurnFlagEnabledInEpochCalled:            flagActiveTrueHandler,
+			IsMetaESDTSetFlagEnabledField:                       true,
+			IsESDTRegisterAndSetAllRolesFlagEnabledField:        true,
+			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsESDTTransferRoleFlagEnabledInEpochCalled:          flagActiveTrueHandler,
+			IsESDTMetadataContinuousCleanupFlagEnabledField:     true,
 		},
 	}
 }
@@ -207,11 +207,11 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	ticker := []byte("TICKER")
 	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
 
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled = flagActiveFalseHandler
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = true
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled = flagActiveTrueHandler
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
@@ -305,7 +305,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
 	enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpochCalled = flagActiveFalseHandler
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
+	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled = flagActiveFalseHandler
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }

@@ -876,7 +876,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 
 	_ = acntSrc.AddToBalance(big.NewInt(100))
 	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField = true
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
 	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
@@ -3348,7 +3348,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled = flagActiveTrueHandler
 	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledInEpochCalled = flagActiveTrueHandler
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
@@ -4084,7 +4084,7 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledField = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
 }

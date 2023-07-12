@@ -751,7 +751,8 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
 		case canCreateMultiShard:
-			if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabled() {
+			currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+			if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledInEpoch(currentEpoch) {
 				return vm.ErrInvalidArgument
 			}
 			if mintBurnable {
@@ -2169,7 +2170,8 @@ func (e *esdt) saveTokenV1(identifier []byte, token *ESDTDataV2) error {
 }
 
 func (e *esdt) saveToken(identifier []byte, token *ESDTDataV2) error {
-	if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledInEpoch(currentEpoch) {
 		return e.saveTokenV1(identifier, token)
 	}
 

@@ -595,31 +595,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsBuiltInFunctionOnMetaFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	return false
-}
-
-// IsComputeRewardCheckpointFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsComputeRewardCheckpointFlagEnabled() bool {
-	return false
-}
-
-// IsSCRSizeInvariantCheckFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSCRSizeInvariantCheckFlagEnabled() bool {
-	return false
-}
-
-// IsBackwardCompSaveKeyValueFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBackwardCompSaveKeyValueFlagEnabled() bool {
-	return false
-}
-
-// IsESDTNFTCreateOnMultiShardFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTNFTCreateOnMultiShardFlagEnabled() bool {
-	return false
-}
-
 // IsMetaESDTSetFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsMetaESDTSetFlagEnabled() bool {
 	return false
@@ -797,11 +772,6 @@ func (mock *EnableEpochsHandlerMock) IsValueLengthCheckFlagEnabled() bool {
 
 // IsCheckTransferFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsCheckTransferFlagEnabled() bool {
-	return false
-}
-
-// IsTransferToMetaFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsTransferToMetaFlagEnabled() bool {
 	return false
 }
 

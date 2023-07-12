@@ -50,7 +50,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsStakingV2FlagEnabledAfterEpochCalled:             flagActiveTrueHandler,
 			IsAddTokensToDelegationFlagEnabledField:            true,
 			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField: true,
-			IsComputeRewardCheckpointFlagEnabledField:          true,
+			IsComputeRewardCheckpointFlagEnabledInEpochCalled:  flagActiveTrueHandler,
 			IsValidatorToDelegationFlagEnabledInEpochCalled:    flagActiveTrueHandler,
 			IsReDelegateBelowMinCheckFlagEnabledInEpochCalled:  flagActiveTrueHandler,
 			IsMultiClaimOnDelegationEnabledField:               true,

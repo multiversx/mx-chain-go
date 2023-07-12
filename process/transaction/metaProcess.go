@@ -136,7 +136,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
+		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabledInEpoch(currentEpoch) {
 			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
 		}
 

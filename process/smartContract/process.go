@@ -1474,7 +1474,8 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 }
 
 func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
-	if !sc.enableEpochsHandler.IsBackwardCompSaveKeyValueFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsBackwardCompSaveKeyValueFlagEnabledInEpoch(currentEpoch) {
 		return
 	}
 	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1944,7 +1945,8 @@ func (sc *scProcessor) processVMOutput(
 }
 
 func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) error {
-	if !sc.enableEpochsHandler.IsSCRSizeInvariantCheckFlagEnabled() {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if !sc.enableEpochsHandler.IsSCRSizeInvariantCheckFlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 
@@ -2802,7 +2804,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
+		currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabledInEpoch(currentEpoch) {
 			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 			return returnCode, err
 		}

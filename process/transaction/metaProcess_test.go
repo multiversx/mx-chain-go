@@ -422,8 +422,8 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		},
 	}
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledField: false,
-		IsESDTFlagEnabledInEpochCalled:          flagActiveTrueHandler,
+		IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled: flagActiveFalseHandler,
+		IsESDTFlagEnabledInEpochCalled:                  flagActiveTrueHandler,
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -439,7 +439,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		return 0, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)

@@ -5,11 +5,6 @@ import (
 )
 
 type epochFlagsHolder struct {
-	builtInFunctionOnMetaFlag                  *atomic.Flag
-	computeRewardCheckpointFlag                *atomic.Flag
-	scrSizeInvariantCheckFlag                  *atomic.Flag
-	backwardCompSaveKeyValueFlag               *atomic.Flag
-	esdtNFTCreateOnMultiShardFlag              *atomic.Flag
 	metaESDTSetFlag                            *atomic.Flag
 	addTokensToDelegationFlag                  *atomic.Flag
 	multiESDTTransferFixOnCallBackFlag         *atomic.Flag
@@ -63,11 +58,6 @@ type epochFlagsHolder struct {
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		builtInFunctionOnMetaFlag:                  &atomic.Flag{},
-		computeRewardCheckpointFlag:                &atomic.Flag{},
-		scrSizeInvariantCheckFlag:                  &atomic.Flag{},
-		backwardCompSaveKeyValueFlag:               &atomic.Flag{},
-		esdtNFTCreateOnMultiShardFlag:              &atomic.Flag{},
 		metaESDTSetFlag:                            &atomic.Flag{},
 		addTokensToDelegationFlag:                  &atomic.Flag{},
 		multiESDTTransferFixOnCallBackFlag:         &atomic.Flag{},
@@ -118,31 +108,6 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                   &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
 	}
-}
-
-// IsBuiltInFunctionOnMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
-func (holder *epochFlagsHolder) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	return holder.builtInFunctionOnMetaFlag.IsSet()
-}
-
-// IsComputeRewardCheckpointFlagEnabled returns true if computeRewardCheckpointFlag is enabled
-func (holder *epochFlagsHolder) IsComputeRewardCheckpointFlagEnabled() bool {
-	return holder.computeRewardCheckpointFlag.IsSet()
-}
-
-// IsSCRSizeInvariantCheckFlagEnabled returns true if scrSizeInvariantCheckFlag is enabled
-func (holder *epochFlagsHolder) IsSCRSizeInvariantCheckFlagEnabled() bool {
-	return holder.scrSizeInvariantCheckFlag.IsSet()
-}
-
-// IsBackwardCompSaveKeyValueFlagEnabled returns true if backwardCompSaveKeyValueFlag is enabled
-func (holder *epochFlagsHolder) IsBackwardCompSaveKeyValueFlagEnabled() bool {
-	return holder.backwardCompSaveKeyValueFlag.IsSet()
-}
-
-// IsESDTNFTCreateOnMultiShardFlagEnabled returns true if esdtNFTCreateOnMultiShardFlag is enabled
-func (holder *epochFlagsHolder) IsESDTNFTCreateOnMultiShardFlagEnabled() bool {
-	return holder.esdtNFTCreateOnMultiShardFlag.IsSet()
 }
 
 // IsMetaESDTSetFlagEnabled returns true if metaESDTSetFlag is enabled
@@ -334,12 +299,6 @@ func (holder *epochFlagsHolder) IsValueLengthCheckFlagEnabled() bool {
 // this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
 	return holder.optimizeNFTStoreFlag.IsSet()
-}
-
-// IsTransferToMetaFlagEnabled returns true if builtInFunctionOnMetaFlag is enabled
-// this is a duplicate for BuiltInFunctionOnMetaEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsTransferToMetaFlagEnabled() bool {
-	return holder.builtInFunctionOnMetaFlag.IsSet()
 }
 
 // IsChangeDelegationOwnerFlagEnabled returns true if the change delegation owner feature is enabled

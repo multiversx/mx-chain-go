@@ -389,11 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsBuiltInFunctionOnMetaFlagEnabled() bool
-	IsComputeRewardCheckpointFlagEnabled() bool
-	IsSCRSizeInvariantCheckFlagEnabled() bool
-	IsBackwardCompSaveKeyValueFlagEnabled() bool
-	IsESDTNFTCreateOnMultiShardFlagEnabled() bool
 	IsMetaESDTSetFlagEnabled() bool
 	IsAddTokensToDelegationFlagEnabled() bool
 	IsMultiESDTTransferFixOnCallBackFlagEnabled() bool
@@ -430,7 +425,6 @@ type EnableEpochsHandler interface {
 	IsSendAlwaysFlagEnabled() bool
 	IsValueLengthCheckFlagEnabled() bool
 	IsCheckTransferFlagEnabled() bool
-	IsTransferToMetaFlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool

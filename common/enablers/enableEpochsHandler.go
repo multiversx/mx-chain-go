@@ -42,11 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.builtInFunctionOnMetaFlag, "builtInFunctionOnMetaFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch, handler.computeRewardCheckpointFlag, "computeRewardCheckpointFlag", epoch, handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch, handler.scrSizeInvariantCheckFlag, "scrSizeInvariantCheckFlag", epoch, handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch)
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch, handler.backwardCompSaveKeyValueFlag, "backwardCompSaveKeyValueFlag", epoch, handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch, handler.esdtNFTCreateOnMultiShardFlag, "esdtNFTCreateOnMultiShardFlag", epoch, handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaESDTSetEnableEpoch, handler.metaESDTSetFlag, "metaESDTSetFlag", epoch, handler.enableEpochsConfig.MetaESDTSetEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch, handler.addTokensToDelegationFlag, "addTokensToDelegationFlag", epoch, handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch, handler.multiESDTTransferFixOnCallBackFlag, "multiESDTTransferFixOnCallBackFlag", epoch, handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch)

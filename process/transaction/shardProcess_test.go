@@ -34,6 +34,7 @@ import (
 )
 
 var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)

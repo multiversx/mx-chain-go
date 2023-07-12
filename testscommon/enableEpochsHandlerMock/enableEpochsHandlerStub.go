@@ -123,11 +123,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsBuiltInFunctionOnMetaFlagEnabledField                  bool
-	IsComputeRewardCheckpointFlagEnabledField                bool
-	IsSCRSizeInvariantCheckFlagEnabledField                  bool
-	IsBackwardCompSaveKeyValueFlagEnabledField               bool
-	IsESDTNFTCreateOnMultiShardFlagEnabledField              bool
 	IsMetaESDTSetFlagEnabledField                            bool
 	IsAddTokensToDelegationFlagEnabledField                  bool
 	IsMultiESDTTransferFixOnCallBackFlagEnabledField         bool
@@ -164,7 +159,6 @@ type EnableEpochsHandlerStub struct {
 	IsSendAlwaysFlagEnabledField                             bool
 	IsValueLengthCheckFlagEnabledField                       bool
 	IsCheckTransferFlagEnabledField                          bool
-	IsTransferToMetaFlagEnabledField                         bool
 	IsSetSenderInEeiOutputTransferFlagEnabledField           bool
 	IsChangeDelegationOwnerFlagEnabledField                  bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                bool
@@ -1124,46 +1118,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 
 // TODO[Sorin]: Remove the methods below
 
-// IsBuiltInFunctionOnMetaFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBuiltInFunctionOnMetaFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBuiltInFunctionOnMetaFlagEnabledField
-}
-
-// IsComputeRewardCheckpointFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsComputeRewardCheckpointFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsComputeRewardCheckpointFlagEnabledField
-}
-
-// IsSCRSizeInvariantCheckFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSCRSizeInvariantCheckFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSCRSizeInvariantCheckFlagEnabledField
-}
-
-// IsBackwardCompSaveKeyValueFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsBackwardCompSaveKeyValueFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsBackwardCompSaveKeyValueFlagEnabledField
-}
-
-// IsESDTNFTCreateOnMultiShardFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTNFTCreateOnMultiShardFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTNFTCreateOnMultiShardFlagEnabledField
-}
-
 // IsMetaESDTSetFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMetaESDTSetFlagEnabled() bool {
 	stub.RLock()
@@ -1450,14 +1404,6 @@ func (stub *EnableEpochsHandlerStub) IsCheckTransferFlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsCheckTransferFlagEnabledField
-}
-
-// IsTransferToMetaFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsTransferToMetaFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsTransferToMetaFlagEnabledField
 }
 
 // IsSetSenderInEeiOutputTransferFlagEnabled -
