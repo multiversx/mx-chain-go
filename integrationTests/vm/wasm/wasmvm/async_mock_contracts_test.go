@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/txDataBuilder"
 	"github.com/multiversx/mx-chain-vm-go/mock/contracts"
 	"github.com/multiversx/mx-chain-vm-go/testcommon"
@@ -211,7 +210,7 @@ func TestMockContract_NewAsync_BackTransfer_CrossShard(t *testing.T) {
 		test.CreateMockContractOnShard(parentAddress, 0).
 			WithBalance(testConfig.ParentBalance).
 			WithConfig(testConfig).
-			WithCodeMetadata([]byte{0, vmcommon.MetadataPayable}).
+			WithCodeMetadata([]byte{0, 0}).
 			WithMethods(contracts.BackTransfer_ParentCallsChild),
 		test.CreateMockContractOnShard(childAddress, 0).
 			WithBalance(testConfig.ChildBalance).
