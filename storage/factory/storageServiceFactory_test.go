@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const numShardStoreres = 25
+
 func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 	pathMan, err := CreatePathManagerFromSinglePathString(t.TempDir())
 	require.Nil(t, err)
@@ -421,8 +423,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25
-		assert.Equal(t, expectedStorers, len(allStorers))
+		assert.Equal(t, numShardStoreres, len(allStorers))
 		_ = storageService.CloseAll()
 	})
 	t.Run("should work without DbLookupExtensions", func(t *testing.T) {
@@ -436,7 +437,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		numDBLookupExtensionUnits := 6
-		expectedStorers := 25 - numDBLookupExtensionUnits
+		expectedStorers := numShardStoreres - numDBLookupExtensionUnits
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -450,7 +451,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25 // we still have a storer for trie epoch root hash
+		expectedStorers := numShardStoreres // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -499,7 +500,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		require.False(t, check.IfNil(storageService))
 
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 27
+		expectedStorers := numShardStoreres + 2 // ExtendedShardHeadersUnit + ExtendedShardHeadersNonceHashDataUnit
 		require.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -561,7 +562,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 25 - missingStorers + numShardHdrStorage
+		expectedStorers := numShardStoreres - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
