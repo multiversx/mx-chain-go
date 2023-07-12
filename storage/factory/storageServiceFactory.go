@@ -349,6 +349,9 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	// shardStorageServiceFactory.go, sovereignStorageServiceFactory.go, metaStorageServiceFactory.go
 	if psf.chainRunType == common.ChainRunTypeSovereign {
 		err = psf.createAndAddStorageUnitsForSovereign(store, shardID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	peerAccountsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
