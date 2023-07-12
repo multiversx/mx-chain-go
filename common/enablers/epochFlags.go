@@ -5,118 +5,83 @@ import (
 )
 
 type epochFlagsHolder struct {
-	optimizeNFTStoreFlag                       *atomic.Flag
-	createNFTThroughExecByCallerFlag           *atomic.Flag
-	stopDecreasingValidatorRatingWhenStuckFlag *atomic.Flag
-	frontRunningProtectionFlag                 *atomic.Flag
-	isPayableBySCFlag                          *atomic.Flag
-	cleanUpInformativeSCRsFlag                 *atomic.Flag
-	storageAPICostOptimizationFlag             *atomic.Flag
-	esdtRegisterAndSetAllRolesFlag             *atomic.Flag
-	scheduledMiniBlocksFlag                    *atomic.Flag
-	correctJailedNotUnStakedEmptyQueueFlag     *atomic.Flag
-	doNotReturnOldBlockInBlockchainHookFlag    *atomic.Flag
-	addFailedRelayedTxToInvalidMBsFlag         *atomic.Flag
-	scrSizeInvariantOnBuiltInResultFlag        *atomic.Flag
-	checkCorrectTokenIDForTransferRoleFlag     *atomic.Flag
-	failExecutionOnEveryAPIErrorFlag           *atomic.Flag
-	isMiniBlockPartialExecutionFlag            *atomic.Flag
-	managedCryptoAPIsFlag                      *atomic.Flag
-	esdtMetadataContinuousCleanupFlag          *atomic.Flag
-	disableExecByCallerFlag                    *atomic.Flag
-	refactorContextFlag                        *atomic.Flag
-	checkFunctionArgumentFlag                  *atomic.Flag
-	checkExecuteOnReadOnlyFlag                 *atomic.Flag
-	setSenderInEeiOutputTransferFlag           *atomic.Flag
-	changeDelegationOwnerFlag                  *atomic.Flag
-	refactorPeersMiniBlocksFlag                *atomic.Flag
-	scProcessorV2Flag                          *atomic.Flag
-	fixAsyncCallBackArgsList                   *atomic.Flag
-	fixOldTokenLiquidity                       *atomic.Flag
-	runtimeMemStoreLimitFlag                   *atomic.Flag
-	runtimeCodeSizeFixFlag                     *atomic.Flag
-	maxBlockchainHookCountersFlag              *atomic.Flag
-	wipeSingleNFTLiquidityDecreaseFlag         *atomic.Flag
-	alwaysSaveTokenMetaDataFlag                *atomic.Flag
-	setGuardianFlag                            *atomic.Flag
-	relayedNonceFixFlag                        *atomic.Flag
-	keepExecOrderOnCreatedSCRsFlag             *atomic.Flag
-	multiClaimOnDelegationFlag                 *atomic.Flag
-	changeUsernameFlag                         *atomic.Flag
-	consistentTokensValuesCheckFlag            *atomic.Flag
-	autoBalanceDataTriesFlag                   *atomic.Flag
-	fixDelegationChangeOwnerOnAccountFlag      *atomic.Flag
+	cleanUpInformativeSCRsFlag              *atomic.Flag
+	storageAPICostOptimizationFlag          *atomic.Flag
+	esdtRegisterAndSetAllRolesFlag          *atomic.Flag
+	scheduledMiniBlocksFlag                 *atomic.Flag
+	correctJailedNotUnStakedEmptyQueueFlag  *atomic.Flag
+	doNotReturnOldBlockInBlockchainHookFlag *atomic.Flag
+	addFailedRelayedTxToInvalidMBsFlag      *atomic.Flag
+	scrSizeInvariantOnBuiltInResultFlag     *atomic.Flag
+	checkCorrectTokenIDForTransferRoleFlag  *atomic.Flag
+	failExecutionOnEveryAPIErrorFlag        *atomic.Flag
+	isMiniBlockPartialExecutionFlag         *atomic.Flag
+	managedCryptoAPIsFlag                   *atomic.Flag
+	esdtMetadataContinuousCleanupFlag       *atomic.Flag
+	disableExecByCallerFlag                 *atomic.Flag
+	refactorContextFlag                     *atomic.Flag
+	checkFunctionArgumentFlag               *atomic.Flag
+	checkExecuteOnReadOnlyFlag              *atomic.Flag
+	setSenderInEeiOutputTransferFlag        *atomic.Flag
+	changeDelegationOwnerFlag               *atomic.Flag
+	refactorPeersMiniBlocksFlag             *atomic.Flag
+	scProcessorV2Flag                       *atomic.Flag
+	fixAsyncCallBackArgsList                *atomic.Flag
+	fixOldTokenLiquidity                    *atomic.Flag
+	runtimeMemStoreLimitFlag                *atomic.Flag
+	runtimeCodeSizeFixFlag                  *atomic.Flag
+	maxBlockchainHookCountersFlag           *atomic.Flag
+	wipeSingleNFTLiquidityDecreaseFlag      *atomic.Flag
+	alwaysSaveTokenMetaDataFlag             *atomic.Flag
+	setGuardianFlag                         *atomic.Flag
+	relayedNonceFixFlag                     *atomic.Flag
+	keepExecOrderOnCreatedSCRsFlag          *atomic.Flag
+	multiClaimOnDelegationFlag              *atomic.Flag
+	changeUsernameFlag                      *atomic.Flag
+	consistentTokensValuesCheckFlag         *atomic.Flag
+	autoBalanceDataTriesFlag                *atomic.Flag
+	fixDelegationChangeOwnerOnAccountFlag   *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
 	return &epochFlagsHolder{
-		optimizeNFTStoreFlag:                       &atomic.Flag{},
-		createNFTThroughExecByCallerFlag:           &atomic.Flag{},
-		stopDecreasingValidatorRatingWhenStuckFlag: &atomic.Flag{},
-		frontRunningProtectionFlag:                 &atomic.Flag{},
-		isPayableBySCFlag:                          &atomic.Flag{},
-		cleanUpInformativeSCRsFlag:                 &atomic.Flag{},
-		storageAPICostOptimizationFlag:             &atomic.Flag{},
-		esdtRegisterAndSetAllRolesFlag:             &atomic.Flag{},
-		scheduledMiniBlocksFlag:                    &atomic.Flag{},
-		correctJailedNotUnStakedEmptyQueueFlag:     &atomic.Flag{},
-		doNotReturnOldBlockInBlockchainHookFlag:    &atomic.Flag{},
-		addFailedRelayedTxToInvalidMBsFlag:         &atomic.Flag{},
-		scrSizeInvariantOnBuiltInResultFlag:        &atomic.Flag{},
-		checkCorrectTokenIDForTransferRoleFlag:     &atomic.Flag{},
-		failExecutionOnEveryAPIErrorFlag:           &atomic.Flag{},
-		isMiniBlockPartialExecutionFlag:            &atomic.Flag{},
-		managedCryptoAPIsFlag:                      &atomic.Flag{},
-		esdtMetadataContinuousCleanupFlag:          &atomic.Flag{},
-		disableExecByCallerFlag:                    &atomic.Flag{},
-		refactorContextFlag:                        &atomic.Flag{},
-		checkFunctionArgumentFlag:                  &atomic.Flag{},
-		checkExecuteOnReadOnlyFlag:                 &atomic.Flag{},
-		setSenderInEeiOutputTransferFlag:           &atomic.Flag{},
-		changeDelegationOwnerFlag:                  &atomic.Flag{},
-		refactorPeersMiniBlocksFlag:                &atomic.Flag{},
-		scProcessorV2Flag:                          &atomic.Flag{},
-		fixAsyncCallBackArgsList:                   &atomic.Flag{},
-		fixOldTokenLiquidity:                       &atomic.Flag{},
-		runtimeMemStoreLimitFlag:                   &atomic.Flag{},
-		runtimeCodeSizeFixFlag:                     &atomic.Flag{},
-		maxBlockchainHookCountersFlag:              &atomic.Flag{},
-		wipeSingleNFTLiquidityDecreaseFlag:         &atomic.Flag{},
-		alwaysSaveTokenMetaDataFlag:                &atomic.Flag{},
-		setGuardianFlag:                            &atomic.Flag{},
-		relayedNonceFixFlag:                        &atomic.Flag{},
-		keepExecOrderOnCreatedSCRsFlag:             &atomic.Flag{},
-		consistentTokensValuesCheckFlag:            &atomic.Flag{},
-		multiClaimOnDelegationFlag:                 &atomic.Flag{},
-		changeUsernameFlag:                         &atomic.Flag{},
-		autoBalanceDataTriesFlag:                   &atomic.Flag{},
-		fixDelegationChangeOwnerOnAccountFlag:      &atomic.Flag{},
+		cleanUpInformativeSCRsFlag:              &atomic.Flag{},
+		storageAPICostOptimizationFlag:          &atomic.Flag{},
+		esdtRegisterAndSetAllRolesFlag:          &atomic.Flag{},
+		scheduledMiniBlocksFlag:                 &atomic.Flag{},
+		correctJailedNotUnStakedEmptyQueueFlag:  &atomic.Flag{},
+		doNotReturnOldBlockInBlockchainHookFlag: &atomic.Flag{},
+		addFailedRelayedTxToInvalidMBsFlag:      &atomic.Flag{},
+		scrSizeInvariantOnBuiltInResultFlag:     &atomic.Flag{},
+		checkCorrectTokenIDForTransferRoleFlag:  &atomic.Flag{},
+		failExecutionOnEveryAPIErrorFlag:        &atomic.Flag{},
+		isMiniBlockPartialExecutionFlag:         &atomic.Flag{},
+		managedCryptoAPIsFlag:                   &atomic.Flag{},
+		esdtMetadataContinuousCleanupFlag:       &atomic.Flag{},
+		disableExecByCallerFlag:                 &atomic.Flag{},
+		refactorContextFlag:                     &atomic.Flag{},
+		checkFunctionArgumentFlag:               &atomic.Flag{},
+		checkExecuteOnReadOnlyFlag:              &atomic.Flag{},
+		setSenderInEeiOutputTransferFlag:        &atomic.Flag{},
+		changeDelegationOwnerFlag:               &atomic.Flag{},
+		refactorPeersMiniBlocksFlag:             &atomic.Flag{},
+		scProcessorV2Flag:                       &atomic.Flag{},
+		fixAsyncCallBackArgsList:                &atomic.Flag{},
+		fixOldTokenLiquidity:                    &atomic.Flag{},
+		runtimeMemStoreLimitFlag:                &atomic.Flag{},
+		runtimeCodeSizeFixFlag:                  &atomic.Flag{},
+		maxBlockchainHookCountersFlag:           &atomic.Flag{},
+		wipeSingleNFTLiquidityDecreaseFlag:      &atomic.Flag{},
+		alwaysSaveTokenMetaDataFlag:             &atomic.Flag{},
+		setGuardianFlag:                         &atomic.Flag{},
+		relayedNonceFixFlag:                     &atomic.Flag{},
+		keepExecOrderOnCreatedSCRsFlag:          &atomic.Flag{},
+		consistentTokensValuesCheckFlag:         &atomic.Flag{},
+		multiClaimOnDelegationFlag:              &atomic.Flag{},
+		changeUsernameFlag:                      &atomic.Flag{},
+		autoBalanceDataTriesFlag:                &atomic.Flag{},
+		fixDelegationChangeOwnerOnAccountFlag:   &atomic.Flag{},
 	}
-}
-
-// IsOptimizeNFTStoreFlagEnabled returns true if removeNonUpdatedStorageFlag is enabled
-func (holder *epochFlagsHolder) IsOptimizeNFTStoreFlagEnabled() bool {
-	return holder.optimizeNFTStoreFlag.IsSet()
-}
-
-// IsCreateNFTThroughExecByCallerFlagEnabled returns true if createNFTThroughExecByCallerFlag is enabled
-func (holder *epochFlagsHolder) IsCreateNFTThroughExecByCallerFlagEnabled() bool {
-	return holder.createNFTThroughExecByCallerFlag.IsSet()
-}
-
-// IsStopDecreasingValidatorRatingWhenStuckFlagEnabled returns true if stopDecreasingValidatorRatingWhenStuckFlag is enabled
-func (holder *epochFlagsHolder) IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool {
-	return holder.stopDecreasingValidatorRatingWhenStuckFlag.IsSet()
-}
-
-// IsFrontRunningProtectionFlagEnabled returns true if frontRunningProtectionFlag is enabled
-func (holder *epochFlagsHolder) IsFrontRunningProtectionFlagEnabled() bool {
-	return holder.frontRunningProtectionFlag.IsSet()
-}
-
-// IsPayableBySCFlagEnabled returns true if isPayableBySCFlag is enabled
-func (holder *epochFlagsHolder) IsPayableBySCFlagEnabled() bool {
-	return holder.isPayableBySCFlag.IsSet()
 }
 
 // IsCleanUpInformativeSCRsFlagEnabled returns true if cleanUpInformativeSCRsFlag is enabled
@@ -215,34 +180,10 @@ func (holder *epochFlagsHolder) IsFixAsyncCallbackCheckFlagEnabled() bool {
 	return holder.esdtMetadataContinuousCleanupFlag.IsSet()
 }
 
-// IsSaveToSystemAccountFlagEnabled returns true if optimizeNFTStoreFlag is enabled
-// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsSaveToSystemAccountFlagEnabled() bool {
-	return holder.optimizeNFTStoreFlag.IsSet()
-}
-
-// IsCheckFrozenCollectionFlagEnabled returns true if optimizeNFTStoreFlag is enabled
-// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsCheckFrozenCollectionFlagEnabled() bool {
-	return holder.optimizeNFTStoreFlag.IsSet()
-}
-
 // IsSendAlwaysFlagEnabled returns true if esdtMetadataContinuousCleanupFlag is enabled
 // this is a duplicate for ESDTMetadataContinuousCleanupEnableEpoch needed for consistency into vm-common
 func (holder *epochFlagsHolder) IsSendAlwaysFlagEnabled() bool {
 	return holder.esdtMetadataContinuousCleanupFlag.IsSet()
-}
-
-// IsValueLengthCheckFlagEnabled returns true if optimizeNFTStoreFlag is enabled
-// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsValueLengthCheckFlagEnabled() bool {
-	return holder.optimizeNFTStoreFlag.IsSet()
-}
-
-// IsCheckTransferFlagEnabled returns true if optimizeNFTStoreFlag is enabled
-// this is a duplicate for OptimizeNFTStoreEnableEpoch needed for consistency into vm-common
-func (holder *epochFlagsHolder) IsCheckTransferFlagEnabled() bool {
-	return holder.optimizeNFTStoreFlag.IsSet()
 }
 
 // IsChangeDelegationOwnerFlagEnabled returns true if the change delegation owner feature is enabled

@@ -27,7 +27,9 @@ func newArgStorer() ArgSorter {
 		Marshaller: marshallerMock.MarshalizerMock{},
 		MbsStorer:  testscommon.CreateMemUnit(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFrontRunningProtectionFlagEnabledField: true,
+			IsFrontRunningProtectionFlagEnabledInEpochCalled: func(_ uint32) bool {
+				return true
+			},
 		},
 	}
 }

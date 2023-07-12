@@ -123,53 +123,44 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsOptimizeNFTStoreFlagEnabledField                       bool
-	IsCreateNFTThroughExecByCallerFlagEnabledField           bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField bool
-	IsFrontRunningProtectionFlagEnabledField                 bool
-	IsPayableBySCFlagEnabledField                            bool
-	IsCleanUpInformativeSCRsFlagEnabledField                 bool
-	IsStorageAPICostOptimizationFlagEnabledField             bool
-	IsESDTRegisterAndSetAllRolesFlagEnabledField             bool
-	IsScheduledMiniBlocksFlagEnabledField                    bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField     bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField    bool
-	IsAddFailedRelayedTxToInvalidMBsFlagField                bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField        bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField     bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabledField           bool
-	IsMiniBlockPartialExecutionFlagEnabledField              bool
-	IsManagedCryptoAPIsFlagEnabledField                      bool
-	IsESDTMetadataContinuousCleanupFlagEnabledField          bool
-	IsDisableExecByCallerFlagEnabledField                    bool
-	IsRefactorContextFlagEnabledField                        bool
-	IsCheckFunctionArgumentFlagEnabledField                  bool
-	IsCheckExecuteOnReadOnlyFlagEnabledField                 bool
-	IsFixAsyncCallbackCheckFlagEnabledField                  bool
-	IsSaveToSystemAccountFlagEnabledField                    bool
-	IsCheckFrozenCollectionFlagEnabledField                  bool
-	IsSendAlwaysFlagEnabledField                             bool
-	IsValueLengthCheckFlagEnabledField                       bool
-	IsCheckTransferFlagEnabledField                          bool
-	IsSetSenderInEeiOutputTransferFlagEnabledField           bool
-	IsChangeDelegationOwnerFlagEnabledField                  bool
-	IsRefactorPeersMiniBlocksFlagEnabledField                bool
-	IsSCProcessorV2FlagEnabledField                          bool
-	IsFixAsyncCallBackArgsListFlagEnabledField               bool
-	IsFixOldTokenLiquidityEnabledField                       bool
-	IsRuntimeMemStoreLimitEnabledField                       bool
-	IsRuntimeCodeSizeFixEnabledField                         bool
-	IsMaxBlockchainHookCountersFlagEnabledField              bool
-	IsWipeSingleNFTLiquidityDecreaseEnabledField             bool
-	IsAlwaysSaveTokenMetaDataEnabledField                    bool
-	IsSetGuardianEnabledField                                bool
-	IsRelayedNonceFixEnabledField                            bool
-	IsKeepExecOrderOnCreatedSCRsEnabledField                 bool
-	IsMultiClaimOnDelegationEnabledField                     bool
-	IsChangeUsernameEnabledField                             bool
-	IsConsistentTokensValuesLengthCheckEnabledField          bool
-	IsAutoBalanceDataTriesEnabledField                       bool
-	FixDelegationChangeOwnerOnAccountEnabledField            bool
+	IsCleanUpInformativeSCRsFlagEnabledField              bool
+	IsStorageAPICostOptimizationFlagEnabledField          bool
+	IsESDTRegisterAndSetAllRolesFlagEnabledField          bool
+	IsScheduledMiniBlocksFlagEnabledField                 bool
+	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField  bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField bool
+	IsAddFailedRelayedTxToInvalidMBsFlagField             bool
+	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField     bool
+	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField  bool
+	IsFailExecutionOnEveryAPIErrorFlagEnabledField        bool
+	IsMiniBlockPartialExecutionFlagEnabledField           bool
+	IsManagedCryptoAPIsFlagEnabledField                   bool
+	IsESDTMetadataContinuousCleanupFlagEnabledField       bool
+	IsDisableExecByCallerFlagEnabledField                 bool
+	IsRefactorContextFlagEnabledField                     bool
+	IsCheckFunctionArgumentFlagEnabledField               bool
+	IsCheckExecuteOnReadOnlyFlagEnabledField              bool
+	IsFixAsyncCallbackCheckFlagEnabledField               bool
+	IsSendAlwaysFlagEnabledField                          bool
+	IsSetSenderInEeiOutputTransferFlagEnabledField        bool
+	IsChangeDelegationOwnerFlagEnabledField               bool
+	IsRefactorPeersMiniBlocksFlagEnabledField             bool
+	IsSCProcessorV2FlagEnabledField                       bool
+	IsFixAsyncCallBackArgsListFlagEnabledField            bool
+	IsFixOldTokenLiquidityEnabledField                    bool
+	IsRuntimeMemStoreLimitEnabledField                    bool
+	IsRuntimeCodeSizeFixEnabledField                      bool
+	IsMaxBlockchainHookCountersFlagEnabledField           bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField          bool
+	IsAlwaysSaveTokenMetaDataEnabledField                 bool
+	IsSetGuardianEnabledField                             bool
+	IsRelayedNonceFixEnabledField                         bool
+	IsKeepExecOrderOnCreatedSCRsEnabledField              bool
+	IsMultiClaimOnDelegationEnabledField                  bool
+	IsChangeUsernameEnabledField                          bool
+	IsConsistentTokensValuesLengthCheckEnabledField       bool
+	IsAutoBalanceDataTriesEnabledField                    bool
+	FixDelegationChangeOwnerOnAccountEnabledField         bool
 }
 
 // GetCurrentEpoch -
@@ -1110,46 +1101,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 
 // TODO[Sorin]: Remove the methods below
 
-// IsOptimizeNFTStoreFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsOptimizeNFTStoreFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsOptimizeNFTStoreFlagEnabledField
-}
-
-// IsCreateNFTThroughExecByCallerFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCreateNFTThroughExecByCallerFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCreateNFTThroughExecByCallerFlagEnabledField
-}
-
-// IsStopDecreasingValidatorRatingWhenStuckFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField
-}
-
-// IsFrontRunningProtectionFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsFrontRunningProtectionFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFrontRunningProtectionFlagEnabledField
-}
-
-// IsPayableBySCFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsPayableBySCFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsPayableBySCFlagEnabledField
-}
-
 // IsCleanUpInformativeSCRsFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsCleanUpInformativeSCRsFlagEnabled() bool {
 	stub.RLock()
@@ -1294,44 +1245,12 @@ func (stub *EnableEpochsHandlerStub) IsFixAsyncCallbackCheckFlagEnabled() bool {
 	return stub.IsFixAsyncCallbackCheckFlagEnabledField
 }
 
-// IsSaveToSystemAccountFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSaveToSystemAccountFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSaveToSystemAccountFlagEnabledField
-}
-
-// IsCheckFrozenCollectionFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCheckFrozenCollectionFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCheckFrozenCollectionFlagEnabledField
-}
-
 // IsSendAlwaysFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsSendAlwaysFlagEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsSendAlwaysFlagEnabledField
-}
-
-// IsValueLengthCheckFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsValueLengthCheckFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsValueLengthCheckFlagEnabledField
-}
-
-// IsCheckTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCheckTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCheckTransferFlagEnabledField
 }
 
 // IsSetSenderInEeiOutputTransferFlagEnabled -

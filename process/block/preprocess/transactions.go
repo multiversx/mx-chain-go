@@ -1672,7 +1672,8 @@ func (txs *transactions) IsInterfaceNil() bool {
 
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
 func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction, randomness []byte) {
-	if !txs.enableEpochsHandler.IsFrontRunningProtectionFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if !txs.enableEpochsHandler.IsFrontRunningProtectionFlagEnabledInEpoch(currentEpoch) {
 		sortTransactionsBySenderAndNonceLegacy(transactions)
 		return
 	}

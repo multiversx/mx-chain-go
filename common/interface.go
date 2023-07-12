@@ -389,11 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsOptimizeNFTStoreFlagEnabled() bool
-	IsCreateNFTThroughExecByCallerFlagEnabled() bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool
-	IsFrontRunningProtectionFlagEnabled() bool
-	IsPayableBySCFlagEnabled() bool
 	IsCleanUpInformativeSCRsFlagEnabled() bool
 	IsStorageAPICostOptimizationFlagEnabled() bool
 	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
@@ -412,11 +407,7 @@ type EnableEpochsHandler interface {
 	IsCheckFunctionArgumentFlagEnabled() bool
 	IsCheckExecuteOnReadOnlyFlagEnabled() bool
 	IsFixAsyncCallbackCheckFlagEnabled() bool
-	IsSaveToSystemAccountFlagEnabled() bool
-	IsCheckFrozenCollectionFlagEnabled() bool
 	IsSendAlwaysFlagEnabled() bool
-	IsValueLengthCheckFlagEnabled() bool
-	IsCheckTransferFlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool

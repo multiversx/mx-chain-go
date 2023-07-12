@@ -595,31 +595,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsOptimizeNFTStoreFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsOptimizeNFTStoreFlagEnabled() bool {
-	return false
-}
-
-// IsCreateNFTThroughExecByCallerFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCreateNFTThroughExecByCallerFlagEnabled() bool {
-	return false
-}
-
-// IsStopDecreasingValidatorRatingWhenStuckFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool {
-	return false
-}
-
-// IsFrontRunningProtectionFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsFrontRunningProtectionFlagEnabled() bool {
-	return false
-}
-
-// IsPayableBySCFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsPayableBySCFlagEnabled() bool {
-	return false
-}
-
 // IsCleanUpInformativeSCRsFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsCleanUpInformativeSCRsFlagEnabled() bool {
 	return false
@@ -710,28 +685,8 @@ func (mock *EnableEpochsHandlerMock) IsFixAsyncCallbackCheckFlagEnabled() bool {
 	return false
 }
 
-// IsSaveToSystemAccountFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSaveToSystemAccountFlagEnabled() bool {
-	return false
-}
-
-// IsCheckFrozenCollectionFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCheckFrozenCollectionFlagEnabled() bool {
-	return false
-}
-
 // IsSendAlwaysFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsSendAlwaysFlagEnabled() bool {
-	return false
-}
-
-// IsValueLengthCheckFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsValueLengthCheckFlagEnabled() bool {
-	return false
-}
-
-// IsCheckTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCheckTransferFlagEnabled() bool {
 	return false
 }
 

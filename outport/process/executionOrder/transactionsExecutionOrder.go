@@ -102,7 +102,8 @@ func (s *sorter) PutExecutionOrderInTransactionPool(
 }
 
 func (s *sorter) sortTransactions(transactions []data.TxWithExecutionOrderHandler, header data.HeaderHandler) {
-	if s.enableEpochsHandler.IsFrontRunningProtectionFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if s.enableEpochsHandler.IsFrontRunningProtectionFlagEnabledInEpoch(currentEpoch) {
 		txsSort.SortTransactionsBySenderAndNonceWithFrontRunningProtectionExtendedTransactions(transactions, s.hasher, header.GetPrevRandSeed())
 	} else {
 		txsSort.SortTransactionsBySenderAndNonceExtendedTransactions(transactions)

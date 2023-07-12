@@ -1464,7 +1464,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
-	if sc.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
+	if sc.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabledInEpoch(currentEpoch) {
 		err = sc.blockChainHook.SaveNFTMetaDataToSystemAccount(tx)
 		if err != nil {
 			return err
