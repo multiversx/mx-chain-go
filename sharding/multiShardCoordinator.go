@@ -25,9 +25,9 @@ func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordin
 	if numberOfShards < 1 {
 		return nil, nodesCoordinator.ErrInvalidNumberOfShards
 	}
-	if selfId >= numberOfShards && selfId != core.MetachainShardId {
-		return nil, nodesCoordinator.ErrInvalidShardId
-	}
+	//if selfId >= numberOfShards && selfId != core.MetachainShardId {
+	//	return nil, nodesCoordinator.ErrInvalidShardId
+	//}
 
 	sr := &multiShardCoordinator{}
 	sr.selfId = selfId
@@ -48,7 +48,7 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 
 // ComputeId calculates the shard for a given address container
 func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
-	return msc.ComputeIdFromBytes(address)
+	return core.SovereignChainShardId //msc.ComputeIdFromBytes(address)
 }
 
 // ComputeIdFromBytes calculates the shard for a given address
@@ -98,7 +98,7 @@ func (msc *multiShardCoordinator) NumberOfShards() uint32 {
 
 // SelfId gets the shard id of the current node
 func (msc *multiShardCoordinator) SelfId() uint32 {
-	return msc.selfId
+	return core.SovereignChainShardId //msc.selfId
 }
 
 // SameShard returns weather two addresses belong to the same shard

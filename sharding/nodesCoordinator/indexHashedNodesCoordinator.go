@@ -186,9 +186,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.NbShards < 1 {
 		return ErrInvalidNumberOfShards
 	}
-	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
-		return ErrInvalidShardId
-	}
+	//if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
+	//	return ErrInvalidShardId
+	//}
 	if check.IfNil(arguments.Hasher) {
 		return ErrNilHasher
 	}
@@ -250,18 +250,18 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	nodesList := eligible[core.MetachainShardId]
-	if len(nodesList) < ihnc.metaConsensusGroupSize {
-		return ErrSmallMetachainEligibleListSize
-	}
+	//if len(nodesList) < ihnc.metaConsensusGroupSize {
+	//	return ErrSmallMetachainEligibleListSize
+	//}
 
 	numTotalEligible := uint64(len(nodesList))
-	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
-		nbNodesShard := len(eligible[shardId])
-		if nbNodesShard < ihnc.shardConsensusGroupSize {
-			return ErrSmallShardEligibleListSize
-		}
-		numTotalEligible += uint64(nbNodesShard)
+	//for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
+	nbNodesShard := len(eligible[core.SovereignChainShardId])
+	if nbNodesShard < ihnc.shardConsensusGroupSize {
+		return ErrSmallShardEligibleListSize
 	}
+	numTotalEligible += uint64(nbNodesShard)
+	//}
 
 	var err error
 	var isCurrentNodeValidator bool

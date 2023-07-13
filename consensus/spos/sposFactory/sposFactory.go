@@ -94,7 +94,7 @@ func GetBroadcastMessenger(
 		KeysHandler:                keysHandler,
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		shardMessengerArgs := broadcast.ShardChainMessengerArgs{
 			CommonMessengerArgs: commonMessengerArgs,
 		}

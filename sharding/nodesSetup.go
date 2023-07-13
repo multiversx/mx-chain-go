@@ -189,7 +189,7 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
 	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
-			ns.InitialNodes[id].assignedShard = core.MetachainShardId
+			ns.InitialNodes[id].assignedShard = core.SovereignChainShardId //core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
 			ns.nrOfMetaChainNodes++
 		}
@@ -213,7 +213,7 @@ func (ns *NodesSetup) processShardAssignment() {
 		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.MinNodesPerShard; id++ {
 			// consider only nodes with valid public key
 			if ns.InitialNodes[id].pubKey != nil {
-				ns.InitialNodes[id].assignedShard = currentShard
+				ns.InitialNodes[id].assignedShard = core.SovereignChainShardId
 				ns.InitialNodes[id].eligible = true
 				countSetNodes++
 			}
@@ -229,7 +229,7 @@ func (ns *NodesSetup) processShardAssignment() {
 		}
 
 		if ns.InitialNodes[i].pubKey != nil {
-			ns.InitialNodes[i].assignedShard = currentShard
+			ns.InitialNodes[i].assignedShard = core.SovereignChainShardId
 			ns.InitialNodes[i].eligible = false
 		}
 	}

@@ -348,6 +348,8 @@ func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
 	}
 	shardIDs[shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
+	shardIDs = make([]uint32, 1)
+	shardIDs[0] = core.SovereignChainShardId
 	return shardIDs
 }
 
@@ -429,7 +431,7 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		} else {
 			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
 		}
-
+		senderShardID = core.SovereignChainShardId
 		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
 		if err != nil {
 			return err
