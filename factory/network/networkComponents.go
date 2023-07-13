@@ -236,6 +236,7 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 	p2pConfig p2pConfig.P2PConfig,
 	logger p2p.Logger,
 	peersRatingHandler p2p.PeersRatingHandler,
+	networkType p2p.NetworkType,
 ) (networkComponentsHolder, error) {
 
 	peersHolder, err := p2pFactory.NewPeersHolder(ncf.preferredPeersSlices)
@@ -254,6 +255,7 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 		P2pPrivateKey:         ncf.cryptoComponents.P2pPrivateKey(),
 		P2pSingleSigner:       ncf.cryptoComponents.P2pSingleSigner(),
 		P2pKeyGenerator:       ncf.cryptoComponents.P2pKeyGen(),
+		NetworkType:           networkType,
 		Logger:                logger,
 	}
 	networkMessenger, err := p2pFactory.NewNetworkMessenger(argsMessenger)
@@ -269,7 +271,7 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 
 func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
 	loggerInstance := logger.GetOrCreate("main/p2p")
-	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, peersRatingHandler)
+	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, peersRatingHandler, p2p.MainNetwork)
 }
 
 func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
@@ -282,7 +284,7 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 
 	loggerInstance := logger.GetOrCreate("full-archive/p2p")
 
-	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler)
+	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler, p2p.FullArchiveNetwork)
 }
 
 func (ncf *networkComponentsFactory) createPeersRatingComponents() (p2p.PeersRatingHandler, p2p.PeersRatingMonitor, error) {
