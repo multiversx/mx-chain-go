@@ -294,7 +294,8 @@ func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *tr
 	if miniBlockType != block.InvalidBlock {
 		return miniBlockStrCache
 	}
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		return miniBlockStrCache
 	}
 
@@ -490,7 +491,8 @@ func (txs *transactions) processTxsToMe(
 
 	var err error
 	scheduledMode := false
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
 			return err
@@ -702,7 +704,8 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	randomness []byte,
 ) (block.MiniBlockSlice, error) {
 
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
@@ -1038,7 +1041,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
 	gasBandwidthForScheduled := uint64(0)
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
@@ -1120,7 +1124,8 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
@@ -1854,7 +1859,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	var mapSCTxs map[string]struct{}
 	var remainingTxs []*txcache.WrappedTransaction
 
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := txs.enableEpochsHandler.GetCurrentEpoch()
+	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		miniBlocks, remainingTxs, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
 			haveTime,
 			isShardStuck,

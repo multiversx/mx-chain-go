@@ -1042,7 +1042,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		}
 	}
 
-	if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabled() {
+	if sc.enableEpochsHandler.IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(currentEpoch) {
 		errCheck := sc.checkSCRSizeInvariant(scrResults)
 		if errCheck != nil {
 			return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, errCheck.Error(), []byte(errCheck.Error()), snapshot, vmInput.GasLocked)

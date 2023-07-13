@@ -979,7 +979,8 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 			return err
 		}
 
-		if txProc.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
+		currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+		if txProc.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(currentEpoch) {
 			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
 			if err != nil {
 				return err

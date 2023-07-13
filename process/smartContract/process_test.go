@@ -875,7 +875,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	require.Nil(t, err)
 
 	_ = acntSrc.AddToBalance(big.NewInt(100))
-	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpochCalled = flagActiveTrueHandler
 	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
 	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)

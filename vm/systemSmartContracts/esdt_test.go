@@ -36,13 +36,13 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
-			IsGlobalMintBurnFlagEnabledInEpochCalled:            flagActiveTrueHandler,
-			IsMetaESDTSetFlagEnabledInEpochCalled:               flagActiveTrueHandler,
-			IsESDTRegisterAndSetAllRolesFlagEnabledField:        true,
-			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled: flagActiveTrueHandler,
-			IsESDTTransferRoleFlagEnabledInEpochCalled:          flagActiveTrueHandler,
-			IsESDTMetadataContinuousCleanupFlagEnabledField:     true,
+			IsESDTFlagEnabledInEpochCalled:                       flagActiveTrueHandler,
+			IsGlobalMintBurnFlagEnabledInEpochCalled:             flagActiveTrueHandler,
+			IsMetaESDTSetFlagEnabledInEpochCalled:                flagActiveTrueHandler,
+			IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled:  flagActiveTrueHandler,
+			IsESDTTransferRoleFlagEnabledInEpochCalled:           flagActiveTrueHandler,
+			IsESDTMetadataContinuousCleanupFlagEnabledField:      true,
 		},
 	}
 }
@@ -4107,7 +4107,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = false
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4115,7 +4115,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = true
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")

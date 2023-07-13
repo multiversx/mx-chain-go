@@ -1969,7 +1969,8 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 
-		if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() && !createAndProcessInfo.scheduledMode {
+		currentEpoch := sp.enableEpochsHandler.GetCurrentEpoch()
+		if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) && !createAndProcessInfo.scheduledMode {
 			createAndProcessInfo.scheduledMode = true
 			createAndProcessInfo.haveAdditionalTime = process.HaveAdditionalTime()
 			return sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -2003,7 +2004,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
-	if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	currentEpoch := sp.enableEpochsHandler.GetCurrentEpoch()
+	if sp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 

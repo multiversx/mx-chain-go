@@ -368,6 +368,11 @@ func (mock *EnableEpochsHandlerMock) IsCorrectJailedNotUnStakedEmptyQueueFlagEna
 	return false
 }
 
+// IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch -
+func (mock *EnableEpochsHandlerMock) IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(_ uint32) bool {
+	return false
+}
+
 // IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -594,56 +599,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsStorageAPICostOptimizationFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStorageAPICostOptimizationFlagEnabled() bool {
-	return false
-}
-
-// IsESDTRegisterAndSetAllRolesFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTRegisterAndSetAllRolesFlagEnabled() bool {
-	return false
-}
-
-// IsScheduledMiniBlocksFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsScheduledMiniBlocksFlagEnabled() bool {
-	return false
-}
-
-// IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool {
-	return false
-}
-
-// IsDoNotReturnOldBlockInBlockchainHookFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool {
-	return false
-}
-
-// IsAddFailedRelayedTxToInvalidMBsFlag returns false
-func (mock *EnableEpochsHandlerMock) IsAddFailedRelayedTxToInvalidMBsFlag() bool {
-	return false
-}
-
-// IsSCRSizeInvariantOnBuiltInResultFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool {
-	return false
-}
-
-// IsCheckCorrectTokenIDForTransferRoleFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool {
-	return false
-}
-
-// IsFailExecutionOnEveryAPIErrorFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsFailExecutionOnEveryAPIErrorFlagEnabled() bool {
-	return false
-}
-
-// IsMiniBlockPartialExecutionFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsMiniBlockPartialExecutionFlagEnabled() bool {
-	return false
-}
 
 // IsManagedCryptoAPIsFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsManagedCryptoAPIsFlagEnabled() bool {

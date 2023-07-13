@@ -1163,7 +1163,8 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	registrationData.Jailed = true
 	registrationData.JailedNonce = s.eei.BlockChainHook().CurrentNonce()
 
-	if !switched && !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !switched && !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {
 		s.tryRemoveJailedNodeFromStaked(registrationData)
@@ -1179,7 +1180,8 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
-	if !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(currentEpoch) {
 		s.removeAndSetUnstaked(registrationData)
 		return
 	}

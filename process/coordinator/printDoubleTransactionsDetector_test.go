@@ -134,7 +134,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
+			IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{

@@ -842,7 +842,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 
 	args := createMockBlockChainHookArgs()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
+		IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
@@ -1000,7 +1000,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
+			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {

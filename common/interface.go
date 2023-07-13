@@ -348,6 +348,7 @@ type EnableEpochsHandler interface {
 	IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(epoch uint32) bool
 	IsScheduledMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
 	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(epoch uint32) bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(epoch uint32) bool
 	IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(epoch uint32) bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(epoch uint32) bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpoch(epoch uint32) bool
@@ -389,16 +390,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsStorageAPICostOptimizationFlagEnabled() bool
-	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
-	IsScheduledMiniBlocksFlagEnabled() bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
-	IsAddFailedRelayedTxToInvalidMBsFlag() bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
-	IsMiniBlockPartialExecutionFlagEnabled() bool
 	IsManagedCryptoAPIsFlagEnabled() bool
 	IsESDTMetadataContinuousCleanupFlagEnabled() bool
 	IsDisableExecByCallerFlagEnabled() bool

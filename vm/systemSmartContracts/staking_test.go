@@ -54,11 +54,11 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			MinUnstakeTokensValue:                "1",
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
-			IsCorrectLastUnJailedFlagEnabledInEpochCalled:        flagActiveTrueHandler,
-			IsCorrectFirstQueuedFlagEnabledInEpochCalled:         flagActiveTrueHandler,
-			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
-			IsValidatorToDelegationFlagEnabledInEpochCalled:      flagActiveTrueHandler,
+			IsStakeFlagEnabledInEpochCalled:                              flagActiveTrueHandler,
+			IsCorrectLastUnJailedFlagEnabledInEpochCalled:                flagActiveTrueHandler,
+			IsCorrectFirstQueuedFlagEnabledInEpochCalled:                 flagActiveTrueHandler,
+			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsValidatorToDelegationFlagEnabledInEpochCalled:              flagActiveTrueHandler,
 		},
 	}
 }
@@ -1110,7 +1110,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField = false
+	enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpochCalled = flagActiveFalseHandler
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1175,7 +1175,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 	tests := []struct {
 		name                       string
 		stakedNodesNumber          int
-		flagJailedRemoveEnabled    bool
+		flagJailedRemoveEnabled    func(epoch uint32) bool
 		shouldBeJailed             bool
 		shouldBeStaked             bool
 		remainingStakedNodesNumber int
@@ -1184,7 +1184,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "no queue, before fix, max nodes",
 			stakedNodesNumber:          maxStakedNodesNumber,
-			flagJailedRemoveEnabled:    false,
+			flagJailedRemoveEnabled:    flagActiveFalseHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
@@ -1193,7 +1193,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "no queue, before fix, min nodes",
 			stakedNodesNumber:          minStakedNodesNumber,
-			flagJailedRemoveEnabled:    false,
+			flagJailedRemoveEnabled:    flagActiveFalseHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: minStakedNodesNumber,
@@ -1202,7 +1202,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "no queue, after fix, max nodes",
 			stakedNodesNumber:          maxStakedNodesNumber,
-			flagJailedRemoveEnabled:    true,
+			flagJailedRemoveEnabled:    flagActiveTrueHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber - 1,
@@ -1211,7 +1211,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "no queue, after fix, min nodes ",
 			stakedNodesNumber:          minStakedNodesNumber,
-			flagJailedRemoveEnabled:    true,
+			flagJailedRemoveEnabled:    flagActiveTrueHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             true,
 			remainingStakedNodesNumber: minStakedNodesNumber,
@@ -1220,7 +1220,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "with 1 queue, before fix, max nodes",
 			stakedNodesNumber:          maxStakedNodesNumber + 1,
-			flagJailedRemoveEnabled:    false,
+			flagJailedRemoveEnabled:    flagActiveFalseHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
@@ -1229,7 +1229,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 		{
 			name:                       "with 1 queue, after fix, max nodes",
 			stakedNodesNumber:          maxStakedNodesNumber + 1,
-			flagJailedRemoveEnabled:    true,
+			flagJailedRemoveEnabled:    flagActiveTrueHandler,
 			shouldBeJailed:             true,
 			shouldBeStaked:             false,
 			remainingStakedNodesNumber: maxStakedNodesNumber,
@@ -1251,7 +1251,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			eei.blockChainHook = blockChainHook
 			args := createStakingSCArgs(eei, stakingAccessAddress, stakeValue, maxStakedNodesNumber)
 			enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-			enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField = tt.flagJailedRemoveEnabled
+			enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpochCalled = tt.flagJailedRemoveEnabled
 			stakingSmartContract, _ := NewStakingSmartContract(args)
 
 			for i := 0; i < tt.stakedNodesNumber; i++ {

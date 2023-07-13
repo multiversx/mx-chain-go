@@ -439,7 +439,8 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 // arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings, list(address, special roles)
 func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}

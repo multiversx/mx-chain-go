@@ -1948,7 +1948,7 @@ func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 					shardCoordinator: coordinator,
 				},
 				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsScheduledMiniBlocksFlagEnabledField: true,
+					IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
 				},
 			},
 		}
@@ -2044,7 +2044,7 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 
 	t.Run("feat scheduled activated", func(t *testing.T) {
 		txs.basePreProcess.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
+			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)

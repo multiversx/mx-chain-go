@@ -83,6 +83,7 @@ type EnableEpochsHandlerStub struct {
 	IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled              func(epoch uint32) bool
 	IsScheduledMiniBlocksFlagEnabledInEpochCalled                     func(epoch uint32) bool
 	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpochCalled      func(epoch uint32) bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled     func(epoch uint32) bool
 	IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpochCalled          func(epoch uint32) bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpochCalled         func(epoch uint32) bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpochCalled      func(epoch uint32) bool
@@ -123,43 +124,33 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsStorageAPICostOptimizationFlagEnabledField          bool
-	IsESDTRegisterAndSetAllRolesFlagEnabledField          bool
-	IsScheduledMiniBlocksFlagEnabledField                 bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField  bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField bool
-	IsAddFailedRelayedTxToInvalidMBsFlagField             bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabledField     bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabledField  bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabledField        bool
-	IsMiniBlockPartialExecutionFlagEnabledField           bool
-	IsManagedCryptoAPIsFlagEnabledField                   bool
-	IsESDTMetadataContinuousCleanupFlagEnabledField       bool
-	IsDisableExecByCallerFlagEnabledField                 bool
-	IsRefactorContextFlagEnabledField                     bool
-	IsCheckFunctionArgumentFlagEnabledField               bool
-	IsCheckExecuteOnReadOnlyFlagEnabledField              bool
-	IsFixAsyncCallbackCheckFlagEnabledField               bool
-	IsSendAlwaysFlagEnabledField                          bool
-	IsSetSenderInEeiOutputTransferFlagEnabledField        bool
-	IsChangeDelegationOwnerFlagEnabledField               bool
-	IsRefactorPeersMiniBlocksFlagEnabledField             bool
-	IsSCProcessorV2FlagEnabledField                       bool
-	IsFixAsyncCallBackArgsListFlagEnabledField            bool
-	IsFixOldTokenLiquidityEnabledField                    bool
-	IsRuntimeMemStoreLimitEnabledField                    bool
-	IsRuntimeCodeSizeFixEnabledField                      bool
-	IsMaxBlockchainHookCountersFlagEnabledField           bool
-	IsWipeSingleNFTLiquidityDecreaseEnabledField          bool
-	IsAlwaysSaveTokenMetaDataEnabledField                 bool
-	IsSetGuardianEnabledField                             bool
-	IsRelayedNonceFixEnabledField                         bool
-	IsKeepExecOrderOnCreatedSCRsEnabledField              bool
-	IsMultiClaimOnDelegationEnabledField                  bool
-	IsChangeUsernameEnabledField                          bool
-	IsConsistentTokensValuesLengthCheckEnabledField       bool
-	IsAutoBalanceDataTriesEnabledField                    bool
-	FixDelegationChangeOwnerOnAccountEnabledField         bool
+	IsManagedCryptoAPIsFlagEnabledField             bool
+	IsESDTMetadataContinuousCleanupFlagEnabledField bool
+	IsDisableExecByCallerFlagEnabledField           bool
+	IsRefactorContextFlagEnabledField               bool
+	IsCheckFunctionArgumentFlagEnabledField         bool
+	IsCheckExecuteOnReadOnlyFlagEnabledField        bool
+	IsFixAsyncCallbackCheckFlagEnabledField         bool
+	IsSendAlwaysFlagEnabledField                    bool
+	IsSetSenderInEeiOutputTransferFlagEnabledField  bool
+	IsChangeDelegationOwnerFlagEnabledField         bool
+	IsRefactorPeersMiniBlocksFlagEnabledField       bool
+	IsSCProcessorV2FlagEnabledField                 bool
+	IsFixAsyncCallBackArgsListFlagEnabledField      bool
+	IsFixOldTokenLiquidityEnabledField              bool
+	IsRuntimeMemStoreLimitEnabledField              bool
+	IsRuntimeCodeSizeFixEnabledField                bool
+	IsMaxBlockchainHookCountersFlagEnabledField     bool
+	IsWipeSingleNFTLiquidityDecreaseEnabledField    bool
+	IsAlwaysSaveTokenMetaDataEnabledField           bool
+	IsSetGuardianEnabledField                       bool
+	IsRelayedNonceFixEnabledField                   bool
+	IsKeepExecOrderOnCreatedSCRsEnabledField        bool
+	IsMultiClaimOnDelegationEnabledField            bool
+	IsChangeUsernameEnabledField                    bool
+	IsConsistentTokensValuesLengthCheckEnabledField bool
+	IsAutoBalanceDataTriesEnabledField              bool
+	FixDelegationChangeOwnerOnAccountEnabledField   bool
 }
 
 // GetCurrentEpoch -
@@ -786,6 +777,13 @@ func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnStakedEmptyQueueFlagEna
 	return false
 }
 
+func (stub *EnableEpochsHandlerStub) IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(epoch uint32) bool {
+	if stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled != nil {
+		return stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled(epoch)
+	}
+	return false
+}
+
 // IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch -
 func (stub *EnableEpochsHandlerStub) IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpochCalled != nil {
@@ -1099,86 +1097,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsStorageAPICostOptimizationFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsStorageAPICostOptimizationFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsStorageAPICostOptimizationFlagEnabledField
-}
-
-// IsESDTRegisterAndSetAllRolesFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTRegisterAndSetAllRolesFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTRegisterAndSetAllRolesFlagEnabledField
-}
-
-// IsScheduledMiniBlocksFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsScheduledMiniBlocksFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsScheduledMiniBlocksFlagEnabledField
-}
-
-// IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField
-}
-
-// IsDoNotReturnOldBlockInBlockchainHookFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField
-}
-
-// IsAddFailedRelayedTxToInvalidMBsFlag -
-func (stub *EnableEpochsHandlerStub) IsAddFailedRelayedTxToInvalidMBsFlag() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsAddFailedRelayedTxToInvalidMBsFlagField
-}
-
-// IsSCRSizeInvariantOnBuiltInResultFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField
-}
-
-// IsCheckCorrectTokenIDForTransferRoleFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCheckCorrectTokenIDForTransferRoleFlagEnabledField
-}
-
-// IsFailExecutionOnEveryAPIErrorFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsFailExecutionOnEveryAPIErrorFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFailExecutionOnEveryAPIErrorFlagEnabledField
-}
-
-// IsMiniBlockPartialExecutionFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsMiniBlockPartialExecutionFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsMiniBlockPartialExecutionFlagEnabledField
-}
 
 // IsManagedCryptoAPIsFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsManagedCryptoAPIsFlagEnabled() bool {

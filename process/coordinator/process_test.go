@@ -46,6 +46,7 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func FeeHandlerMock() *economicsmocks.EconomicsHandlerStub {
 	return &economicsmocks.EconomicsHandlerStub{
@@ -3686,8 +3687,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3770,8 +3771,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3851,8 +3852,8 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	header = &block.Header{
 		AccumulatedFees:  big.NewInt(101),
@@ -4083,7 +4084,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 		tc, _ := NewTransactionCoordinator(args)
-		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
+		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
 		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}
