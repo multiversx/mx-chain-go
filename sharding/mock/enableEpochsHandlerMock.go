@@ -600,56 +600,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 
 // TODO[Sorin]: Remove the methods below
 
-// IsManagedCryptoAPIsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsManagedCryptoAPIsFlagEnabled() bool {
-	return false
-}
-
-// IsESDTMetadataContinuousCleanupFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
-	return false
-}
-
-// IsDisableExecByCallerFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsDisableExecByCallerFlagEnabled() bool {
-	return false
-}
-
-// IsRefactorContextFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRefactorContextFlagEnabled() bool {
-	return false
-}
-
-// IsCheckFunctionArgumentFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCheckFunctionArgumentFlagEnabled() bool {
-	return false
-}
-
-// IsCheckExecuteOnReadOnlyFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
-	return false
-}
-
-// IsFixAsyncCallbackCheckFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsFixAsyncCallbackCheckFlagEnabled() bool {
-	return false
-}
-
-// IsSendAlwaysFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSendAlwaysFlagEnabled() bool {
-	return false
-}
-
-// IsSetSenderInEeiOutputTransferFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
-	return false
-}
-
-// IsChangeDelegationOwnerFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsChangeDelegationOwnerFlagEnabled() bool {
-	return false
-}
-
 // IsRefactorPeersMiniBlocksFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField

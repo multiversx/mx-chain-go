@@ -42,14 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch, handler.managedCryptoAPIsFlag, "managedCryptoAPIsFlag", epoch, handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.esdtMetadataContinuousCleanupFlag, "esdtMetadataContinuousCleanupFlag", epoch, handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch, handler.disableExecByCallerFlag, "disableExecByCallerFlag", epoch, handler.enableEpochsConfig.DisableExecByCallerEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch, handler.refactorContextFlag, "refactorContextFlag", epoch, handler.enableEpochsConfig.RefactorContextEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch, handler.checkFunctionArgumentFlag, "checkFunctionArgumentFlag", epoch, handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch, handler.checkExecuteOnReadOnlyFlag, "checkExecuteOnReadOnlyFlag", epoch, handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch, handler.setSenderInEeiOutputTransferFlag, "setSenderInEeiOutputTransferFlag", epoch, handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.changeDelegationOwnerFlag, "changeDelegationOwnerFlag", epoch, handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch, handler.refactorPeersMiniBlocksFlag, "refactorPeersMiniBlocksFlag", epoch, handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch, handler.fixAsyncCallBackArgsList, "fixAsyncCallBackArgsList", epoch, handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch, handler.fixOldTokenLiquidity, "fixOldTokenLiquidity", epoch, handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch)

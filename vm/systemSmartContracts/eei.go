@@ -264,7 +264,8 @@ func (host *vmContext) Transfer(
 		CallType: vmData.DirectCall,
 	}
 
-	if host.enableEpochsHandler.IsSetSenderInEeiOutputTransferFlagEnabled() {
+	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
+	if host.enableEpochsHandler.IsSetSenderInEeiOutputTransferFlagEnabledInEpoch(currentEpoch) {
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)

@@ -124,16 +124,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsManagedCryptoAPIsFlagEnabledField             bool
-	IsESDTMetadataContinuousCleanupFlagEnabledField bool
-	IsDisableExecByCallerFlagEnabledField           bool
-	IsRefactorContextFlagEnabledField               bool
-	IsCheckFunctionArgumentFlagEnabledField         bool
-	IsCheckExecuteOnReadOnlyFlagEnabledField        bool
-	IsFixAsyncCallbackCheckFlagEnabledField         bool
-	IsSendAlwaysFlagEnabledField                    bool
-	IsSetSenderInEeiOutputTransferFlagEnabledField  bool
-	IsChangeDelegationOwnerFlagEnabledField         bool
 	IsRefactorPeersMiniBlocksFlagEnabledField       bool
 	IsSCProcessorV2FlagEnabledField                 bool
 	IsFixAsyncCallBackArgsListFlagEnabledField      bool
@@ -1097,86 +1087,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsManagedCryptoAPIsFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsManagedCryptoAPIsFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsManagedCryptoAPIsFlagEnabledField
-}
-
-// IsESDTMetadataContinuousCleanupFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsESDTMetadataContinuousCleanupFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsESDTMetadataContinuousCleanupFlagEnabledField
-}
-
-// IsDisableExecByCallerFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsDisableExecByCallerFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsDisableExecByCallerFlagEnabledField
-}
-
-// IsRefactorContextFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsRefactorContextFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRefactorContextFlagEnabledField
-}
-
-// IsCheckFunctionArgumentFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCheckFunctionArgumentFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCheckFunctionArgumentFlagEnabledField
-}
-
-// IsCheckExecuteOnReadOnlyFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsCheckExecuteOnReadOnlyFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsCheckExecuteOnReadOnlyFlagEnabledField
-}
-
-// IsFixAsyncCallbackCheckFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsFixAsyncCallbackCheckFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFixAsyncCallbackCheckFlagEnabledField
-}
-
-// IsSendAlwaysFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSendAlwaysFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSendAlwaysFlagEnabledField
-}
-
-// IsSetSenderInEeiOutputTransferFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSetSenderInEeiOutputTransferFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSetSenderInEeiOutputTransferFlagEnabledField
-}
-
-// IsChangeDelegationOwnerFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsChangeDelegationOwnerFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsChangeDelegationOwnerFlagEnabledField
-}
 
 // IsRefactorPeersMiniBlocksFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool {
