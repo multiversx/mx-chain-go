@@ -428,7 +428,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 		return nil, errors.ErrNilShardCoordinator
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return ccf.createShardStorageAndSyncBootstrapper()
 	}
 

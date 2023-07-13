@@ -69,7 +69,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return pcf.newShardBlockProcessor(
 			requestHandler,
 			forkDetector,
