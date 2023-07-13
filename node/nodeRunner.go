@@ -1321,7 +1321,6 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		StorageService:           dataComponents.StorageService(),
 		ProcessingMode:           common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
-		SnapshotsEnabled:         nr.configs.FlagsConfig.SnapshotsEnabled,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
 

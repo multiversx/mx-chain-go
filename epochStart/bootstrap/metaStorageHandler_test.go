@@ -46,7 +46,6 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 	assert.True(t, check.IfNil(mtStrHandler))
@@ -78,7 +77,6 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 	assert.False(t, check.IfNil(mtStrHandler))
@@ -111,7 +109,6 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 
@@ -153,7 +150,6 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 
@@ -201,7 +197,6 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 
@@ -240,7 +235,6 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		uit64Cvt,
 		nodeTypeProvider,
 		common.Normal,
-		false,
 		managedPeersHolder,
 	)
 
@@ -296,7 +290,6 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			uit64Cvt,
 			nodeTypeProvider,
 			common.Normal,
-			false,
 			managedPeersHolder,
 		)
 		counter := 0
