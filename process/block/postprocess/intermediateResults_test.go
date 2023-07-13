@@ -27,7 +27,7 @@ import (
 const maxGasLimitPerBlock = uint64(1500000000)
 
 var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-var flagActiveFalseHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
