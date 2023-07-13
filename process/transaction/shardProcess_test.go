@@ -91,7 +91,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: func(epoch uint32) bool { return true },
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -2093,7 +2093,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsFlagEnabledInEpochCalled: func(epoch uint32) bool { return true },
+		IsRelayedTransactionsFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
