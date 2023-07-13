@@ -59,6 +59,7 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 		return
 	}
 
+	log.Error("REMOVE_ME: blockNotarizer.AddNotarizedHeader", "shard", shardID, "epoch", notarizedHeader.GetEpoch(), "nonce", notarizedHeader.GetNonce())
 	bn.mutNotarizedHeaders.Lock()
 	bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
 	sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {

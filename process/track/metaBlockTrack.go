@@ -166,7 +166,7 @@ func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
+	headers, hashes := mbt.ComputeLongestChain(mbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader, lastSelfNotarizedHeader.GetEpoch())
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 

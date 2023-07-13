@@ -26,7 +26,7 @@ type blockNotifierHandler interface {
 }
 
 type blockProcessorHandler interface {
-	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	ComputeLongestChain(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte)
 	ProcessReceivedHeader(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }

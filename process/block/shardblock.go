@@ -548,11 +548,11 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	chainParams := sp.chainParametersHandler.CurrentChainParameters()
-	//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
-	//if err != nil {
-	//	return err
-	//}
+	//chainParams := sp.chainParametersHandler.CurrentChainParameters()
+	chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+	if err != nil {
+		return err
+	}
 	finality := uint32(chainParams.MetaFinality)
 	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
 
@@ -880,7 +880,7 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, shardHdr.GetPrevRandSeed())
+	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, shardHdr.GetPrevRandSeed(), shardHdr.GetEpoch())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1704,12 +1704,12 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
-			chainParams := sp.chainParametersHandler.CurrentChainParameters()
-			//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
-			//if err != nil {
-			//	log.Warn("shardProcessor.receivedMetaBlock: cannot compute chain params", "epoch", headerHandler.GetEpoch(), "error", err)
-			//	return
-			//}
+			//chainParams := sp.chainParametersHandler.CurrentChainParameters()
+			chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+			if err != nil {
+				log.Warn("shardProcessor.receivedMetaBlock: cannot compute chain params", "epoch", headerHandler.GetEpoch(), "error", err)
+				return
+			}
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				core.MetachainShardId,
 				uint32(chainParams.MetaFinality),
@@ -1775,12 +1775,12 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	}
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
-		chainParams := sp.chainParametersHandler.CurrentChainParameters()
-		//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
-		//if err != nil {
-		//	log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
-		//	return 0, 0
-		//}
+		//chainParams := sp.chainParametersHandler.CurrentChainParameters()
+		chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+		if err != nil {
+			log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
+			return 0, 0
+		}
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
 			uint32(chainParams.MetaFinality),
@@ -1845,12 +1845,12 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) (*createAndProcessMiniBlocksDestMeInfo, error) {
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool, epoch uint32) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	sw := core.NewStopWatch()
 	sw.Start("ComputeLongestMetaChainFromLastNotarized")
-	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized()
+	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized(epoch)
 	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
 	log.Debug("measurements", sw.GetMeasurements()...)
 	if err != nil {
@@ -2005,12 +2005,12 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	chainParams := sp.chainParametersHandler.CurrentChainParameters()
-	//chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(lastMetaHdr.GetEpoch())
-	//if err != nil {
-	//	log.Warn("shardProcessor.requestMetaHeadersIfNeeded: cannot compute chain params", "epoch", lastMetaHdr.GetEpoch(), "error", err)
-	//	return
-	//}
+	//chainParams := sp.chainParametersHandler.CurrentChainParameters()
+	chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(lastMetaHdr.GetEpoch())
+	if err != nil {
+		log.Warn("shardProcessor.requestMetaHeadersIfNeeded: cannot compute chain params", "epoch", lastMetaHdr.GetEpoch(), "error", err)
+		return
+	}
 
 	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
@@ -2024,7 +2024,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte, epoch uint32) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
@@ -2065,7 +2065,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	}
 
 	startTime := time.Now()
-	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, epoch)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {

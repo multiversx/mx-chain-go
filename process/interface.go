@@ -838,9 +838,9 @@ type BlockTracker interface {
 	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
-	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
-	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
+	ComputeLongestChain(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte)
+	ComputeLongestMetaChainFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error)
+	ComputeLongestShardsChainsFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)

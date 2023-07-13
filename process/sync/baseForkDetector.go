@@ -698,12 +698,12 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		return
 	}
 
-	chainParams := bfd.chainParametersHandler.CurrentChainParameters()
-	//chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
-	//if err != nil {
-	//	log.Error("baseForkDetector.processReceivedBlock: cannot compute chain parameters", "epoch", header.GetEpoch(), "error", err)
-	//	return
-	//}
+	//chainParams := bfd.chainParametersHandler.CurrentChainParameters()
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+	if err != nil {
+		log.Error("baseForkDetector.processReceivedBlock: cannot compute chain parameters", "epoch", header.GetEpoch(), "error", err)
+		return
+	}
 
 	finality := chainParams.ShardFinality
 	if header.GetShardID() == core.MetachainShardId {
@@ -712,7 +712,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, finality)
 	if isHeaderReceivedTooLate {
 		state = process.BHReceivedTooLate
-		log.Error("REMOVE_ME - header is received too late")
+		log.Error("REMOVE_ME - header is received too late", "shard", header.GetShardID(), "epoch", header.GetEpoch(), "nonce", header.GetNonce(), "finality", finality)
 	}
 
 	appended := bfd.append(&headerInfo{

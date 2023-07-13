@@ -203,7 +203,7 @@ func (btm *BlockTrackerMock) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
 }
 
 // ComputeLongestChain -
-func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.HeaderHandler, _ uint32) ([]data.HeaderHandler, [][]byte) {
 	if btm.ComputeLongestChainCalled != nil {
 		return btm.ComputeLongestChainCalled(shardID, header)
 	}
@@ -225,19 +225,19 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 }
 
 // ComputeLongestMetaChainFromLastNotarized -
-func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
+	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader, chainParametersEpoch)
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
 // ComputeLongestShardsChainsFromLastNotarized -
-func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
 
@@ -248,7 +248,7 @@ func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]da
 
 	maxHdrLen := 0
 	for shardID := uint32(0); shardID < btm.shardCoordinator.NumberOfShards(); shardID++ {
-		hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID])
+		hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID], chainParametersEpoch)
 
 		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
 		hdrsHashesMap[shardID] = append(hdrsHashesMap[shardID], hdrsHashesForShard...)

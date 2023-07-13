@@ -15,9 +15,9 @@ type BlockTrackerStub struct {
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
-	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
-	ComputeLongestShardsChainsFromLastNotarizedCalled  func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
+	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte)
+	ComputeLongestMetaChainFromLastNotarizedCalled     func(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error)
+	ComputeLongestShardsChainsFromLastNotarizedCalled  func(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeadersCalled                        func()
 	GetCrossNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
@@ -98,26 +98,26 @@ func (bts *BlockTrackerStub) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
 }
 
 // ComputeLongestChain -
-func (bts *BlockTrackerStub) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (bts *BlockTrackerStub) ComputeLongestChain(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte) {
 	if bts.ComputeLongestChainCalled != nil {
-		return bts.ComputeLongestChainCalled(shardID, header)
+		return bts.ComputeLongestChainCalled(shardID, header, chainParametersEpoch)
 	}
 	return nil, nil
 }
 
 // ComputeLongestMetaChainFromLastNotarized -
-func (bts *BlockTrackerStub) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+func (bts *BlockTrackerStub) ComputeLongestMetaChainFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error) {
 	if bts.ComputeLongestMetaChainFromLastNotarizedCalled != nil {
-		return bts.ComputeLongestMetaChainFromLastNotarizedCalled()
+		return bts.ComputeLongestMetaChainFromLastNotarizedCalled(chainParametersEpoch)
 	}
 
 	return nil, nil, nil
 }
 
 // ComputeLongestShardsChainsFromLastNotarized -
-func (bts *BlockTrackerStub) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+func (bts *BlockTrackerStub) ComputeLongestShardsChainsFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	if bts.ComputeLongestShardsChainsFromLastNotarizedCalled != nil {
-		return bts.ComputeLongestShardsChainsFromLastNotarizedCalled()
+		return bts.ComputeLongestShardsChainsFromLastNotarizedCalled(chainParametersEpoch)
 	}
 
 	return nil, nil, nil, nil

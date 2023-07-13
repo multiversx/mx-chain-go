@@ -504,7 +504,12 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 	}
 
 	log.Debug("REMOVE_ME: trigger.changeEpochFinalityAttestingRoundIfNeeded", "epoch", metaHdr.GetEpoch(), "shard", metaHdr.GetShardID(), "nonce", metaHdr.GetNonce())
-	chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	//chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	chainParameters, err := t.chainParametersHandler.ChainParametersForEpoch(metaHdr.Epoch)
+	if err != nil {
+		log.Error("trigger.changeEpochFinalityAttestingRoundIfNeeded: cannot compute chain parameters for epoch", "epoch", metaHdr.Epoch, "error", err)
+		chainParameters = t.chainParametersHandler.CurrentChainParameters()
+	}
 	finality := uint64(chainParameters.ShardFinality)
 	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+finality+1
 	log.Debug("\tREMOVE_ME: trigger.changeEpochFinalityAttestingRoundIfNeeded",
@@ -530,7 +535,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	err := t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
+	err = t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
 	if err != nil {
 		return
 	}
@@ -724,7 +729,12 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	nextBlocksVerified := uint64(0)
 	finalityAttestingRound := metaHdr.GetRound()
 	currHdr := metaHdr
-	chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	//chainParameters := t.chainParametersHandler.CurrentChainParameters()
+	chainParameters, err := t.chainParametersHandler.ChainParametersForEpoch(metaHdr.GetEpoch())
+	if err != nil {
+		log.Error("trigger.changeEpochFinalityAttestingRoundIfNeeded: cannot compute chain parameters for epoch", "epoch", metaHdr.GetEpoch(), "error", err)
+		chainParameters = t.chainParametersHandler.CurrentChainParameters()
+	}
 	finality := uint64(chainParameters.MetaFinality)
 
 	for nonce := metaHdr.GetNonce() + 1; nonce <= metaHdr.GetNonce()+finality; nonce++ {

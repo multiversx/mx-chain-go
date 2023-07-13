@@ -160,13 +160,13 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 	finalMetachainHeaders := make([]data.HeaderHandler, 0)
 	finalMetachainHeadersHashes := make([][]byte, 0)
 
-	err = bp.checkHeaderFinality(header, sortedHeaders, 0)
+	err = bp.checkHeaderFinality(header, sortedHeaders, 0, header.GetEpoch())
 	if err == nil {
 		finalMetachainHeaders = append(finalMetachainHeaders, header)
 		finalMetachainHeadersHashes = append(finalMetachainHeadersHashes, headerHash)
 	}
 
-	headers, headerHashes := bp.ComputeLongestChain(core.MetachainShardId, header)
+	headers, headerHashes := bp.ComputeLongestChain(core.MetachainShardId, header, header.GetEpoch())
 
 	finalMetachainHeaders = append(finalMetachainHeaders, headers...)
 	finalMetachainHeadersHashes = append(finalMetachainHeadersHashes, headerHashes...)
@@ -185,7 +185,7 @@ func (bp *blockProcessor) computeLongestChainFromLastCrossNotarized(
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := bp.ComputeLongestChain(shardID, lastCrossNotarizedHeader)
+	headers, hashes := bp.ComputeLongestChain(shardID, lastCrossNotarizedHeader, lastCrossNotarizedHeader.GetEpoch())
 	return lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, headers, hashes
 }
 
@@ -217,7 +217,7 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 }
 
 // ComputeLongestChain computes the longest chain for a given shard starting from a given header
-func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte) {
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
@@ -239,7 +239,7 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 
 	longestChainHeadersIndexes := make([]int, 0)
 	headersIndexes := make([]int, 0)
-	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
+	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0, chainParametersEpoch)
 
 	for _, index := range longestChainHeadersIndexes {
 		headers = append(headers, sortedHeaders[index])
@@ -255,6 +255,7 @@ func (bp *blockProcessor) getNextHeader(
 	prevHeader data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
 	index int,
+	chainParametersEpoch uint32,
 ) {
 	defer func() {
 		if len(headersIndexes) > len(*longestChainHeadersIndexes) {
@@ -277,13 +278,13 @@ func (bp *blockProcessor) getNextHeader(
 			continue
 		}
 
-		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
+		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1, chainParametersEpoch)
 		if err != nil {
 			continue
 		}
 
 		headersIndexes = append(headersIndexes, i)
-		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
+		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1, chainParametersEpoch)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
 }
@@ -292,6 +293,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 	header data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
 	index int,
+	chainParametersEpoch uint32,
 ) error {
 
 	if check.IfNil(header) {
@@ -301,7 +303,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 	prevHeader := header
 	numFinalityAttestingHeaders := uint64(0)
 
-	finality := bp.getCurrentFinality(header.GetShardID())
+	finality := bp.getCurrentFinality(header.GetShardID(), chainParametersEpoch)
 
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
@@ -319,6 +321,13 @@ func (bp *blockProcessor) checkHeaderFinality(
 	}
 
 	if numFinalityAttestingHeaders < uint64(finality) {
+		//log.Error("REMOVE_ME: blockProcessor.checkHeaderFinality numFinalityAttestingHeaders < uint64(finality)",
+		//	"numFinalityAttestingHeaders", numFinalityAttestingHeaders,
+		//	"finality", finality,
+		//	"epoch", header.GetEpoch(),
+		//	"shard", header.GetShardID(),
+		//	"nonce", header.GetNonce())
+		//debug.PrintStack()
 		return process.ErrHeaderNotFinal
 	}
 
@@ -356,7 +365,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
 
-	finality := bp.getCurrentFinality(lastNotarizedHeader.GetShardID())
+	finality := bp.getCurrentFinality(lastNotarizedHeader.GetShardID(), lastNotarizedHeader.GetEpoch())
 	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+uint64(finality) && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {
 		return
@@ -370,7 +379,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
 
-	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1)
+	bp.requestHeaders(lastNotarizedHeader.GetShardID(), highestNonceInLongestChain+1, lastNotarizedHeader.GetEpoch())
 }
 
 func (bp *blockProcessor) getLatestValidHeader(
@@ -426,11 +435,11 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		"chronology round", bp.roundHandler.Index(),
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
-	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
+	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1, latestValidHeader.GetEpoch())
 }
 
-func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
-	finality := bp.getCurrentFinality(shardID)
+func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, epoch uint32) {
+	finality := bp.getCurrentFinality(shardID, epoch)
 	toNonce := fromNonce + uint64(finality)
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Trace("requestHeaders.RequestHeaderByNonce",
@@ -447,8 +456,12 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 	}
 }
 
-func (bp *blockProcessor) getCurrentFinality(shard uint32) int64 {
-	chainParams := bp.chainParametersHandler.CurrentChainParameters()
+func (bp *blockProcessor) getCurrentFinality(shard uint32, epoch uint32) int64 {
+	chainParams, err := bp.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Error("blockProcessor.getCurrentFinality: cannot compute chain params", "epoch", epoch, "error", err)
+		chainParams = bp.chainParametersHandler.CurrentChainParameters()
+	}
 	if shard == core.MetachainShardId {
 		return chainParams.MetaFinality
 	}

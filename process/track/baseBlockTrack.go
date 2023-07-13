@@ -304,24 +304,24 @@ func (bbt *baseBlockTrack) cleanupTrackedHeadersBehindNonce(shardID uint32, nonc
 }
 
 // ComputeLongestChain returns the longest valid chain for a given shard from a given header
-func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
-	return bbt.blockProcessor.ComputeLongestChain(shardID, header)
+func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler, chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte) {
+	return bbt.blockProcessor.ComputeLongestChain(shardID, header, chainParametersEpoch)
 }
 
 // ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
-func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
+	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader, chainParametersEpoch)
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
 // ComputeLongestShardsChainsFromLastNotarized returns the longest valid chains for all shards from theirs last cross notarized headers
-func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
 
@@ -332,7 +332,7 @@ func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized() ([]data
 
 	maxHdrLen := 0
 	for shardID := uint32(0); shardID < bbt.shardCoordinator.NumberOfShards(); shardID++ {
-		hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID])
+		hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(shardID, lastCrossNotarizedHeaders[shardID], chainParametersEpoch)
 
 		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)
 		hdrsHashesMap[shardID] = append(hdrsHashesMap[shardID], hdrsHashesForShard...)

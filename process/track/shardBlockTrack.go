@@ -130,7 +130,7 @@ func (sbt *shardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byt
 		return nil, nil, nil, nil
 	}
 
-	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader)
+	headers, hashes := sbt.ComputeLongestChain(sbt.shardCoordinator.SelfId(), lastSelfNotarizedHeader, lastSelfNotarizedHeader.GetEpoch())
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 

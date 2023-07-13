@@ -342,7 +342,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.checkShardHeadersFinality(highestNonceHdrs)
+	err = mp.checkShardHeadersFinality(highestNonceHdrs, header.GetEpoch())
 	if err != nil {
 		return err
 	}
@@ -925,7 +925,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed(), metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -941,6 +941,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 	randomness []byte,
+	epoch uint32,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -962,7 +963,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
-	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime, epoch)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -1006,6 +1007,7 @@ func (mp *metaProcessor) isGenesisShardBlockAndFirstMeta(shardHdrNonce uint64) b
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	haveTime func() bool,
+	epoch uint32,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
 	var miniBlocks block.MiniBlockSlice
@@ -1014,7 +1016,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 	sw := core.NewStopWatch()
 	sw.Start("ComputeLongestShardsChainsFromLastNotarized")
-	orderedHdrs, orderedHdrsHashes, _, err := mp.blockTracker.ComputeLongestShardsChainsFromLastNotarized()
+	orderedHdrs, orderedHdrsHashes, _, err := mp.blockTracker.ComputeLongestShardsChainsFromLastNotarized(epoch)
 	sw.Stop("ComputeLongestShardsChainsFromLastNotarized")
 	log.Debug("measurements ComputeLongestShardsChainsFromLastNotarized", sw.GetMeasurements()...)
 	if err != nil {
@@ -1058,7 +1060,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		currShardHdr := orderedHdrs[i]
 		if currShardHdr.GetNonce() > lastShardHdr[currShardHdr.GetShardID()].GetNonce()+1 {
-			log.Trace("skip searching",
+			log.Debug("CHANGE_ME: skip searching",
 				"shard", currShardHdr.GetShardID(),
 				"last shard hdr nonce", lastShardHdr[currShardHdr.GetShardID()].GetNonce(),
 				"curr shard hdr nonce", currShardHdr.GetNonce())
@@ -1074,6 +1076,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		if len(currShardHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
+			log.Debug("REMOVE_ME: currShardHdr.GetMiniBlockHeadersWithDst len == 0", "shard", currShardHdr.GetShardID(), "nonce", currShardHdr.GetNonce(), "epoch", currShardHdr.GetEpoch())
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
 			hdrsAdded++
 			hdrsAddedForShard[currShardHdr.GetShardID()]++
@@ -1112,6 +1115,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		miniBlocks = append(miniBlocks, currMBProcessed...)
 		txsAdded += currTxsAdded
 
+		log.Debug("REMOVE_ME: added shard header to hdrHashAndInfo", "epoch", currShardHdr.GetEpoch(), "nonce", currShardHdr.GetNonce(), "shard", currShardHdr.GetShardID())
 		mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true}
 		hdrsAdded++
 		hdrsAddedForShard[currShardHdr.GetShardID()]++
@@ -1135,13 +1139,13 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		//lastHeaderForShard := lastShardHdr[shardID]
-		chainParams := mp.chainParametersHandler.CurrentChainParameters()
-		//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(lastHeaderForShard.GetEpoch())
-		//if err != nil {
-		//	log.Warn("metaProcessor.requestShardHeadersIfNeeded: cannot compute chain params", "epoch", lastHeaderForShard.GetEpoch(), "error", err)
-		//	return
-		//}
+		lastHeaderForShard := lastShardHdr[shardID]
+		//chainParams := mp.chainParametersHandler.CurrentChainParameters()
+		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(lastHeaderForShard.GetEpoch())
+		if err != nil {
+			log.Warn("metaProcessor.requestShardHeadersIfNeeded: cannot compute chain params", "epoch", lastHeaderForShard.GetEpoch(), "error", err)
+			return
+		}
 
 		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
@@ -1814,14 +1818,20 @@ func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (mp *metaProcessor) checkShardHeadersFinality(
 	highestNonceHdrs map[uint32]data.HeaderHandler,
+	currentMetaEpoch uint32,
 ) error {
 	finalityAttestingShardHdrs := mp.sortHeadersForCurrentBlockByNonce(false)
 
-	chainParams := mp.chainParametersHandler.CurrentChainParameters()
-	finality := uint32(chainParams.ShardFinality)
+	//chainParams := mp.chainParametersHandler.CurrentChainParameters()
+	//if err != nil {
+	//	log.Error("trigger.changeEpochFinalityAttestingRoundIfNeeded: cannot compute chain parameters for epoch", "epoch", metaHdr.Epoch, "error", err)
+	//	chainParameters = t.chainParametersHandler.CurrentChainParameters()
+	//}
+	//finality := uint32(chainParams.ShardFinality)
 	var errFinal error
 
 	for shardId, lastVerifiedHdr := range highestNonceHdrs {
+		log.Error("REMOVE_ME: checking shard header", "shard id", shardId, "epoch", lastVerifiedHdr.GetEpoch(), "nonce", lastVerifiedHdr.GetNonce())
 		if check.IfNil(lastVerifiedHdr) {
 			return process.ErrNilBlockHeader
 		}
@@ -1833,11 +1843,27 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 			continue
 		}
 
+		//currentChainParams := mp.chainParametersHandler.CurrentChainParameters()
+		//finality := currentChainParams.ShardFinality
+		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(currentMetaEpoch)
+		if err != nil {
+			log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
+			chainParams = mp.chainParametersHandler.CurrentChainParameters()
+		}
+		finality := chainParams.ShardFinality
+		lastVerifiedHdrFinality := uint32(finality)
+
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			log.Error("REMOVE_ME: checkShardHeadersFinality", "nextBlocksVerified", nextBlocksVerified, "finality", finality)
-			if nextBlocksVerified >= finality {
+			//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(shardHdr.GetEpoch())
+			//if err != nil {
+			//	log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
+			//	chainParams = mp.chainParametersHandler.CurrentChainParameters()
+			//}
+			//shardHdrFinality := uint32(chainParams.ShardFinality)
+			log.Error("REMOVE_ME: checkShardHeadersFinality", "shard ID", lastVerifiedHdr.GetShardID(), "shardHdr.nonce", shardHdr.GetNonce(), "lastVerifiedHdr.nonce", lastVerifiedHdr.GetNonce(), "lastVerifiedHdr.epoch", lastVerifiedHdr.GetEpoch(), "shardHdr.epoch", shardHdr.GetEpoch(), "nextBlocksVerified", nextBlocksVerified, "finality", lastVerifiedHdrFinality)
+			if nextBlocksVerified >= lastVerifiedHdrFinality {
 				break
 			}
 
@@ -1855,8 +1881,8 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 			}
 		}
 
-		if nextBlocksVerified < finality {
-			log.Error("REMOVE_ME: nextBlocksVerified < finality", "nextBlocksVerified", nextBlocksVerified, "finality", finality)
+		if nextBlocksVerified < lastVerifiedHdrFinality {
+			log.Error("REMOVE_ME: nextBlocksVerified < finality", "shard ID", lastVerifiedHdr.GetShardID(), "lastVerifiedHdr.nonce", lastVerifiedHdr.GetNonce(), "epoch", lastVerifiedHdr.GetEpoch(), "nextBlocksVerified", nextBlocksVerified, "finality", lastVerifiedHdrFinality)
 			go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce())
 			go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 			errFinal = process.ErrHeaderNotFinal
@@ -1898,7 +1924,12 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		}
 
 		if mp.hdrsForCurrBlock.missingHdrs == 0 {
-			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
+			chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(shardHeader.GetEpoch())
+			if err != nil {
+				log.Error("metaProcessor.receivedShardHeader: cannot compute chain params for epoch", "epoch", shardHeader.GetEpoch(), "error", err)
+				chainParams = mp.chainParametersHandler.CurrentChainParameters()
+			}
+			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality))
 			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting shard headers")
 			}
@@ -1925,11 +1956,11 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 // processing the current block. It requests the shardBlockFinality headers greater than the highest shard header,
 // for each shard, related to the block which should be processed
 // this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
-func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
+func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders(finality uint32) uint32 {
 	missingFinalityAttestingShardHeaders := uint32(0)
 
 	// TODO - mp.epochNotifier.CurrentEpoch() is not suited here
-	chainParams := mp.chainParametersHandler.CurrentChainParameters()
+	//chainParams := mp.chainParametersHandler.CurrentChainParameters()
 	//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(mp.epochNotifier.CurrentEpoch())
 	//if err != nil {
 	//	log.Warn("metaProcessor.requestMissingFinalityAttestingShardHeaders: cannot compute chain params", "epoch", mp.epochNotifier.CurrentEpoch(), "error", err)
@@ -1938,7 +1969,7 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
 			shardId,
-			uint32(chainParams.ShardFinality),
+			finality,
 		)
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
@@ -2003,7 +2034,14 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 	}
 
 	if mp.hdrsForCurrBlock.missingHdrs == 0 {
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
+		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(metaBlock.GetEpoch())
+		if err != nil {
+			log.Error("metaProcessor.computeExistingAndRequestMissingShardHeaders: cannot compute chain params",
+				"epoch", metaBlock.GetEpoch(),
+				"error", err)
+			chainParams = mp.chainParametersHandler.CurrentChainParameters()
+		}
+		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality))
 	}
 
 	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
