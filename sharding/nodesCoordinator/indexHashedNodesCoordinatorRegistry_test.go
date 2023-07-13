@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -503,8 +502,6 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 
 func TestIndexHashedNodesCoordinator_SaveLoadNodesCoordinatorRegistry(t *testing.T) {
 	t.Parallel()
-
-	logger.SetLogLevel("*:DEBUG")
 
 	epochKey := []byte(fmt.Sprint(1))
 
