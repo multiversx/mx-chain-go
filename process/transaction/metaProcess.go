@@ -82,8 +82,6 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		txVersionChecker:    args.TxVersionChecker,
 		guardianChecker:     args.GuardianChecker,
 	}
-	// backwards compatibility
-	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:     baseTxProcess,

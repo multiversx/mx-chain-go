@@ -388,7 +388,8 @@ func (ed *economicsData) MinGasPriceForProcessing() uint64 {
 
 // GasPriceModifier will return the gas price modifier
 func (ed *economicsData) GasPriceModifier() float64 {
-	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		return 1.0
 	}
 	return ed.gasPriceModifier
@@ -446,7 +447,8 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	if ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	if ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
 		}
@@ -462,7 +464,7 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 		return moveBalanceFee
 	}
 
-	if ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+	if ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
@@ -639,8 +641,9 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 	}
 
 	txFee := ed.ComputeTxFee(tx)
-	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled()
-	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled()
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch)
+	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch)
 	flagCorrectTxFee := !isPenalizedTooMuchGasFlagEnabled && !isGasPriceModifierFlagEnabled
 	if flagCorrectTxFee {
 		txFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
@@ -774,7 +777,8 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFe
 		return 0, process.ErrInsufficientFunds
 	}
 
-	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabled() {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
 		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)
 

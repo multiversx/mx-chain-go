@@ -1973,9 +1973,10 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			continue
 		}
 
+		epoch := d.enableEpochsHandler.GetCurrentEpoch()
 		var rewardsForOwner *big.Int
 		percentage := float64(rewardData.ServiceFee) / float64(d.maxServiceFee)
-		if d.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+		if d.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(epoch) {
 			rewardsForOwner = core.GetIntTrimmedPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		} else {
 			rewardsForOwner = core.GetApproximatePercentageOfValue(rewardData.RewardsToDistribute, percentage)

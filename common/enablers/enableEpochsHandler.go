@@ -42,26 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCDeployEnableEpoch, handler.scDeployFlag, "scDeployFlag", epoch, handler.enableEpochsConfig.SCDeployEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch, handler.builtInFunctionsFlag, "builtInFunctionsFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedTransactionsEnableEpoch, handler.relayedTransactionsFlag, "relayedTransactionsFlag", epoch, handler.enableEpochsConfig.RelayedTransactionsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch, handler.penalizedTooMuchGasFlag, "penalizedTooMuchGasFlag", epoch, handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch, handler.switchJailWaitingFlag, "switchJailWaitingFlag", epoch, handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch, handler.belowSignedThresholdFlag, "belowSignedThresholdFlag", epoch, handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesFlag, "switchHysteresisForMinNodesFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch, handler.switchHysteresisForMinNodesCurrentEpochFlag, "switchHysteresisForMinNodesCurrentEpochFlag", epoch, handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch, handler.transactionSignedWithTxHashFlag, "transactionSignedWithTxHashFlag", epoch, handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaProtectionEnableEpoch, handler.metaProtectionFlag, "metaProtectionFlag", epoch, handler.enableEpochsConfig.MetaProtectionEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch, handler.aheadOfTimeGasUsageFlag, "aheadOfTimeGasUsageFlag", epoch, handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch, handler.gasPriceModifierFlag, "gasPriceModifierFlag", epoch, handler.enableEpochsConfig.GasPriceModifierEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch, handler.repairCallbackFlag, "repairCallbackFlag", epoch, handler.enableEpochsConfig.RepairCallbackEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch, handler.balanceWaitingListsFlag, "balanceWaitingListsFlag", epoch, handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch)
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch, handler.returnDataToLastTransferFlag, "returnDataToLastTransferFlag", epoch, handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SenderInOutTransferEnableEpoch, handler.senderInOutTransferFlag, "senderInOutTransferFlag", epoch, handler.enableEpochsConfig.SenderInOutTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakeEnableEpoch, handler.stakeFlag, "stakeFlag", epoch, handler.enableEpochsConfig.StakeEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2Flag, "stakingV2Flag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2OwnerFlag, "stakingV2OwnerFlag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
-	handler.setFlagValue(epoch > handler.enableEpochsConfig.StakingV2EnableEpoch, handler.stakingV2GreaterEpochFlag, "stakingV2GreaterEpochFlag", epoch, handler.enableEpochsConfig.StakingV2EnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch, handler.doubleKeyProtectionFlag, "doubleKeyProtectionFlag", epoch, handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtFlag, "esdtFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)
 	handler.setFlagValue(epoch == handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtCurrentEpochFlag, "esdtCurrentEpochFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)
@@ -277,11 +257,6 @@ func (handler *enableEpochsHandler) IsBelowSignedThresholdFlagEnabledInEpoch(epo
 	return epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch
 }
 
-// IsSwitchHysteresisForMinNodesFlagEnabledInEpoch returns true if SwitchHysteresisForMinNodesEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch
-}
-
 // IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly returns true if SwitchHysteresisForMinNodesEnableEpoch is the provided epoch
 func (handler *enableEpochsHandler) IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(epoch uint32) bool {
 	return epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch
@@ -310,11 +285,6 @@ func (handler *enableEpochsHandler) IsGasPriceModifierFlagEnabledInEpoch(epoch u
 // IsRepairCallbackFlagEnabledInEpoch returns true if RepairCallbackEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsRepairCallbackFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch
-}
-
-// IsBalanceWaitingListsFlagEnabledInEpoch returns true if BalanceWaitingListsEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsBalanceWaitingListsFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
 }
 
 // IsReturnDataToLastTransferFlagEnabledAfterEpoch returns true if ReturnDataToLastTransferEnableEpoch is lower or equal with the provided epoch

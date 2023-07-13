@@ -52,6 +52,8 @@ const (
 	consensusGroupFormat            = "%s_%v_%v_%v"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
@@ -124,8 +126,8 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSwitchJailWaitingFlagEnabledField:    true,
-			IsBelowSignedThresholdFlagEnabledField: true,
+			IsSwitchJailWaitingFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsBelowSignedThresholdFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 	return arguments
@@ -2301,7 +2303,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompletedField = true
+	enableEpochsHandler.IsStakingV2FlagEnabledAfterEpochCalled = flagActiveTrueHandler
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

@@ -230,7 +230,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 }
 
 func (v *validatorSC) pauseUnStakeUnBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -244,7 +245,8 @@ func (v *validatorSC) pauseUnStakeUnBond(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (v *validatorSC) unPauseStakeUnBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -328,7 +330,8 @@ func (v *validatorSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (v *validatorSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakeFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch) {
 		return v.unJailV1(args)
 	}
 
@@ -473,7 +476,8 @@ func (v *validatorSC) extraChecksForChangeRewardAddress(newAddress []byte) error
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("function deprecated")
 		return vmcommon.UserError
 	}
@@ -579,8 +583,9 @@ func (v *validatorSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument 
 		newKeys = append(newKeys, keysFromArgument[i])
 	}
 
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
 	for _, newKey := range newKeys {
-		if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+		if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 			vmOutput, err := v.getBLSRegisteredData(newKey)
 			if err != nil ||
 				(len(vmOutput.ReturnData) > 0 && len(vmOutput.ReturnData[0]) > 0) {
@@ -761,7 +766,8 @@ func (v *validatorSC) cleanRegisteredData(args *vmcommon.ContractCallInput) vmco
 }
 
 func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -893,8 +899,9 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.OutOfGas
 	}
 
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
 	isGenesis := v.eei.BlockChainHook().CurrentNonce() == 0
-	stakeEnabled := isGenesis || v.enableEpochsHandler.IsStakeFlagEnabled()
+	stakeEnabled := isGenesis || v.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch)
 	if !stakeEnabled {
 		v.eei.AddReturnMessage(vm.StakeNotEnabled)
 		return vmcommon.UserError
@@ -961,7 +968,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, validatorConfig.NodePrice)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
-		if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+		if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 			// backward compatibility
 			v.eei.AddReturnMessage("insufficient funds")
 			return vmcommon.OutOfFunds
@@ -1121,7 +1128,8 @@ func (v *validatorSC) basicChecksForUnStakeNodes(args *vmcommon.ContractCallInpu
 		v.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return nil, vmcommon.UserError
 	}
-	if !v.enableEpochsHandler.IsStakeFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage(vm.UnStakeNotEnabled)
 		return nil, vmcommon.UserError
 	}
@@ -1211,8 +1219,9 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
 	numSuccessFromActive, numSuccessFromWaiting := v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		// unStakeV1 returns from this point
 		return vmcommon.Ok
 	}
@@ -1244,7 +1253,8 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 }
 
 func (v *validatorSC) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1264,7 +1274,8 @@ func (v *validatorSC) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func (v *validatorSC) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1296,7 +1307,8 @@ func (v *validatorSC) checkUnBondArguments(args *vmcommon.ContractCallInput) (*V
 		v.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return nil, vmcommon.UserError
 	}
-	if !v.enableEpochsHandler.IsStakeFlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage(vm.UnBondNotEnabled)
 		return nil, vmcommon.UserError
 	}
@@ -1388,7 +1400,8 @@ func (v *validatorSC) unBondV1(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		return v.unBondV1(args)
 	}
 
@@ -1470,7 +1483,8 @@ func (v *validatorSC) deleteUnBondedKeys(registrationData *ValidatorDataV2, unBo
 }
 
 func (v *validatorSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		//claim function will become unavailable after enabling staking v2
 		v.eei.AddReturnMessage("claim function is disabled")
 		return vmcommon.UserError
@@ -1616,7 +1630,8 @@ func (v *validatorSC) processUnStakeValue(
 }
 
 func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInput, address []byte) (*ValidatorDataV2, vmcommon.ReturnCode) {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.UserError
 	}
@@ -1845,7 +1860,8 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 	}
 
 	addressToCheck := args.CallerAddr
-	if v.enableEpochsHandler.IsStakingV2FlagEnabled() && len(args.Arguments) == 1 {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) && len(args.Arguments) == 1 {
 		addressToCheck = args.Arguments[0]
 	}
 
@@ -1865,7 +1881,8 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 }
 
 func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
+	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

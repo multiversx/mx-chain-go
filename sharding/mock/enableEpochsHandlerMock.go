@@ -113,6 +113,11 @@ func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionsFlagEnabledInEpoch(_ uint
 	return false
 }
 
+// IsFixOOGReturnCodeFlagEnabledInEpoch -
+func (mock *EnableEpochsHandlerMock) IsFixOOGReturnCodeFlagEnabledInEpoch(_ uint32) bool {
+	return false
+}
+
 // IsRelayedTransactionsFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsFlagEnabledInEpoch(_ uint32) bool {
 	return false
@@ -130,11 +135,6 @@ func (mock *EnableEpochsHandlerMock) IsSwitchJailWaitingFlagEnabledInEpoch(_ uin
 
 // IsBelowSignedThresholdFlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsBelowSignedThresholdFlagEnabledInEpoch(_ uint32) bool {
-	return false
-}
-
-// IsSwitchHysteresisForMinNodesFlagEnabledInEpoch -
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabledInEpoch(_ uint32) bool {
 	return false
 }
 
@@ -158,8 +158,8 @@ func (mock *EnableEpochsHandlerMock) IsRepairCallbackFlagEnabledInEpoch(_ uint32
 	return false
 }
 
-// IsBalanceWaitingListsFlagEnabledInEpoch -
-func (mock *EnableEpochsHandlerMock) IsBalanceWaitingListsFlagEnabledInEpoch(_ uint32) bool {
+// IsReturnDataToLastTransferFlagEnabledAfterEpoch returns false
+func (mock *EnableEpochsHandlerMock) IsReturnDataToLastTransferFlagEnabledAfterEpoch(_ uint32) bool {
 	return false
 }
 
@@ -599,110 +599,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsSCDeployFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSCDeployFlagEnabled() bool {
-	return false
-}
-
-// IsBuiltInFunctionsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBuiltInFunctionsFlagEnabled() bool {
-	return false
-}
-
-// IsRelayedTransactionsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsFlagEnabled() bool {
-	return false
-}
-
-// IsPenalizedTooMuchGasFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsPenalizedTooMuchGasFlagEnabled() bool {
-	return false
-}
-
-// ResetPenalizedTooMuchGasFlag does nothing
-func (mock *EnableEpochsHandlerMock) ResetPenalizedTooMuchGasFlag() {
-}
-
-// IsSwitchJailWaitingFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchJailWaitingFlagEnabled() bool {
-	return false
-}
-
-// IsBelowSignedThresholdFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBelowSignedThresholdFlagEnabled() bool {
-	return false
-}
-
-// IsSwitchHysteresisForMinNodesFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabled() bool {
-	return false
-}
-
-// IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch returns false
-func (mock *EnableEpochsHandlerMock) IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool {
-	return false
-}
-
-// IsTransactionSignedWithTxHashFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsTransactionSignedWithTxHashFlagEnabled() bool {
-	return false
-}
-
-// IsMetaProtectionFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsMetaProtectionFlagEnabled() bool {
-	return false
-}
-
-// IsAheadOfTimeGasUsageFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsAheadOfTimeGasUsageFlagEnabled() bool {
-	return false
-}
-
-// IsGasPriceModifierFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsGasPriceModifierFlagEnabled() bool {
-	return false
-}
-
-// IsRepairCallbackFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRepairCallbackFlagEnabled() bool {
-	return false
-}
-
-// IsBalanceWaitingListsFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsBalanceWaitingListsFlagEnabled() bool {
-	return false
-}
-
-// IsReturnDataToLastTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsReturnDataToLastTransferFlagEnabled() bool {
-	return false
-}
-
-// IsSenderInOutTransferFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSenderInOutTransferFlagEnabled() bool {
-	return false
-}
-
-// IsStakeFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakeFlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2FlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2FlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2OwnerFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2OwnerFlagEnabled() bool {
-	return false
-}
-
-// IsStakingV2FlagEnabledForActivationEpochCompleted returns false
-func (mock *EnableEpochsHandlerMock) IsStakingV2FlagEnabledForActivationEpochCompleted() bool {
-	return false
-}
 
 // IsDoubleKeyProtectionFlagEnabled returns false
 func (mock *EnableEpochsHandlerMock) IsDoubleKeyProtectionFlagEnabled() bool {

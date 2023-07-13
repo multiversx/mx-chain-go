@@ -53,7 +53,8 @@ func isSmartContractResult(tx data.TransactionHandler) bool {
 }
 
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
-	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() && isSmartContractResult(tx) {
+	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
+	if sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) && isSmartContractResult(tx) {
 		return tx.GetGasLimit(), nil
 	}
 

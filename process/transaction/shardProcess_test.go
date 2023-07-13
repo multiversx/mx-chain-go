@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
 	_, _ = rand.Reader.Read(buff)
@@ -88,11 +90,11 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledField: true,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
-		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
@@ -1542,7 +1544,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMetaProtectionFlagEnabledField: true,
+		IsMetaProtectionFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2090,7 +2092,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsFlagEnabledField: true,
+		IsRelayedTransactionsFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 

@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
 		PubkeyConv:  testscommon.NewPubkeyConverterMock(32),
@@ -44,7 +46,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		CurrTxs:     &mock.TxForCurrentBlockStub{},
 		RatingsData: &mock.RatingsInfoMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledField:                 true,
+			IsStakeFlagEnabledInEpochCalled:         flagActiveTrueHandler,
 			IsValidatorToDelegationFlagEnabledField: true,
 		},
 	}
