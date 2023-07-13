@@ -390,16 +390,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsRefactorPeersMiniBlocksFlagEnabled() bool
-	IsSCProcessorV2FlagEnabled() bool
-	IsFixAsyncCallBackArgsListFlagEnabled() bool
-	IsFixOldTokenLiquidityEnabled() bool
-	IsRuntimeMemStoreLimitEnabled() bool
-	IsRuntimeCodeSizeFixEnabled() bool
-	IsMaxBlockchainHookCountersFlagEnabled() bool
-	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
-	IsAlwaysSaveTokenMetaDataEnabled() bool
-	IsSetGuardianEnabled() bool
 	IsRelayedNonceFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool

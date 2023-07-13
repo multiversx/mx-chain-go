@@ -124,16 +124,6 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	// TODO[Sorin]: Remove the lines below
-	IsRefactorPeersMiniBlocksFlagEnabledField       bool
-	IsSCProcessorV2FlagEnabledField                 bool
-	IsFixAsyncCallBackArgsListFlagEnabledField      bool
-	IsFixOldTokenLiquidityEnabledField              bool
-	IsRuntimeMemStoreLimitEnabledField              bool
-	IsRuntimeCodeSizeFixEnabledField                bool
-	IsMaxBlockchainHookCountersFlagEnabledField     bool
-	IsWipeSingleNFTLiquidityDecreaseEnabledField    bool
-	IsAlwaysSaveTokenMetaDataEnabledField           bool
-	IsSetGuardianEnabledField                       bool
 	IsRelayedNonceFixEnabledField                   bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField        bool
 	IsMultiClaimOnDelegationEnabledField            bool
@@ -1087,86 +1077,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsRefactorPeersMiniBlocksFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
-}
-
-// IsSCProcessorV2FlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSCProcessorV2FlagEnabledField
-}
-
-// IsFixAsyncCallBackArgsListFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFixAsyncCallBackArgsListFlagEnabledField
-}
-
-// IsFixOldTokenLiquidityEnabled -
-func (stub *EnableEpochsHandlerStub) IsFixOldTokenLiquidityEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsFixOldTokenLiquidityEnabledField
-}
-
-// IsRuntimeMemStoreLimitEnabled -
-func (stub *EnableEpochsHandlerStub) IsRuntimeMemStoreLimitEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRuntimeMemStoreLimitEnabledField
-}
-
-// IsRuntimeCodeSizeFixEnabled -
-func (stub *EnableEpochsHandlerStub) IsRuntimeCodeSizeFixEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRuntimeCodeSizeFixEnabledField
-}
-
-// IsMaxBlockchainHookCountersFlagEnabled -
-func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsMaxBlockchainHookCountersFlagEnabledField
-}
-
-// IsWipeSingleNFTLiquidityDecreaseEnabled -
-func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsWipeSingleNFTLiquidityDecreaseEnabledField
-}
-
-// IsAlwaysSaveTokenMetaDataEnabled -
-func (stub *EnableEpochsHandlerStub) IsAlwaysSaveTokenMetaDataEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsAlwaysSaveTokenMetaDataEnabledField
-}
-
-// IsSetGuardianEnabled -
-func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsSetGuardianEnabledField
-}
 
 // IsRelayedNonceFixEnabled -
 func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {

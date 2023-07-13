@@ -2783,7 +2783,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFixAsyncCallBackArgsListFlagEnabledField: false,
+		IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled: flagActiveFalseHandler,
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandler
 	arguments.AccountsDB = accountsDB
@@ -2848,7 +2848,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte(nil), lastScTx.Data)
 	})
-	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
+	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	_, scTxs, err = sc.processSCOutputAccounts(
 		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},

@@ -2402,7 +2402,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabled() {
+	if sc.enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledInEpoch(currentEpoch) {
 		result.Data = append(result.Data, []byte("@"+core.ConvertToEvenHex(int(vmOutput.ReturnCode)))...)
 	}
 

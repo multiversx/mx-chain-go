@@ -435,7 +435,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
@@ -486,7 +486,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
@@ -518,7 +518,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			CurrentShard: core.MetachainShardId,
@@ -1759,7 +1759,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.BuiltInFunctions = builtInFunctionsContainer
 
@@ -1794,7 +1794,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.BuiltInFunctions = builtInFunctionsContainer
 
@@ -1830,7 +1830,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
+			IsMaxBlockchainHookCountersFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.BuiltInFunctions = builtInFunctionsContainer
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{

@@ -5,7 +5,6 @@ type EnableEpochsHandlerMock struct {
 	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
-	IsSCProcessorV2FlagEnabledField           bool
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0
@@ -485,7 +484,7 @@ func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabledInEpoch
 
 // IsSCProcessorV2FlagEnabledInEpoch -
 func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabledInEpoch(_ uint32) bool {
-	return mock.IsSCProcessorV2FlagEnabledField
+	return false
 }
 
 // IsFixAsyncCallBackArgsListFlagEnabledInEpoch -
@@ -599,56 +598,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 }
 
 // TODO[Sorin]: Remove the methods below
-
-// IsRefactorPeersMiniBlocksFlagEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool {
-	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
-}
-
-// IsSCProcessorV2FlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabled() bool {
-	return mock.IsSCProcessorV2FlagEnabledField
-}
-
-// IsFixAsyncCallBackArgsListFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
-	return false
-}
-
-// IsFixOldTokenLiquidityEnabled -
-func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
-	return false
-}
-
-// IsRuntimeMemStoreLimitEnabled -
-func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
-	return false
-}
-
-// IsRuntimeCodeSizeFixEnabled -
-func (mock *EnableEpochsHandlerMock) IsRuntimeCodeSizeFixEnabled() bool {
-	return false
-}
-
-// IsMaxBlockchainHookCountersFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bool {
-	return false
-}
-
-// IsWipeSingleNFTLiquidityDecreaseEnabled -
-func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
-	return false
-}
-
-// IsAlwaysSaveTokenMetaDataEnabled -
-func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
-	return false
-}
-
-// IsSetGuardianEnabled returns false
-func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
-	return false
-}
 
 // IsRelayedNonceFixEnabled -
 func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {

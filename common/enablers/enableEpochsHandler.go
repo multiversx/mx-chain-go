@@ -42,23 +42,13 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch, handler.refactorPeersMiniBlocksFlag, "refactorPeersMiniBlocksFlag", epoch, handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch, handler.fixAsyncCallBackArgsList, "fixAsyncCallBackArgsList", epoch, handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch, handler.fixOldTokenLiquidity, "fixOldTokenLiquidity", epoch, handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch, handler.runtimeMemStoreLimitFlag, "runtimeMemStoreLimitFlag", epoch, handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch, handler.runtimeCodeSizeFixFlag, "runtimeCodeSizeFixFlag", epoch, handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch, handler.maxBlockchainHookCountersFlag, "maxBlockchainHookCountersFlag", epoch, handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag", epoch, handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag", epoch, handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch, handler.relayedNonceFixFlag, "relayedNonceFixFlag", epoch, handler.enableEpochsConfig.RelayedNonceFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SetGuardianEnableEpoch, handler.setGuardianFlag, "setGuardianFlag", epoch, handler.enableEpochsConfig.SetGuardianEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch, handler.multiClaimOnDelegationFlag, "multiClaimOnDelegationFlag", epoch, handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch, handler.keepExecOrderOnCreatedSCRsFlag, "keepExecOrderOnCreatedSCRsFlag", epoch, handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch, handler.changeUsernameFlag, "changeUsername", epoch, handler.enableEpochsConfig.ChangeUsernameEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch, handler.consistentTokensValuesCheckFlag, "consistentTokensValuesCheckFlag", epoch, handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch, handler.autoBalanceDataTriesFlag, "autoBalanceDataTriesFlag", epoch, handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.fixDelegationChangeOwnerOnAccountFlag, "fixDelegationChangeOwnerOnAccountFlag", epoch, handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCProcessorV2EnableEpoch, handler.scProcessorV2Flag, "scProcessorV2Flag", epoch, handler.enableEpochsConfig.SCProcessorV2EnableEpoch)
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *coreAtomic.Flag, flagName string, epoch uint32, flagEpoch uint32) {
