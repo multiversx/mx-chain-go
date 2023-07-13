@@ -66,7 +66,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			IsUnBondTokensV2FlagEnabledInEpochCalled:        flagActiveTrueHandler,
 			IsValidatorToDelegationFlagEnabledInEpochCalled: flagActiveTrueHandler,
 			IsDoubleKeyProtectionFlagEnabledInEpochCalled:   flagActiveTrueHandler,
-			IsMultiClaimOnDelegationEnabledField:            true,
+			IsMultiClaimOnDelegationEnabledInEpochCalled:    flagActiveTrueHandler,
 		},
 	}
 

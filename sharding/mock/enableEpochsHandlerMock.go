@@ -597,43 +597,6 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 	return false
 }
 
-// TODO[Sorin]: Remove the methods below
-
-// IsRelayedNonceFixEnabled -
-func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
-	return false
-}
-
-// IsKeepExecOrderOnCreatedSCRsEnabled -
-func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
-	return false
-}
-
-// IsMultiClaimOnDelegationEnabled -
-func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
-	return false
-}
-
-// IsChangeUsernameEnabled -
-func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
-	return false
-}
-
-// IsConsistentTokensValuesLengthCheckEnabled -
-func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
-	return false
-}
-
-// IsAutoBalanceDataTriesEnabled -
-func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
-	return false
-}
-
-// FixDelegationChangeOwnerOnAccountEnabled -
-func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
-	return false
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

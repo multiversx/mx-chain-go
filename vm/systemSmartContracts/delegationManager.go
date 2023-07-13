@@ -269,7 +269,8 @@ func (d *delegationManager) deployNewContract(
 }
 
 func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
-	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(currentEpoch) {
 		return nil // backwards compatibility
 	}
 
@@ -565,7 +566,8 @@ func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
 	funcName string,
 ) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}

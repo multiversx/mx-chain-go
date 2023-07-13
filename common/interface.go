@@ -389,15 +389,6 @@ type EnableEpochsHandler interface {
 	FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
-	// TODO[Sorin] remove these methods
-	IsRelayedNonceFixEnabled() bool
-	IsKeepExecOrderOnCreatedSCRsEnabled() bool
-	IsMultiClaimOnDelegationEnabled() bool
-	IsChangeUsernameEnabled() bool
-	IsConsistentTokensValuesLengthCheckEnabled() bool
-	IsAutoBalanceDataTriesEnabled() bool
-	FixDelegationChangeOwnerOnAccountEnabled() bool
-
 	IsInterfaceNil() bool
 }
 

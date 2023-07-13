@@ -123,14 +123,6 @@ type EnableEpochsHandlerStub struct {
 	IsAutoBalanceDataTriesEnabledInEpochCalled                        func(epoch uint32) bool
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
-	// TODO[Sorin]: Remove the lines below
-	IsRelayedNonceFixEnabledField                   bool
-	IsKeepExecOrderOnCreatedSCRsEnabledField        bool
-	IsMultiClaimOnDelegationEnabledField            bool
-	IsChangeUsernameEnabledField                    bool
-	IsConsistentTokensValuesLengthCheckEnabledField bool
-	IsAutoBalanceDataTriesEnabledField              bool
-	FixDelegationChangeOwnerOnAccountEnabledField   bool
 }
 
 // GetCurrentEpoch -
@@ -1074,64 +1066,6 @@ func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch 
 		return stub.IsFixOOGReturnCodeFlagEnabledInEpochCalled(epoch)
 	}
 	return false
-}
-
-// TODO[Sorin]: Remove the methods below
-
-// IsRelayedNonceFixEnabled -
-func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsRelayedNonceFixEnabledField
-}
-
-// IsKeepExecOrderOnCreatedSCRsEnabled -
-func (stub *EnableEpochsHandlerStub) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsKeepExecOrderOnCreatedSCRsEnabledField
-}
-
-// IsMultiClaimOnDelegationEnabled -
-func (stub *EnableEpochsHandlerStub) IsMultiClaimOnDelegationEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsMultiClaimOnDelegationEnabledField
-}
-
-// IsChangeUsernameEnabled -
-func (stub *EnableEpochsHandlerStub) IsChangeUsernameEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsChangeUsernameEnabledField
-}
-
-// IsConsistentTokensValuesLengthCheckEnabled -
-func (stub *EnableEpochsHandlerStub) IsConsistentTokensValuesLengthCheckEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsConsistentTokensValuesLengthCheckEnabledField
-}
-
-// IsAutoBalanceDataTriesEnabled -
-func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsAutoBalanceDataTriesEnabledField
-}
-
-// FixDelegationChangeOwnerOnAccountEnabled -
-func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.FixDelegationChangeOwnerOnAccountEnabledField
 }
 
 // IsInterfaceNil -

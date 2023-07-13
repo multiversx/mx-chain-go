@@ -835,7 +835,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
-		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 			return vmcommon.UserError
 		}
 		return vmcommon.Ok

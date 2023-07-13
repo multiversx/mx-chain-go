@@ -980,7 +980,8 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
-	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 
@@ -988,7 +989,8 @@ func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
 }
 
 func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -2139,7 +2141,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if totalUnBondable.Cmp(zero) == 0 {
 		d.eei.AddReturnMessage("nothing to unBond")
-		if d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+		if d.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 			return vmcommon.UserError
 		}
 		return vmcommon.Ok

@@ -40,7 +40,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsDelegationManagerFlagEnabledInEpochCalled:     flagActiveTrueHandler,
 			IsValidatorToDelegationFlagEnabledInEpochCalled: flagActiveTrueHandler,
-			IsMultiClaimOnDelegationEnabledField:            true,
+			IsMultiClaimOnDelegationEnabledInEpochCalled:    flagActiveTrueHandler,
 		},
 	}
 }
@@ -1097,8 +1097,8 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 	)
 
 	enableHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMultiClaimOnDelegationEnabledField:        false,
-		IsDelegationManagerFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsMultiClaimOnDelegationEnabledInEpochCalled: flagActiveFalseHandler,
+		IsDelegationManagerFlagEnabledInEpochCalled:  flagActiveTrueHandler,
 	}
 	args.EnableEpochsHandler = enableHandlerStub
 	args.Eei = eei
@@ -1113,7 +1113,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 	assert.Equal(t, eei.GetReturnMessage(), "invalid function to call")
 
 	eei.returnMessage = ""
-	enableHandlerStub.IsMultiClaimOnDelegationEnabledField = true
+	enableHandlerStub.IsMultiClaimOnDelegationEnabledInEpochCalled = flagActiveTrueHandler
 	returnCode = dm.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidNumOfArguments.Error())
@@ -1260,7 +1260,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 
 		args := createMockArgumentsForDelegationManager()
 		epochsHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
+		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpochCalled = flagActiveFalseHandler
 		args.Eei = &mock.SystemEIStub{
 			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {
 				assert.Fail(t, "should have not called UpdateCodeDeployerAddress")
@@ -1277,7 +1277,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 
 		args := createMockArgumentsForDelegationManager()
 		epochsHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+		epochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpochCalled = flagActiveTrueHandler
 		updateCalled := false
 		args.Eei = &mock.SystemEIStub{
 			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {

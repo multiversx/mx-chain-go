@@ -15,20 +15,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermediateProcessorsContainerFactory {
 	args := metachain.ArgsNewIntermediateProcessorsContainerFactory{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConverter:     createMockPubkeyConverter(),
-		Store:               &storageStubs.ChainStorerStub{},
-		PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Store:            &storageStubs.ChainStorerStub{},
+		PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
+		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 	return args
 }

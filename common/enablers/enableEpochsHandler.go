@@ -3,7 +3,6 @@ package enablers
 import (
 	"sync"
 
-	coreAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -13,7 +12,6 @@ import (
 var log = logger.GetOrCreate("common/enablers")
 
 type enableEpochsHandler struct {
-	*epochFlagsHolder
 	enableEpochsConfig config.EnableEpochs
 	currentEpoch       uint32
 	epochMut           sync.RWMutex
@@ -26,7 +24,6 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 	}
 
 	handler := &enableEpochsHandler{
-		epochFlagsHolder:   newEpochFlagsHolder(),
 		enableEpochsConfig: enableEpochsConfig,
 	}
 
@@ -40,20 +37,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Lock()
 	handler.currentEpoch = epoch
 	handler.epochMut.Unlock()
-
-	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch, handler.relayedNonceFixFlag, "relayedNonceFixFlag", epoch, handler.enableEpochsConfig.RelayedNonceFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch, handler.multiClaimOnDelegationFlag, "multiClaimOnDelegationFlag", epoch, handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch, handler.keepExecOrderOnCreatedSCRsFlag, "keepExecOrderOnCreatedSCRsFlag", epoch, handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch, handler.changeUsernameFlag, "changeUsername", epoch, handler.enableEpochsConfig.ChangeUsernameEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch, handler.consistentTokensValuesCheckFlag, "consistentTokensValuesCheckFlag", epoch, handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch, handler.autoBalanceDataTriesFlag, "autoBalanceDataTriesFlag", epoch, handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.fixDelegationChangeOwnerOnAccountFlag, "fixDelegationChangeOwnerOnAccountFlag", epoch, handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch)
-}
-
-func (handler *enableEpochsHandler) setFlagValue(value bool, flag *coreAtomic.Flag, flagName string, epoch uint32, flagEpoch uint32) {
-	flag.SetValue(value)
-	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet(), "epoch", epoch, "flag epoch", flagEpoch)
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active

@@ -53,7 +53,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			IsComputeRewardCheckpointFlagEnabledInEpochCalled:          flagActiveTrueHandler,
 			IsValidatorToDelegationFlagEnabledInEpochCalled:            flagActiveTrueHandler,
 			IsReDelegateBelowMinCheckFlagEnabledInEpochCalled:          flagActiveTrueHandler,
-			IsMultiClaimOnDelegationEnabledField:                       true,
+			IsMultiClaimOnDelegationEnabledInEpochCalled:               flagActiveTrueHandler,
 		},
 	}
 }
@@ -4735,7 +4735,7 @@ func createDefaultEeiArgs() VMContextArgs {
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMultiClaimOnDelegationEnabledField: true,
+			IsMultiClaimOnDelegationEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 }
@@ -4814,7 +4814,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.IsMultiClaimOnDelegationEnabledField = false
+	epochHandler.IsMultiClaimOnDelegationEnabledInEpochCalled = flagActiveFalseHandler
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
 		CryptoHook:          hooks.NewVMCryptoHook(),
@@ -4882,7 +4882,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledInEpochCalled = flagActiveTrueHandler
 	account := &stateMock.AccountWrapMock{}
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
@@ -4932,7 +4932,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledInEpochCalled = flagActiveFalseHandler
 
 	account := &stateMock.AccountWrapMock{}
 
@@ -4974,7 +4974,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		assert.Equal(t, "synchronizeOwner is an unknown function", eei.GetReturnMessage())
 	})
 
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+	epochHandler.FixDelegationChangeOwnerOnAccountEnabledInEpochCalled = flagActiveTrueHandler
 	eei.ResetReturnMessage()
 
 	t.Run("transfer value is not zero", func(t *testing.T) {

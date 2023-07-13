@@ -327,7 +327,8 @@ func (host *vmContext) mergeContext(currContext *vmContext) {
 }
 
 func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode vmcommon.ReturnCode) {
-	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
+	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 		host.mergeContext(parentContext)
 		return
 	}
@@ -425,7 +426,8 @@ func createDirectCallInput(
 }
 
 func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
-	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
+	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
