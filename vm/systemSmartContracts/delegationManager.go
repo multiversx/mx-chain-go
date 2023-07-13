@@ -691,7 +691,8 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegationManager) CanUseContract() bool {
-	return d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(d.enableEpochsHandler.GetCurrentEpoch())
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	return d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

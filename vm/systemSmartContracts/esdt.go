@@ -267,7 +267,9 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
 	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
-	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpoch(currentEpoch) && initialSupply.Cmp(zero) == 0)
+	isGlobalMintBurnFlagEnabled := e.enableEpochsHandler.IsGlobalMintBurnFlagEnabledInEpoch(currentEpoch)
+	isSupplyZeroAfterFlag := isGlobalMintBurnFlagEnabled && initialSupply.Cmp(zero) == 0
+	isInvalidSupply := initialSupply.Cmp(zero) < 0 || isSupplyZeroAfterFlag
 	if isInvalidSupply {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
