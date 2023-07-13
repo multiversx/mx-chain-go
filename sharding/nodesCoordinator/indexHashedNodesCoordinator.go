@@ -30,7 +30,6 @@ const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
 	minStoredEpochs         = uint32(1)
-	numEpochsToSearch       = uint32(2)
 )
 
 type validatorWithShardID struct {
@@ -282,12 +281,14 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfigFromStorer(epoch uint32) 
 
 	mostRecentEpoch := epoch + ihnc.numStoredEpochs - 1
 
-	for e := mostRecentEpoch; e >= mostRecentEpoch-numEpochsToSearch; e-- {
+	for mostRecentEpoch >= epoch {
 		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-		epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, e)
+		epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, mostRecentEpoch)
 		if err == nil {
 			return epochConfigBytes, nil
 		}
+
+		mostRecentEpoch--
 	}
 
 	return nil, err
