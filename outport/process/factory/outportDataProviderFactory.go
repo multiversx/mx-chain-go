@@ -92,5 +92,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		EconomicsData:            arg.EconomicsData,
 		ExecutionOrderHandler:    executionOrderHandler,
 		Hasher:                   arg.Hasher,
+		Marshaller:               arg.Marshaller,
 	})
 }
