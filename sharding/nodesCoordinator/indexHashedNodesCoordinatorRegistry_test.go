@@ -10,7 +10,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -240,7 +243,17 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			EpochsConfig: map[string]*EpochValidators{
 				"10": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val1": {
+						"0": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"2": {
 							{
 								PubKey: []byte("pubKey1"),
 							},
@@ -277,29 +290,23 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			EpochsConfig: map[string]*EpochValidators{
 				"10": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val1": {
-							{
-								PubKey: []byte("pubKey1"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey1")}},
+						"1": {{PubKey: []byte("pubKey1")}},
+						"2": {{PubKey: []byte("pubKey1")}},
 					},
 				},
 				"9": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val2": {
-							{
-								PubKey: []byte("pubKey2"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey2")}},
+						"1": {{PubKey: []byte("pubKey2")}},
+						"2": {{PubKey: []byte("pubKey2")}},
 					},
 				},
 				"8": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val3": {
-							{
-								PubKey: []byte("pubKey3"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey3")}},
+						"1": {{PubKey: []byte("pubKey3")}},
+						"2": {{PubKey: []byte("pubKey3")}},
 					},
 				},
 			},
@@ -353,7 +360,17 @@ func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
 			EpochsConfig: map[string]*EpochValidators{
 				"10": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val1": {
+						"0": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"2": {
 							{
 								PubKey: []byte("pubKey1"),
 							},
@@ -443,29 +460,23 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 			EpochsConfig: map[string]*EpochValidators{
 				"10": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val1": {
-							{
-								PubKey: []byte("pubKey1"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey1")}},
+						"1": {{PubKey: []byte("pubKey1")}},
+						"2": {{PubKey: []byte("pubKey1")}},
 					},
 				},
 				"9": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val2": {
-							{
-								PubKey: []byte("pubKey2"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey2")}},
+						"1": {{PubKey: []byte("pubKey2")}},
+						"2": {{PubKey: []byte("pubKey2")}},
 					},
 				},
 				"8": {
 					EligibleValidators: map[string][]*SerializableValidator{
-						"val3": {
-							{
-								PubKey: []byte("pubKey3"),
-							},
-						},
+						"0": {{PubKey: []byte("pubKey3")}},
+						"1": {{PubKey: []byte("pubKey3")}},
+						"2": {{PubKey: []byte("pubKey3")}},
 					},
 				},
 			},
@@ -488,4 +499,45 @@ func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) 
 		require.Nil(t, err)
 		require.Equal(t, 3, putCalls)
 	})
+}
+
+func TestIndexHashedNodesCoordinator_SaveLoadNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	logger.SetLogLevel("*:DEBUG")
+
+	epochKey := []byte(fmt.Sprint(1))
+
+	args := createArguments()
+	args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+	args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
+	ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(10, 3, "waiting")
+	leavingMap := createDummyNodesMap(10, 3, "leaving")
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 1)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 2)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 3)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 4)
+
+	expectedNodesConfig, ok := ihnc.nodesConfig[1]
+	require.True(t, ok)
+	require.NotNil(t, expectedNodesConfig)
+
+	err := ihnc.saveState(epochKey)
+	assert.Nil(t, err)
+
+	delete(ihnc.nodesConfig, 1)
+	err = ihnc.LoadState(epochKey, 1)
+	assert.Nil(t, err)
+
+	actualConfig, ok := ihnc.nodesConfig[1]
+	require.True(t, ok)
+
+	assert.Equal(t, expectedNodesConfig.shardID, expectedNodesConfig.shardID)
+	assert.Equal(t, expectedNodesConfig.nbShards, expectedNodesConfig.nbShards)
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.eligibleMap, actualConfig.eligibleMap))
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.waitingMap, actualConfig.waitingMap))
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.leavingMap, actualConfig.leavingMap))
 }
