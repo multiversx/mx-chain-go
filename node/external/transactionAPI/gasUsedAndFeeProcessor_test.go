@@ -9,10 +9,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
@@ -22,6 +24,7 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -52,6 +55,10 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -95,6 +102,10 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -133,6 +144,10 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -180,6 +195,10 @@ func TestNFTTransferWithScCall(t *testing.T) {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	})
 	computer := fee.NewTestFeeComputer(feeComp)
 	req.Nil(err)

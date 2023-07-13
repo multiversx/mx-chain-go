@@ -202,7 +202,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: builtInCostHandler,
 		EconomicsConfig:             *args.Configs.EconomicsConfig,
-		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		EnableEpochsHandler:         args.CoreComponents.EnableEpochsHandler(),
 		TxVersionChecker:            args.CoreComponents.TxVersionChecker(),
 	})
 	if err != nil {

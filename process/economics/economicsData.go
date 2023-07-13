@@ -63,6 +63,8 @@ type economicsData struct {
 	builtInFunctionsCostHandler      BuiltInFunctionsCostHandler
 	enableEpochsHandler              common.EnableEpochsHandler
 	txVersionHandler                 process.TxVersionCheckerHandler
+	currentEpoch                     uint32
+	mutCurrentEpoch                  sync.RWMutex
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
@@ -388,7 +390,10 @@ func (ed *economicsData) MinGasPriceForProcessing() uint64 {
 
 // GasPriceModifier will return the gas price modifier
 func (ed *economicsData) GasPriceModifier() float64 {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	ed.mutCurrentEpoch.RLock()
+	currentEpoch := ed.currentEpoch
+	ed.mutCurrentEpoch.RUnlock()
+
 	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		return 1.0
 	}
@@ -447,7 +452,10 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	ed.mutCurrentEpoch.RLock()
+	currentEpoch := ed.currentEpoch
+	ed.mutCurrentEpoch.RUnlock()
+
 	if ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
@@ -641,7 +649,11 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 	}
 
 	txFee := ed.ComputeTxFee(tx)
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+
+	ed.mutCurrentEpoch.RLock()
+	currentEpoch := ed.currentEpoch
+	ed.mutCurrentEpoch.RUnlock()
+
 	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch)
 	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch)
 	flagCorrectTxFee := !isPenalizedTooMuchGasFlagEnabled && !isGasPriceModifierFlagEnabled
@@ -689,6 +701,10 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHa
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 	ed.statusHandler.SetStringValue(common.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
+	ed.mutCurrentEpoch.Lock()
+	ed.currentEpoch = epoch
+	ed.mutCurrentEpoch.Unlock()
+
 	ed.setRewardsEpochConfig(epoch)
 	ed.setGasLimitConfig(epoch)
 }
@@ -777,7 +793,10 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFe
 		return 0, process.ErrInsufficientFunds
 	}
 
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	ed.mutCurrentEpoch.RLock()
+	currentEpoch := ed.currentEpoch
+	ed.mutCurrentEpoch.RUnlock()
+
 	if !ed.enableEpochsHandler.IsGasPriceModifierFlagEnabledInEpoch(currentEpoch) {
 		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
 		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)

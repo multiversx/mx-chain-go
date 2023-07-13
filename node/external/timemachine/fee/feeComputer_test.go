@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,9 +18,13 @@ func createMockFeeComputerArgs() ArgsNewFeeComputer {
 	return ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: func(epoch uint32) bool {
+				return epoch >= 124
+			},
+			IsGasPriceModifierFlagEnabledInEpochCalled: func(epoch uint32) bool {
+				return epoch >= 180
+			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}

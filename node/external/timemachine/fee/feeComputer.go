@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/process"
@@ -20,7 +20,7 @@ type feeComputer struct {
 	builtInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	economicsConfig             config.EconomicsConfig
 	economicsInstances          map[uint32]economicsDataWithComputeFee
-	enableEpochsConfig          config.EnableEpochs
+	enableEpochsHandler         common.EnableEpochsHandler
 	mutex                       sync.RWMutex
 }
 
@@ -35,9 +35,9 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
 		economicsConfig:             args.EconomicsConfig,
 		// TODO: use a LRU cache instead
-		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
-		enableEpochsConfig: args.EnableEpochsConfig,
-		txVersionChecker:   args.TxVersionChecker,
+		economicsInstances:  make(map[uint32]economicsDataWithComputeFee),
+		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
@@ -122,19 +122,11 @@ func (computer *feeComputer) getOrCreateInstance(epoch uint32) (economicsDataWit
 }
 
 func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDataWithComputeFee, error) {
-	epochNotifier := &timemachine.DisabledEpochNotifier{}
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(computer.enableEpochsConfig, epochNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	enableEpochsHandler.EpochConfirmed(epoch, 0)
-
 	args := economics.ArgsNewEconomicsData{
 		Economics:                   &computer.economicsConfig,
 		BuiltInFunctionsCostHandler: computer.builtInFunctionsCostHandler,
 		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
-		EnableEpochsHandler:         enableEpochsHandler,
+		EnableEpochsHandler:         computer.enableEpochsHandler,
 		TxVersionChecker:            computer.txVersionChecker,
 	}
 

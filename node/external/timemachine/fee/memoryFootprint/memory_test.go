@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +29,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComputer)
 

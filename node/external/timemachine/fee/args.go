@@ -2,6 +2,7 @@ package fee
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
@@ -11,7 +12,7 @@ import (
 type ArgsNewFeeComputer struct {
 	BuiltInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	EconomicsConfig             config.EconomicsConfig
-	EnableEpochsConfig          config.EnableEpochs
+	EnableEpochsHandler         common.EnableEpochsHandler
 	TxVersionChecker            process.TxVersionCheckerHandler
 }
 
@@ -21,6 +22,9 @@ func (args *ArgsNewFeeComputer) check() error {
 	}
 	if check.IfNil(args.TxVersionChecker) {
 		return process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil

@@ -351,6 +351,16 @@ func TestNewEconomicsData_NilEpochNotifierShouldErr(t *testing.T) {
 
 }
 
+func TestNewEconomicsData_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.EnableEpochsHandler = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
 func TestNewEconomicsData_ShouldWork(t *testing.T) {
 	t.Parallel()
 
