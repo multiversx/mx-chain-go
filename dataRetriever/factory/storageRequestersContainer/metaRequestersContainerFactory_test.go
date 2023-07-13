@@ -224,7 +224,6 @@ func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		SnapshotsEnabled:         true,
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
