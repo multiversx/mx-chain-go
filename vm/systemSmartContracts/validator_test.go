@@ -3762,7 +3762,7 @@ func TestStakingValidatorSC_UnBondTokensV1ShouldWork(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.IsStakingV2FlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandler.IsUnBondTokensV2FlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandler.IsUnBondTokensV2FlagEnabledInEpochCalled = flagActiveFalseHandler
 	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei

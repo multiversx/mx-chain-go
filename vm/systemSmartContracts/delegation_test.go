@@ -2601,10 +2601,8 @@ func prepareReDelegateRewardsComponents(
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	if extraCheckEpoch == 0 {
-		enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
-	} else {
-		enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpochCalled = flagActiveFalseHandler
+	enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledInEpochCalled = func(epoch uint32) bool {
+		return extraCheckEpoch == 0
 	}
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
