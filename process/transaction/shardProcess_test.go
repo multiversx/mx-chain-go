@@ -34,6 +34,7 @@ import (
 )
 
 var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -2012,7 +2013,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsV2FlagEnabledField: true,
+		IsRelayedTransactionsV2FlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 

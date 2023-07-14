@@ -46,8 +46,8 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		CurrTxs:     &mock.TxForCurrentBlockStub{},
 		RatingsData: &mock.RatingsInfoMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledInEpochCalled:         flagActiveTrueHandler,
-			IsValidatorToDelegationFlagEnabledField: true,
+			IsStakeFlagEnabledInEpochCalled:                 flagActiveTrueHandler,
+			IsValidatorToDelegationFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 }

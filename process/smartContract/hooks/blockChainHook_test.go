@@ -41,6 +41,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
+
 func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
@@ -1149,7 +1152,7 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 		},
 	}
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsPayableBySCFlagEnabledField: true,
+		IsPayableBySCFlagEnabledInEpochCalled: flagActiveTrueHandler,
 	}
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1926,13 +1929,13 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledInEpochCalled = flagActiveFalseHandler
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		require.Nil(t, esdtData)
 		require.Equal(t, errMarshaller, err)
@@ -1965,13 +1968,13 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledInEpochCalled = flagActiveFalseHandler
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
 		assert.Equal(t, state.ErrNilTrie, err)
@@ -1993,13 +1996,13 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledInEpochCalled = flagActiveFalseHandler
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, emptyESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2020,13 +2023,13 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledInEpochCalled = flagActiveFalseHandler
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2045,13 +2048,13 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledInEpochCalled = flagActiveFalseHandler
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2075,7 +2078,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -2104,7 +2107,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
+			IsOptimizeNFTStoreFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -2145,7 +2148,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
+			IsPayableBySCFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -2217,7 +2220,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
+			IsPayableBySCFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -2231,7 +2234,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 
 		args := createMockBlockChainHookArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
+			IsPayableBySCFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 

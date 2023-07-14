@@ -179,7 +179,8 @@ func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx *transacti
 		return tx.GasLimit - vmOutput.GasRemaining
 	}
 
-	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled()
+	currentEpoch := ate.enableEpochsHandler.GetCurrentEpoch()
+	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch)
 	if isTooMuchGasV2MsgFlagSet {
 		gasNeededForProcessing := extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasUsedSlitString)
 		return ate.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing

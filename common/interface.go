@@ -322,7 +322,6 @@ type EnableEpochsHandler interface {
 	IsSaveJailedAlwaysFlagEnabledInEpoch(epoch uint32) bool
 	IsReDelegateBelowMinCheckFlagEnabledInEpoch(epoch uint32) bool
 	IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool
-	IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool
 	IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch(epoch uint32) bool
 	IsESDTMultiTransferFlagEnabledInEpoch(epoch uint32) bool
 	IsGlobalMintBurnFlagEnabledInEpoch(epoch uint32) bool
@@ -390,45 +389,6 @@ type EnableEpochsHandler interface {
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
 
 	// TODO[Sorin] remove these methods
-	IsDoubleKeyProtectionFlagEnabled() bool
-	IsESDTFlagEnabled() bool
-	IsESDTFlagEnabledForCurrentEpoch() bool
-	IsGovernanceFlagEnabled() bool
-	IsGovernanceFlagEnabledForCurrentEpoch() bool
-	IsDelegationManagerFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool
-	IsCorrectLastUnJailedFlagEnabled() bool
-	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
-	IsRelayedTransactionsV2FlagEnabled() bool
-	IsUnBondTokensV2FlagEnabled() bool
-	IsSaveJailedAlwaysFlagEnabled() bool
-	IsReDelegateBelowMinCheckFlagEnabled() bool
-	IsValidatorToDelegationFlagEnabled() bool
-	IsWaitingListFixFlagEnabled() bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
-	IsESDTMultiTransferFlagEnabled() bool
-	IsGlobalMintBurnFlagEnabled() bool
-	IsESDTTransferRoleFlagEnabled() bool
-	IsBuiltInFunctionOnMetaFlagEnabled() bool
-	IsComputeRewardCheckpointFlagEnabled() bool
-	IsSCRSizeInvariantCheckFlagEnabled() bool
-	IsBackwardCompSaveKeyValueFlagEnabled() bool
-	IsESDTNFTCreateOnMultiShardFlagEnabled() bool
-	IsMetaESDTSetFlagEnabled() bool
-	IsAddTokensToDelegationFlagEnabled() bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabled() bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool
-	IsCorrectFirstQueuedFlagEnabled() bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool
-	IsFixOOGReturnCodeFlagEnabled() bool
-	IsRemoveNonUpdatedStorageFlagEnabled() bool
-	IsOptimizeNFTStoreFlagEnabled() bool
-	IsCreateNFTThroughExecByCallerFlagEnabled() bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool
-	IsFrontRunningProtectionFlagEnabled() bool
-	IsPayableBySCFlagEnabled() bool
-	IsCleanUpInformativeSCRsFlagEnabled() bool
 	IsStorageAPICostOptimizationFlagEnabled() bool
 	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
 	IsScheduledMiniBlocksFlagEnabled() bool
@@ -446,13 +406,7 @@ type EnableEpochsHandler interface {
 	IsCheckFunctionArgumentFlagEnabled() bool
 	IsCheckExecuteOnReadOnlyFlagEnabled() bool
 	IsFixAsyncCallbackCheckFlagEnabled() bool
-	IsSaveToSystemAccountFlagEnabled() bool
-	IsCheckFrozenCollectionFlagEnabled() bool
 	IsSendAlwaysFlagEnabled() bool
-	IsValueLengthCheckFlagEnabled() bool
-	IsCheckTransferFlagEnabled() bool
-	IsTransferToMetaFlagEnabled() bool
-	IsESDTNFTImprovementV1FlagEnabled() bool
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool

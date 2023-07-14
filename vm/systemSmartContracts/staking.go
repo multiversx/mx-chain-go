@@ -635,7 +635,8 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || s.canStakeIfOneRemoved()
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || s.canStakeIfOneRemoved()
 	if addOneFromQueue {
 		_, err = s.moveFirstFromWaitingToStaked()
 		if err != nil {
@@ -885,7 +886,8 @@ func (s *stakingSC) insertAfterLastJailed(
 			NextKey:      previousFirstKey,
 		}
 
-		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && len(previousFirstKey) > 0 {
+		currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && len(previousFirstKey) > 0 {
 			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
 			if err != nil {
 				return err
@@ -979,8 +981,10 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	isFirstElementBeforeFix := !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
-	isFirstElementAfterFix := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	isCorrectFirstQueueFlagEnabled := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch)
+	isFirstElementBeforeFix := !isCorrectFirstQueueFlagEnabled && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
+	isFirstElementAfterFix := isCorrectFirstQueueFlagEnabled && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
 	if isFirstElementBeforeFix || isFirstElementAfterFix {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
@@ -996,14 +1000,14 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
 
 	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
-	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() && previousElement == nil {
+	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && previousElement == nil {
 		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
 		if err != nil {
 			return err
@@ -1575,7 +1579,8 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 }
 
 func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		// backward compatibility
 		return vmcommon.UserError
 	}
@@ -1685,7 +1690,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		nodePriceToUse.Set(s.stakeValue)
 	}
 
@@ -1732,7 +1737,8 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1773,7 +1779,8 @@ func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
@@ -1942,7 +1949,8 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -2013,7 +2021,8 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabled() {
+	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
+	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

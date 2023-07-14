@@ -26,7 +26,8 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 func (tsp *TestScProcessor) GetCompositeTestError() error {
 	var returnError error
 
-	if tsp.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
+	currentEpoch := tsp.enableEpochsHandler.GetCurrentEpoch()
+	if tsp.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabledInEpoch(currentEpoch) {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {

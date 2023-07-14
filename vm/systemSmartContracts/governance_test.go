@@ -58,7 +58,7 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:   10,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGovernanceFlagEnabledField: true,
+			IsGovernanceFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 }
@@ -304,11 +304,11 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledField = false
+	enableEpochsHandler.IsGovernanceFlagEnabledInEpochCalled = flagActiveFalseHandler
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledField = true
+	enableEpochsHandler.IsGovernanceFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)

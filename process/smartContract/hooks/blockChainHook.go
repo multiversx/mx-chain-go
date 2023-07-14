@@ -552,7 +552,8 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
-	if bh.enableEpochsHandler.IsPayableBySCFlagEnabled() && bh.IsSmartContract(sndAddress) {
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	if bh.enableEpochsHandler.IsPayableBySCFlagEnabledInEpoch(currentEpoch) && bh.IsSmartContract(sndAddress) {
 		return metadata.Payable || metadata.PayableBySC, nil
 	}
 
@@ -562,7 +563,8 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
 func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
-	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabledInEpoch(currentEpoch)
 	if !isFilterCodeMetadataFlagSet {
 		// return the raw bytes unconditioned here for backwards compatibility reasons
 		return input, nil
@@ -579,7 +581,8 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 
 // ApplyFiltersOnSCCodeMetadata will apply all known filters on the provided code metadata value
 func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
-	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabledInEpoch(currentEpoch)
 	codeMetadata.Guarded = false
 
 	return codeMetadata
@@ -662,7 +665,8 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if !bh.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	if !bh.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabledInEpoch(currentEpoch) {
 		return bh.returnESDTTokenByLegacyMethod(userAcc, esdtData, esdtTokenKey, nonce)
 	}
 

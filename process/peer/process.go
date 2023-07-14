@@ -744,7 +744,8 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	if missedRounds <= 1 {
 		return nil
 	}
-	if vs.enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() {
+	currentEpoch := vs.enableEpochsHandler.GetCurrentEpoch()
+	if vs.enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledInEpoch(currentEpoch) {
 		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
 			return nil
 		}

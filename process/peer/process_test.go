@@ -53,6 +53,7 @@ const (
 )
 
 var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
@@ -1388,7 +1389,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = false
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledInEpochCalled = flagActiveFalseHandler
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1399,7 +1400,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	require.Equal(t, 99, validatorRating)
 
 	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
-	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = true
+	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledInEpochCalled = flagActiveTrueHandler
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, 98, validatorRating)

@@ -115,7 +115,8 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	if !d.enableEpochsHandler.IsDelegationManagerFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage("delegation manager contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -305,7 +306,8 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -689,7 +691,8 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegationManager) CanUseContract() bool {
-	return d.enableEpochsHandler.IsDelegationManagerFlagEnabled()
+	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
+	return d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

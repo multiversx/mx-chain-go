@@ -621,7 +621,8 @@ func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
 	relayerAcnt, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsV2FlagEnabled() {
+	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
+	if !txProc.enableEpochsHandler.IsRelayedTransactionsV2FlagEnabledInEpoch(currentEpoch) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
 	}
 	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {

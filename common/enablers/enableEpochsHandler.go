@@ -42,45 +42,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Unlock()
 
 	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch, handler.doubleKeyProtectionFlag, "doubleKeyProtectionFlag", epoch, handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtFlag, "esdtFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.ESDTEnableEpoch, handler.esdtCurrentEpochFlag, "esdtCurrentEpochFlag", epoch, handler.enableEpochsConfig.ESDTEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.GovernanceEnableEpoch, handler.governanceFlag, "governanceFlag", epoch, handler.enableEpochsConfig.GovernanceEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.GovernanceEnableEpoch, handler.governanceCurrentEpochFlag, "governanceCurrentEpochFlag", epoch, handler.enableEpochsConfig.GovernanceEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch, handler.delegationManagerFlag, "delegationManagerFlag", epoch, handler.enableEpochsConfig.DelegationManagerEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DelegationSmartContractEnableEpoch, handler.delegationSmartContractFlag, "delegationSmartContractFlag", epoch, handler.enableEpochsConfig.DelegationSmartContractEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.DelegationSmartContractEnableEpoch, handler.delegationSmartContractCurrentEpochFlag, "delegationSmartContractCurrentEpochFlag", epoch, handler.enableEpochsConfig.DelegationSmartContractEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch, handler.correctLastUnJailedFlag, "correctLastUnJailedFlag", epoch, handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch)
-	handler.setFlagValue(epoch == handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch, handler.correctLastUnJailedCurrentEpochFlag, "correctLastUnJailedCurrentEpochFlag", epoch, handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch, handler.relayedTransactionsV2Flag, "relayedTransactionsV2Flag", epoch, handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.UnbondTokensV2EnableEpoch, handler.unBondTokensV2Flag, "unBondTokensV2Flag", epoch, handler.enableEpochsConfig.UnbondTokensV2EnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch, handler.saveJailedAlwaysFlag, "saveJailedAlwaysFlag", epoch, handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch, handler.reDelegateBelowMinCheckFlag, "reDelegateBelowMinCheckFlag", epoch, handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch, handler.validatorToDelegationFlag, "validatorToDelegationFlag", epoch, handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch, handler.waitingListFixFlag, "waitingListFixFlag", epoch, handler.enableEpochsConfig.WaitingListFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch, handler.incrementSCRNonceInMultiTransferFlag, "incrementSCRNonceInMultiTransferFlag", epoch, handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch, handler.esdtMultiTransferFlag, "esdtMultiTransferFlag", epoch, handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch)
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch, handler.globalMintBurnFlag, "globalMintBurnFlag", epoch, handler.enableEpochsConfig.GlobalMintBurnDisableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch, handler.esdtTransferRoleFlag, "esdtTransferRoleFlag", epoch, handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch, handler.builtInFunctionOnMetaFlag, "builtInFunctionOnMetaFlag", epoch, handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch, handler.computeRewardCheckpointFlag, "computeRewardCheckpointFlag", epoch, handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch, handler.scrSizeInvariantCheckFlag, "scrSizeInvariantCheckFlag", epoch, handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch)
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch, handler.backwardCompSaveKeyValueFlag, "backwardCompSaveKeyValueFlag", epoch, handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch, handler.esdtNFTCreateOnMultiShardFlag, "esdtNFTCreateOnMultiShardFlag", epoch, handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MetaESDTSetEnableEpoch, handler.metaESDTSetFlag, "metaESDTSetFlag", epoch, handler.enableEpochsConfig.MetaESDTSetEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch, handler.addTokensToDelegationFlag, "addTokensToDelegationFlag", epoch, handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch, handler.multiESDTTransferFixOnCallBackFlag, "multiESDTTransferFixOnCallBackFlag", epoch, handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch, handler.optimizeGasUsedInCrossMiniBlocksFlag, "optimizeGasUsedInCrossMiniBlocksFlag", epoch, handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CorrectFirstQueuedEpoch, handler.correctFirstQueuedFlag, "correctFirstQueuedFlag", epoch, handler.enableEpochsConfig.CorrectFirstQueuedEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch, handler.deleteDelegatorAfterClaimRewardsFlag, "deleteDelegatorAfterClaimRewardsFlag", epoch, handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch, handler.fixOOGReturnCodeFlag, "fixOOGReturnCodeFlag", epoch, handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch, handler.removeNonUpdatedStorageFlag, "removeNonUpdatedStorageFlag", epoch, handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch, handler.optimizeNFTStoreFlag, "optimizeNFTStoreFlag", epoch, handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch, handler.createNFTThroughExecByCallerFlag, "createNFTThroughExecByCallerFlag", epoch, handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch, handler.stopDecreasingValidatorRatingWhenStuckFlag, "stopDecreasingValidatorRatingWhenStuckFlag", epoch, handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FrontRunningProtectionEnableEpoch, handler.frontRunningProtectionFlag, "frontRunningProtectionFlag", epoch, handler.enableEpochsConfig.FrontRunningProtectionEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.IsPayableBySCEnableEpoch, handler.isPayableBySCFlag, "isPayableBySCFlag", epoch, handler.enableEpochsConfig.IsPayableBySCEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch, handler.cleanUpInformativeSCRsFlag, "cleanUpInformativeSCRsFlag", epoch, handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch, handler.storageAPICostOptimizationFlag, "storageAPICostOptimizationFlag", epoch, handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch, handler.esdtRegisterAndSetAllRolesFlag, "esdtRegisterAndSetAllRolesFlag", epoch, handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch, handler.scheduledMiniBlocksFlag, "scheduledMiniBlocksFlag", epoch, handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch)
@@ -390,11 +351,6 @@ func (handler *enableEpochsHandler) IsReDelegateBelowMinCheckFlagEnabledInEpoch(
 // IsValidatorToDelegationFlagEnabledInEpoch returns true if ValidatorToDelegationEnableEpoch is lower than the provided epoch
 func (handler *enableEpochsHandler) IsValidatorToDelegationFlagEnabledInEpoch(epoch uint32) bool {
 	return epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch
-}
-
-// IsWaitingListFixFlagEnabledInEpoch returns true if WaitingListFixEnableEpoch is lower than the provided epoch
-func (handler *enableEpochsHandler) IsWaitingListFixFlagEnabledInEpoch(epoch uint32) bool {
-	return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
 }
 
 // IsIncrementSCRNonceInMultiTransferFlagEnabledInEpoch returns true if IncrementSCRNonceInMultiTransferEnableEpoch is lower than the provided epoch
