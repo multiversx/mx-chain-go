@@ -19,6 +19,7 @@ type NodesCoordinatorStub struct {
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
+	GetOwnPublicKeyCalled                    func() []byte
 }
 
 // NodesCoordinatorToRegistry -
@@ -180,6 +181,9 @@ func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (no
 
 // GetOwnPublicKey -
 func (ncm *NodesCoordinatorStub) GetOwnPublicKey() []byte {
+	if ncm.GetOwnPublicKeyCalled != nil {
+		return ncm.GetOwnPublicKeyCalled()
+	}
 	return []byte("key")
 }
 

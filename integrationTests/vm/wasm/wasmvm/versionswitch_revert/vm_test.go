@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,6 +33,8 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 			{StartEpoch: 7, Version: "v1.4"},
 			{StartEpoch: 8, Version: "v1.3"},
 			{StartEpoch: 9, Version: "v1.4"},
+			{StartEpoch: 10, Version: "v1.5"},
+			{StartEpoch: 11, Version: "v1.4"},
 		},
 	}
 
@@ -78,6 +80,23 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 		require.Nil(t, err)
 
 		epoch = uint32(6)
+		testContext.EpochNotifier.CheckEpoch(wasmvm.MakeHeaderHandlerStub(epoch))
+		err = wasmvm.RunERC20TransactionSet(testContext)
+		require.Nil(t, err)
+	}
+
+	for i := 0; i < repeatSwitching; i++ {
+		epoch = uint32(9)
+		testContext.EpochNotifier.CheckEpoch(wasmvm.MakeHeaderHandlerStub(epoch))
+		err = wasmvm.RunERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(10)
+		testContext.EpochNotifier.CheckEpoch(wasmvm.MakeHeaderHandlerStub(epoch))
+		err = wasmvm.RunERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(11)
 		testContext.EpochNotifier.CheckEpoch(wasmvm.MakeHeaderHandlerStub(epoch))
 		err = wasmvm.RunERC20TransactionSet(testContext)
 		require.Nil(t, err)

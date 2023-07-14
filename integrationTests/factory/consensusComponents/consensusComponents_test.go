@@ -78,6 +78,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		nodesCoordinator,
 		false,
+		managedCryptoComponents,
 	)
 	require.Nil(t, err)
 
