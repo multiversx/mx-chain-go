@@ -749,6 +749,7 @@ func (stub *EnableEpochsHandlerStub) IsCorrectJailedNotUnStakedEmptyQueueFlagEna
 	return false
 }
 
+// IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch -
 func (stub *EnableEpochsHandlerStub) IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled != nil {
 		return stub.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpochCalled(epoch)
