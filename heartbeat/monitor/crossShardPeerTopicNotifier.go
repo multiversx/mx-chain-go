@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -86,9 +85,9 @@ func (notifier *crossShardPeerTopicNotifier) getShardID(data string) (uint32, er
 	if err != nil {
 		return 0, err
 	}
-	if uint32(val) >= notifier.shardCoordinator.NumberOfShards() || val < 0 {
-		return 0, fmt.Errorf("invalid value in crossShardPeerTopicNotifier.getShardID %d", val)
-	}
+	//if uint32(val) >= notifier.shardCoordinator.NumberOfShards() || val < 0 {
+	//	return 0, fmt.Errorf("invalid value in crossShardPeerTopicNotifier.getShardID %d", val)
+	//}
 
 	return uint32(val), nil
 }

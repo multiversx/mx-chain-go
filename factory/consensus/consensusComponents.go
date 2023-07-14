@@ -812,7 +812,7 @@ func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardC
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.GetMetaConsensusGroupSize(), nil
 	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return nodesConfig.GetShardConsensusGroupSize(), nil
 	}
 

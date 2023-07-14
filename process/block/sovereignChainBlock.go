@@ -91,6 +91,7 @@ func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce ui
 		Header: &block.Header{
 			SoftwareVersion: process.SovereignHeaderVersion,
 			RootHash:        scbp.uncomputedRootHash,
+			ShardID:         core.SovereignChainShardId,
 		},
 		ValidatorStatsRootHash: scbp.uncomputedRootHash,
 	}

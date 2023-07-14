@@ -118,6 +118,8 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
+	delete(nodes.eligible, core.MetachainShardId)
+	nodes.nrOfMetaChainNodes = 0
 	return nodes, nil
 }
 
@@ -187,9 +189,9 @@ func (ns *NodesSetup) processConfig() error {
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
+	for id := uint32(0); id < 0; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
-			ns.InitialNodes[id].assignedShard = core.SovereignChainShardId //core.MetachainShardId
+			ns.InitialNodes[id].assignedShard = core.MetachainShardId //core.SovereignChainShardId //core.MetachainShardId //core.SovereignChainShardId //core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
 			ns.nrOfMetaChainNodes++
 		}
@@ -203,6 +205,7 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 	if ns.nrOfShards > ns.genesisMaxNumShards {
 		ns.nrOfShards = ns.genesisMaxNumShards
 	}
+	ns.nrOfShards = 1
 }
 
 func (ns *NodesSetup) processShardAssignment() {
@@ -224,9 +227,9 @@ func (ns *NodesSetup) processShardAssignment() {
 	currentShard = 0
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
 		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
-		if currentShard == ns.nrOfShards {
-			currentShard = core.MetachainShardId
-		}
+		//if currentShard == ns.nrOfShards {
+		//	currentShard = core.MetachainShardId
+		//}
 
 		if ns.InitialNodes[i].pubKey != nil {
 			ns.InitialNodes[i].assignedShard = core.SovereignChainShardId
