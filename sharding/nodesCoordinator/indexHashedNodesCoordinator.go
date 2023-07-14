@@ -249,12 +249,12 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		return ErrNilInputNodesMap
 	}
 
-	nodesList := eligible[core.MetachainShardId]
+	//nodesList := eligible[core.MetachainShardId]
 	//if len(nodesList) < ihnc.metaConsensusGroupSize {
 	//	return ErrSmallMetachainEligibleListSize
 	//}
 
-	numTotalEligible := uint64(len(nodesList))
+	numTotalEligible := uint64(0) //uint64(len(nodesList))
 	//for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
 	nbNodesShard := len(eligible[core.SovereignChainShardId])
 	if nbNodesShard < ihnc.shardConsensusGroupSize {
@@ -330,11 +330,11 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RLock()
 	nodesConfig, ok := ihnc.nodesConfig[epoch]
 	if ok {
-		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
-			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
-			ihnc.mutNodesConfig.RUnlock()
-			return nil, ErrInvalidShardId
-		}
+		//if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
+		//	log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+		//	ihnc.mutNodesConfig.RUnlock()
+		//	return nil, ErrInvalidShardId
+		//}
 		selector = nodesConfig.selectors[shardID]
 		eligibleList = nodesConfig.eligibleMap[shardID]
 	}
