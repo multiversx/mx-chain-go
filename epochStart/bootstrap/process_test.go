@@ -1014,7 +1014,6 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		},
 	}
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1034,7 +1033,6 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1061,7 +1059,6 @@ func TestSyncUserAccountsState(t *testing.T) {
 	}
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),

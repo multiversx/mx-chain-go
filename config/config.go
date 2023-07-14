@@ -295,6 +295,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint

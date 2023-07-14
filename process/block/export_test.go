@@ -115,6 +115,8 @@ func NewShardProcessorEmptyWith3shards(
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
+		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -158,13 +160,13 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 			GasHandler:                   &mock.GasHandlerMock{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

@@ -243,10 +243,13 @@
     RuntimeCodeSizeFixEnableEpoch = 1
 
     # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
-    RelayedNonceFixEnableEpoch = 2
+    RelayedNonceFixEnableEpoch = 1
 
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    SetGuardianEnableEpoch = 2
+    SetGuardianEnableEpoch = 1
+
+    # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
+    SCProcessorV2EnableEpoch = 6
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
     AutoBalanceDataTriesEnableEpoch = 5
@@ -282,6 +285,5 @@
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
     ]

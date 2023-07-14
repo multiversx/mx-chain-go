@@ -21,8 +21,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -30,8 +32,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -54,12 +56,7 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createAccount(address []byte) state.UserAccountHandler {
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	acc, _ := state.NewUserAccount(address, argsAccCreation)
+	acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	return acc
 }
 
@@ -75,7 +72,7 @@ func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state
 	return acntSrc, acntDst
 }
 
-func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
+func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
 	gasSchedule[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
@@ -84,7 +81,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian] = setGuardianCost
 
-	return ArgsNewSmartContractProcessor{
+	return scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
@@ -117,7 +114,8 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsSCDeployFlagEnabledField: true,
 		},
@@ -689,7 +687,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, arguments.PubkeyConv.Len())
-	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Data = []byte(funcName + "@@@0500@0000")
 	tx.Value = big.NewInt(0)
 	tx.CallType = vmData.AsynchronousCallBack
 	acntSrc, actDst := createAccounts(tx)
@@ -749,7 +747,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, arguments.PubkeyConv.Len())
-	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Data = []byte(funcName + "@@@0500@0000")
 	tx.Value = big.NewInt(0)
 	tx.CallType = vmData.AsynchronousCallBack
 	acntSrc, actDst := createAccounts(tx)
@@ -2027,7 +2025,10 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmData.DirectCall, 0)
+	_, err = sc.processVMOutput(&vmcommon.VMInput{
+		CallType:    vmData.DirectCall,
+		GasProvided: 0,
+	}, vmOutput, txHash, tx)
 	require.Nil(t, err)
 }
 
@@ -2058,7 +2059,10 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmData.DirectCall, 0)
+	_, err = sc.processVMOutput(&vmcommon.VMInput{
+		CallType:    vmData.DirectCall,
+		GasProvided: 0,
+	}, vmOutput, txHash, tx)
 	require.Nil(t, err)
 }
 
@@ -2604,7 +2608,10 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmData.DirectCall, 0)
+	_, err = sc.processVMOutput(&vmcommon.VMInput{
+		CallType:    vmData.DirectCall,
+		GasProvided: 0,
+	}, vmOutput, txHash, tx)
 	require.Nil(t, err)
 }
 
@@ -2621,7 +2628,8 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -2647,13 +2655,15 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(int64(5))
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
 	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.Nonce++
@@ -2662,7 +2672,8 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.GetBalance().Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 	require.Equal(t, currentBalance+vmOutBalance, testAcc.GetBalance().Uint64())
 }
@@ -2681,7 +2692,8 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -2695,11 +2707,13 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.BalanceDelta = big.NewInt(-50)
-	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, []byte("hash"))
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, []byte("hash"))
 	require.Equal(t, err, process.ErrNegativeBalanceDeltaOnCrossShardAccount)
 }
 
@@ -2744,7 +2758,8 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 
-	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmData.DirectCall, outputAccounts, tx, txHash)
+	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		&vmcommon.VMOutput{}, outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.False(t, createdAsyncSCR)
@@ -2795,7 +2810,8 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 
-	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000}, outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.False(t, createdAsyncSCR)
@@ -2812,7 +2828,14 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId() + 1
 	}
-	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	createdAsyncSCR, scTxs, err = sc.processSCOutputAccounts(
+		&vmcommon.VMInput{
+			Arguments: [][]byte{{}, {}},
+			CallType:  vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000},
+		outputAccounts,
+		tx,
+		txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
@@ -2824,7 +2847,12 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	})
 	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
 
-	_, scTxs, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	_, scTxs, err = sc.processSCOutputAccounts(
+		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000},
+		outputAccounts,
+		tx,
+		txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.True(t, createdAsyncSCR)
@@ -2835,7 +2863,11 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	})
 
 	tx.Value = big.NewInt(0)
-	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmData.AsynchronousCall, 10000)
+	scTxs, err = sc.processVMOutput(&vmcommon.VMInput{
+		Arguments:   [][]byte{{}, {}},
+		CallType:    vmData.AsynchronousCall,
+		GasProvided: 10000,
+	}, &vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(scTxs))
 	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
@@ -2898,7 +2930,8 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
-	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMOutput{GasRemaining: 1000}, vmData.AsynchronousCall, outputAccounts, tx, txHash)
+	createdAsyncSCR, scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
+		&vmcommon.VMOutput{GasRemaining: 1000}, outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 	require.False(t, createdAsyncSCR)
@@ -3305,7 +3338,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		SndAddr: []byte("snd addr"),
 		RcvAddr: scAddress,
 		Data:    []byte("code@06"),
-		Value:   big.NewInt(15),
+		Value:   big.NewInt(0),
 	}
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
@@ -3617,7 +3650,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	}
 	vmOutput.OutputAccounts[string(outaddress)] = outacc1
 
-	asyncCallback, results := sc.createSmartContractResults(vmOutput, vmData.DirectCall, outacc1, &transaction.Transaction{}, []byte("hash"))
+	asyncCallback, results, err := sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
@@ -3636,7 +3671,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
-	asyncCallback, results = sc.createSmartContractResults(vmOutput, vmData.DirectCall, outacc1, &transaction.Transaction{}, []byte("hash"))
+	asyncCallback, results, err = sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
 	require.False(t, asyncCallback)
 	require.Equal(t, 1, len(results))
 
@@ -4498,7 +4535,7 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 	t.Run("empty builtInFunctions should return empty map", func(t *testing.T) {
 		arguments := createMockSmartContractProcessorArguments()
 		builtinFuncs := arguments.BuiltInFunctions
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 0, len(executableCheckersMap))
 	})
@@ -4506,7 +4543,7 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 		arguments := createMockSmartContractProcessorArguments()
 		builtinFuncs := arguments.BuiltInFunctions
 		_ = builtinFuncs.Add("SetGuardian", &mock.BuiltInFunctionStub{})
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 0, len(executableCheckersMap))
 	})
@@ -4516,9 +4553,62 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 		builtinFuncs := arguments.BuiltInFunctions
 		_ = builtinFuncs.Add("SetGuardian", expectedExecutableChecker)
 		_ = builtinFuncs.Add("SetGuardian2", &mock.BuiltInFunctionStub{})
-		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		executableCheckersMap := scrCommon.CreateExecutableCheckersMap(builtinFuncs)
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 1, len(executableCheckersMap))
 		require.Equal(t, expectedExecutableChecker, executableCheckersMap["SetGuardian"])
 	})
+}
+
+func TestScProcessor_DisableAsyncCalls(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	shardCoordinator.ComputeIdCalled = func(_ []byte) uint32 {
+		return shardCoordinator.SelfId() + 1
+	}
+	arguments.ShardCoordinator = shardCoordinator
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsDisableAsyncCallV1EnabledCalled: func() bool {
+			return false
+		},
+	}
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Nonce = 0
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(15)
+	outTransfer := vmcommon.OutputTransfer{
+		Value:     big.NewInt(5),
+		CallType:  vmData.AsynchronousCall,
+		GasLocked: 100,
+		GasLimit:  100,
+		Data:      []byte("functionCall"),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+	vmOutput := &vmcommon.VMOutput{
+		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
+	}
+	vmOutput.OutputAccounts[string(outaddress)] = outacc1
+
+	_, scResults, err := sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Nil(t, err)
+	require.NotNil(t, scResults)
+
+	arguments.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsDisableAsyncCallV1EnabledCalled: func() bool {
+			return true
+		},
+	}
+	sc, _ = NewSmartContractProcessor(arguments)
+
+	_, scResults, err = sc.createSmartContractResults(&vmcommon.VMInput{CallType: vmData.DirectCall},
+		vmOutput, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.Equal(t, process.ErrAsyncCallsDisabled.Error(), err.Error())
+	require.Nil(t, scResults)
 }

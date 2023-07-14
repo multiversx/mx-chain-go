@@ -447,8 +447,8 @@ func (m *managedProcessComponents) FallbackHeaderValidator() process.FallbackHea
 	return m.processComponents.fallbackHeaderValidator
 }
 
-// TransactionSimulatorProcessor returns the transaction simulator processor
-func (m *managedProcessComponents) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
+// APITransactionEvaluator returns the api transaction evaluator
+func (m *managedProcessComponents) APITransactionEvaluator() factory.TransactionEvaluator {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -456,7 +456,7 @@ func (m *managedProcessComponents) TransactionSimulatorProcessor() factory.Trans
 		return nil
 	}
 
-	return m.processComponents.txSimulatorProcessor
+	return m.processComponents.apiTransactionEvaluator
 }
 
 // WhiteListHandler returns the white list handler

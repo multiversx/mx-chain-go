@@ -352,7 +352,9 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	numDecimals := byte(6)
 
 	txData.Clear().IssueESDT("robertWhyNot", ticker, initialSupply.Int64(), numDecimals)
-	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).Int(1000)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
+	txData.Bytes([]byte("callID")).Bytes([]byte("callerCallID")) // async args
+	txData.Int64(1000)                                           // gas locked
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          0,
 		Value:          issuePrice,
@@ -435,7 +437,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// deploy the smart contract
 
-	vaultScCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vaultScCode := wasm.GetSCCode("../testdata/vault.wasm")
 	vaultScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -468,7 +470,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// take them back, with a message
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest).Str("ESDT transfer message")
+	txData.Clear().Func("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vaultScAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -650,7 +652,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault-0.41.2.wasm")
 	vault, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -700,11 +702,12 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, vault, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call forwarder to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
+	txData.Clear().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
@@ -717,7 +720,14 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, vault, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/4)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: tokenIdentifier,
+			Nonce:   0,
+			Payment: big.NewInt(valueToRequest),
+		},
+	})
 
 	// call forwarder to ask the second one to execute a method
 	valueToTransferWithExecSc := valueToSendToSc / 4
@@ -803,7 +813,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -846,11 +856,12 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("forward_async_call").Bytes(secondScAddress).Str("retrieve_funds").Str("EGLD").Int64(valueToRequest)
+	txData.Clear().Func("forward_async_call").Bytes(secondScAddress).Str("retrieve_funds").Str("EGLD").Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -858,7 +869,14 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 2, "EGLD", big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: "EGLD",
+			Nonce:   0,
+			Payment: big.NewInt(valueToRequest),
+		},
+	})
 }
 
 func TestScCallsScWithEsdtCrossShard(t *testing.T) {
@@ -913,7 +931,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 
-	vaultCode := wasm.GetSCCode("../testdata/vaultV1.wasm")
+	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
 	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
@@ -961,12 +979,13 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
 
 	// call forwarder to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
 	txData.Clear().Func("forward_async_call").Bytes(secondScAddress)
-	txData.Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
+	txData.Str("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -977,7 +996,14 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/4)
 
 	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckSavedCallBackData(t, forwarder, nodes, 1, tokenIdentifier, big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
+	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
+		{
+			TokenId: "EGLD",
+			Nonce:   0,
+			Payment: big.NewInt(valueToSendToSc),
+		},
+	})
 }
 
 func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
@@ -1282,8 +1308,9 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	tokenIssuer := nodes[0]
 
 	// deploy parent contract
-	callerScCode := wasm.GetSCCode("../testdata/parent.wasm")
-	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	callerScCode := wasm.GetSCCode("../../wasm/testdata/community/parent.wasm")
+	callerScAddress, err := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	require.Nil(t, err)
 
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
@@ -1295,12 +1322,12 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
-	_, err := nodes[0].AccntState.GetExistingAccount(callerScAddress)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(callerScAddress)
 	require.Nil(t, err)
 
 	// deploy child contract by calling deployChildContract endpoint
-	receiverScCode := wasm.GetSCCode("../testdata/child.wasm")
+	receiverScCode := wasm.GetSCCode("../../wasm/testdata/community/child.wasm")
 	txDeployData := txDataBuilder.NewBuilder()
 	txDeployData.Func("deployChildContract").Str(receiverScCode)
 
@@ -1382,10 +1409,20 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochs,
+		vmConfig,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -2069,8 +2106,9 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:       integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:     integrationTests.UnreachableEpoch,
+		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

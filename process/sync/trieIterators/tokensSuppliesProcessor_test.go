@@ -12,7 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	coreEsdt "github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -71,12 +73,6 @@ func TestNewTokensSuppliesProcessor(t *testing.T) {
 func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 	t.Parallel()
 
-	userAccArgs := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-
 	t.Run("nil user account", func(t *testing.T) {
 		t.Parallel()
 
@@ -124,7 +120,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 
 		expectedErr := errors.New("error")
 
-		userAcc, _ := state.NewUserAccount([]byte("addr"), userAccArgs)
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
@@ -146,7 +142,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount([]byte("addr"), userAccArgs)
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
@@ -171,7 +167,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount(vmcommon.SystemAccountAddress, userAccArgs)
+		userAcc, _ := accounts.NewUserAccount(vmcommon.SystemAccountAddress, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
@@ -200,7 +196,9 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount([]byte("addr"), userAccArgs)
+		dtt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("addr"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
