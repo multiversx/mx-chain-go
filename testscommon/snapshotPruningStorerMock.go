@@ -61,6 +61,7 @@ func (spsm *SnapshotPruningStorerMock) RemoveFromCurrentEpoch(key []byte) error 
 	return spsm.Remove(key)
 }
 
+// GetWithStats -
 func (spsm *SnapshotPruningStorerMock) GetWithStats(key []byte) ([]byte, bool, error) {
 	v, err := spsm.Get(key)
 	return v, false, err

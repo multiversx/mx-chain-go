@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
 	args := GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = createMemUnit()
+	args.MainStorer = testscommon.CreateStorerWithStats()
 	trieStorage, _ := NewTrieStorageManager(args)
 
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)

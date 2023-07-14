@@ -125,6 +125,7 @@ type StorageManagerWithStats interface {
 type TrieStorageInteractor interface {
 	BaseStorer
 	GetIdentifier() string
+	GetStatsCollector() StateStatisticsHandler
 }
 
 // BaseStorer define the base methods needed for a storer
@@ -134,6 +135,11 @@ type BaseStorer interface {
 	Remove(key []byte) error
 	Close() error
 	IsInterfaceNil() bool
+}
+
+type StorerWithStats interface {
+	BaseStorer
+	GetWithStats(key []byte) ([]byte, bool, error)
 }
 
 // SnapshotDbHandler is used to keep track of how many references a snapshot db has

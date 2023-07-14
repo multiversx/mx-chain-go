@@ -151,11 +151,8 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
-	dbWithStats, ok := db.(storageManagerWithStats)
-	if !ok {
-		log.Warn("invalid trie storage interector type %T", db)
-	} else {
-		dbWithStats.GetStatsCollector().IncrTrieOp()
+	if db != nil {
+		db.GetStatsCollector().IncrTrieOp()
 	}
 }
 

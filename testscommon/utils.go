@@ -29,3 +29,22 @@ func CreateMemUnit() storage.Storer {
 
 	return unit
 }
+
+type storerWithStats struct {
+	storage.Storer
+}
+
+func (ss *storerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
+	v, err := ss.Get(key)
+	return v, false, err
+}
+
+// CreateStorerWithStats will create a new in-memory storer with stats component
+func CreateStorerWithStats() storage.StorerWithStats {
+	storerUnit := CreateMemUnit()
+	return &storerWithStats{storerUnit}
+}
+
+func CreateMemStorerWithStats(storer storage.Storer) storage.StorerWithStats {
+	return &storerWithStats{storer}
+}

@@ -23,7 +23,7 @@ import (
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	mainStorer             common.BaseStorer
+	mainStorer             common.StorerWithStats
 	checkpointsStorer      common.BaseStorer
 	pruningBlockingOps     uint32
 	snapshotReq            chan *snapshotsQueueEntry
@@ -90,8 +90,13 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
+	storerWithStats, ok := args.MainStorer.(common.StorerWithStats)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+
 	tsm := &trieStorageManager{
-		mainStorer:             args.MainStorer,
+		mainStorer:             storerWithStats,
 		checkpointsStorer:      args.CheckpointsStorer,
 		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
@@ -192,12 +197,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, core.ErrContextClosing
 	}
 
-	storerWithStats, ok := tsm.mainStorer.(storage.StorerWithStats)
-	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
-	}
-
-	val, foundInCache, err := storerWithStats.GetWithStats(key)
+	val, foundInCache, err := tsm.mainStorer.GetWithStats(key)
 	if core.IsClosingError(err) {
 		return nil, err
 	}
