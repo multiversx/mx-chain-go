@@ -50,15 +50,15 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(2), ret)
 
-	expectedBalance := big.NewInt(24160)
+	expectedBalance := big.NewInt(23850)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(16710), accumulatedFees)
+	require.Equal(t, big.NewInt(17950), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(745), developerFees)
+	require.Equal(t, big.NewInt(807), developerFees)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -133,10 +133,10 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(22920), accumulatedFees)
+	require.Equal(t, big.NewInt(23850), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
@@ -171,10 +171,10 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(12870), accumulatedFees)
+	require.Equal(t, big.NewInt(13800), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
@@ -210,10 +210,10 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(13020), accumulatedFees)
+	require.Equal(t, big.NewInt(13950), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) {

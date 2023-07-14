@@ -3,14 +3,13 @@ package scenariosConverter
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/config"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
-
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
+	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )

@@ -678,6 +678,7 @@
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
     CheckpointsEnabled = false
+    SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -694,6 +695,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -703,6 +705,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]

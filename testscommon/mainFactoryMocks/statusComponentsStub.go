@@ -2,15 +2,17 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // StatusComponentsStub -
 type StatusComponentsStub struct {
-	Outport              outport.OutportHandler
-	SoftwareVersionCheck statistics.SoftwareVersionChecker
-	AppStatusHandler     core.AppStatusHandler
+	Outport                  outport.OutportHandler
+	SoftwareVersionCheck     statistics.SoftwareVersionChecker
+	AppStatusHandler         core.AppStatusHandler
+	ManagedPeersMonitorField common.ManagedPeersMonitor
 }
 
 // Create -
@@ -36,6 +38,11 @@ func (scs *StatusComponentsStub) OutportHandler() outport.OutportHandler {
 // SoftwareVersionChecker -
 func (scs *StatusComponentsStub) SoftwareVersionChecker() statistics.SoftwareVersionChecker {
 	return scs.SoftwareVersionCheck
+}
+
+// ManagedPeersMonitor -
+func (scs *StatusComponentsStub) ManagedPeersMonitor() common.ManagedPeersMonitor {
+	return scs.ManagedPeersMonitorField
 }
 
 // IsInterfaceNil -
