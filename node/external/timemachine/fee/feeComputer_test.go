@@ -45,6 +45,13 @@ func TestNewFeeComputer(t *testing.T) {
 		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
 		require.Nil(t, computer)
 	})
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
+		args := createMockFeeComputerArgs()
+		args.EnableEpochsHandler = nil
+		computer, err := NewFeeComputer(args)
+		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+		require.Nil(t, computer)
+	})
 	t.Run("AllArgumentsProvided", func(t *testing.T) {
 		args := createMockFeeComputerArgs()
 		computer, err := NewFeeComputer(args)
