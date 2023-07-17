@@ -6,6 +6,7 @@
 package multiShard
 
 import (
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"math/big"
 	"testing"
 
@@ -17,11 +18,15 @@ import (
 )
 
 func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

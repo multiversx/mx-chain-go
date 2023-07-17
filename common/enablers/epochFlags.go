@@ -92,6 +92,7 @@ type epochFlagsHolder struct {
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
 	relayedNonceFixFlag                         *atomic.Flag
+	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -183,6 +184,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 		relayedNonceFixFlag:                         &atomic.Flag{},
+		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 	}
 }
 
@@ -672,4 +674,9 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 // IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
 func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
 	return holder.relayedNonceFixFlag.IsSet()
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled returns true if dynamicGasCostForDataTrieStorageLoadFlag is enabled
+func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	return holder.dynamicGasCostForDataTrieStorageLoadFlag.IsSet()
 }

@@ -119,6 +119,7 @@ type EnableEpochsHandlerStub struct {
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
 	IsRelayedNonceFixEnabledField                                bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1030,6 +1031,14 @@ func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRelayedNonceFixEnabledField
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsDynamicGasCostForDataTrieStorageLoadEnabledField
 }
 
 // IsInterfaceNil -

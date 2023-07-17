@@ -8,6 +8,7 @@ package txsFee
 import (
 	"context"
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"math/big"
 	"testing"
 
@@ -24,7 +25,9 @@ import (
 )
 
 func TestAsyncESDTCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -181,7 +184,9 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 }
 
 func TestAsyncMultiTransferOnCallback(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 

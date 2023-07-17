@@ -144,6 +144,9 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
+	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}, context.EpochNotifier)
 	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{}, context.EpochNotifier)
 	context.WasmVMChangeLocker = &sync.RWMutex{}
 

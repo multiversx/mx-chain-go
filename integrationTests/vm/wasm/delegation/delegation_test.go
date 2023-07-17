@@ -69,9 +69,8 @@ func TestDelegation_Upgrade(t *testing.T) {
 
 func TestDelegation_Claims(t *testing.T) {
 	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
+
+	t.Skip("cannot run with -race -short; requires Wasm VM fix")
 
 	context := wasm.SetupTestContext(t)
 	defer context.Close()

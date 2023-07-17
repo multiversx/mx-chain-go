@@ -3265,9 +3265,10 @@ func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) no
 // GetDefaultEnableEpochsConfig returns a default EnableEpochs config
 func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 	return &config.EnableEpochs{
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
-		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:     UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                  UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 	}
 }

@@ -7,6 +7,7 @@ package txsFee
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"math/big"
 	"sync"
 	"testing"
@@ -58,11 +59,12 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		config.EnableEpochs{
-			GovernanceEnableEpoch:                   unreachableEpoch,
-			WaitingListFixEnableEpoch:               unreachableEpoch,
-			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
-			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
-			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch,
+			GovernanceEnableEpoch:                           unreachableEpoch,
+			WaitingListFixEnableEpoch:                       unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -87,7 +89,9 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -258,7 +262,9 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
