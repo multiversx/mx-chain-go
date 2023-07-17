@@ -127,6 +127,7 @@ func GetGeneralConfig() config.Config {
 		StateTriesConfig: config.StateTriesConfig{
 			CheckpointRoundsModulus:     100,
 			CheckpointsEnabled:          false,
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,

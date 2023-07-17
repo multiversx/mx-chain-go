@@ -143,6 +143,7 @@ func createMockEpochStartBootstrapArgs(
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     5,
 				AccountsStatePruningEnabled: true,
+				SnapshotsEnabled:            true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
 				MaxPeerTrieLevelInMemory:    5,
