@@ -162,9 +162,9 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	if ns.ConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
+	//if ns.ConsensusGroupSize < 1 {
+	//	return ErrNegativeOrZeroConsensusGroupSize
+	//}
 	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
@@ -172,9 +172,9 @@ func (ns *NodesSetup) processConfig() error {
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
-	if ns.MetaChainConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
+	//if ns.MetaChainConsensusGroupSize < 1 {
+	//	return ErrNegativeOrZeroConsensusGroupSize
+	//}
 	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
@@ -252,11 +252,8 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 				address:       in.address,
 				initialRating: in.initialRating,
 			}
-			if in.eligible {
-				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
-			} else {
-				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], ni)
-			}
+			ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
+
 		}
 	}
 }
