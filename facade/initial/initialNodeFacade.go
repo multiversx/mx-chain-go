@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -141,7 +142,7 @@ func (inf *initialNodeFacade) ValidateTransactionForSimulation(_ *transaction.Tr
 }
 
 // ValidatorStatisticsApi returns nil and error
-func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return nil, errNodeStarting
 }
 
@@ -403,6 +404,26 @@ func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, err
 // IsDataTrieMigrated returns false and error
 func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
 	return false, errNodeStarting
+}
+
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetManagedKeys returns nil
+func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

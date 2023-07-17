@@ -596,6 +596,7 @@ func GetStatusComponents(
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
 		StatusCoreComponents: GetStatusCoreComponents(),
+		CryptoComponents:     GetDefaultCryptoComponents(),
 	}
 
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
@@ -666,6 +667,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		StateComponents:      stateComponents,
 		StatusCoreComponents: statusCoreComponents,
 		IsInImportMode:       false,
+		CryptoComponents:     cryptoComponents,
 	}, processComponents
 }
 

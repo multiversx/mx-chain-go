@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -35,7 +36,7 @@ type FacadeStub struct {
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler                  func() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsHandler                  func() (map[string]*accounts.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
@@ -88,6 +89,10 @@ type FacadeStub struct {
 	PprofEnabledCalled                          func() bool
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
+	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
 
 // GetTokenSupply -
@@ -321,7 +326,7 @@ func (f *FacadeStub) ValidateTransactionForSimulation(tx *transaction.Transactio
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
-func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return f.ValidatorStatisticsHandler()
 }
 
@@ -571,6 +576,38 @@ func (f *FacadeStub) Trigger(_ uint32, _ bool) error {
 // IsSelfTrigger -
 func (f *FacadeStub) IsSelfTrigger() bool {
 	return false
+}
+
+// GetManagedKeysCount -
+func (f *FacadeStub) GetManagedKeysCount() int {
+	if f.GetManagedKeysCountCalled != nil {
+		return f.GetManagedKeysCountCalled()
+	}
+	return 0
+}
+
+// GetManagedKeys -
+func (f *FacadeStub) GetManagedKeys() []string {
+	if f.GetManagedKeysCalled != nil {
+		return f.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetEligibleManagedKeys -
+func (f *FacadeStub) GetEligibleManagedKeys() ([]string, error) {
+	if f.GetEligibleManagedKeysCalled != nil {
+		return f.GetEligibleManagedKeysCalled()
+	}
+	return make([]string, 0), nil
+}
+
+// GetWaitingManagedKeys -
+func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
+	if f.GetWaitingManagedKeysCalled != nil {
+		return f.GetWaitingManagedKeysCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // Close -

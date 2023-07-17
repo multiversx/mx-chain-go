@@ -233,9 +233,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		FlagsConfigs: config.ContextFlagsConfig{
-			SnapshotsEnabled: false,
-		},
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -260,7 +258,6 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		StorageService:           pr.DataComponents.StorageService(),
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
-		SnapshotsEnabled:         false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
 	}
 
@@ -321,6 +318,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		StatusCoreComponents: pr.StatusCoreComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StateComponents:      pr.StateComponents,
+		CryptoComponents:     pr.CryptoComponents,
 		IsInImportMode:       false,
 	}
 
@@ -409,9 +407,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
-			Version:          "test",
-			WorkingDir:       pr.Config.FlagsConfig.WorkingDir,
-			SnapshotsEnabled: false,
+			Version:    "test",
+			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
 		AccountsParser:         accountsParser,
 		SmartContractParser:    smartContractParser,

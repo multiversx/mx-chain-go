@@ -123,7 +123,6 @@ func (tc *trieCreator) IsInterfaceNil() bool {
 
 // CreateTriesComponentsForShardId creates the user and peer tries and trieStorageManagers
 func CreateTriesComponentsForShardId(
-	snapshotsEnabled bool,
 	generalConfig config.Config,
 	coreComponentsHolder coreComponentsHandler,
 	storageService dataRetriever.StorageService,
@@ -155,7 +154,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:         generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		CheckpointsEnabled:     generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:      generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:       snapshotsEnabled,
+		SnapshotsEnabled:       generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:           coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:             dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler:    coreComponentsHolder.EnableEpochsHandler(),
@@ -188,7 +187,7 @@ func CreateTriesComponentsForShardId(
 		PruningEnabled:         generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		CheckpointsEnabled:     generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:      generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-		SnapshotsEnabled:       snapshotsEnabled,
+		SnapshotsEnabled:       generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:           coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:             dataRetriever.PeerAccountsUnit.String(),
 		EnableEpochsHandler:    coreComponentsHolder.EnableEpochsHandler(),
