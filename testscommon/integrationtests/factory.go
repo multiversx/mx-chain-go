@@ -80,7 +80,7 @@ func CreateStorer(parentDir string) storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	return CreateAccountsDB(CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return CreateAccountsDB(testscommon.CreateStorerWithStats(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDB -
