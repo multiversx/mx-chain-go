@@ -180,7 +180,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 }
 
 func checkArguments(arguments ArgNodesCoordinator) error {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+	if arguments.ShardConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
 	}
 	if arguments.NbShards < 1 {
@@ -317,6 +317,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	var selector RandomSelector
 	var eligibleList []Validator
 
+	shardID = core.SovereignChainShardId
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
 		"shardID", shardID,
