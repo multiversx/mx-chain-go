@@ -88,12 +88,12 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		return nil, storage.ErrNilStatsCollector
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	storerWithStats, ok := args.MainStorer.(common.StorerWithStats)
 	if !ok {
 		return nil, errors.ErrWrongTypeAssertion
 	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
 		mainStorer:             storerWithStats,
