@@ -117,7 +117,9 @@ type StorageManager interface {
 	IsInterfaceNil() bool
 }
 
+// StorageManagerWithStats defines the behaviour of a storage manager component with stats collector
 type StorageManagerWithStats interface {
+	StorageManager
 	GetStatsCollector() StateStatisticsHandler
 }
 
@@ -137,6 +139,7 @@ type BaseStorer interface {
 	IsInterfaceNil() bool
 }
 
+// StorerWithStats defines the behaviour of a base storer component with operations statistics
 type StorerWithStats interface {
 	BaseStorer
 	GetWithStats(key []byte) ([]byte, bool, error)
@@ -227,7 +230,7 @@ type TriesStatisticsCollector interface {
 	GetNumNodes() uint64
 }
 
-// StateStatisticsHandler -
+// StateStatisticsHandler defines the behaviour of a storage statistics handler
 type StateStatisticsHandler interface {
 	Reset()
 	IncrCacheOp()

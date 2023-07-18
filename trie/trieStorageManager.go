@@ -214,6 +214,7 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	return tsm.getFromOtherStorers(key)
 }
 
+// GetStatsCollector will return the stats collector component
 func (tsm *trieStorageManager) GetStatsCollector() common.StateStatisticsHandler {
 	return tsm.statsCollector
 }

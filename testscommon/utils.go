@@ -30,10 +30,12 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
+// StorerWithStats -
 type StorerWithStats struct {
 	storage.Storer
 }
 
+// GetWithStats -
 func (ss *StorerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
 	v, err := ss.Get(key)
 	return v, false, err
@@ -45,6 +47,7 @@ func CreateStorerWithStats() storage.StorerWithStats {
 	return &StorerWithStats{storerUnit}
 }
 
+// CreateMemStorerWithStats -
 func CreateMemStorerWithStats(storer storage.Storer) storage.StorerWithStats {
 	return &StorerWithStats{storer}
 }

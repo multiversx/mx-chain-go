@@ -269,6 +269,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	return nil
 }
 
+// GetStats will returns trie storage operations statistics as string
 func (tr *patriciaMerkleTrie) GetStats() string {
 	dbWithStats, ok := tr.trieStorage.(storageManagerWithStats)
 	if !ok {

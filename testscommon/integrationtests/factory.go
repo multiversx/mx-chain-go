@@ -30,14 +30,14 @@ var TestHasher = sha256.NewSha256()
 const MaxTrieLevelInMemory = uint(5)
 
 // CreateMemUnit -
-func CreateMemUnit() storage.Storer {
+func CreateMemUnit() storage.StorerWithStats {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 
 	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
-	return unit
+	return testscommon.CreateMemStorerWithStats(unit)
 }
 
 // CreateStorer -

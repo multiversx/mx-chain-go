@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
@@ -52,8 +51,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []by
 	return false
 }
 
-// GetStatsCollector -
+// GetStatsCollector will return the stats collector component
 func (tsm *trieStorageManagerWithoutCheckpoints) GetStatsCollector() common.StateStatisticsHandler {
-	//return tsm.storerWithStats.GetStatsCollector()
-	return disabled.NewStateStatistics()
+	return tsm.storerWithStats.GetStatsCollector()
 }
