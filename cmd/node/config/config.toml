@@ -25,7 +25,7 @@
     GenesisString = "67656E65736973"
 
     # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
-    GenesisMaxNumberOfShards  = 2
+    GenesisMaxNumberOfShards  = 3
 
     # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
     # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
