@@ -221,6 +221,41 @@ func (accountsDB *accountsDBApiWithHistory) GetCodeWithBlockInfo(codeHash []byte
 	return accountsDB.doGetCodeWithBlockInfoUnprotected(codeHash, rootHash)
 }
 
+// LoadAccountWithBlockInfo returns the account and the associated block info
+func (accountsDB *accountsDBApiWithHistory) LoadAccountWithBlockInfo(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	rootHash := options.GetRootHash()
+
+	// First check to avoid re-creation:
+	accountsDB.mutRecreateAndGet.RLock()
+	if !accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		// Re-creation is not necessary, but make sure no other routine re-creates it.
+		defer accountsDB.mutRecreateAndGet.RUnlock()
+		return accountsDB.doLoadAccountWithBlockInfoUnprotected(address, rootHash)
+	}
+
+	accountsDB.mutRecreateAndGet.RUnlock()
+
+	// Re-creation seems to be necessary, promote to a "write" lock.
+	accountsDB.mutRecreateAndGet.Lock()
+	defer accountsDB.mutRecreateAndGet.Unlock()
+
+	// Second check to avoid re-creation:
+	if accountsDB.shouldRecreateTrieUnprotected(rootHash) {
+		err := accountsDB.recreateTrieUnprotected(options)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return accountsDB.doLoadAccountWithBlockInfoUnprotected(address, rootHash)
+}
+
+func (accountsDB *accountsDBApiWithHistory) doLoadAccountWithBlockInfoUnprotected(address []byte, rootHash []byte) (vmcommon.AccountHandler, common.BlockInfo, error) {
+	blockInfo := holders.NewBlockInfo(nil, 0, rootHash)
+	account, err := accountsDB.innerAccountsAdapter.LoadAccount(address)
+	return account, blockInfo, err
+}
+
 func (accountsDB *accountsDBApiWithHistory) doGetCodeWithBlockInfoUnprotected(codeHash []byte, rootHash []byte) ([]byte, common.BlockInfo, error) {
 	blockInfo := holders.NewBlockInfo(nil, 0, rootHash)
 	code := accountsDB.innerAccountsAdapter.GetCode(codeHash)
