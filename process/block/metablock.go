@@ -344,6 +344,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.checkShardHeadersFinality(highestNonceHdrs, header.GetEpoch())
 	if err != nil {
+		log.Error("REMOVE_ME: shard header(s) not final", "error", err)
 		return err
 	}
 
@@ -764,6 +765,15 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
 
+	log.Error("REMOVE_ME: print after create block")
+	mp.headersCounter.displayLogInfo(
+		mp.txCounter,
+		metaHdr,
+		body.(*block.Body),
+		[]byte("hash"),
+		10,
+		mp.blockTracker,
+	)
 	return metaHdr, body, nil
 }
 
