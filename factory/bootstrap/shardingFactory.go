@@ -65,6 +65,7 @@ func CreateShardCoordinator(
 	}
 
 	var shardName string
+	selfShardId = core.SovereignChainShardId
 	if selfShardId == core.MetachainShardId {
 		shardName = common.MetachainShardName
 	} else {
