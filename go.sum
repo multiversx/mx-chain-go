@@ -638,6 +638,8 @@ github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55 h1:hmo/QQ/qY+WgsMQeBODIX+tEnM/
 github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55/go.mod h1:mgr3T06eLGFyDIk0BfLguNicejnDsRn1hi0ClURViEw=
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.82-0.20230717111000-ce9ddad4a73c h1:7kh6bNgkUdxaKtRneLN8CTrmsvlsgHgJ3dzKWUu1K8U=
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.82-0.20230717111000-ce9ddad4a73c/go.mod h1:gtdXz7QzInA5+lCOkBpkVl5WHnwOK2xUHitfcAsQMfg=
+github.com/multiversx/mx-chain-vm-v1_4-go v1.4.82-0.20230718092659-7b91fd1a70a1 h1:KNX180GJLAqlU0zR1HJlfihcYuyKypz0HzhgFc9k1wY=
+github.com/multiversx/mx-chain-vm-v1_4-go v1.4.82-0.20230718092659-7b91fd1a70a1/go.mod h1:gtdXz7QzInA5+lCOkBpkVl5WHnwOK2xUHitfcAsQMfg=
 github.com/multiversx/mx-components-big-int v0.1.1 h1:695mYPKYOrmGEGgRH4/pZruDoe3CPP1LHrBxKfvj5l4=
 github.com/multiversx/mx-components-big-int v0.1.1/go.mod h1:0QrcFdfeLgJ/am10HGBeH0G0DNF+0Qx1E4DS/iozQls=
 github.com/multiversx/protobuf v1.3.2 h1:RaNkxvGTGbA0lMcnHAN24qE1G1i+Xs5yHA6MDvQ4mSM=
