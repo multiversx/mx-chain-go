@@ -222,6 +222,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		ShardID:                   scf.shardCoordinator.SelfId(),
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
