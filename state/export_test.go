@@ -103,3 +103,27 @@ func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
 func (a *userAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
 	return a.dataTrieTracker.SaveDirtyData(trie)
 }
+
+// SetSnapshotInProgress -
+func (sm *snapshotsManager) SetSnapshotInProgress() {
+	sm.isSnapshotInProgress.SetValue(true)
+}
+
+// SetLastSnapshotInfo -
+func (sm *snapshotsManager) SetLastSnapshotInfo(rootHash []byte, epoch uint32) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sm.lastSnapshot = &snapshotInfo{
+		rootHash: rootHash,
+		epoch:    epoch,
+	}
+}
+
+// GetLastSnapshotInfo -
+func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
+}

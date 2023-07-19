@@ -218,7 +218,6 @@ func (sm *snapshotsManager) verifyAndStartSnapshot(rootHash []byte, epoch uint32
 	}()
 
 	if sm.isSnapshotInProgress.IsSet() {
-
 		return nil, true
 	}
 
@@ -245,14 +244,14 @@ func (sm *snapshotsManager) snapshotState(
 	})
 	if err != nil {
 		log.Error("error waiting for storage epoch change", "err", err)
-		sm.earlySnapshotCompletion(rootHash, epoch, trieStorageManager, stats)
+		sm.earlySnapshotCompletion(stats)
 		return
 	}
 
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot", "rootHash", rootHash, "epoch", epoch)
 
-		sm.earlySnapshotCompletion(rootHash, epoch, trieStorageManager, stats)
+		sm.earlySnapshotCompletion(stats)
 		return
 	}
 
@@ -275,12 +274,10 @@ func (sm *snapshotsManager) snapshotState(
 	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
 }
 
-func (sm *snapshotsManager) earlySnapshotCompletion(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager, stats *snapshotStatistics) {
+func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	err := trieStorageManager.PutInEpoch([]byte(lastSnapshot), rootHash, epoch)
-	handleLoggingWhenError("could not set lastSnapshot", err, "rootHash", rootHash)
 	stats.SnapshotFinished()
 	sm.isSnapshotInProgress.Reset()
 }
