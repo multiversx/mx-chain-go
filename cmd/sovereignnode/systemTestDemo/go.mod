@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/multiversx/mx-chain-communication-go v1.0.1
-	github.com/multiversx/mx-chain-core-go v1.2.1-0.20230510143029-ab37792342df
+	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230717142101-59f40d2b9027
 	github.com/multiversx/mx-chain-crypto-go v1.2.5
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-sdk-go v1.2.7

@@ -117,6 +117,9 @@ func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress []byte) 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // identifier is generated such as the first shard from identifier is always smaller or equal than the last
 func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
+	if destShardID == 0 {
+		destShardID = core.SovereignChainShardId
+	}
 	return core.CommunicationIdentifierBetweenShards(msc.selfId, destShardID)
 }
 

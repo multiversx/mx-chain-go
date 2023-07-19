@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
@@ -88,9 +87,9 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 
 func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {
 	for _, sd := range shardInfo {
-		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
-			return process.ErrInvalidShardId
-		}
+		//if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
+		//	return process.ErrInvalidShardId
+		//}
 
 		err := checkShardData(sd, coordinator)
 		if err != nil {
@@ -103,16 +102,16 @@ func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.GetShardMiniBlockHeaderHandlers() {
-		isWrongSenderShardId := smbh.GetSenderShardID() >= coordinator.NumberOfShards() &&
-			smbh.GetSenderShardID() != core.MetachainShardId &&
-			smbh.GetSenderShardID() != core.AllShardId
-		isWrongDestinationShardId := smbh.GetReceiverShardID() >= coordinator.NumberOfShards() &&
-			smbh.GetReceiverShardID() != core.MetachainShardId &&
-			smbh.GetReceiverShardID() != core.AllShardId
-		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
-		if isWrongShardId {
-			return process.ErrInvalidShardId
-		}
+		//isWrongSenderShardId := smbh.GetSenderShardID() >= coordinator.NumberOfShards() &&
+		//	smbh.GetSenderShardID() != core.MetachainShardId &&
+		//	smbh.GetSenderShardID() != core.AllShardId
+		//isWrongDestinationShardId := smbh.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+		//	smbh.GetReceiverShardID() != core.MetachainShardId &&
+		//	smbh.GetReceiverShardID() != core.AllShardId
+		//isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
+		//if isWrongShardId {
+		//	return process.ErrInvalidShardId
+		//}
 
 		if len(smbh.GetReserved()) > maxLenMiniBlockHeaderReservedField {
 			return process.ErrReservedFieldInvalid
@@ -124,16 +123,16 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 
 func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
 	for _, mbHeader := range mbHeaders {
-		isWrongSenderShardId := mbHeader.GetSenderShardID() >= coordinator.NumberOfShards() &&
-			mbHeader.GetSenderShardID() != core.MetachainShardId &&
-			mbHeader.GetSenderShardID() != core.AllShardId
-		isWrongDestinationShardId := mbHeader.GetReceiverShardID() >= coordinator.NumberOfShards() &&
-			mbHeader.GetReceiverShardID() != core.MetachainShardId &&
-			mbHeader.GetReceiverShardID() != core.AllShardId
-		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
-		if isWrongShardId {
-			return process.ErrInvalidShardId
-		}
+		//isWrongSenderShardId := mbHeader.GetSenderShardID() >= coordinator.NumberOfShards() &&
+		//	mbHeader.GetSenderShardID() != core.MetachainShardId &&
+		//	mbHeader.GetSenderShardID() != core.AllShardId
+		//isWrongDestinationShardId := mbHeader.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+		//	mbHeader.GetReceiverShardID() != core.MetachainShardId &&
+		//	mbHeader.GetReceiverShardID() != core.AllShardId
+		//isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
+		//if isWrongShardId {
+		//	return process.ErrInvalidShardId
+		//}
 
 		if len(mbHeader.GetReserved()) > maxLenMiniBlockHeaderReservedField {
 			return process.ErrReservedFieldInvalid
