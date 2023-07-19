@@ -1855,25 +1855,32 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 
 		//currentChainParams := mp.chainParametersHandler.CurrentChainParameters()
 		//finality := currentChainParams.ShardFinality
-		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(currentMetaEpoch)
+		//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(currentMetaEpoch)
+		//if err != nil {
+		//	log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
+		//	chainParams = mp.chainParametersHandler.CurrentChainParameters()
+		//}
+		//finality := chainParams.ShardFinality
+		//lastVerifiedHdrFinality := uint32(finality)
+
+		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(lastVerifiedHdr.GetEpoch())
 		if err != nil {
 			log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
 			chainParams = mp.chainParametersHandler.CurrentChainParameters()
 		}
-		finality := chainParams.ShardFinality
-		lastVerifiedHdrFinality := uint32(finality)
+		lastVerifiedHdrFinality := uint32(chainParams.ShardFinality)
 
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(shardHdr.GetEpoch())
-			//if err != nil {
-			//	log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
-			//	chainParams = mp.chainParametersHandler.CurrentChainParameters()
-			//}
-			//shardHdrFinality := uint32(chainParams.ShardFinality)
+			chainParams, err = mp.chainParametersHandler.ChainParametersForEpoch(shardHdr.GetEpoch())
+			if err != nil {
+				log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
+				chainParams = mp.chainParametersHandler.CurrentChainParameters()
+			}
+			shardHdrFinality := uint32(lastVerifiedHdrFinality)
 			log.Error("REMOVE_ME: checkShardHeadersFinality", "shard ID", lastVerifiedHdr.GetShardID(), "shardHdr.nonce", shardHdr.GetNonce(), "lastVerifiedHdr.nonce", lastVerifiedHdr.GetNonce(), "lastVerifiedHdr.epoch", lastVerifiedHdr.GetEpoch(), "shardHdr.epoch", shardHdr.GetEpoch(), "nextBlocksVerified", nextBlocksVerified, "finality", lastVerifiedHdrFinality)
-			if nextBlocksVerified >= lastVerifiedHdrFinality {
+			if nextBlocksVerified >= shardHdrFinality {
 				break
 			}
 
@@ -1893,8 +1900,11 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 
 		if nextBlocksVerified < lastVerifiedHdrFinality {
 			log.Error("REMOVE_ME: nextBlocksVerified < finality", "shard ID", lastVerifiedHdr.GetShardID(), "lastVerifiedHdr.nonce", lastVerifiedHdr.GetNonce(), "epoch", lastVerifiedHdr.GetEpoch(), "nextBlocksVerified", nextBlocksVerified, "finality", lastVerifiedHdrFinality)
-			go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce())
-			go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+			for i := uint64(0); i < uint64(lastVerifiedHdrFinality); i++ {
+				go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+i)
+			}
+			//go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce())
+			//go mp.requestHandler.RequestShardHeaderByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 			errFinal = process.ErrHeaderNotFinal
 		}
 	}
@@ -2051,7 +2061,8 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 				"error", err)
 			chainParams = mp.chainParametersHandler.CurrentChainParameters()
 		}
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality))
+		// request one more since the finality can be 0, resulting in no request
+		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality) + 1)
 	}
 
 	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs

@@ -315,7 +315,7 @@ func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized(chainParamet
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader, chainParametersEpoch)
+	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader, lastCrossNotarizedHeader.GetEpoch())
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }

@@ -106,15 +106,17 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 		"grace period", process.EpochChangeGracePeriod,
 		"bool value", inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod)
 
-	chainParameters, err := inHdr.chainParametersHandler.ChainParametersForEpoch(inHdr.hdr.GetEpoch())
+	chainParameters, err := inHdr.chainParametersHandler.ChainParametersForEpoch(inHdr.epochStartTrigger.Epoch())
 	if err != nil {
 		log.Error("REMOVE_ME: InterceptedHeader.isEpochCorrect: cannot compute chain parameters. Will use the current ones", "epoch", inHdr.hdr.GetEpoch(), "error", err)
 		chainParameters = inHdr.chainParametersHandler.CurrentChainParameters()
 	}
 	finalityForCheck := chainParameters.ShardFinality
-	if finalityForCheck > 1 {
+	if finalityForCheck >= 1 {
+		// since epoch finality attesting round already includes 1 confirmation, we should decrease it for this check
 		finalityForCheck--
 	}
+
 	if inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod+uint64(finalityForCheck) {
 		log.Error("REMOVE_ME: inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod")
 		return true

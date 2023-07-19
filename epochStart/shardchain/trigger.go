@@ -745,6 +745,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 
 		neededHdr, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
 		if err != nil {
+			log.Error("REMOVE_ME: trigger.isMetaBlockFinal: cannot getHeaderWithNonceAndPrevHash", "nonce", nonce, "metaHdr epoch", metaHdr.GetEpoch())
 			continue
 		}
 

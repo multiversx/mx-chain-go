@@ -293,7 +293,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 	header data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
 	index int,
-	chainParametersEpoch uint32,
+	chainParametersEpoch uint32, // TODO: remove this parameter
 ) error {
 
 	if check.IfNil(header) {
@@ -303,10 +303,15 @@ func (bp *blockProcessor) checkHeaderFinality(
 	prevHeader := header
 	numFinalityAttestingHeaders := uint64(0)
 
-	finality := bp.getCurrentFinality(header.GetShardID(), chainParametersEpoch)
+	finality := bp.getCurrentFinality(header.GetShardID(), header.GetEpoch())
 
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
+
+		if currHeader.GetShardID() == core.MetachainShardId {
+			finality = bp.getCurrentFinality(core.MetachainShardId, currHeader.GetEpoch())
+		}
+
 		if numFinalityAttestingHeaders >= uint64(finality) || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
 			break
 		}

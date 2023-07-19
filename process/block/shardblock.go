@@ -559,7 +559,9 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
+	log.Error("REMOVE_ME: shardProcessor.checkMetaHdrFinality", "header nonce", header.GetNonce(), "header epoch", header.GetEpoch())
 	for _, metaHdr := range finalityAttestingMetaHdrs[core.MetachainShardId] {
+		log.Error("REMOVE_ME: shardProcessor.checkMetaHdrFinality finalityAttestingMetaHdrs range", "metaHdr nonce", metaHdr.GetNonce(), "metaHdr epoch", metaHdr.GetEpoch())
 		if nextBlocksVerified >= finality {
 			break
 		}
@@ -573,14 +575,20 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 				continue
 			}
 
+			log.Error("\tshardProcessor.checkMetaHdrFinality: found a header with the next nonce", "epoch", metaHdr.GetEpoch(), "nonce", metaHdr.GetNonce(), "last verified hdr epoch", lastVerifiedHdr.GetEpoch(), "last verified hdr nonce", lastVerifiedHdr.GetNonce())
+
 			lastVerifiedHdr = metaHdr
 			nextBlocksVerified += 1
 		}
 	}
 
 	if nextBlocksVerified < finality {
-		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce())
-		go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + 1)
+		for i := uint64(0); i < uint64(finality); i++ {
+			go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + i)
+		}
+		// TODO: update to request as much block as the meta finality for epoch
+		//go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce())
+		//go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + 1)
 		return process.ErrHeaderNotFinal
 	}
 
@@ -1710,9 +1718,10 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 				log.Warn("shardProcessor.receivedMetaBlock: cannot compute chain params", "epoch", headerHandler.GetEpoch(), "error", err)
 				return
 			}
+			// add 1 to the finality since the finality can be set to 0, resulting in no request
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				core.MetachainShardId,
-				uint32(chainParams.MetaFinality),
+				uint32(chainParams.MetaFinality)+1,
 			)
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
@@ -1845,12 +1854,13 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool, epoch uint32) (*createAndProcessMiniBlocksDestMeInfo, error) {
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool, currentShardEpoch uint32) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	sw := core.NewStopWatch()
 	sw.Start("ComputeLongestMetaChainFromLastNotarized")
-	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized(epoch)
+	metaEpoch := sp.epochStartTrigger.Epoch()
+	orderedMetaBlocks, orderedMetaBlocksHashes, err := sp.blockTracker.ComputeLongestMetaChainFromLastNotarized(metaEpoch)
 	sw.Stop("ComputeLongestMetaChainFromLastNotarized")
 	log.Debug("measurements", sw.GetMeasurements()...)
 	if err != nil {
@@ -1899,6 +1909,13 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool, 
 			break
 		}
 
+		if orderedMetaBlocks[i].GetEpoch() > currentShardEpoch {
+			log.Debug("metablock with higher epoch than the shard's",
+				"meta epoch", orderedMetaBlocks[i].GetEpoch(),
+				"meta nonce", orderedMetaBlocks[i].GetNonce(),
+				"current shard epoch", currentShardEpoch)
+			break
+		}
 		createAndProcessInfo.currMetaHdr = orderedMetaBlocks[i]
 		if createAndProcessInfo.currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
 			log.Debug("skip searching",
@@ -2024,7 +2041,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte, epoch uint32) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte, currentShardEpoch uint32) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
@@ -2065,7 +2082,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	}
 
 	startTime := time.Now()
-	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, epoch)
+	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, currentShardEpoch)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {
