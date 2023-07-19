@@ -390,6 +390,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
+		managedCryptoComponents,
 	)
 	if err != nil {
 		return true, err
@@ -707,6 +708,7 @@ func (nr *nodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
+		StatusComponents:     currentNode.statusComponents,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -721,7 +723,6 @@ func (nr *nodeRunner) createApiFacade(
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   currentNode.processComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
@@ -1052,6 +1053,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := statusComp.StatusComponentsFactoryArgs{
 		Config:               *nr.configs.GeneralConfig,
@@ -1065,6 +1067,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		StateComponents:      managedStateComponents,
 		IsInImportMode:       isInImportMode,
 		StatusCoreComponents: managedStatusCoreComponents,
+		CryptoComponents:     cryptoComponents,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
@@ -1318,7 +1321,6 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		StorageService:           dataComponents.StorageService(),
 		ProcessingMode:           common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
-		SnapshotsEnabled:         nr.configs.FlagsConfig.SnapshotsEnabled,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
 

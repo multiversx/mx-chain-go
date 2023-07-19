@@ -1384,11 +1384,6 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
-	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
-		ReturnCode:    vmcommon.SimulateFailed,
-		ReturnMessage: string(returnMessage),
-	}, 0)
-
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		if !core.IsClosingError(err) {
@@ -1448,6 +1443,12 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+		Logs:          processIfErrorLogs,
+	}, 0)
+
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
@@ -1463,7 +1464,6 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -2835,7 +2835,9 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	if isReturnOKTxHandler(scResult) {
+	isTransferValueOnlySCR := len(scResult.Data) == 0 && scResult.Value.Cmp(zero) > 0
+	shouldGenerateCompleteEvent := isReturnOKTxHandler(scResult) || isTransferValueOnlySCR
+	if shouldGenerateCompleteEvent {
 		completedTxLog := createCompleteEventLog(scResult, txHash)
 		ignorableError := sc.txLogsProcessor.SaveLog(txHash, scResult, []*vmcommon.LogEntry{completedTxLog})
 		if ignorableError != nil {

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
@@ -69,4 +70,26 @@ func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *PeerAccountsDB) IsInterfaceNil() bool {
 	return adb == nil
+}
+
+// GetPeerAccountAndReturnIfNew returns the peer account and a flag indicating if the account is new
+func GetPeerAccountAndReturnIfNew(adb AccountsAdapter, address []byte) (PeerAccountHandler, bool, error) {
+	var err error
+
+	newAccount := false
+	account, _ := adb.GetExistingAccount(address)
+	if check.IfNil(account) {
+		newAccount = true
+		account, err = adb.LoadAccount(address)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	peerAcc, ok := account.(PeerAccountHandler)
+	if !ok {
+		return nil, false, ErrWrongTypeAssertion
+	}
+
+	return peerAcc, newAccount, nil
 }

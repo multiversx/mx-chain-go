@@ -15,16 +15,19 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance                  *big.Int
-	DeveloperRewards         *big.Int
-	UserName                 []byte
-	Owner                    []byte
-	Address                  []byte
+	Balance          *big.Int
+	DeveloperRewards *big.Int
+	UserName         []byte
+	Owner            []byte
+	Address          []byte
+
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
 	IsGuardedCalled          func() bool
 	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
+	SetDataTrieCalled        func(dataTrie common.Trie)
+	GetRootHashCalled        func() []byte
 }
 
 // HasNewCode -
@@ -105,7 +108,11 @@ func (u *UserAccountStub) GetNonce() uint64 {
 
 // SetCode -
 func (u *UserAccountStub) SetCode(_ []byte) {
+}
 
+// GetCode -
+func (u *UserAccountStub) GetCode() []byte {
+	return nil
 }
 
 // SetCodeMetadata -
@@ -134,12 +141,18 @@ func (u *UserAccountStub) SetRootHash([]byte) {
 
 // GetRootHash -
 func (u *UserAccountStub) GetRootHash() []byte {
+	if u.GetRootHashCalled != nil {
+		return u.GetRootHashCalled()
+	}
+
 	return nil
 }
 
 // SetDataTrie -
-func (u *UserAccountStub) SetDataTrie(_ common.Trie) {
-
+func (u *UserAccountStub) SetDataTrie(dataTrie common.Trie) {
+	if u.SetDataTrieCalled != nil {
+		u.SetDataTrieCalled(dataTrie)
+	}
 }
 
 // DataTrie -

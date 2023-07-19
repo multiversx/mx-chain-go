@@ -103,6 +103,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

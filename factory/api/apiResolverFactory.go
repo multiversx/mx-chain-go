@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -55,6 +54,7 @@ type ApiResolverArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
+	StatusComponents     factory.StatusComponentsHolder
 	GasScheduleNotifier  common.GasScheduleNotifierAPI
 	Bootstrapper         process.Bootstrapper
 	AllowVMQueriesChan   chan struct{}
@@ -166,18 +166,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(
-		txTypeHandler,
-		args.CoreComponents.EconomicsData(),
-		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.StateComponents.AccountsAdapterAPI(),
-		args.ProcessComponents.ShardCoordinator(),
-		args.CoreComponents.EnableEpochsHandler(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	accountsWrapper := &trieIterators.AccountsWrapper{
 		Mutex:           &sync.Mutex{},
 		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
@@ -269,7 +257,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           scQueryService,
 		StatusMetricsHandler:     args.StatusCoreComponents.StatusMetrics(),
-		TxCostHandler:            txCostHandler,
+		APITransactionEvaluator:  args.ProcessComponents.APITransactionEvaluator(),
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
 		DelegatedListHandler:     delegatedListHandler,
@@ -280,6 +268,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
 		GasScheduleNotifier:      args.GasScheduleNotifier,
+		ManagedPeersMonitor:      args.StatusComponents.ManagedPeersMonitor(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

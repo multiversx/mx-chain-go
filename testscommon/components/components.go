@@ -596,6 +596,7 @@ func GetStatusComponents(
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
 		StatusCoreComponents: GetStatusCoreComponents(),
+		CryptoComponents:     GetDefaultCryptoComponents(),
 	}
 
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
@@ -648,11 +649,13 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
-			HostDriverConfig: config.HostDriverConfig{
-				MarshallerType:     "json",
-				Mode:               "client",
-				URL:                "localhost:12345",
-				RetryDurationInSec: 1,
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType:     "json",
+					Mode:               "client",
+					URL:                "localhost:12345",
+					RetryDurationInSec: 1,
+				},
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
@@ -664,6 +667,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		StateComponents:      stateComponents,
 		StatusCoreComponents: statusCoreComponents,
 		IsInImportMode:       false,
+		CryptoComponents:     cryptoComponents,
 	}, processComponents
 }
 
