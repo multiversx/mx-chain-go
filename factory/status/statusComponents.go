@@ -182,6 +182,7 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 		}
 
 		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                hdr.GetShardID(),
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  currentEpoch,
 		})

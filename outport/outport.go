@@ -85,6 +85,7 @@ func prepareBlockData(
 	}
 
 	return &outportcore.BlockData{
+		ShardID:     headerBodyData.Header.GetShardID(),
 		HeaderBytes: headerBytes,
 		HeaderType:  string(headerType),
 		HeaderHash:  headerBodyData.HeaderHash,
