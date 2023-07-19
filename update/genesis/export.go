@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -328,9 +327,9 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 		return err
 	}
 
-	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
-		return nodesCoordinator.ErrInvalidShardId
-	}
+	//if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
+	//	return nodesCoordinator.ErrInvalidShardId
+	//}
 
 	rootHashKey := CreateRootHashKey(key)
 
