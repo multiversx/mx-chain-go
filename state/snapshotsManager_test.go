@@ -24,6 +24,7 @@ func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		ProcessStatusHandler:     &testscommon.ProcessStatusHandlerStub{},
 		StateMetrics:             &stateTest.StateMetricsStub{},
+		AccountFactory:           &stateTest.AccountsFactoryStub{},
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 	}
 }
@@ -84,6 +85,17 @@ func TestNewSnapshotsManager(t *testing.T) {
 		sm, err := state.NewSnapshotsManager(args)
 		assert.Nil(t, sm)
 		assert.Equal(t, state.ErrNilChannelsProvider, err)
+	})
+
+	t.Run("nil account factory", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.AccountFactory = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilAccountFactory, err)
 	})
 
 	t.Run("ok", func(t *testing.T) {

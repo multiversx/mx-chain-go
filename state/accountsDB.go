@@ -137,6 +137,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		ProcessStatusHandler:     args.ProcessStatusHandler,
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		AccountFactory:           args.AccountFactory,
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
 	if err != nil {
@@ -1001,7 +1002,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	}
 
 	for leaf := range leavesChannels.LeavesChan {
-		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
+		userAccount, skipAccount, err := getUserAccountFromBytes(adb.accountFactory, adb.marshaller, leaf.Key(), leaf.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -1028,13 +1029,13 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 	return allTries, nil
 }
 
-func (adb *AccountsDB) getUserAccountFromBytes(address []byte, accountBytes []byte) (UserAccountHandler, bool, error) {
-	account, err := adb.accountFactory.CreateAccount(address)
+func getUserAccountFromBytes(accountFactory AccountFactory, marshaller marshal.Marshalizer, address []byte, accountBytes []byte) (UserAccountHandler, bool, error) {
+	account, err := accountFactory.CreateAccount(address)
 	if err != nil {
 		return nil, true, err
 	}
 
-	err = adb.marshaller.Unmarshal(account, accountBytes)
+	err = marshaller.Unmarshal(account, accountBytes)
 	if err != nil {
 		log.Trace("this must be a leaf with code", "err", err)
 		return nil, true, nil
@@ -1215,7 +1216,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	}
 
 	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
+		userAccount, skipAccount, err := getUserAccountFromBytes(adb.accountFactory, adb.marshaller, leaf.Key(), leaf.Value())
 		if err != nil {
 			return nil, err
 		}

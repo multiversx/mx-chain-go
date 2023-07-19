@@ -31,6 +31,7 @@ type ArgsNewSnapshotsManager struct {
 	AddressConverter         core.PubkeyConverter
 	ProcessStatusHandler     common.ProcessStatusHandler
 	StateMetrics             StateMetrics
+	AccountFactory           AccountFactory
 	ChannelsProvider         IteratorChannelsProvider
 }
 
@@ -46,6 +47,7 @@ type snapshotsManager struct {
 	trieSyncer           AccountsDBSyncer
 	processStatusHandler common.ProcessStatusHandler
 	channelsProvider     IteratorChannelsProvider
+	accountFactory       AccountFactory
 	mutex                sync.RWMutex
 }
 
@@ -66,6 +68,9 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 	if check.IfNil(args.ChannelsProvider) {
 		return nil, ErrNilChannelsProvider
 	}
+	if check.IfNil(args.AccountFactory) {
+		return nil, ErrNilAccountFactory
+	}
 
 	return &snapshotsManager{
 		isSnapshotInProgress:     atomic.Flag{},
@@ -79,6 +84,7 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 		processStatusHandler:     args.ProcessStatusHandler,
 		channelsProvider:         args.ChannelsProvider,
 		mutex:                    sync.RWMutex{},
+		accountFactory:           args.AccountFactory,
 	}, nil
 }
 
@@ -332,14 +338,12 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 	}
 
 	for leaf := range iteratorChannels.LeavesChan {
-		account := &userAccount{}
-		err := sm.marshaller.Unmarshal(account, leaf.Value())
-		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
+		userAccount, skipAccount, err := getUserAccountFromBytes(sm.accountFactory, sm.marshaller, leaf.Key(), leaf.Value())
+		if skipAccount || err != nil {
 			continue
 		}
 
-		if len(account.RootHash) == 0 {
+		if len(userAccount.GetRootHash()) == 0 {
 			continue
 		}
 
@@ -350,12 +354,12 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			ErrChan:    iteratorChannels.ErrChan,
 		}
 		if isSnapshot {
-			address := sm.addressConverter.SilentEncode(account.Address, log)
-			trieStorageManager.TakeSnapshot(address, account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+			address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
+			trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
-		trieStorageManager.SetCheckpoint(account.RootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
+		trieStorageManager.SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
 	}
 }
 
