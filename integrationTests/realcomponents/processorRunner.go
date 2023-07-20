@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -85,16 +86,17 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 	argsCore := factoryCore.CoreComponentsFactoryArgs{
-		Config:              *pr.Config.GeneralConfig,
-		ConfigPathsHolder:   *pr.Config.ConfigurationPathsHolder,
-		EpochConfig:         *pr.Config.EpochConfig,
-		RoundConfig:         *pr.Config.RoundConfig,
-		RatingsConfig:       *pr.Config.RatingsConfig,
-		EconomicsConfig:     *pr.Config.EconomicsConfig,
-		ImportDbConfig:      *pr.Config.ImportDbConfig,
-		NodesFilename:       pr.Config.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    pr.Config.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
+		Config:                   *pr.Config.GeneralConfig,
+		ConfigPathsHolder:        *pr.Config.ConfigurationPathsHolder,
+		EpochConfig:              *pr.Config.EpochConfig,
+		RoundConfig:              *pr.Config.RoundConfig,
+		RatingsConfig:            *pr.Config.RatingsConfig,
+		EconomicsConfig:          *pr.Config.EconomicsConfig,
+		ImportDbConfig:           *pr.Config.ImportDbConfig,
+		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
+		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)

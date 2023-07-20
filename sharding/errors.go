@@ -39,3 +39,5 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
+
+var errSovereignInvalidMetaConsensusSize = errors.New("invalid metachain config for sovereign")
