@@ -133,6 +133,15 @@ func TestTomlParser(t *testing.T) {
 				DoProfileOnShuffleOut:   true,
 			},
 		},
+		StateTriesConfig: StateTriesConfig{
+			CheckpointRoundsModulus:     37,
+			CheckpointsEnabled:          true,
+			SnapshotsEnabled:            true,
+			AccountsStatePruningEnabled: true,
+			PeerStatePruningEnabled:     true,
+			MaxStateTrieLevelInMemory:   38,
+			MaxPeerTrieLevelInMemory:    39,
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
@@ -218,6 +227,15 @@ func TestTomlParser(t *testing.T) {
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+
+[StateTriesConfig]
+    CheckpointRoundsModulus = 37
+    CheckpointsEnabled = true
+    SnapshotsEnabled = true
+    AccountsStatePruningEnabled = true
+    PeerStatePruningEnabled = true
+    MaxStateTrieLevelInMemory = 38
+    MaxPeerTrieLevelInMemory = 39
 `
 	cfg := Config{}
 

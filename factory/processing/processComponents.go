@@ -1519,7 +1519,6 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
-			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 		},
@@ -1574,7 +1573,6 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 
@@ -1604,7 +1602,6 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
-		SnapshotsEnabled:         pcf.flagsConfig.SnapshotsEnabled,
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
 	}
 

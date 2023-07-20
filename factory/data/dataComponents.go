@@ -171,7 +171,6 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
 			NodeProcessingMode:            dcf.nodeProcessingMode,
-			SnapshotsEnabled:              dcf.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
 		})
