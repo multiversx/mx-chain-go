@@ -89,6 +89,10 @@ type FacadeStub struct {
 	PprofEnabledCalled                          func() bool
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
+	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
 
 // GetTokenSupply -
@@ -572,6 +576,38 @@ func (f *FacadeStub) Trigger(_ uint32, _ bool) error {
 // IsSelfTrigger -
 func (f *FacadeStub) IsSelfTrigger() bool {
 	return false
+}
+
+// GetManagedKeysCount -
+func (f *FacadeStub) GetManagedKeysCount() int {
+	if f.GetManagedKeysCountCalled != nil {
+		return f.GetManagedKeysCountCalled()
+	}
+	return 0
+}
+
+// GetManagedKeys -
+func (f *FacadeStub) GetManagedKeys() []string {
+	if f.GetManagedKeysCalled != nil {
+		return f.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetEligibleManagedKeys -
+func (f *FacadeStub) GetEligibleManagedKeys() ([]string, error) {
+	if f.GetEligibleManagedKeysCalled != nil {
+		return f.GetEligibleManagedKeysCalled()
+	}
+	return make([]string, 0), nil
+}
+
+// GetWaitingManagedKeys -
+func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
+	if f.GetWaitingManagedKeysCalled != nil {
+		return f.GetWaitingManagedKeysCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // Close -

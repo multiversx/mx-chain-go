@@ -39,6 +39,7 @@ type ArgNodeApiResolver struct {
 	ValidatorPubKeyConverter core.PubkeyConverter
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
+	ManagedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // nodeApiResolver can resolve API requests
@@ -56,6 +57,7 @@ type nodeApiResolver struct {
 	validatorPubKeyConverter core.PubkeyConverter
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
+	managedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -99,6 +101,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.GasScheduleNotifier) {
 		return nil, ErrNilGasScheduler
 	}
+	if check.IfNil(arg.ManagedPeersMonitor) {
+		return nil, ErrNilManagedPeersMonitor
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
@@ -114,6 +119,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
+		managedPeersMonitor:      arg.ManagedPeersMonitor,
 	}, nil
 }
 
@@ -326,6 +332,46 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 // GetGasConfigs return currently used gas schedule config
 func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
 	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
+}
+
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeysCount() int {
+	return nar.managedPeersMonitor.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeys() []string {
+	managedKeys := nar.managedPeersMonitor.GetManagedKeys()
+	return nar.parseKeys(managedKeys)
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetEligibleManagedKeys() ([]string, error) {
+	eligibleKeys, err := nar.managedPeersMonitor.GetEligibleManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(eligibleKeys), nil
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetWaitingManagedKeys() ([]string, error) {
+	waitingKeys, err := nar.managedPeersMonitor.GetWaitingManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(waitingKeys), nil
+}
+
+func (nar *nodeApiResolver) parseKeys(keys [][]byte) []string {
+	keysSlice := make([]string, len(keys))
+	for i, key := range keys {
+		keysSlice[i] = nar.validatorPubKeyConverter.SilentEncode(key, log)
+	}
+
+	return keysSlice
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

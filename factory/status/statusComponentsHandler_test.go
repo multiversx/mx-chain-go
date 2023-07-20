@@ -65,11 +65,13 @@ func TestManagedStatusComponents_Create(t *testing.T) {
 		require.NotNil(t, managedStatusComponents)
 		require.Nil(t, managedStatusComponents.OutportHandler())
 		require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
+		require.Nil(t, managedStatusComponents.ManagedPeersMonitor())
 
 		err = managedStatusComponents.Create()
 		require.NoError(t, err)
 		require.NotNil(t, managedStatusComponents.OutportHandler())
 		require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
+		require.NotNil(t, managedStatusComponents.ManagedPeersMonitor())
 
 		require.Equal(t, factory.StatusComponentsName, managedStatusComponents.String())
 	})

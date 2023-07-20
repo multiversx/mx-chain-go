@@ -68,6 +68,34 @@ type epochStartResponse struct {
 	generalResponse
 }
 
+type managedKeysCountResponse struct {
+	Data struct {
+		Count int `json:"count"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedKeysResponse struct {
+	Data struct {
+		ManagedKeys []string `json:"managedKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedEligibleKeysResponse struct {
+	Data struct {
+		Keys []string `json:"eligibleKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedWaitingKeysResponse struct {
+	Data struct {
+		Keys []string `json:"waitingKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
@@ -657,6 +685,181 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestNodeGroup_ManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	providedCount := 1000
+	facade := mock.FacadeStub{
+		GetManagedKeysCountCalled: func() int {
+			return providedCount
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys/count", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysCountResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedCount, response.Data.Count)
+}
+
+func TestNodeGroup_ManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedKeys := []string{
+		"pk1",
+		"pk2",
+	}
+	facade := mock.FacadeStub{
+		GetManagedKeysCalled: func() []string {
+			return providedKeys
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedKeys, response.Data.ManagedKeys)
+}
+
+func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func() ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func() ([]string, error) {
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedEligibleKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
+}
+
+func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func() ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func() ([]string, error) {
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedWaitingKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
+}
+
 func TestNodeGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 
@@ -764,6 +967,10 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
 					{Name: "/connected-peers-ratings", Open: true},
+					{Name: "/managed-keys/count", Open: true},
+					{Name: "/managed-keys", Open: true},
+					{Name: "/managed-keys/eligible", Open: true},
+					{Name: "/managed-keys/waiting", Open: true},
 				},
 			},
 		},

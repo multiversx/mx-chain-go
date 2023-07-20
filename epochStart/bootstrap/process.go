@@ -507,7 +507,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.closeTrieComponents()
 	e.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
@@ -791,7 +790,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
-		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
@@ -802,7 +800,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -961,7 +958,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
-		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 	)
 	if err != nil {
@@ -972,7 +968,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.flagsConfig.SnapshotsEnabled,
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
@@ -1146,7 +1141,6 @@ func (e *epochStartBootstrap) createStorageService(
 			StorageType:                   storageFactory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
-			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 		})
