@@ -87,6 +87,7 @@ func createArguments() ArgNodesCoordinator {
 	nbShards := uint32(1)
 	eligibleMap := createDummyNodesMap(10, nbShards, "eligible")
 	waitingMap := createDummyNodesMap(3, nbShards, "waiting")
+	leavingMap := createDummyNodesMap(1, nbShards, "leaving")
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,
 		NodesMeta:            10,
@@ -112,6 +113,7 @@ func createArguments() ArgNodesCoordinator {
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
+		LeavingNodes:            leavingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
@@ -267,6 +269,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	leavingMap := createDummyNodesMap(1, 3, "leaving")
 
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,
@@ -294,6 +297,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
+		LeavingNodes:            leavingMap,
 		SelfPublicKey:           []byte("key"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
@@ -310,6 +314,12 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	readEligible := ihnc.nodesConfig[arguments.Epoch].eligibleMap[0]
 	require.Equal(t, eligibleMap[0], readEligible)
+
+	readWaiting := ihnc.nodesConfig[arguments.Epoch].waitingMap[0]
+	require.Equal(t, waitingMap[0], readWaiting)
+
+	readLeaving := ihnc.nodesConfig[arguments.Epoch].leavingMap[0]
+	require.Equal(t, leavingMap[0], readLeaving)
 }
 
 //------- ComputeValidatorsGroup

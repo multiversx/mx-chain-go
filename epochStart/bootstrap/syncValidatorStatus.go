@@ -129,6 +129,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NbShards:                args.GenesisNodesConfig.NumberOfShards(),
 		EligibleNodes:           eligibleValidators,
 		WaitingNodes:            waitingValidators,
+		LeavingNodes:            nil, // no leaving nodes at this stage
 		SelfPublicKey:           args.PubKey,
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),

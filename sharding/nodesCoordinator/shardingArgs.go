@@ -22,6 +22,7 @@ type ArgNodesCoordinator struct {
 	NbShards                uint32
 	EligibleNodes           map[uint32][]Validator
 	WaitingNodes            map[uint32][]Validator
+	LeavingNodes            map[uint32][]Validator
 	SelfPublicKey           []byte
 	Epoch                   uint32
 	StartEpoch              uint32

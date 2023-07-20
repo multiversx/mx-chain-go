@@ -149,7 +149,7 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(args.EligibleNodes, args.WaitingNodes, nil, args.Epoch)
+	err = ihnc.setNodesPerShards(args.EligibleNodes, args.WaitingNodes, args.LeavingNodes, args.Epoch)
 	if err != nil {
 		return nil, err
 	}
