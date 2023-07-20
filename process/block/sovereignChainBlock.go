@@ -115,7 +115,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		return nil, nil, fmt.Errorf("%w in sovereignChainBlockProcessor.CreateBlock", process.ErrWrongTypeAssertion)
 	}
 
-	_ = initialHdr.SetShardID(core.SovereignChainShardId)
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.CreateBlock")
 	defer scbp.processStatusHandler.SetIdle()
 
@@ -539,7 +538,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.ProcessBlock")
 	defer scbp.processStatusHandler.SetIdle()
 
-	_ = headerHandler.SetShardID(core.SovereignChainShardId)
 	err := scbp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {

@@ -260,7 +260,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		"num mbs", len(unrequestedHashes),
 	)
 
-	requester, err := rrh.requestersFinder.IntraShardRequester(factory.MiniBlocksTopic)
+	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 	if err != nil {
 		log.Error("RequestMiniBlocks.CrossShardRequester",
 			"error", err.Error(),
@@ -690,7 +690,6 @@ func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (data
 		crossShardID = shardID
 	}
 
-	//headerRequester, err := rrh.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, core.SovereignChainShardId)
 	headerRequester, err := rrh.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, crossShardID)
 	if err != nil {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
