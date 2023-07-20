@@ -317,7 +317,6 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	var selector RandomSelector
 	var eligibleList []Validator
 
-	shardID = core.SovereignChainShardId
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
 		"shardID", shardID,
