@@ -40,7 +40,7 @@ type nodeFacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatingsOnMainNetwork() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
