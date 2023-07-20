@@ -89,7 +89,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	}
 	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]nodesCoordinator.Validator, 0)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 
@@ -221,7 +221,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 
 	numNodes := nbShards*nodesPerShard + nbMetaNodes
 
-	nodesSetup := &mock.NodesSetupStub{
+	nodesSetup := &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},
@@ -405,7 +405,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, nil
 	}}
 
@@ -517,7 +517,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	nodeShuffler := &shardingMocks.NodeShufflerMock{}
 
-	nodesSetup := &mock.NodesSetupStub{
+	nodesSetup := &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},

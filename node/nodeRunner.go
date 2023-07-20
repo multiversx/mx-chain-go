@@ -56,6 +56,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -1430,16 +1431,17 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *nr.configs.EpochConfig,
-		RoundConfig:         *nr.configs.RoundConfig,
-		ImportDbConfig:      *nr.configs.ImportDbConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                   *nr.configs.GeneralConfig,
+		ConfigPathsHolder:        *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:              *nr.configs.EpochConfig,
+		RoundConfig:              *nr.configs.RoundConfig,
+		ImportDbConfig:           *nr.configs.ImportDbConfig,
+		RatingsConfig:            *nr.configs.RatingsConfig,
+		EconomicsConfig:          *nr.configs.EconomicsConfig,
+		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:      chanStopNodeProcess,
+		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

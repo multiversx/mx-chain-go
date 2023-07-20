@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -1388,16 +1389,17 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *snr.configs.GeneralConfig,
-		ConfigPathsHolder:   *snr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *snr.configs.EpochConfig,
-		RoundConfig:         *snr.configs.RoundConfig,
-		ImportDbConfig:      *snr.configs.ImportDbConfig,
-		RatingsConfig:       *snr.configs.RatingsConfig,
-		EconomicsConfig:     *snr.configs.EconomicsConfig,
-		NodesFilename:       snr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    snr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                   *snr.configs.GeneralConfig,
+		ConfigPathsHolder:        *snr.configs.ConfigurationPathsHolder,
+		EpochConfig:              *snr.configs.EpochConfig,
+		RoundConfig:              *snr.configs.RoundConfig,
+		ImportDbConfig:           *snr.configs.ImportDbConfig,
+		RatingsConfig:            *snr.configs.RatingsConfig,
+		EconomicsConfig:          *snr.configs.EconomicsConfig,
+		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:      chanStopNodeProcess,
+		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

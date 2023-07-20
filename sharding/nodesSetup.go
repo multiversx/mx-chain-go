@@ -162,9 +162,9 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	//if ns.ConsensusGroupSize < 1 {
-	//	return ErrNegativeOrZeroConsensusGroupSize
-	//}
+	if ns.ConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
 	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
@@ -380,6 +380,11 @@ func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 // GetStartTime returns the start time
 func (ns *NodesSetup) GetStartTime() int64 {
 	return ns.StartTime
+}
+
+// SetStartTime sets internal start time with provided value
+func (ns *NodesSetup) SetStartTime(startTime int64) {
+	ns.StartTime = startTime
 }
 
 // GetRoundDuration returns the round duration
