@@ -53,7 +53,6 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	_ = computer.ComputeTransactionFee(&transaction.ApiTransactionResult{Epoch: uint32(0), Tx: tx})
 
 	journal.display()
-	require.Equal(t, numEpochs, computer.LenEconomicsInstances())
 	require.Less(t, journal.footprint(), uint64(maxFootprintNumBytes))
 }
 
