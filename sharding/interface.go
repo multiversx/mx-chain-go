@@ -63,6 +63,7 @@ type GenesisNodesSetupHandler interface {
 	IsInterfaceNil() bool
 }
 
+// GenesisNodesSetupFactory defines a GenesisNodesSetupHandler factory behavior
 type GenesisNodesSetupFactory interface {
 	CreateNodesSetup(args *NodesSetupArgs) (GenesisNodesSetupHandler, error)
 	IsInterfaceNil() bool

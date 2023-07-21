@@ -118,8 +118,6 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
-	delete(nodes.eligible, core.MetachainShardId)
-	nodes.nrOfMetaChainNodes = 0
 	return nodes, nil
 }
 
@@ -128,6 +126,39 @@ func (ns *NodesSetup) processConfig() error {
 
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
+	err = ns.processInitialNodes()
+	if err != nil {
+		return err
+	}
+
+	if ns.ConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
+	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
+	if ns.nrOfNodes < ns.MinNodesPerShard {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
+	}
+
+	if ns.MetaChainConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
+	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
+
+	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
+	if ns.nrOfNodes < totalMinNodes {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
+	}
+
+	return nil
+}
+
+func (ns *NodesSetup) processInitialNodes() error {
+	var err error
+
 	for i := 0; i < len(ns.InitialNodes); i++ {
 		pubKey := ns.InitialNodes[i].PubKey
 		ns.InitialNodes[i].pubKey, err = ns.validatorPubkeyConverter.Decode(pubKey)
@@ -162,36 +193,14 @@ func (ns *NodesSetup) processConfig() error {
 		ns.nrOfNodes++
 	}
 
-	if ns.ConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
-	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
-	}
-	if ns.nrOfNodes < ns.MinNodesPerShard {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
-	}
-
-	//if ns.MetaChainConsensusGroupSize < 1 {
-	//	return ErrNegativeOrZeroConsensusGroupSize
-	//}
-	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
-	}
-
-	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
-	if ns.nrOfNodes < totalMinNodes {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
-	}
-
 	return nil
 }
 
 func (ns *NodesSetup) processMetaChainAssigment() {
 	ns.nrOfMetaChainNodes = 0
-	for id := uint32(0); id < 0; id++ {
+	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
-			ns.InitialNodes[id].assignedShard = core.MetachainShardId //core.SovereignChainShardId //core.MetachainShardId //core.SovereignChainShardId //core.MetachainShardId
+			ns.InitialNodes[id].assignedShard = core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
 			ns.nrOfMetaChainNodes++
 		}
@@ -205,7 +214,6 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 	if ns.nrOfShards > ns.genesisMaxNumShards {
 		ns.nrOfShards = ns.genesisMaxNumShards
 	}
-	ns.nrOfShards = 1
 }
 
 func (ns *NodesSetup) processShardAssignment() {
@@ -216,7 +224,7 @@ func (ns *NodesSetup) processShardAssignment() {
 		for id := countSetNodes; id < ns.nrOfMetaChainNodes+(currentShard+1)*ns.MinNodesPerShard; id++ {
 			// consider only nodes with valid public key
 			if ns.InitialNodes[id].pubKey != nil {
-				ns.InitialNodes[id].assignedShard = core.SovereignChainShardId
+				ns.InitialNodes[id].assignedShard = currentShard
 				ns.InitialNodes[id].eligible = true
 				countSetNodes++
 			}
@@ -227,12 +235,12 @@ func (ns *NodesSetup) processShardAssignment() {
 	currentShard = 0
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
 		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
-		//if currentShard == ns.nrOfShards {
-		//	currentShard = core.MetachainShardId
-		//}
+		if currentShard == ns.nrOfShards {
+			currentShard = core.MetachainShardId
+		}
 
 		if ns.InitialNodes[i].pubKey != nil {
-			ns.InitialNodes[i].assignedShard = core.SovereignChainShardId
+			ns.InitialNodes[i].assignedShard = currentShard
 			ns.InitialNodes[i].eligible = false
 		}
 	}
@@ -252,8 +260,11 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 				address:       in.address,
 				initialRating: in.initialRating,
 			}
-			ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
-
+			if in.eligible {
+				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
+			} else {
+				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], ni)
+			}
 		}
 	}
 }

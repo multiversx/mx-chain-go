@@ -1441,7 +1441,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

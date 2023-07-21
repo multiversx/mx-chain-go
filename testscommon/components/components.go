@@ -99,7 +99,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
-		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
 	}
 }
 
