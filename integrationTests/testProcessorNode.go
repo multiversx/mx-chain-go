@@ -788,13 +788,19 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 
 	if check.IfNil(args.TrieStore) {
 		argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-			VmContainer:              tpn.VMContainer,
-			EconomicsFee:             tpn.EconomicsData,
-			BlockChainHook:           tpn.BlockchainHook,
-			BlockChain:               tpn.BlockChain,
-			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
-			Bootstrapper:             tpn.Bootstrapper,
-			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+			VmContainer:                  tpn.VMContainer,
+			EconomicsFee:                 tpn.EconomicsData,
+			BlockChainHook:               tpn.BlockchainHook,
+			BlockChain:                   tpn.BlockChain,
+			WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
+			Bootstrapper:                 tpn.Bootstrapper,
+			AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+			HistoryRepository:            tpn.HistoryRepository,
+			ShardCoordinator:             tpn.ShardCoordinator,
+			StorageService:               tpn.Storage,
+			Marshaller:                   TestMarshaller,
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			Uint64ByteSliceConverter:     TestUint64Converter,
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	} else {
@@ -973,13 +979,19 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	_ = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              vmContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           vmFactory.BlockChainHookImpl(),
-		BlockChain:               tpn.BlockChain,
-		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		VmContainer:                  vmContainer,
+		EconomicsFee:                 tpn.EconomicsData,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		BlockChain:                   tpn.BlockChain,
+		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
+		Bootstrapper:                 tpn.Bootstrapper,
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            tpn.HistoryRepository,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		StorageService:               tpn.Storage,
+		Marshaller:                   TestMarshaller,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		Uint64ByteSliceConverter:     TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -990,13 +1002,19 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              tpn.VMContainer,
-		EconomicsFee:             tpn.EconomicsData,
-		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
-		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
-		Bootstrapper:             tpn.Bootstrapper,
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		VmContainer:                  tpn.VMContainer,
+		EconomicsFee:                 tpn.EconomicsData,
+		BlockChainHook:               tpn.BlockchainHook,
+		BlockChain:                   tpn.BlockChain,
+		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
+		Bootstrapper:                 tpn.Bootstrapper,
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            tpn.HistoryRepository,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		StorageService:               tpn.Storage,
+		Marshaller:                   TestMarshaller,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		Uint64ByteSliceConverter:     TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)

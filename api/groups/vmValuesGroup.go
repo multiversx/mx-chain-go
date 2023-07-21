@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/api/errors"
@@ -139,6 +140,11 @@ func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi,
 		return nil, "", err
 	}
 
+	command.BlockNonce, command.BlockHash, command.BlockRootHash, err = extractBlockCoordinates(context)
+	if err != nil {
+		return nil, "", err
+	}
+
 	vmOutputApi, err := vvg.getFacade().ExecuteSCQuery(command)
 	if err != nil {
 		return nil, "", err
@@ -150,6 +156,25 @@ func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi,
 	}
 
 	return vmOutputApi, vmExecErrMsg, nil
+}
+
+func extractBlockCoordinates(context *gin.Context) (core.OptionalUint64, []byte, []byte, error) {
+	blockNonce, err := parseUint64UrlParam(context, urlParamBlockNonce)
+	if err != nil {
+		return core.OptionalUint64{}, nil, nil, err
+	}
+
+	blockHash, err := parseHexBytesUrlParam(context, urlParamBlockHash)
+	if err != nil {
+		return core.OptionalUint64{}, nil, nil, err
+	}
+
+	blockRootHash, err := parseHexBytesUrlParam(context, urlParamBlockRootHash)
+	if err != nil {
+		return core.OptionalUint64{}, nil, nil, err
+	}
+
+	return blockNonce, blockHash, blockRootHash, nil
 }
 
 func (vvg *vmValuesGroup) createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {

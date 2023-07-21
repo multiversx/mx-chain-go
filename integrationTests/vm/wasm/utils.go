@@ -47,9 +47,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -162,13 +164,19 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.WasmVirtualMachine)
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              context.VMContainer,
-		EconomicsFee:             context.EconomicsFee,
-		BlockChainHook:           context.BlockchainHook,
-		BlockChain:               &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:       &sync.RWMutex{},
-		Bootstrapper:             disabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		VmContainer:                  context.VMContainer,
+		EconomicsFee:                 context.EconomicsFee,
+		BlockChainHook:               context.BlockchainHook,
+		BlockChain:                   &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:           &sync.RWMutex{},
+		Bootstrapper:                 disabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:               &storageStubs.ChainStorerStub{},
+		Marshaller:                   &marshallerMock.MarshalizerStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		Uint64ByteSliceConverter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 

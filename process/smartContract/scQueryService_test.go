@@ -17,7 +17,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,91 +30,156 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 
 func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 	return ArgsNewSCQueryService{
-		VmContainer:              &mock.VMContainerMock{},
-		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
-		BlockChainHook:           &testscommon.BlockChainHookStub{},
-		BlockChain:               &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:       &sync.RWMutex{},
-		Bootstrapper:             &mock.BootstrapperStub{},
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		VmContainer:                  &mock.VMContainerMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		BlockChainHook:               &testscommon.BlockChainHookStub{},
+		BlockChain:                   &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:           &sync.RWMutex{},
+		Bootstrapper:                 &mock.BootstrapperStub{},
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:               &storageStubs.ChainStorerStub{},
+		Marshaller:                   &marshallerMock.MarshalizerStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		Uint64ByteSliceConverter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 }
 
-func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
+func TestNewSCQueryService(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
-	target, err := NewSCQueryService(args)
+	t.Run("nil VmContainer should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNoVM, err)
-}
+		args := createMockArgumentsForSCQuery()
+		args.VmContainer = nil
+		target, err := NewSCQueryService(args)
 
-func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNoVM, err)
+	})
+	t.Run("nil EconomicsFee should error", func(t *testing.T) {
+		t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	args.EconomicsFee = nil
-	target, err := NewSCQueryService(args)
+		args := createMockArgumentsForSCQuery()
+		args.EconomicsFee = nil
+		target, err := NewSCQueryService(args)
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
-}
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+	})
+	t.Run("nil BlockChain should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewSCQueryService_NilBLockChainShouldErr(t *testing.T) {
-	t.Parallel()
+		args := createMockArgumentsForSCQuery()
+		args.BlockChain = nil
+		target, err := NewSCQueryService(args)
 
-	args := createMockArgumentsForSCQuery()
-	args.BlockChain = nil
-	target, err := NewSCQueryService(args)
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilBlockChain, err)
+	})
+	t.Run("nil BlockChainHook should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilBlockChain, err)
-}
+		args := createMockArgumentsForSCQuery()
+		args.BlockChainHook = nil
+		target, err := NewSCQueryService(args)
 
-func TestNewSCQueryService_NilBLockChainHookShouldErr(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilBlockChainHook, err)
+	})
 
-	args := createMockArgumentsForSCQuery()
-	args.BlockChainHook = nil
-	target, err := NewSCQueryService(args)
+	t.Run("nil WasmVMChangeLocker should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilBlockChainHook, err)
-}
+		args := createMockArgumentsForSCQuery()
+		args.WasmVMChangeLocker = nil
+		target, err := NewSCQueryService(args)
 
-func TestNewSCQueryService_NilWasmVMLockerShouldErr(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilLocker, err)
+	})
+	t.Run("nil Bootstrapper should error", func(t *testing.T) {
+		t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	args.WasmVMChangeLocker = nil
-	target, err := NewSCQueryService(args)
+		args := createMockArgumentsForSCQuery()
+		args.Bootstrapper = nil
+		target, err := NewSCQueryService(args)
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilLocker, err)
-}
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilBootstrapper, err)
+	})
+	t.Run("nil HistoryRepository should error", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewSCQueryService_NilBootstrapperShouldErr(t *testing.T) {
-	t.Parallel()
+		args := createMockArgumentsForSCQuery()
+		args.HistoryRepository = nil
+		target, err := NewSCQueryService(args)
 
-	args := createMockArgumentsForSCQuery()
-	args.Bootstrapper = nil
-	target, err := NewSCQueryService(args)
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilHistoryRepository, err)
+	})
+	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, target)
-	assert.Equal(t, process.ErrNilBootstrapper, err)
-}
+		args := createMockArgumentsForSCQuery()
+		args.ShardCoordinator = nil
+		target, err := NewSCQueryService(args)
 
-func TestNewSCQueryService_ShouldWork(t *testing.T) {
-	t.Parallel()
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+	t.Run("nil StorageService should error", func(t *testing.T) {
+		t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	target, err := NewSCQueryService(args)
+		args := createMockArgumentsForSCQuery()
+		args.StorageService = nil
+		target, err := NewSCQueryService(args)
 
-	assert.NotNil(t, target)
-	assert.Nil(t, err)
-	assert.False(t, target.IsInterfaceNil())
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilStorageService, err)
+	})
+	t.Run("nil Marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		args.Marshaller = nil
+		target, err := NewSCQueryService(args)
+
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
+	t.Run("nil ScheduledTxsExecutionHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		args.ScheduledTxsExecutionHandler = nil
+		target, err := NewSCQueryService(args)
+
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	})
+	t.Run("nil Uint64ByteSliceConverter should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		args.Uint64ByteSliceConverter = nil
+		target, err := NewSCQueryService(args)
+
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilUint64Converter, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		target, err := NewSCQueryService(args)
+
+		assert.NotNil(t, target)
+		assert.Nil(t, err)
+		assert.False(t, target.IsInterfaceNil())
+	})
 }
 
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
@@ -740,12 +808,18 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
-		BlockChainHook:           &testscommon.BlockChainHookStub{},
-		BlockChain:               &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:       &sync.RWMutex{},
-		Bootstrapper:             &mock.BootstrapperStub{},
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		BlockChainHook:               &testscommon.BlockChainHookStub{},
+		BlockChain:                   &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:           &sync.RWMutex{},
+		Bootstrapper:                 &mock.BootstrapperStub{},
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:               &storageStubs.ChainStorerStub{},
+		Marshaller:                   &marshallerMock.MarshalizerStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		Uint64ByteSliceConverter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)

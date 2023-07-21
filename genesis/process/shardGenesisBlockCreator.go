@@ -693,13 +693,19 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:              vmContainer,
-		EconomicsFee:             arg.Economics,
-		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
-		BlockChain:               arg.Data.Blockchain(),
-		WasmVMChangeLocker:       genesisWasmVMLocker,
-		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		VmContainer:                  vmContainer,
+		EconomicsFee:                 arg.Economics,
+		BlockChainHook:               vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:                   arg.Data.Blockchain(),
+		WasmVMChangeLocker:           genesisWasmVMLocker,
+		Bootstrapper:                 syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
+		HistoryRepository:            arg.HistoryRepository,
+		ShardCoordinator:             arg.ShardCoordinator,
+		StorageService:               arg.Data.StorageService(),
+		Marshaller:                   arg.Core.InternalMarshalizer(),
+		ScheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+		Uint64ByteSliceConverter:     arg.Core.Uint64ByteSliceConverter(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
