@@ -8,16 +8,19 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
+// SovereignNodesSetup holds the sovereign nodes setup
 type SovereignNodesSetup struct {
 	*NodesSetup
 }
 
+// SovereignNodesSetupArgs is a struct placeholder for sovereign nodes setup args
 type SovereignNodesSetupArgs struct {
 	NodesFilePath            string
 	AddressPubKeyConverter   core.PubkeyConverter
 	ValidatorPubKeyConverter core.PubkeyConverter
 }
 
+// NewSovereignNodesSetup  creates a new decoded sovereign nodes structure from json config file
 func NewSovereignNodesSetup(args *SovereignNodesSetupArgs) (*SovereignNodesSetup, error) {
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
@@ -58,38 +61,9 @@ func (ns *SovereignNodesSetup) processSovereignConfig() error {
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
 	ns.nrOfShards = 1
-	for i := 0; i < len(ns.InitialNodes); i++ {
-		pubKey := ns.InitialNodes[i].PubKey
-		ns.InitialNodes[i].pubKey, err = ns.validatorPubkeyConverter.Decode(pubKey)
-		if err != nil {
-			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
-		}
-
-		address := ns.InitialNodes[i].Address
-		ns.InitialNodes[i].address, err = ns.addressPubkeyConverter.Decode(address)
-		if err != nil {
-			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParseAddress, err.Error(), address)
-		}
-
-		// decoder treats empty string as correct, it is not allowed to have empty string as public key
-		if ns.InitialNodes[i].PubKey == "" {
-			ns.InitialNodes[i].pubKey = nil
-			return ErrCouldNotParsePubKey
-		}
-
-		// decoder treats empty string as correct, it is not allowed to have empty string as address
-		if ns.InitialNodes[i].Address == "" {
-			ns.InitialNodes[i].address = nil
-			return ErrCouldNotParseAddress
-		}
-
-		initialRating := ns.InitialNodes[i].InitialRating
-		if initialRating == uint32(0) {
-			initialRating = defaultInitialRating
-		}
-		ns.InitialNodes[i].initialRating = initialRating
-
-		ns.nrOfNodes++
+	err = ns.processInitialNodes()
+	if err != nil {
+		return err
 	}
 
 	if ns.ConsensusGroupSize < 1 {
