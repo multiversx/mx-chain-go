@@ -23,10 +23,10 @@ type SovereignNodesSetupArgs struct {
 // NewSovereignNodesSetup  creates a new decoded sovereign nodes structure from json config file
 func NewSovereignNodesSetup(args *SovereignNodesSetupArgs) (*SovereignNodesSetup, error) {
 	if check.IfNil(args.AddressPubKeyConverter) {
-		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
+		return nil, fmt.Errorf("%w for addressPubKeyConverter", ErrNilPubkeyConverter)
 	}
 	if check.IfNil(args.ValidatorPubKeyConverter) {
-		return nil, fmt.Errorf("%w for validatorPubkeyConverter", ErrNilPubkeyConverter)
+		return nil, fmt.Errorf("%w for validatorPubKeyConverter", ErrNilPubkeyConverter)
 	}
 
 	nodes := &NodesSetup{
@@ -78,11 +78,6 @@ func (ns *SovereignNodesSetup) processSovereignConfig() error {
 
 	if ns.MetaChainMinNodes != 0 || ns.MetaChainConsensusGroupSize != 0 {
 		return fmt.Errorf("%w, min nodes and consensus size should be set to", errSovereignInvalidMetaConsensusSize)
-	}
-
-	totalMinNodes := ns.MinNodesPerShard
-	if ns.nrOfNodes < totalMinNodes {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
 	return nil
