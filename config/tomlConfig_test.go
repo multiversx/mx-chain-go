@@ -499,9 +499,7 @@ func TestP2pConfig(t *testing.T) {
     MaxIntraShardObservers = 0
     MaxCrossShardObservers = 0
     MaxSeeders = 0
-    Type = "` + shardingType + `"
-    [AdditionalConnections]
-        MaxFullHistoryObservers = 0`
+    Type = "` + shardingType + `"`
 
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{

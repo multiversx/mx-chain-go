@@ -13,7 +13,8 @@ import (
 
 func createMockBaseArgs() argBaseSender {
 	return argBaseSender{
-		messenger:                 &p2pmocks.MessengerStub{},
+		mainMessenger:             &p2pmocks.MessengerStub{},
+		fullArchiveMessenger:      &p2pmocks.MessengerStub{},
 		marshaller:                &marshallerMock.MarshalizerMock{},
 		topic:                     "topic",
 		timeBetweenSends:          time.Second,

@@ -779,7 +779,7 @@ func testESDTSemiFungibleTokenTransferRole(t *testing.T, numOfShards int) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			_ = n.MainMessenger.Close()
 		}
 	}()
 
@@ -929,7 +929,7 @@ func TestESDTSFTWithEnhancedTransferRole(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			_ = n.MainMessenger.Close()
 		}
 	}()
 

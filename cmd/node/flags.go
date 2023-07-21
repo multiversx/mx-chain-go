@@ -91,6 +91,13 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
+	// fullArchiveP2PConfigurationFile defines a flag for the path to the toml file containing P2P configuration for the full archive network
+	fullArchiveP2PConfigurationFile = cli.StringFlag{
+		Name: "full-archive-p2p-config",
+		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file for the full archive network. This TOML file contains peer-to-peer " +
+			"configurations such as port, target peer count or KadDHT settings",
+		Value: "./config/fullArchiveP2P.toml",
+	}
 	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
 	epochConfigurationFile = cli.StringFlag{
 		Name: "epoch-config",
@@ -111,11 +118,18 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
-	// port defines a flag for setting the port on which the node will listen for connections
+	// port defines a flag for setting the port on which the node will listen for connections on the main network
 	port = cli.StringFlag{
 		Name: "port",
 		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
 			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "0",
+	}
+	// fullArchivePort defines a flag for setting the port on which the node will listen for connections on the full archive network
+	fullArchivePort = cli.StringFlag{
+		Name: "full-archive-port",
+		Usage: "The `[p2p port]` number on which the application will start the second network when running in full archive mode. " +
+			"Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000`",
 		Value: "0",
 	}
 	// profileMode defines a flag for profiling the binary
@@ -405,6 +419,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
+		fullArchiveP2PConfigurationFile,
 		epochConfigurationFile,
 		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,
@@ -412,6 +427,7 @@ func getFlags() []cli.Flag {
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
 		port,
+		fullArchivePort,
 		profileMode,
 		useHealthService,
 		storageCleanup,
@@ -672,7 +688,8 @@ func processSnapshotLessObserverMode(log logger.Logger, configs *config.Configs)
 func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
 	importDbFlags := configs.ImportDbConfig
 	generalConfigs := configs.GeneralConfig
-	p2pConfigs := configs.P2pConfig
+	p2pConfigs := configs.MainP2pConfig
+	fullArchiveP2PConfigs := configs.FullArchiveP2pConfig
 	prefsConfig := configs.PreferencesConfig
 
 	var err error
@@ -692,6 +709,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+	fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers = 0
+	fullArchiveP2PConfigs.KadDhtPeerDiscovery.Enabled = false
 
 	alterStorageConfigsForDBImport(generalConfigs)
 
@@ -702,6 +721,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"StoragePruning.NumEpochsToKeep", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumActivePersisters,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+		"fullArchiveP2P.ThresholdMinConnectedPeers", fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
 		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
