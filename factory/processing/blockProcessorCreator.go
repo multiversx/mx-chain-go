@@ -442,22 +442,36 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}, nil
 }
 
+// TransactionCoordinatorCreator defines the transaction coordinator factory creator
+type TransactionCoordinatorCreator interface {
+	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
+	IsInterfaceNil() bool
+}
+
 func (pcf *processComponentsFactory) createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 ) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+
+	var tempTC TransactionCoordinatorCreator
+
+	tcFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
+		tempTC = tcFactory
 	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+		tempTC, err = coordinator.NewSovereignTransactionCoordinatorFactory(tcFactory)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return tempTC.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 // BlockProcessorCreator defines the block processor factory handler
