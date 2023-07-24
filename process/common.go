@@ -705,7 +705,7 @@ func DisplayProcessTxDetails(
 		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 	}
 
-	log.Debug("executing transaction",
+	log.Warn("executing transaction",
 		"txHash", txHash,
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
