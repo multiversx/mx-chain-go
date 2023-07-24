@@ -1220,3 +1220,6 @@ var ErrWrongHeaderVersion = errors.New("wrong header version")
 
 // ErrNilTransactionCoordinatorCreator signals that a nil shard coordinator creator was provided
 var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinator creator")
+
+// ErrNilHeaderValidatorCreator signals that a nil header validator creator was provided
+var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")

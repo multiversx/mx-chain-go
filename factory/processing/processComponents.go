@@ -885,20 +885,33 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
+// HeaderValidatorCreator is an interface for creating header validators
+type HeaderValidatorCreator interface {
+	CreateHeaderValidator(args block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+	IsInterfaceNil() bool
+}
+
 func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+
+	var tempHeaderValidatorCreator HeaderValidatorCreator
+	hvf, err := block.NewShardHeaderValidatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return headerValidator, nil
+		tempHeaderValidatorCreator = hvf
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainHeaderValidator(headerValidator)
+		tempHeaderValidatorCreator, err = block.NewSovereignHeaderValidatorFactory(hvf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return tempHeaderValidatorCreator.CreateHeaderValidator(argsHeaderValidator)
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
