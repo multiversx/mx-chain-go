@@ -192,6 +192,7 @@ type processComponentsFactory struct {
 	chainRunType                 common.ChainRunType
 	resolverRequestFactory       requestHandlers.RequestHandlerCreator
 	scheduledTxsExecutionCreator ScheduledTxsExecutionCreator
+	blockTrackerCreator          BlockTrackerCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -1418,24 +1419,35 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	return nil, errors.New("could not create block tracker")
 }
 
+// BlockTrackerCreator is an interface for creating block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(argBaseTracker track.ArgShardTracker) (process.BlockTracker, error)
+	IsInterfaceNil() bool
+}
+
 func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: argBaseTracker,
 	}
 
-	blockTracker, err := track.NewShardBlockTrack(arguments)
+	trackerFactory, err := track.NewShardBlockTrackerFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return blockTracker, nil
+		pcf.blockTrackerCreator = trackerFactory
 	case common.ChainRunTypeSovereign:
-		return track.NewSovereignChainShardBlockTrack(blockTracker)
+		pcf.blockTrackerCreator, err = track.NewSovereignBlockTrackerFactory(trackerFactory)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.blockTrackerCreator.CreateBlockTracker(arguments)
 }
 
 // -- Resolvers container Factory begin

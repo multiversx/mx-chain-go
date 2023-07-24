@@ -1223,3 +1223,6 @@ var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinato
 
 // ErrNilHeaderValidatorCreator signals that a nil header validator creator was provided
 var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")
+
+// ErrNilBlockTrackerCreator signals that a nil block tracker creator was provided
+var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
