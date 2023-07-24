@@ -470,31 +470,37 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
-	argShardProcessor := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
-
-	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
-	if err != nil {
-		return nil, errors.New("could not create shard block processor: " + err.Error())
-	}
-
-	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
+	//TODO: remove this when the new creator is injected
+	argumentsBaseProcessor.ValidatorStatisticsProcessor = validatorStatisticsProcessor
+	var bpc BlockProcessorCreator
+	tempBpc, err := block.NewShardBlockProcessorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return shardProcessor, nil
+		bpc = tempBpc
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainBlockProcessor(
-			shardProcessor,
-			validatorStatisticsProcessor,
-		)
+		bpc, err = block.NewSovereignBlockProcessorFactory(tempBpc)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	blockProcessor, err := bpc.CreateBlockProcessor(argumentsBaseProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockProcessor, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(

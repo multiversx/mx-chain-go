@@ -181,15 +181,16 @@ type processComponentsFactory struct {
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                 factory.DataComponentsHolder
-	coreData             factory.CoreComponentsHolder
-	crypto               factory.CryptoComponentsHolder
-	state                factory.StateComponentsHolder
-	network              factory.NetworkComponentsHolder
-	bootstrapComponents  factory.BootstrapComponentsHolder
-	statusComponents     factory.StatusComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
-	chainRunType         common.ChainRunType
+	data                  factory.DataComponentsHolder
+	coreData              factory.CoreComponentsHolder
+	crypto                factory.CryptoComponentsHolder
+	state                 factory.StateComponentsHolder
+	network               factory.NetworkComponentsHolder
+	bootstrapComponents   factory.BootstrapComponentsHolder
+	statusComponents      factory.StatusComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
+	blockProcessorCreator BlockProcessorCreator
+	chainRunType          common.ChainRunType
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
