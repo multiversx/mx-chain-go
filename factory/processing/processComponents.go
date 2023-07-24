@@ -181,16 +181,17 @@ type processComponentsFactory struct {
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                  factory.DataComponentsHolder
-	coreData              factory.CoreComponentsHolder
-	crypto                factory.CryptoComponentsHolder
-	state                 factory.StateComponentsHolder
-	network               factory.NetworkComponentsHolder
-	bootstrapComponents   factory.BootstrapComponentsHolder
-	statusComponents      factory.StatusComponentsHolder
-	statusCoreComponents  factory.StatusCoreComponentsHolder
-	blockProcessorCreator BlockProcessorCreator
-	chainRunType          common.ChainRunType
+	data                   factory.DataComponentsHolder
+	coreData               factory.CoreComponentsHolder
+	crypto                 factory.CryptoComponentsHolder
+	state                  factory.StateComponentsHolder
+	network                factory.NetworkComponentsHolder
+	bootstrapComponents    factory.BootstrapComponentsHolder
+	statusComponents       factory.StatusComponentsHolder
+	statusCoreComponents   factory.StatusCoreComponentsHolder
+	blockProcessorCreator  BlockProcessorCreator
+	chainRunType           common.ChainRunType
+	resolverRequestFactory requestHandlers.RequestHandlerCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -715,26 +716,34 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 func (pcf *processComponentsFactory) createResolverRequestHandler(
 	requestersFinder dataRetriever.RequestersFinder,
 ) (process.RequestHandler, error) {
-	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		requestersFinder,
-		pcf.requestedItemsHandler,
-		pcf.whiteListHandler,
-		common.MaxTxsToRequest,
-		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
-		time.Second,
-	)
+	args := requestHandlers.RequestHandlerArgs{
+		RequestersFinder:      requestersFinder,
+		RequestedItemsHandler: pcf.requestedItemsHandler,
+		WhiteListHandler:      pcf.whiteListHandler,
+		MaxTxsToRequest:       common.MaxTxsToRequest,
+		ShardID:               pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		RequestInterval:       time.Second,
+	}
+
+	requestHandlerFactory, err := requestHandlers.NewResolverRequestHandlerFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return requestHandler, nil
+		pcf.resolverRequestFactory = requestHandlerFactory
 	case common.ChainRunTypeSovereign:
-		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
+		sovFactory, sovErr := requestHandlers.NewSovereignResolverRequestHandlerFactory(requestHandlerFactory)
+		if sovErr != nil {
+			return nil, sovErr
+		}
+		pcf.resolverRequestFactory = sovFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.resolverRequestFactory.CreateRequestHandler(args)
 }
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
