@@ -510,10 +510,11 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		log.Error("trigger.changeEpochFinalityAttestingRoundIfNeeded: cannot compute chain parameters for epoch", "epoch", metaHdr.Epoch, "error", err)
 		chainParameters = t.chainParametersHandler.CurrentChainParameters()
 	}
-	finality := uint64(chainParameters.ShardFinality)
+	finality := uint64(chainParameters.MetaFinality)
 	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.GetNonce()+finality+1
 	log.Debug("\tREMOVE_ME: trigger.changeEpochFinalityAttestingRoundIfNeeded",
 		"isHeaderOnTopOfFinalityAttestingRound", isHeaderOnTopOfFinalityAttestingRound,
+		"epochStartMetaHdr.GetNonce()", epochStartMetaHdr.GetNonce(),
 		"finality", finality,
 		"epoch", metaHdr.GetEpoch(),
 		"shard", metaHdr.GetShardID(),
@@ -526,6 +527,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 			return
 		}
 
+		log.Error("REMOVE_ME: updated epochFinalityAttestingRound with metaHdrWithFinalityAttestingRound.GetRound()", "round", metaHdrWithFinalityAttestingRound.GetRound())
 		t.epochFinalityAttestingRound = metaHdrWithFinalityAttestingRound.GetRound()
 		return
 	}
@@ -535,17 +537,25 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
+	log.Error("REMOVE_ME changeEpochFinalityAttestingRoundIfNeeded isFinalityAttestingBlock",
+		"metaHdr.Nonce", metaHdr.Nonce,
+		"epochStartMetaHdr.GetNonce()", epochStartMetaHdr.GetNonce(),
+		"finality", finality,
+	)
+
 	err = t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
 	if err != nil {
 		return
 	}
 
 	if t.requestedFinalityAttestingBlock.IsSet() {
+		log.Error("REMOVE_ME: t.requestedFinalityAttestingBlock.IsSet()", "metaHdr.Nonce+1", metaHdr.Nonce+1)
 		_, err = t.getHeaderWithNonceAndPrevHash(metaHdr.Nonce+1, receivedHash)
 		if err != nil {
 			return
 		}
 
+		log.Error("REMOVE_ME: t.requestedFinalityAttestingBlock.IsSet() updated epochFinalityAttestingRound", "round", metaHdr.GetRound())
 		t.epochFinalityAttestingRound = metaHdr.GetRound()
 		t.requestedFinalityAttestingBlock.Reset()
 		return
@@ -555,6 +565,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
+	log.Error("REMOVE_ME: metaHdr.GetRound() < t.epochFinalityAttestingRound updated epochFinalityAttestingRound", "round", metaHdr.GetRound())
 	t.epochFinalityAttestingRound = metaHdr.GetRound()
 }
 

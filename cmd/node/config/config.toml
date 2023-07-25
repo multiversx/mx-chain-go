@@ -47,7 +47,9 @@
         { EnableEpoch = 4, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 0, MetaFinality = 1 },
         { EnableEpoch = 5, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 1 },
         { EnableEpoch = 6, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 2 },
-        { EnableEpoch = 7, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 }
+        { EnableEpoch = 7, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
+        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 0 },
+        { EnableEpoch = 9, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 }
    ]
 
 [Versions]

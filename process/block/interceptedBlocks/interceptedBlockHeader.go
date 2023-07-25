@@ -89,7 +89,12 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 	if inHdr.shardCoordinator.SelfId() != core.MetachainShardId {
 		return true
 	}
+	// TODO: analyze these conditions
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
+		log.Error("REMOVE_ME: inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound()",
+			"inHdr.epochStartTrigger.EpochStartRound()", inHdr.epochStartTrigger.EpochStartRound(),
+			"inHdr.epochStartTrigger.EpochFinalityAttestingRound()", inHdr.epochStartTrigger.EpochFinalityAttestingRound(),
+		)
 		return true
 	}
 	if inHdr.hdr.GetEpoch() >= inHdr.epochStartTrigger.Epoch() {

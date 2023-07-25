@@ -466,6 +466,18 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		header.GetEpoch() < sp.epochStartTrigger.MetaEpoch() &&
 		sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
 	if isOldEpochAndShouldBeNew {
+		log.Error("REMOVE_ME: wrong epoch error",
+			"sp.epochStartTrigger.IsEpochStart()", sp.epochStartTrigger.IsEpochStart(),
+			"hdr epoch", header.GetEpoch(),
+			"hdr nonce", header.GetNonce(),
+			"hdr round", header.GetRound(),
+			"sp.epochStartTrigger.EpochFinalityAttestingRound()", sp.epochStartTrigger.EpochFinalityAttestingRound(),
+			"sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod", sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod,
+			"grace period", process.EpochChangeGracePeriod,
+			"sp.epochStartTrigger.MetaEpoch()", sp.epochStartTrigger.MetaEpoch(),
+			"sp.epochStartTrigger.EpochStartRound()",
+			"sp.epochStartTrigger.EpochFinalityAttestingRound()",
+		)
 		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
@@ -1302,6 +1314,7 @@ func (sp *shardProcessor) markSnapshotDoneInPeerAccounts() {
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
+	// TODO: analyze these conditions
 	currentHeader := sp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
 		return nil
