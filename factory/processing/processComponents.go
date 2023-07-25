@@ -180,19 +180,23 @@ type processComponentsFactory struct {
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                         factory.DataComponentsHolder
-	coreData                     factory.CoreComponentsHolder
-	crypto                       factory.CryptoComponentsHolder
-	state                        factory.StateComponentsHolder
-	network                      factory.NetworkComponentsHolder
-	bootstrapComponents          factory.BootstrapComponentsHolder
-	statusComponents             factory.StatusComponentsHolder
-	statusCoreComponents         factory.StatusCoreComponentsHolder
-	blockProcessorCreator        BlockProcessorCreator
-	chainRunType                 common.ChainRunType
-	resolverRequestFactory       requestHandlers.RequestHandlerCreator
-	scheduledTxsExecutionCreator ScheduledTxsExecutionCreator
-	blockTrackerCreator          BlockTrackerCreator
+	data                                factory.DataComponentsHolder
+	coreData                            factory.CoreComponentsHolder
+	crypto                              factory.CryptoComponentsHolder
+	state                               factory.StateComponentsHolder
+	network                             factory.NetworkComponentsHolder
+	bootstrapComponents                 factory.BootstrapComponentsHolder
+	statusComponents                    factory.StatusComponentsHolder
+	statusCoreComponents                factory.StatusCoreComponentsHolder
+	blockProcessorCreator               BlockProcessorCreator
+	chainRunType                        common.ChainRunType
+	resolverRequestCreator              requestHandlers.RequestHandlerCreator
+	scheduledTxsExecutionCreator        ScheduledTxsExecutionCreator
+	blockTrackerCreator                 BlockTrackerCreator
+	transactionCoordinatorCreator       TransactionCoordinatorCreator
+	headerValidatorCreator              HeaderValidatorCreator
+	forkDetectorCreator                 sync.ForkDetectorCreator
+	ValidatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -733,18 +737,18 @@ func (pcf *processComponentsFactory) createResolverRequestHandler(
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		pcf.resolverRequestFactory = requestHandlerFactory
+		pcf.resolverRequestCreator = requestHandlerFactory
 	case common.ChainRunTypeSovereign:
 		sovFactory, sovErr := requestHandlers.NewSovereignResolverRequestHandlerFactory(requestHandlerFactory)
 		if sovErr != nil {
 			return nil, sovErr
 		}
-		pcf.resolverRequestFactory = sovFactory
+		pcf.resolverRequestCreator = sovFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 
-	return pcf.resolverRequestFactory.CreateRequestHandler(args)
+	return pcf.resolverRequestCreator.CreateRequestHandler(args)
 }
 
 // ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
@@ -825,6 +829,12 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	}
 
 	return pcf.createValidatorStatisticsProcessor(arguments)
+}
+
+// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
+type ValidatorStatisticsProcessorCreator interface {
+	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
+	IsInterfaceNil() bool
 }
 
 func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
@@ -919,7 +929,6 @@ type HeaderValidatorCreator interface {
 
 func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
 
-	var tempHeaderValidatorCreator HeaderValidatorCreator
 	hvf, err := block.NewShardHeaderValidatorFactory()
 	if err != nil {
 		return nil, err
@@ -927,9 +936,9 @@ func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator b
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		tempHeaderValidatorCreator = hvf
+		pcf.headerValidatorCreator = hvf
 	case common.ChainRunTypeSovereign:
-		tempHeaderValidatorCreator, err = block.NewSovereignHeaderValidatorFactory(hvf)
+		pcf.headerValidatorCreator, err = block.NewSovereignHeaderValidatorFactory(hvf)
 		if err != nil {
 			return nil, err
 		}
@@ -937,7 +946,7 @@ func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator b
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 
-	return tempHeaderValidatorCreator.CreateHeaderValidator(argsHeaderValidator)
+	return pcf.headerValidatorCreator.CreateHeaderValidator(argsHeaderValidator)
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
@@ -1841,19 +1850,30 @@ func (pcf *processComponentsFactory) newForkDetector(
 }
 
 func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList process.TimeCacher, blockTracker process.BlockTracker) (process.ForkDetector, error) {
-	forkDetector, err := sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+	fdf, err := sync.NewShardForkDetectorFactory()
 	if err != nil {
 		return nil, err
 	}
-
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return forkDetector, nil
+		pcf.forkDetectorCreator = fdf
 	case common.ChainRunTypeSovereign:
-		return sync.NewSovereignChainShardForkDetector(forkDetector)
+		pcf.forkDetectorCreator, err = sync.NewSovereignForkDetectorFactory(fdf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	args := sync.ForkDetectorFactoryArgs{
+		RoundHandler:    pcf.coreData.RoundHandler(),
+		HeaderBlackList: headerBlackList,
+		BlockTracker:    blockTracker,
+		GenesisTime:     pcf.coreData.GenesisNodesSetup().GetStartTime(),
+	}
+
+	return pcf.forkDetectorCreator.CreateForkDetector(args)
 }
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger

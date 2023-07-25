@@ -452,8 +452,6 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 ) (process.TransactionCoordinator, error) {
 
-	var tempTC TransactionCoordinatorCreator
-
 	tcFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
@@ -461,9 +459,9 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		tempTC = tcFactory
+		pcf.transactionCoordinatorCreator = tcFactory
 	case common.ChainRunTypeSovereign:
-		tempTC, err = coordinator.NewSovereignTransactionCoordinatorFactory(tcFactory)
+		pcf.transactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(tcFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -471,7 +469,7 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 
-	return tempTC.CreateTransactionCoordinator(argsTransactionCoordinator)
+	return pcf.transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 // BlockProcessorCreator defines the block processor factory handler
@@ -486,7 +484,6 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 ) (process.BlockProcessor, error) {
 	//TODO: remove this when the new creator is injected
 	argumentsBaseProcessor.ValidatorStatisticsProcessor = validatorStatisticsProcessor
-	var bpc BlockProcessorCreator
 	tempBpc, err := block.NewShardBlockProcessorFactory()
 	if err != nil {
 		return nil, err
@@ -494,9 +491,9 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		bpc = tempBpc
+		pcf.blockProcessorCreator = tempBpc
 	case common.ChainRunTypeSovereign:
-		bpc, err = block.NewSovereignBlockProcessorFactory(tempBpc)
+		pcf.blockProcessorCreator, err = block.NewSovereignBlockProcessorFactory(tempBpc)
 		if err != nil {
 			return nil, err
 		}
@@ -504,7 +501,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 
-	blockProcessor, err := bpc.CreateBlockProcessor(argumentsBaseProcessor)
+	blockProcessor, err := pcf.blockProcessorCreator.CreateBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"math/big"
 	"reflect"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"

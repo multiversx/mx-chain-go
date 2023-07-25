@@ -1226,3 +1226,6 @@ var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")
 
 // ErrNilBlockTrackerCreator signals that a nil block tracker creator was provided
 var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
+
+// ErrNilForkDetectorCreator signals that a nil fork detector creator was provided
+var ErrNilForkDetectorCreator = errors.New("nil fork detector creator")
