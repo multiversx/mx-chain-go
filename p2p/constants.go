@@ -13,6 +13,15 @@ const NormalOperation = p2p.NormalOperation
 // FullArchiveMode defines the node operation as a full archive mode
 const FullArchiveMode = p2p.FullArchiveMode
 
+// NetworkType defines the type of the network a messenger is running on
+type NetworkType = p2p.NetworkType
+
+// MainNetwork defines the main network
+const MainNetwork NetworkType = "main"
+
+// FullArchiveNetwork defines the full archive network
+const FullArchiveNetwork NetworkType = "full archive"
+
 // ListsSharder is the variant that uses lists
 const ListsSharder = p2p.ListsSharder
 
