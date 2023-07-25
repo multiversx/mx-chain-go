@@ -7,10 +7,12 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -376,7 +378,12 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	accountsAdapterApi, err := createNewAccountsAdapterApi(args)
+	apiBlockchain, err := blockchain.NewApiBlockchain(args.dataComponents.Blockchain())
+	if err != nil {
+		return nil, err
+	}
+
+	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +394,7 @@ func createScQueryElement(
 		Accounts:                 accountsAdapterApi,
 		PubkeyConv:               args.coreComponents.AddressPubKeyConverter(),
 		StorageService:           args.dataComponents.StorageService(),
-		BlockChain:               args.dataComponents.Blockchain(),
+		BlockChain:               apiBlockchain,
 		ShardCoordinator:         args.processComponents.ShardCoordinator(),
 		Marshalizer:              args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:          args.coreComponents.Uint64ByteSliceConverter(),
@@ -491,7 +498,7 @@ func createScQueryElement(
 		VmContainer:                  vmContainer,
 		EconomicsFee:                 args.coreComponents.EconomicsData(),
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		BlockChain:                   args.dataComponents.Blockchain(),
+		BlockChain:                   apiBlockchain,
 		WasmVMChangeLocker:           args.coreComponents.WasmVMChangeLocker(),
 		Bootstrapper:                 args.bootstrapper,
 		AllowExternalQueriesChan:     args.allowVMQueriesChan,
@@ -507,7 +514,7 @@ func createScQueryElement(
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
-func createNewAccountsAdapterApi(args *scQueryElementArgs) (state.AccountsAdapterAPI, error) {
+func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              args.coreComponents.Hasher(),
 		Marshaller:          args.coreComponents.InternalMarshalizer(),
@@ -571,7 +578,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs) (state.AccountsAdapte
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
 	}
 
-	provider, err := blockInfoProviders.NewCurrentBlockInfo(args.dataComponents.Blockchain())
+	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)
 	if err != nil {
 		return nil, err
 	}

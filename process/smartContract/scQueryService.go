@@ -202,12 +202,15 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		if err != nil {
 			return nil, err
 		}
+
+		_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, blockRootHash)
 	}
 
 	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	service.wasmVMChangeLocker.RUnlock()
+	_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	if err != nil {
 		return nil, err
 	}

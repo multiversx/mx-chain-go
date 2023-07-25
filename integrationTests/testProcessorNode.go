@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -2463,10 +2464,12 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
 
-	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(dataComponents.BlockChain)
+	finalAPIBlockchain, _ := blockchain.NewApiBlockchain(dataComponents.BlockChain)
+	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(finalAPIBlockchain)
 	finalAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, finalProvider)
 
-	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
+	currentAPIBlockchain, _ := blockchain.NewApiBlockchain(dataComponents.BlockChain)
+	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(currentAPIBlockchain)
 	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
 
 	historicalAccountsApi, _ := state.NewAccountsDBApiWithHistory(tpn.AccntState)
