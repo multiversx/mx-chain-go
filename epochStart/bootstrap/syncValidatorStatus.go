@@ -131,12 +131,12 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		EnableEpochsHandler:     args.EnableEpochsHandler,
 		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
 	}
-	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
+	baseNodesCoordinator, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
+	nodesCoord, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
 	if err != nil {
 		return nil, err
 	}

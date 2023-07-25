@@ -186,9 +186,13 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.NbShards < 1 {
 		return ErrInvalidNumberOfShards
 	}
-	//if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
-	//	return ErrInvalidShardId
-	//}
+	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
+		return ErrInvalidShardId
+	}
+	return checkNilArguments(arguments)
+}
+
+func checkNilArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.Hasher) {
 		return ErrNilHasher
 	}
@@ -249,20 +253,31 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		return ErrNilInputNodesMap
 	}
 
-	//nodesList := eligible[core.MetachainShardId]
-	//if len(nodesList) < ihnc.metaConsensusGroupSize {
-	//	return ErrSmallMetachainEligibleListSize
-	//}
-
-	numTotalEligible := uint64(0) //uint64(len(nodesList))
-	//for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
-	nbNodesShard := len(eligible[core.SovereignChainShardId])
-	if nbNodesShard < ihnc.shardConsensusGroupSize {
-		return ErrSmallShardEligibleListSize
+	nodesList := eligible[core.MetachainShardId]
+	if len(nodesList) < ihnc.metaConsensusGroupSize {
+		return ErrSmallMetachainEligibleListSize
 	}
-	numTotalEligible += uint64(nbNodesShard)
-	//}
 
+	numTotalEligible := uint64(len(nodesList))
+	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
+		nbNodesShard := len(eligible[shardId])
+		if nbNodesShard < ihnc.shardConsensusGroupSize {
+			return ErrSmallShardEligibleListSize
+		}
+		numTotalEligible += uint64(nbNodesShard)
+	}
+
+	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, epoch)
+}
+
+func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
+	nodesConfig *epochNodesConfig,
+	numTotalEligible uint64,
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	leaving map[uint32][]Validator,
+	epoch uint32,
+) error {
 	var err error
 	var isCurrentNodeValidator bool
 	// nbShards holds number of shards without meta
@@ -285,8 +300,6 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),
 		}
-
-		return nil
 	}
 
 	return nil
@@ -344,6 +357,17 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
+	return ihnc.baseComputeConsensusGroup(randomness, round, shardID, epoch, selector, eligibleList)
+}
+
+func (ihnc *indexHashedNodesCoordinator) baseComputeConsensusGroup(
+	randomness []byte,
+	round uint64,
+	shardID uint32,
+	epoch uint32,
+	selector RandomSelector,
+	eligibleList []Validator,
+) (validatorsGroup []Validator, err error) {
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
 	validators := ihnc.searchConsensusForKey(key)
 	if validators != nil {
