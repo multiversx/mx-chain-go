@@ -3,7 +3,6 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -77,26 +76,10 @@ func GetNodesCoordinatorRegistry(
 		}
 	}
 
-	ncr := &NodesCoordinatorRegistry{
+	return &NodesCoordinatorRegistry{
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
-	}
-
-	nc, err := registryToNodesCoordinator(ncr)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("nodes configuration on get")
-	displayNodesConfiguration(
-		nc[lastEpoch].eligibleMap,
-		nc[lastEpoch].waitingMap,
-		nc[lastEpoch].leavingMap,
-		make(map[uint32][]Validator),
-		uint32(len(nc[lastEpoch].eligibleMap)-1),
-	)
-
-	return ncr, nil
+	}, nil
 }
 
 func setEpochConfigPerEpoch(
@@ -261,7 +244,6 @@ func SaveNodesCoordinatorRegistry(
 		return ErrNilNodesCoordinatorRegistry
 	}
 
-	maxEpoch := uint32(0)
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
 		epochsConfig[epoch] = config
@@ -284,67 +266,11 @@ func SaveNodesCoordinatorRegistry(
 		if err != nil {
 			return err
 		}
-		debug.PrintStack()
 
 		log.Debug("saving nodes coordinator config", "key", ncInternalkey)
-
-		if currentEpoch > uint64(maxEpoch) {
-			maxEpoch = uint32(currentEpoch)
-		}
 	}
-
-	nc, err := registryToNodesCoordinator(nodesConfig)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("nodes configuration on save")
-	displayNodesConfiguration(
-		nc[maxEpoch].eligibleMap,
-		nc[maxEpoch].waitingMap,
-		nc[maxEpoch].leavingMap,
-		make(map[uint32][]Validator),
-		uint32(len(nodesConfig.EpochsConfig[fmt.Sprint(maxEpoch)].EligibleValidators)-1),
-	)
 
 	return nil
-}
-
-func registryToNodesCoordinator(
-	config *NodesCoordinatorRegistry,
-) (map[uint32]*epochNodesConfig, error) {
-	var err error
-	var epoch int64
-	result := make(map[uint32]*epochNodesConfig)
-
-	for epochStr, epochValidators := range config.EpochsConfig {
-		epoch, err = strconv.ParseInt(epochStr, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		var nodesConfig *epochNodesConfig
-		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
-		if err != nil {
-			return nil, err
-		}
-
-		nbShards := uint32(len(nodesConfig.eligibleMap))
-		if nbShards < 2 {
-			return nil, ErrInvalidNumberOfShards
-		}
-
-		// shards without metachain shard
-		nodesConfig.nbShards = nbShards - 1
-		epoch32 := uint32(epoch)
-		result[epoch32] = nodesConfig
-		log.Debug("TEST: registry to nodes coordinator", "epoch", epoch32)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return result, nil
 }
 
 func (ihnc *indexHashedNodesCoordinator) getLastEpochConfig() uint32 {

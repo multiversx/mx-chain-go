@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -895,7 +894,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	ihnc.currentEpoch = newEpoch
 
 	err := ihnc.saveState(ihnc.savedStateKey)
-	debug.PrintStack()
 	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
 	ihnc.mutNodesConfig.Lock()
