@@ -1280,6 +1280,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:                  common.ChainRunTypeRegular,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

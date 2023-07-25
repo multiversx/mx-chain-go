@@ -146,6 +146,8 @@ type epochStartBootstrap struct {
 	startEpoch          uint32
 	shuffledOut         bool
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
+
+	chainRunType common.ChainRunType
 }
 
 type baseDataInStorage struct {
@@ -181,6 +183,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	NodeProcessingMode         common.NodeProcessingMode
+	ChainRunType               common.ChainRunType
 }
 
 type dataToSync struct {
@@ -228,6 +231,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
+		chainRunType:               args.ChainRunType,
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -942,6 +946,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.nodeProcessingMode,
 		e.flagsConfig.SnapshotsEnabled,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.chainRunType,
 	)
 	if err != nil {
 		return err
@@ -1128,6 +1133,7 @@ func (e *epochStartBootstrap) createStorageService(
 			SnapshotsEnabled:              e.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
+			ChainRunType:                  e.chainRunType,
 		})
 	if err != nil {
 		return nil, err
