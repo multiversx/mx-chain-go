@@ -180,7 +180,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 }
 
 func checkArguments(arguments ArgNodesCoordinator) error {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+	if arguments.ShardConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
 	}
 	if arguments.NbShards < 1 {
@@ -189,6 +189,10 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.ShardIDAsObserver >= arguments.NbShards && arguments.ShardIDAsObserver != core.MetachainShardId {
 		return ErrInvalidShardId
 	}
+	return checkNilArguments(arguments)
+}
+
+func checkNilArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.Hasher) {
 		return ErrNilHasher
 	}
@@ -263,6 +267,17 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		numTotalEligible += uint64(nbNodesShard)
 	}
 
+	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, epoch)
+}
+
+func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
+	nodesConfig *epochNodesConfig,
+	numTotalEligible uint64,
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	leaving map[uint32][]Validator,
+	epoch uint32,
+) error {
 	var err error
 	var isCurrentNodeValidator bool
 	// nbShards holds number of shards without meta
@@ -285,8 +300,6 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 			Reason:      common.WrongConfiguration,
 			Description: ErrValidatorCannotBeFullArchive.Error(),
 		}
-
-		return nil
 	}
 
 	return nil
@@ -330,11 +343,11 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RLock()
 	nodesConfig, ok := ihnc.nodesConfig[epoch]
 	if ok {
-		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
-			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
-			ihnc.mutNodesConfig.RUnlock()
-			return nil, ErrInvalidShardId
-		}
+		//if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
+		//	log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+		//	ihnc.mutNodesConfig.RUnlock()
+		//	return nil, ErrInvalidShardId
+		//}
 		selector = nodesConfig.selectors[shardID]
 		eligibleList = nodesConfig.eligibleMap[shardID]
 	}
@@ -344,6 +357,17 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
+	return ihnc.baseComputeConsensusGroup(randomness, round, shardID, epoch, selector, eligibleList)
+}
+
+func (ihnc *indexHashedNodesCoordinator) baseComputeConsensusGroup(
+	randomness []byte,
+	round uint64,
+	shardID uint32,
+	epoch uint32,
+	selector RandomSelector,
+	eligibleList []Validator,
+) (validatorsGroup []Validator, err error) {
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
 	validators := ihnc.searchConsensusForKey(key)
 	if validators != nil {

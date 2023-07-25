@@ -220,12 +220,12 @@ func CreateNodesCoordinator(
 		ValidatorInfoCacher:     validatorInfoCacher,
 	}
 
-	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	baseNodesCoordinator, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
+	nodesCoord, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
 	if err != nil {
 		return nil, err
 	}
