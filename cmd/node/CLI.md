@@ -26,6 +26,7 @@ GLOBAL OPTIONS:
    --config-preferences [path]               The [path] for the preferences configuration file. This TOML file contains preferences configurations, such as the node display name or the shard to start in when starting as observer (default: "./config/prefs.toml")
    --config-external [path]                  The [path] for the external configuration file. This TOML file contains external configurations such as ElasticSearch's URL and login information (default: "./config/external.toml")
    --p2p-config [path]                       The [path] for the p2p configuration file. This TOML file contains peer-to-peer configurations such as port, target peer count or KadDHT settings (default: "./config/p2p.toml")
+   --full-archive-p2p-config [path]          The [path] for the p2p configuration file for the full archive network. This TOML file contains peer-to-peer configurations such as port, target peer count or KadDHT settings (default: "./config/fullArchiveP2P.toml")
    --epoch-config [path]                     The [path] for the epoch configuration file. This TOML file contains activation epochs configurations (default: "./config/enableEpochs.toml")
    --round-config [path]                     The [path] for the round configuration file. This TOML file contains activation round configurations (default: "./config/enableRounds.toml")
    --gas-costs-config [path]                 The [path] for the gas costs configuration directory. (default: "./config/gasSchedules")
@@ -33,6 +34,7 @@ GLOBAL OPTIONS:
    --validator-key-pem-file filepath         The filepath for the PEM file which contains the secret keys for the validator key. (default: "./config/validatorKey.pem")
    --all-validator-keys-pem-file filepath    The filepath for the PEM file which contains all the secret keys managed by the current node. (default: "./config/allValidatorsKeys.pem")
    --port [p2p port]                         The [p2p port] number on which the application will start. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")
+   --full-archive-port [p2p port]            The [p2p port] number on which the application will start the second network when running in full archive mode. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")
    --profile-mode                            Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available on the node for profiling the application.
    --use-health-service                      Boolean option for enabling the health service.
    --storage-cleanup                         Boolean option for starting the node with clean storage. If set, the Node will empty its storage before starting, otherwise it will start from the last state stored on disk..

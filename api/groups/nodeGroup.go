@@ -40,7 +40,7 @@ type nodeFacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
@@ -355,7 +355,19 @@ func (ng *nodeGroup) bootstrapMetrics(c *gin.Context) {
 
 // connectedPeersRatings returns the node's connected peers ratings
 func (ng *nodeGroup) connectedPeersRatings(c *gin.Context) {
-	ratings := ng.getFacade().GetConnectedPeersRatings()
+	ratings, err := ng.getFacade().GetConnectedPeersRatingsOnMainNetwork()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

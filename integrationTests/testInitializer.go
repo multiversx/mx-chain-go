@@ -165,12 +165,12 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		P2pConfig:             createP2PConfig(initialAddresses),
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -187,17 +187,12 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -207,24 +202,19 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 }
 
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
+func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
 		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -256,7 +246,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 }
 
 // CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
+func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
@@ -269,7 +259,7 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 		},
 	}
 
-	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder)
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder, p2pKey)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
@@ -896,7 +886,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMbRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterHdrRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMetaRcv)),
-				fmt.Sprintf("%d", len(n.Messenger.ConnectedPeers())),
+				fmt.Sprintf("%d", len(n.MainMessenger.ConnectedPeers())),
 			},
 		)
 	}
@@ -1420,10 +1410,10 @@ func ConnectNodes(nodes []Connectable) {
 		for j := i + 1; j < len(nodes); j++ {
 			src := nodes[i]
 			dst := nodes[j]
-			err := src.ConnectTo(dst)
+			err := src.ConnectOnMain(dst)
 			if err != nil {
 				encounteredErrors = append(encounteredErrors,
-					fmt.Errorf("%w while %s was connecting to %s", err, src.GetConnectableAddress(), dst.GetConnectableAddress()))
+					fmt.Errorf("%w while %s was connecting to %s", err, src.GetMainConnectableAddress(), dst.GetMainConnectableAddress()))
 			}
 		}
 	}
