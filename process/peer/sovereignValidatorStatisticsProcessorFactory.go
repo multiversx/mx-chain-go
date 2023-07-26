@@ -20,7 +20,9 @@ func NewSovereignValidatorStatisticsProcessorFactory(validatorStatisticsProcesso
 	if check.IfNil(validatorStatisticsProcessorCreator) {
 		return nil, process.ErrNilValidatorStatisticsProcessorCreator
 	}
-	return &sovereignValidatorStatisticsProcessorFactory{}, nil
+	return &sovereignValidatorStatisticsProcessorFactory{
+		validatorStatisticsProcessorCreator: validatorStatisticsProcessorCreator,
+	}, nil
 }
 
 // CreateValidatorStatisticsProcessor creates a new validator statistics processor
