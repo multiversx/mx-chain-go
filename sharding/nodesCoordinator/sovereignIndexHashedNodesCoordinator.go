@@ -12,7 +12,6 @@ type sovereignIndexHashedNodesCoordinator struct {
 }
 
 func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*sovereignIndexHashedNodesCoordinator, error) {
-	log.Error("NewSovereignIndexHashedNodesCoordinator")
 	err := checkSovereignArguments(arguments)
 	if err != nil {
 		return nil, err
