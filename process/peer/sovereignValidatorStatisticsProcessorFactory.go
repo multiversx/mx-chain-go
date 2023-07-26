@@ -5,12 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
-type ValidatorStatisticsProcessorCreator interface {
-	CreateValidatorStatisticsProcessor(args ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
-	IsInterfaceNil() bool
-}
-
 type sovereignValidatorStatisticsProcessorFactory struct {
 	validatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
 }

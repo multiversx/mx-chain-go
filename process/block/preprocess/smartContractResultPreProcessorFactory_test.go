@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -17,12 +18,17 @@ import (
 )
 
 func TestNewSmartContractResultPreProcessorFactory(t *testing.T) {
+	t.Parallel()
+
 	fact, err := preprocess.NewSmartContractResultPreProcessorFactory()
 	require.Nil(t, err)
 	require.NotNil(t, fact)
+	require.Implements(t, new(preprocess.SmartContractResultPreProcessorCreator), fact)
 }
 
 func TestSmartContractResultPreProcessorFactory_CreateSmartContractResultPreProcessor(t *testing.T) {
+	t.Parallel()
+
 	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
 
 	args := preprocess.SmartContractResultPreProcessorCreatorArgs{}
@@ -34,9 +40,12 @@ func TestSmartContractResultPreProcessorFactory_CreateSmartContractResultPreProc
 	preProcessor, err = fact.CreateSmartContractResultPreProcessor(args)
 	require.Nil(t, err)
 	require.NotNil(t, preProcessor)
+	require.Implements(t, new(process.PreProcessor), preProcessor)
 }
 
 func TestSmartContractResultPreProcessorFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
 	require.False(t, fact.IsInterfaceNil())
 }

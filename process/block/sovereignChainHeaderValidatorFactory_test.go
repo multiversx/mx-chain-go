@@ -1,12 +1,16 @@
 package block
 
 import (
+	"testing"
+
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewSovereignHeaderValidatorFactory(t *testing.T) {
+	t.Parallel()
+
 	shvf, err := NewSovereignHeaderValidatorFactory(nil)
 	require.NotNil(t, err)
 	require.Nil(t, shvf)
@@ -15,9 +19,12 @@ func TestNewSovereignHeaderValidatorFactory(t *testing.T) {
 	shvf, err = NewSovereignHeaderValidatorFactory(sf)
 	require.Nil(t, err)
 	require.NotNil(t, shvf)
+	require.Implements(t, new(HeaderValidatorCreator), shvf)
 }
 
 func TestSovereignHeaderValidatorFactory_CreateHeaderValidator(t *testing.T) {
+	t.Parallel()
+
 	sf, _ := NewShardHeaderValidatorFactory()
 	shvf, _ := NewSovereignHeaderValidatorFactory(sf)
 
@@ -34,9 +41,12 @@ func TestSovereignHeaderValidatorFactory_CreateHeaderValidator(t *testing.T) {
 	})
 	require.NotNil(t, hv)
 	require.Nil(t, err)
+	require.Implements(t, new(process.HeaderConstructionValidator), hv)
 }
 
 func TestSovereignHeaderValidatorFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	sf, _ := NewShardHeaderValidatorFactory()
 	shvf, _ := NewSovereignHeaderValidatorFactory(sf)
 	require.False(t, shvf.IsInterfaceNil())

@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"

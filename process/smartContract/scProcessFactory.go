@@ -8,7 +8,7 @@ func NewSCProcessFactory() (*scProcessFactory, error) {
 	return &scProcessFactory{}, nil
 }
 
-// CreateSCRProcessor creates a new smart contract processor
+// CreateSCProcessor creates a new smart contract processor
 func (scpf *scProcessFactory) CreateSCProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
 	return NewSmartContractProcessor(args)
 }

@@ -442,16 +442,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}, nil
 }
 
-// TransactionCoordinatorCreator defines the transaction coordinator factory creator
-type TransactionCoordinatorCreator interface {
-	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
-	IsInterfaceNil() bool
-}
-
 func (pcf *processComponentsFactory) createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 ) (process.TransactionCoordinator, error) {
-
 	tcFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
@@ -470,12 +463,6 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 	}
 
 	return pcf.transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
-}
-
-// BlockProcessorCreator defines the block processor factory handler
-type BlockProcessorCreator interface {
-	CreateBlockProcessor(argumentsBaseProcessor block.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
-	IsInterfaceNil() bool
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(

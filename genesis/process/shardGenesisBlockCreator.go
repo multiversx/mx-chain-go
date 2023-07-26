@@ -695,12 +695,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}, nil
 }
 
-// TransactionCoordinatorCreator defines the transaction coordinator factory creator
-type TransactionCoordinatorCreator interface {
-	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
-	IsInterfaceNil() bool
-}
-
 func createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 	chainRunType common.ChainRunType,

@@ -1,18 +1,25 @@
 package peer_test
 
 import (
+	"testing"
+
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewValidatorStatisticsProcessorFactory(t *testing.T) {
+	t.Parallel()
+
 	vspf, err := peer.NewValidatorStatisticsProcessorFactory()
 	require.Nil(t, err)
 	require.NotNil(t, vspf)
+	require.Implements(t, new(peer.ValidatorStatisticsProcessorCreator), vspf)
 }
 
 func TestValidatorStatisticsProcessorFactory_CreateValidatorStatisticsProcessor(t *testing.T) {
+	t.Parallel()
+
 	vspf, _ := peer.NewValidatorStatisticsProcessorFactory()
 
 	vsp, err := vspf.CreateValidatorStatisticsProcessor(peer.ArgValidatorStatisticsProcessor{})
@@ -22,9 +29,12 @@ func TestValidatorStatisticsProcessorFactory_CreateValidatorStatisticsProcessor(
 	vsp, err = vspf.CreateValidatorStatisticsProcessor(createMockArguments())
 	require.Nil(t, err)
 	require.NotNil(t, vsp)
+	require.Implements(t, new(process.ValidatorStatisticsProcessor), vspf)
 }
 
 func TestValidatorStatisticsProcessorFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	vspf, _ := peer.NewValidatorStatisticsProcessorFactory()
 	require.False(t, vspf.IsInterfaceNil())
 }

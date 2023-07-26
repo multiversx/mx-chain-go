@@ -190,12 +190,12 @@ type processComponentsFactory struct {
 	statusCoreComponents                factory.StatusCoreComponentsHolder
 	blockProcessorCreator               BlockProcessorCreator
 	chainRunType                        common.ChainRunType
-	resolverRequestCreator              requestHandlers.RequestHandlerCreator
+	resolverRequestCreator              RequestHandlerCreator
 	scheduledTxsExecutionCreator        ScheduledTxsExecutionCreator
 	blockTrackerCreator                 BlockTrackerCreator
 	transactionCoordinatorCreator       TransactionCoordinatorCreator
 	headerValidatorCreator              HeaderValidatorCreator
-	forkDetectorCreator                 sync.ForkDetectorCreator
+	forkDetectorCreator                 ForkDetectorCreator
 	validatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
 }
 
@@ -739,12 +739,6 @@ func (pcf *processComponentsFactory) createResolverRequestHandler(
 	return pcf.resolverRequestCreator.CreateRequestHandler(args)
 }
 
-// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
-type ScheduledTxsExecutionCreator interface {
-	CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
-	IsInterfaceNil() bool
-}
-
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
 	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
 	if err != nil {
@@ -817,12 +811,6 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	}
 
 	return pcf.createValidatorStatisticsProcessor(arguments)
-}
-
-// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
-type ValidatorStatisticsProcessorCreator interface {
-	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
-	IsInterfaceNil() bool
 }
 
 func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
@@ -913,12 +901,6 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	}
 
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
-}
-
-// HeaderValidatorCreator is an interface for creating header validators
-type HeaderValidatorCreator interface {
-	CreateHeaderValidator(args block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
-	IsInterfaceNil() bool
 }
 
 func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
@@ -1420,12 +1402,6 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	return nil, errors.New("could not create block tracker")
-}
-
-// BlockTrackerCreator is an interface for creating block trackers
-type BlockTrackerCreator interface {
-	CreateBlockTracker(argBaseTracker track.ArgShardTracker) (process.BlockTracker, error)
-	IsInterfaceNil() bool
 }
 
 func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {

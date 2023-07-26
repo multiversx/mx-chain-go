@@ -1,9 +1,10 @@
 package coordinator
 
 import (
+	"testing"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSovereignTransactionCoordinatorFactory_NewShardTransactionCoordinatorFactory(t *testing.T) {

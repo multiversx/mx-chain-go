@@ -5,6 +5,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// ForkDetectorCreator is the interface needed by base fork detector to create fork detector
+type ForkDetectorCreator interface {
+	CreateForkDetector(args ForkDetectorFactoryArgs) (process.ForkDetector, error)
+	IsInterfaceNil() bool
+}
+
 type sovereignForkDetectorFactory struct {
 	shardForkDetectorFactory ForkDetectorCreator
 }

@@ -40,3 +40,9 @@ type BlockProcessorCreator interface {
 	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
 	IsInterfaceNil() bool
 }
+
+// HeaderValidatorCreator is an interface for creating header validators
+type HeaderValidatorCreator interface {
+	CreateHeaderValidator(args ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+	IsInterfaceNil() bool
+}

@@ -5,12 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// HeaderValidatorCreator is an interface for creating header validators
-type HeaderValidatorCreator interface {
-	CreateHeaderValidator(args ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
-	IsInterfaceNil() bool
-}
-
 type sovereignHeaderValidatorFactory struct {
 	headerValidatorCreator HeaderValidatorCreator
 }

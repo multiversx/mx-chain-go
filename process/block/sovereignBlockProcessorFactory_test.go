@@ -1,10 +1,11 @@
 package block_test
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,6 +22,7 @@ func TestNewSovereignBlockProcessorFactory(t *testing.T) {
 
 	require.NotNil(t, sbpf)
 	require.Nil(t, err)
+	require.Implements(t, new(block.BlockProcessorCreator), sbpf)
 }
 
 func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
@@ -36,10 +38,11 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	metaArgument := createMockMetaArguments(createMockComponentHolders())
 	metaArgument.ArgBaseProcessor.BlockTracker = &testscommon.ExtendedShardHeaderTrackerStub{}
 	metaArgument.ArgBaseProcessor.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
-	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
 
+	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
 	require.NotNil(t, sbp)
 	require.Nil(t, err)
+	require.Implements(t, new(process.BlockProcessor), sbp)
 }
 
 func TestSovereignBlockProcessorFactory_IsInterfaceNil(t *testing.T) {
@@ -47,6 +50,5 @@ func TestSovereignBlockProcessorFactory_IsInterfaceNil(t *testing.T) {
 
 	shardFactory, _ := block.NewShardBlockProcessorFactory()
 	sbpf, _ := block.NewSovereignBlockProcessorFactory(shardFactory)
-
 	require.False(t, sbpf.IsInterfaceNil())
 }

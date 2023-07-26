@@ -13,6 +13,7 @@ func TestNewSCProcessFactory(t *testing.T) {
 	fact, err := smartContract.NewSCProcessFactory()
 	require.Nil(t, err)
 	require.NotNil(t, fact)
+	require.Implements(t, new(smartContract.SCProcessorCreator), fact)
 }
 
 func TestSCProcessFactory_CreateSCProcessor(t *testing.T) {
@@ -27,6 +28,7 @@ func TestSCProcessFactory_CreateSCProcessor(t *testing.T) {
 	scProcessor, err = fact.CreateSCProcessor(smartContract.CreateMockSmartContractProcessorArguments())
 	require.Nil(t, err)
 	require.NotNil(t, scProcessor)
+	require.Implements(t, new(smartContract.SCRProcessorHandler), scProcessor)
 }
 
 func TestSCProcessFactory_IsInterfaceNil(t *testing.T) {
