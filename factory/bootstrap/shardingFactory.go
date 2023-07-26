@@ -113,6 +113,7 @@ func CreateNodesCoordinator(
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
+	nodesCoordinatorFactory nodesCoordinator.NodesCoordinatorWithRaterFactory,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if check.IfNil(nodeShufflerOut) {
 		return nil, errErd.ErrNilShuffleOutCloser
@@ -220,17 +221,12 @@ func CreateNodesCoordinator(
 		ValidatorInfoCacher:     validatorInfoCacher,
 	}
 
-	baseNodesCoordinator, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	if err != nil {
-		return nil, err
+	argumentsNodesCoordinatorWithRater := &nodesCoordinator.NodesCoordinatorWithRaterArgs{
+		ArgNodesCoordinator: argumentsNodesCoordinator,
+		ChanceComputer:      ratingAndListIndexHandler,
 	}
 
-	nodesCoord, err := nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	return nodesCoord, nil
+	return nodesCoordinatorFactory.CreateNodesCoordinatorWithRater(argumentsNodesCoordinatorWithRater)
 }
 
 // CreateNodesShuffleOut is the nodes shuffler closer factory

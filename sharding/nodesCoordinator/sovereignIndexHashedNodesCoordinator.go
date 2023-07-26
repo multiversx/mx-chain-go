@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type sovereignIndexHashedNodesCoordinator struct {
@@ -11,6 +12,7 @@ type sovereignIndexHashedNodesCoordinator struct {
 }
 
 func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*sovereignIndexHashedNodesCoordinator, error) {
+	log.Error("NewSovereignIndexHashedNodesCoordinator")
 	err := checkSovereignArguments(arguments)
 	if err != nil {
 		return nil, err
@@ -81,16 +83,14 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
-	displayNodesConfiguration(
+	displaySovereignNodesConfiguration(
 		currentConfig.eligibleMap,
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
-		make(map[uint32][]Validator),
-		currentConfig.nbShards)
+		make(map[uint32][]Validator))
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
 	return ihnc, nil
-
 }
 
 func checkSovereignArguments(arguments ArgNodesCoordinator) error {
@@ -140,8 +140,6 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
 	nodesConfig.nbShards = 1
 	return nil
 }
-
-// todo: make this a separate component
 
 // ComputeConsensusGroup will generate a list of validators based on the eligible list
 // and each eligible validator weight/chance
@@ -204,4 +202,35 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) GetConsensusValidatorsPublicKe
 	}
 
 	return pubKeys, nil
+}
+
+// EpochStartPrepare is not implemented for sovereign
+func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+	log.Error("sovereignIndexHashedNodesCoordinator.EpochStartPrepare was called, not implemented in sovereign")
+}
+
+func displaySovereignNodesConfiguration(
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	leaving map[uint32][]Validator,
+	actualRemaining map[uint32][]Validator,
+) {
+	shardID := core.SovereignChainShardId
+	for _, v := range eligible[shardID] {
+		pk := v.PubKey()
+		log.Debug("eligible", "pk", pk, "shardID", shardID)
+	}
+	for _, v := range waiting[shardID] {
+		pk := v.PubKey()
+		log.Debug("waiting", "pk", pk, "shardID", shardID)
+	}
+	for _, v := range leaving[shardID] {
+		pk := v.PubKey()
+		log.Debug("leaving", "pk", pk, "shardID", shardID)
+	}
+	for _, v := range actualRemaining[shardID] {
+		pk := v.PubKey()
+		log.Debug("actually remaining", "pk", pk, "shardID", shardID)
+	}
+
 }

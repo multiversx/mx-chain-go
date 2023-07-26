@@ -198,17 +198,18 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 	argsBootstrap := factoryBootstrap.BootstrapComponentsFactoryArgs{
-		Config:               *pr.Config.GeneralConfig,
-		RoundConfig:          *pr.Config.RoundConfig,
-		PrefConfig:           *pr.Config.PreferencesConfig,
-		ImportDbConfig:       *pr.Config.ImportDbConfig,
-		FlagsConfig:          *pr.Config.FlagsConfig,
-		WorkingDir:           pr.Config.FlagsConfig.WorkingDir,
-		CoreComponents:       pr.CoreComponents,
-		CryptoComponents:     pr.CryptoComponents,
-		NetworkComponents:    pr.NetworkComponents,
-		StatusCoreComponents: pr.StatusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		Config:                           *pr.Config.GeneralConfig,
+		RoundConfig:                      *pr.Config.RoundConfig,
+		PrefConfig:                       *pr.Config.PreferencesConfig,
+		ImportDbConfig:                   *pr.Config.ImportDbConfig,
+		FlagsConfig:                      *pr.Config.FlagsConfig,
+		WorkingDir:                       pr.Config.FlagsConfig.WorkingDir,
+		CoreComponents:                   pr.CoreComponents,
+		CryptoComponents:                 pr.CryptoComponents,
+		NetworkComponents:                pr.NetworkComponents,
+		StatusCoreComponents:             pr.StatusCoreComponents,
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -310,6 +311,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(tb, err)
 
