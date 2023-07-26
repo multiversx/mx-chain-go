@@ -428,7 +428,7 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 		return nil, errors.ErrNilShardCoordinator
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return ccf.createShardStorageAndSyncBootstrapper()
 	}
 
@@ -812,7 +812,7 @@ func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardC
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.GetMetaConsensusGroupSize(), nil
 	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return nodesConfig.GetShardConsensusGroupSize(), nil
 	}
 

@@ -94,17 +94,17 @@ func (inMb *InterceptedMiniblock) IsForCurrentShard() bool {
 func (inMb *InterceptedMiniblock) integrity() error {
 	miniblock := inMb.miniblock
 
-	//receiverNotCurrentShard := miniblock.ReceiverShardID >= inMb.shardCoordinator.NumberOfShards() &&
-	//	(miniblock.ReceiverShardID != core.MetachainShardId && miniblock.ReceiverShardID != core.AllShardId)
-	//if receiverNotCurrentShard {
-	//	return process.ErrInvalidShardId
-	//}
-	//
-	//senderNotCurrentShard := miniblock.SenderShardID >= inMb.shardCoordinator.NumberOfShards() &&
-	//	miniblock.SenderShardID != core.MetachainShardId
-	//if senderNotCurrentShard {
-	//	return process.ErrInvalidShardId
-	//}
+	receiverNotCurrentShard := miniblock.ReceiverShardID >= inMb.shardCoordinator.NumberOfShards() &&
+		(miniblock.ReceiverShardID != core.MetachainShardId && miniblock.ReceiverShardID != core.AllShardId)
+	if receiverNotCurrentShard {
+		return process.ErrInvalidShardId
+	}
+
+	senderNotCurrentShard := miniblock.SenderShardID >= inMb.shardCoordinator.NumberOfShards() &&
+		miniblock.SenderShardID != core.MetachainShardId
+	if senderNotCurrentShard {
+		return process.ErrInvalidShardId
+	}
 
 	for _, txHash := range miniblock.TxHashes {
 		if txHash == nil {

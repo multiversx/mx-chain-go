@@ -91,17 +91,17 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		consecutiveMissedBlocksPenalty:  ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty,
 		proposerValidatorImportance:     ratingsConfig.MetaChain.ProposerValidatorImportance,
 	}
-	//metaRatingStep, err := computeRatingStep(arg)
-	//if err != nil {
-	//	return nil, err
-	//}
+	metaRatingStep, err := computeRatingStep(arg)
+	if err != nil {
+		return nil, err
+	}
 
 	return &RatingsData{
 		startRating:           ratingsConfig.General.StartRating,
 		maxRating:             ratingsConfig.General.MaxRating,
 		minRating:             ratingsConfig.General.MinRating,
 		signedBlocksThreshold: ratingsConfig.General.SignedBlocksThreshold,
-		metaRatingsStepData:   shardRatingStep,
+		metaRatingsStepData:   metaRatingStep,
 		shardRatingsStepData:  shardRatingStep,
 		selectionChances:      chances,
 	}, nil

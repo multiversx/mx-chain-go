@@ -112,8 +112,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	destShardIdAsObserver = core.SovereignChainShardId
-
 	versionsCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
 	if err != nil {
 		return nil, err

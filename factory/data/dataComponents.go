@@ -144,20 +144,21 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 }
 
 func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandler, error) {
-	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		blockChain, err := blockchain.NewMetaChain(dcf.statusCore.AppStatusHandler())
-		if err != nil {
-			return nil, err
-		}
-		return blockChain, nil
-	} else {
+	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
 		blockChain, err := blockchain.NewBlockChain(dcf.statusCore.AppStatusHandler())
 		if err != nil {
 			return nil, err
 		}
 		return blockChain, nil
 	}
-	//return nil, errors.ErrBlockchainCreation
+	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
+		blockChain, err := blockchain.NewMetaChain(dcf.statusCore.AppStatusHandler())
+		if err != nil {
+			return nil, err
+		}
+		return blockChain, nil
+	}
+	return nil, errors.ErrBlockchainCreation
 }
 
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
@@ -181,7 +182,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 	if err != nil {
 		return nil, err
 	}
-	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() || dcf.shardCoordinator.SelfId() == core.SovereignChainShardId {
+	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
 		return storageServiceFactory.CreateForShard()
 	}
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {

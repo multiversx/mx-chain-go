@@ -1186,17 +1186,17 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
 	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
 
-	//	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.SovereignChainShardId)
+	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
+		bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(shardID)
+		if bootstrapHeaderInfo != nil {
+			lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
+		}
+	}
+
+	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	}
-	//	}
-
-	//bootstrapHeaderInfo = bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
-	//if bootstrapHeaderInfo != nil {
-	//	lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
-	//}
 
 	if len(lastCrossNotarizedHeaders) == 0 {
 		return nil

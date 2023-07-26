@@ -59,7 +59,6 @@ func displayNodesConfiguration(
 		if shardID == nbShards {
 			shardID = core.MetachainShardId
 		}
-		shardID = core.SovereignChainShardId
 		for _, v := range eligible[shardID] {
 			pk := v.PubKey()
 			log.Debug("eligible", "pk", pk, "shardID", shardID)
