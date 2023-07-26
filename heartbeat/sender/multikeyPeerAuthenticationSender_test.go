@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
@@ -144,7 +143,7 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 		},
 	}
 
-	args.messenger = messenger
+	args.mainMessenger = messenger
 
 	return args, messenger
 }
@@ -152,17 +151,29 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil peer messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		argsBase := createMockBaseArgs()
-		argsBase.messenger = nil
+		argsBase.mainMessenger = nil
 
 		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
-		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsBase := createMockBaseArgs()
+		argsBase.fullArchiveMessenger = nil
+
+		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
+		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -173,7 +184,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilMarshaller, err)
 	})
 	t.Run("empty topic should error", func(t *testing.T) {
@@ -185,7 +196,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrEmptySendTopic, err)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
@@ -197,7 +208,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSends"))
 		assert.False(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
@@ -211,7 +222,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args := createMockMultikeyPeerAuthenticationSenderArgs(argsBase)
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenSendsWhenError"))
 	})
@@ -244,7 +255,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.nodesCoordinator = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil peer signature handler should error", func(t *testing.T) {
@@ -254,7 +265,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.peerSignatureHandler = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
 	t.Run("nil hardfork trigger should error", func(t *testing.T) {
@@ -264,7 +275,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.hardforkTrigger = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
 	})
 	t.Run("invalid time between hardforks should error", func(t *testing.T) {
@@ -274,7 +285,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.hardforkTimeBetweenSends = time.Second - time.Nanosecond
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
 	})
@@ -285,7 +296,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.managedPeersHolder = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("invalid time between checks should error", func(t *testing.T) {
@@ -295,7 +306,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.timeBetweenChecks = time.Second - time.Nanosecond
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "timeBetweenChecks"))
 	})
@@ -306,7 +317,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args.shardCoordinator = nil
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilShardCoordinator, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -315,7 +326,7 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		args := createMockMultikeyPeerAuthenticationSenderArgs(createMockBaseArgs())
 		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
 
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 		assert.Nil(t, err)
 	})
 }
@@ -648,6 +659,17 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 	})
 }
 
+func TestMultikeyPeerAuthenticationSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var senderInstance *multikeyPeerAuthenticationSender
+	assert.True(t, senderInstance.IsInterfaceNil())
+
+	args := createMockMultikeyPeerAuthenticationSenderArgs(createMockBaseArgs())
+	senderInstance, _ = newMultikeyPeerAuthenticationSender(args)
+	assert.False(t, senderInstance.IsInterfaceNil())
+}
+
 func testRecoveredMessages(
 	tb testing.TB,
 	args argMultikeyPeerAuthenticationSender,
@@ -693,7 +715,7 @@ func testSingleMessage(
 	errVerify := args.peerSignatureHandler.VerifyPeerSignature(recoveredMessage.Pubkey, core.PeerID(recoveredMessage.Pid), recoveredMessage.Signature)
 	assert.Nil(tb, errVerify)
 
-	messenger := args.messenger.(*p2pmocks.MessengerStub)
+	messenger := args.mainMessenger.(*p2pmocks.MessengerStub)
 	errVerify = messenger.Verify(recoveredMessage.Payload, core.PeerID(recoveredMessage.Pid), recoveredMessage.PayloadSignature)
 	assert.Nil(tb, errVerify)
 

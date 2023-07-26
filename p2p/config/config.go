@@ -13,7 +13,3 @@ type KadDhtPeerDiscoveryConfig = config.KadDhtPeerDiscoveryConfig
 
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig = config.ShardingConfig
-
-// AdditionalConnectionsConfig will hold the additional connections that will be open when certain conditions are met
-// All these values should be added to the maximum target peer count value
-type AdditionalConnectionsConfig = config.AdditionalConnectionsConfig
