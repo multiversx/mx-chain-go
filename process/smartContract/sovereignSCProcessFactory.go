@@ -6,20 +6,22 @@ import (
 )
 
 type sovereignSCProcessFactory struct {
-	scrProcessorCreator SCRProcessorCreator
+	scrProcessorCreator SCProcessorCreator
 }
 
 // NewSovereignSCProcessFactory creates a new smart contract process factory
-func NewSovereignSCProcessFactory(creator SCRProcessorCreator) (*sovereignSCProcessFactory, error) {
+func NewSovereignSCProcessFactory(creator SCProcessorCreator) (*sovereignSCProcessFactory, error) {
 	if check.IfNil(creator) {
 		return nil, process.ErrNilSCProcessorCreator
 	}
-	return &sovereignSCProcessFactory{}, nil
+	return &sovereignSCProcessFactory{
+		scrProcessorCreator: creator,
+	}, nil
 }
 
-// CreateSCProcessor creates a new smart contract processor
+// CreateSCRProcessor creates a new smart contract processor
 func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
-	sp, err := scpf.scrProcessorCreator.CreateSCRProcessor(args)
+	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args)
 	if err != nil {
 		return nil, err
 	}

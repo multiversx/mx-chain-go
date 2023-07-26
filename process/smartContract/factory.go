@@ -14,9 +14,9 @@ type SCRProcessorHandler interface {
 	process.SmartContractResultProcessor
 }
 
-// SCRProcessorCreator defines a scr processor creator
-type SCRProcessorCreator interface {
-	CreateSCRProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error)
+// SCProcessorCreator defines a scr processor creator
+type SCProcessorCreator interface {
+	CreateSCProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error)
 	IsInterfaceNil() bool
 }
 
