@@ -23,3 +23,8 @@ func (ncf *indexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinatorWi
 
 	return NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
 }
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (ncf *indexHashedNodesCoordinatorWithRaterFactory) IsInterfaceNil() bool {
+	return ncf == nil
+}

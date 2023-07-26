@@ -9,6 +9,7 @@ type baseNodesCoordinatorWithRater struct {
 	chanceComputer ChanceComputer
 }
 
+// GetChance returns the chance from an actual rating
 func (bnc *baseNodesCoordinatorWithRater) GetChance(rating uint32) uint32 {
 	return bnc.chanceComputer.GetChance(rating)
 }

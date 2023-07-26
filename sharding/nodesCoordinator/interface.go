@@ -136,4 +136,5 @@ type EpochsConfigUpdateHandler interface {
 // NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
 type NodesCoordinatorWithRaterFactory interface {
 	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
+	IsInterfaceNil() bool
 }

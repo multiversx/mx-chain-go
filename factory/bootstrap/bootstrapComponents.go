@@ -93,6 +93,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
+		return nil, errors.ErrNilNodesCoordinatorFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:                           args.Config,

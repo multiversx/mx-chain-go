@@ -570,3 +570,6 @@ var ErrInvalidTrieNodeVersion = errors.New("invalid trie node version")
 
 // ErrNilTrieMigrator signals that a nil trie migrator has been provided
 var ErrNilTrieMigrator = errors.New("nil trie migrator")
+
+// ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
+var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")

@@ -195,7 +195,6 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) GetConsensusValidatorsPublicKe
 	}
 
 	pubKeys := make([]string, 0)
-
 	for _, v := range consensusNodes {
 		pubKeys = append(pubKeys, string(v.PubKey()))
 	}

@@ -17,3 +17,8 @@ func (ncf *sovereignIndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoor
 
 	return NewSovereignIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
 }
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (ncf *sovereignIndexHashedNodesCoordinatorWithRaterFactory) IsInterfaceNil() bool {
+	return ncf == nil
+}

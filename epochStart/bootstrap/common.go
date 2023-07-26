@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -111,6 +112,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
+	}
+	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errorsMx.ErrNilNodesCoordinatorFactory)
 	}
 
 	return nil
