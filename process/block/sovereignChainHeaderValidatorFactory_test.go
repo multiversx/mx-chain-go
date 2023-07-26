@@ -19,7 +19,7 @@ func TestNewSovereignHeaderValidatorFactory(t *testing.T) {
 
 func TestSovereignHeaderValidatorFactory_CreateHeaderValidator(t *testing.T) {
 	sf, _ := NewShardHeaderValidatorFactory()
-	shvf, err := NewSovereignHeaderValidatorFactory(sf)
+	shvf, _ := NewSovereignHeaderValidatorFactory(sf)
 
 	hv, err := shvf.CreateHeaderValidator(ArgsHeaderValidator{
 		Hasher:      nil,

@@ -196,7 +196,7 @@ type processComponentsFactory struct {
 	transactionCoordinatorCreator       TransactionCoordinatorCreator
 	headerValidatorCreator              HeaderValidatorCreator
 	forkDetectorCreator                 sync.ForkDetectorCreator
-	ValidatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
+	validatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -545,19 +545,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
-		&disabled.TxProcessor{},
-		&disabled.TxCoordinator{},
-		scheduledSCRSStorer,
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-	)
+	scheduledTxsExecutionHandler, err := pcf.createScheduledTxsExecutionHandler()
 	if err != nil {
 		return nil, err
 	}
@@ -845,18 +833,18 @@ func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args pee
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		pcf.ValidatorStatisticsProcessorCreator = validatorStatisticsProcessorFactory
+		pcf.validatorStatisticsProcessorCreator = validatorStatisticsProcessorFactory
 	case common.ChainRunTypeSovereign:
 		svspf, sovError := peer.NewSovereignValidatorStatisticsProcessorFactory(validatorStatisticsProcessorFactory)
 		if sovError != nil {
 			return nil, sovError
 		}
-		pcf.ValidatorStatisticsProcessorCreator = svspf
+		pcf.validatorStatisticsProcessorCreator = svspf
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
 
-	return pcf.ValidatorStatisticsProcessorCreator.CreateValidatorStatisticsProcessor(args)
+	return pcf.validatorStatisticsProcessorCreator.CreateValidatorStatisticsProcessor(args)
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {

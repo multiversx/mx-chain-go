@@ -662,7 +662,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
-	txCoordinator, err := createTransactionCoordinator(arg.transactionCoordinatorCreator, argsTransactionCoordinator, arg.ChainRunType)
+	txCoordinator, err := createTransactionCoordinator(argsTransactionCoordinator, arg.ChainRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +702,6 @@ type TransactionCoordinatorCreator interface {
 }
 
 func createTransactionCoordinator(
-	transactionCoordinatorCreator TransactionCoordinatorCreator,
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 	chainRunType common.ChainRunType,
 ) (process.TransactionCoordinator, error) {
@@ -712,11 +711,12 @@ func createTransactionCoordinator(
 	}
 
 	// TODO: remove assignment of parameter and switch
+	var tempTransactionCoordinatorCreator TransactionCoordinatorCreator
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		transactionCoordinatorCreator = stcf
+		tempTransactionCoordinatorCreator = stcf
 	case common.ChainRunTypeSovereign:
-		transactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(stcf)
+		tempTransactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(stcf)
 		if err != nil {
 			return nil, err
 		}
@@ -724,7 +724,7 @@ func createTransactionCoordinator(
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
 
-	return transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
+	return tempTransactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func deployInitialSmartContracts(

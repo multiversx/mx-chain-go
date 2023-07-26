@@ -25,7 +25,7 @@ func TestSovereignTransactionCoordinatorFactory_CreateTransactionCoordinator(t *
 	t.Parallel()
 
 	stcf, _ := NewShardTransactionCoordinatorFactory()
-	sovtcf, err := NewSovereignTransactionCoordinatorFactory(stcf)
+	sovtcf, _ := NewSovereignTransactionCoordinatorFactory(stcf)
 	tc, err := sovtcf.CreateTransactionCoordinator(ArgTransactionCoordinator{})
 	require.NotNil(t, err)
 	require.Nil(t, tc)

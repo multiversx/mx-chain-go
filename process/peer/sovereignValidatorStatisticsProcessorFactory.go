@@ -25,7 +25,15 @@ func NewSovereignValidatorStatisticsProcessorFactory(validatorStatisticsProcesso
 
 // CreateValidatorStatisticsProcessor creates a new validator statistics processor
 func (vsf *sovereignValidatorStatisticsProcessorFactory) CreateValidatorStatisticsProcessor(args ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
-	return NewValidatorStatisticsProcessor(args)
+	vsp, err := vsf.validatorStatisticsProcessorCreator.CreateValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+	shardVsp, ok := vsp.(*validatorStatistics)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+	return NewSovereignChainValidatorStatisticsProcessor(shardVsp)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

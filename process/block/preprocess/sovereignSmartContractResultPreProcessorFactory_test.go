@@ -15,12 +15,12 @@ func TestNewSovereignContractResultPreProcessorFactory(t *testing.T) {
 	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
 	sovFact, err = preprocess.NewSovereignSmartContractResultPreProcessorFactory(fact)
 	require.Nil(t, err)
-	require.NotNil(t, fact)
+	require.NotNil(t, sovFact)
 }
 
 func TestSovereignContractResultPreProcessorFactory_CreateSmartContractResultPreProcessor(t *testing.T) {
 	f, _ := preprocess.NewSmartContractResultPreProcessorFactory()
-	fact, err := preprocess.NewSovereignSmartContractResultPreProcessorFactory(f)
+	fact, _ := preprocess.NewSovereignSmartContractResultPreProcessorFactory(f)
 
 	args := preprocess.SmartContractResultPreProcessorCreatorArgs{}
 	preProcessor, err := fact.CreateSmartContractResultPreProcessor(args)

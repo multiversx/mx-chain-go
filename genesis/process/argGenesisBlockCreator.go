@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -68,6 +67,5 @@ type ArgsGenesisBlockCreator struct {
 	GenesisNodePrice *big.Int
 	GenesisString    string
 	// created components
-	importHandler                 update.ImportHandler
-	transactionCoordinatorCreator coordinator.TransactionCoordinatorCreator
+	importHandler update.ImportHandler
 }
