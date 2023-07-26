@@ -14,8 +14,15 @@ type SCRProcessorHandler interface {
 	process.SmartContractResultProcessor
 }
 
+// SCRProcessorCreator defines a scr processor creator
+type SCRProcessorCreator interface {
+	CreateSCRProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error)
+	IsInterfaceNil() bool
+}
+
 // CreateSCRProcessor creates a scr processor based on the chain run type (normal/sovereign)
 func CreateSCRProcessor(chainRunType common.ChainRunType, scProcArgs ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
+
 	scrProc, err := NewSmartContractProcessor(scProcArgs)
 
 	switch chainRunType {

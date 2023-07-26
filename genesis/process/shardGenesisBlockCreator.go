@@ -662,7 +662,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
-	txCoordinator, err := createTransactionCoordinator(argsTransactionCoordinator, arg.ChainRunType)
+	txCoordinator, err := createTransactionCoordinator(arg.transactionCoordinatorCreator, argsTransactionCoordinator, arg.ChainRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -695,23 +695,36 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}, nil
 }
 
+// TransactionCoordinatorCreator defines the transaction coordinator factory creator
+type TransactionCoordinatorCreator interface {
+	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
+	IsInterfaceNil() bool
+}
+
 func createTransactionCoordinator(
+	transactionCoordinatorCreator TransactionCoordinatorCreator,
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 	chainRunType common.ChainRunType,
 ) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	stcf, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: remove assignment of parameter and switch
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
+		transactionCoordinatorCreator = stcf
 	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+		transactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(stcf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
+
+	return transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func deployInitialSmartContracts(

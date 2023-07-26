@@ -1229,3 +1229,12 @@ var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
 
 // ErrNilForkDetectorCreator signals that a nil fork detector creator was provided
 var ErrNilForkDetectorCreator = errors.New("nil fork detector creator")
+
+// ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator was provided
+var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")
+
+// ErrNilPreProcessorCreator signals that a nil pre processor creator was provided
+var ErrNilPreProcessorCreator = errors.New("nil pre processor creator")
+
+// ErrNilSCProcessorCreator signals that a nil sc processor creator was provided
+var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")

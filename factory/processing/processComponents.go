@@ -838,19 +838,25 @@ type ValidatorStatisticsProcessorCreator interface {
 }
 
 func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
-	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(args)
+	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return validatorStatisticsProcessor, nil
+		pcf.ValidatorStatisticsProcessorCreator = validatorStatisticsProcessorFactory
 	case common.ChainRunTypeSovereign:
-		return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
+		svspf, sovError := peer.NewSovereignValidatorStatisticsProcessorFactory(validatorStatisticsProcessorFactory)
+		if sovError != nil {
+			return nil, sovError
+		}
+		pcf.ValidatorStatisticsProcessorCreator = svspf
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.ValidatorStatisticsProcessorCreator.CreateValidatorStatisticsProcessor(args)
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
