@@ -165,6 +165,8 @@ func CreateNodesCoordinator(
 		return nil, errWaitingValidators
 	}
 
+	leavingValidators := make(map[uint32][]nodesCoordinator.Validator)
+
 	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig() != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig()
@@ -179,6 +181,12 @@ func CreateNodesCoordinator(
 
 			waitings := epochsConfig.WaitingValidators
 			waitingValidators, err = nodesCoordinator.SerializableValidatorsToValidators(waitings)
+			if err != nil {
+				return nil, err
+			}
+
+			leaving := epochsConfig.LeavingValidators
+			leavingValidators, err = nodesCoordinator.SerializableValidatorsToValidators(leaving)
 			if err != nil {
 				return nil, err
 			}
@@ -217,6 +225,7 @@ func CreateNodesCoordinator(
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleValidators,
 		WaitingNodes:            waitingValidators,
+		LeavingNodes:            leavingValidators,
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      shuffledOutHandler,
