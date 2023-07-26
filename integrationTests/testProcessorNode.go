@@ -788,11 +788,12 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initInnerProcessors(gasMap, vmConfig)
 
 	if check.IfNil(args.TrieStore) {
+		apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
 		argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 			VmContainer:                  tpn.VMContainer,
 			EconomicsFee:                 tpn.EconomicsData,
 			BlockChainHook:               tpn.BlockchainHook,
-			BlockChain:                   tpn.BlockChain,
+			BlockChain:                   apiBlockchain,
 			WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
 			Bootstrapper:                 tpn.Bootstrapper,
 			AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
@@ -867,11 +868,12 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	smartContractsCache := testscommon.NewCacherMock()
 
+	apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 tpn.AccntState,
 		PubkeyConv:               TestAddressPubkeyConverter,
 		StorageService:           tpn.Storage,
-		BlockChain:               tpn.BlockChain,
+		BlockChain:               apiBlockchain,
 		ShardCoordinator:         tpn.ShardCoordinator,
 		Marshalizer:              TestMarshalizer,
 		Uint64Converter:          TestUint64Converter,
@@ -983,7 +985,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		VmContainer:                  vmContainer,
 		EconomicsFee:                 tpn.EconomicsData,
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		BlockChain:                   tpn.BlockChain,
+		BlockChain:                   apiBlockchain,
 		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
 		Bootstrapper:                 tpn.Bootstrapper,
 		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
@@ -1002,11 +1004,12 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
+	apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:                  tpn.VMContainer,
 		EconomicsFee:                 tpn.EconomicsData,
 		BlockChainHook:               tpn.BlockchainHook,
-		BlockChain:                   tpn.BlockChain,
+		BlockChain:                   apiBlockchain,
 		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
 		Bootstrapper:                 tpn.Bootstrapper,
 		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),

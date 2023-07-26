@@ -203,6 +203,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 			return nil, err
 		}
 
+		// Temporary setting the root hash to the desired one until the sc call is ready
 		_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, blockRootHash)
 	}
 
@@ -210,8 +211,9 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	service.wasmVMChangeLocker.RUnlock()
-	_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 	if err != nil {
+		// Cleaning the current root hash so the real one would be returned further
+		_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 		return nil, err
 	}
 
@@ -220,9 +222,14 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 		vmOutput, err = vm.RunSmartContractCall(vmInput)
 		if err != nil {
+			// Cleaning the current root hash so the real one would be returned further
+			_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 			return nil, err
 		}
 	}
+
+	// Cleaning the current root hash so the real one would be returned further
+	_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 
 	if query.SameScState {
 		err = service.checkForRootHashChanges(rootHashBeforeExecution)
