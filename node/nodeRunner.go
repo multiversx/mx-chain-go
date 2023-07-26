@@ -378,6 +378,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -1354,16 +1355,17 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		PrefConfig:           *nr.configs.PreferencesConfig,
-		ImportDbConfig:       *nr.configs.ImportDbConfig,
-		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		Config:                           *nr.configs.GeneralConfig,
+		PrefConfig:                       *nr.configs.PreferencesConfig,
+		ImportDbConfig:                   *nr.configs.ImportDbConfig,
+		FlagsConfig:                      *nr.configs.FlagsConfig,
+		WorkingDir:                       nr.configs.FlagsConfig.DbDir,
+		CoreComponents:                   coreComponents,
+		CryptoComponents:                 cryptoComponents,
+		NetworkComponents:                networkComponents,
+		StatusCoreComponents:             statusCoreComponents,
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

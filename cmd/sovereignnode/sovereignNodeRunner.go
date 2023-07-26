@@ -383,6 +383,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -1312,16 +1313,17 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *snr.configs.GeneralConfig,
-		PrefConfig:           *snr.configs.PreferencesConfig,
-		ImportDbConfig:       *snr.configs.ImportDbConfig,
-		FlagsConfig:          *snr.configs.FlagsConfig,
-		WorkingDir:           snr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeSovereign,
+		Config:                           *snr.configs.GeneralConfig,
+		PrefConfig:                       *snr.configs.PreferencesConfig,
+		ImportDbConfig:                   *snr.configs.ImportDbConfig,
+		FlagsConfig:                      *snr.configs.FlagsConfig,
+		WorkingDir:                       snr.configs.FlagsConfig.DbDir,
+		CoreComponents:                   coreComponents,
+		CryptoComponents:                 cryptoComponents,
+		NetworkComponents:                networkComponents,
+		StatusCoreComponents:             statusCoreComponents,
+		ChainRunType:                     common.ChainRunTypeSovereign,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
