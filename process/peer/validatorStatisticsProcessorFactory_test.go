@@ -29,7 +29,7 @@ func TestValidatorStatisticsProcessorFactory_CreateValidatorStatisticsProcessor(
 	vsp, err = vspf.CreateValidatorStatisticsProcessor(createMockArguments())
 	require.Nil(t, err)
 	require.NotNil(t, vsp)
-	require.Implements(t, new(process.ValidatorStatisticsProcessor), vspf)
+	require.Implements(t, new(process.ValidatorStatisticsProcessor), vsp)
 }
 
 func TestValidatorStatisticsProcessorFactory_IsInterfaceNil(t *testing.T) {
