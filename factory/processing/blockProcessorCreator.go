@@ -791,14 +791,21 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+
+	epochStartStaticStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
-		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
-		ValidatorInfoStorage: validatorInfoStorage,
-		MiniBlockStorage:     miniBlockStorage,
-		Hasher:               pcf.coreData.Hasher(),
-		Marshalizer:          pcf.coreData.InternalMarshalizer(),
-		DataPool:             pcf.data.Datapool(),
-		EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		ValidatorInfoStorage:    validatorInfoStorage,
+		MiniBlockStorage:        miniBlockStorage,
+		Hasher:                  pcf.coreData.Hasher(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		DataPool:                pcf.data.Datapool(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		EpochStartStaticStorage: epochStartStaticStorer,
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {

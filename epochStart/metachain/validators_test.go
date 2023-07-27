@@ -135,6 +135,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
+		EpochStartStaticStorage: createMemUnit(),
 	}
 	return argsNewEpochEconomics
 }

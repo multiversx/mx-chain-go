@@ -23,23 +23,25 @@ var _ process.EpochStartValidatorInfoCreator = (*validatorInfoCreator)(nil)
 
 // ArgsNewValidatorInfoCreator defines the arguments structure needed to create a new validatorInfo creator
 type ArgsNewValidatorInfoCreator struct {
-	ShardCoordinator     sharding.Coordinator
-	ValidatorInfoStorage storage.Storer
-	MiniBlockStorage     storage.Storer
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	DataPool             dataRetriever.PoolsHolder
-	EnableEpochsHandler  common.EnableEpochsHandler
+	ShardCoordinator        sharding.Coordinator
+	ValidatorInfoStorage    storage.Storer
+	MiniBlockStorage        storage.Storer
+	Hasher                  hashing.Hasher
+	Marshalizer             marshal.Marshalizer
+	DataPool                dataRetriever.PoolsHolder
+	EnableEpochsHandler     common.EnableEpochsHandler
+	EpochStartStaticStorage storage.Storer
 }
 
 type validatorInfoCreator struct {
-	shardCoordinator     sharding.Coordinator
-	validatorInfoStorage storage.Storer
-	miniBlockStorage     storage.Storer
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	dataPool             dataRetriever.PoolsHolder
-	enableEpochsHandler  common.EnableEpochsHandler
+	shardCoordinator        sharding.Coordinator
+	validatorInfoStorage    storage.Storer
+	miniBlockStorage        storage.Storer
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	dataPool                dataRetriever.PoolsHolder
+	enableEpochsHandler     common.EnableEpochsHandler
+	epochStartStaticStorage storage.Storer
 }
 
 // NewValidatorInfoCreator creates a new validatorInfo creator object
@@ -68,15 +70,19 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.EpochStartStaticStorage) {
+		return nil, epochStart.ErrNilStorage
+	}
 
 	vic := &validatorInfoCreator{
-		shardCoordinator:     args.ShardCoordinator,
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		validatorInfoStorage: args.ValidatorInfoStorage,
-		miniBlockStorage:     args.MiniBlockStorage,
-		dataPool:             args.DataPool,
-		enableEpochsHandler:  args.EnableEpochsHandler,
+		shardCoordinator:        args.ShardCoordinator,
+		hasher:                  args.Hasher,
+		marshalizer:             args.Marshalizer,
+		validatorInfoStorage:    args.ValidatorInfoStorage,
+		miniBlockStorage:        args.MiniBlockStorage,
+		dataPool:                args.DataPool,
+		enableEpochsHandler:     args.EnableEpochsHandler,
+		epochStartStaticStorage: args.EpochStartStaticStorage,
 	}
 
 	return vic, nil
@@ -389,6 +395,11 @@ func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
 		err = vic.validatorInfoStorage.Put(validatorInfoHash, marshalledData)
 		if err != nil {
 			log.Debug("validatorInfoCreator.saveValidatorInfo.Put", "hash", validatorInfoHash, "error", err)
+		}
+
+		err = vic.epochStartStaticStorage.Put(validatorInfoHash, marshalledData)
+		if err != nil {
+			log.Debug("validatorInfoCreator.epochStartStaticStorage.Put", "hash", validatorInfoHash, "error", err)
 		}
 	}
 }

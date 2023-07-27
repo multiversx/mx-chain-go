@@ -6,9 +6,10 @@ import (
 
 // PathManagerStub -
 type PathManagerStub struct {
-	PathForEpochCalled  func(shardId string, epoch uint32, identifier string) string
-	PathForStaticCalled func(shardId string, identifier string) string
-	DatabasePathCalled  func() string
+	PathForEpochCalled           func(shardId string, epoch uint32, identifier string) string
+	PathForStaticCalled          func(shardId string, identifier string) string
+	DatabasePathCalled           func() string
+	PathForStaticCrossDataCalled func(identifier string) string
 }
 
 // PathForEpoch -
@@ -36,6 +37,15 @@ func (p *PathManagerStub) DatabasePath() string {
 	}
 
 	return "db"
+}
+
+// PathForStaticCrossData -
+func (p *PathManagerStub) PathForStaticCrossData(identifier string) string {
+	if p.PathForStaticCrossDataCalled != nil {
+		return p.PathForStaticCrossDataCalled(identifier)
+	}
+
+	return fmt.Sprintf("Static/%s", identifier)
 }
 
 // IsInterfaceNil -

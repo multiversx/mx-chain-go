@@ -674,6 +674,9 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 
+// EpochStartStaticBlocksKeyPrefix is the key prefix for epoch start meta block key
+const EpochStartStaticBlocksKeyPrefix = "epochStartBlock_"
+
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 

@@ -348,6 +348,11 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
+	err = psf.setUpStaticCrossSharsStorageUnits(store)
+	if err != nil {
+		return nil, err
+	}
+
 	return store, err
 }
 
@@ -408,6 +413,11 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
+	err = psf.setUpStaticCrossSharsStorageUnits(store)
+	if err != nil {
+		return nil, err
+	}
+
 	return store, err
 }
 
@@ -436,6 +446,20 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	}
 
 	return psf.createTriePruningPersister(pruningStorageArgs)
+}
+
+func (psf *StorageServiceFactory) setUpStaticCrossSharsStorageUnits(store dataRetriever.StorageService) error {
+	epochStartMetaBlocksConfig := psf.generalConfig.BootstrapStorage
+	epochStartMetaBlocksDbConfig := GetDBFromConfig(epochStartMetaBlocksConfig.DB)
+	epochStartMetaBlocksDbConfig.FilePath = psf.pathManager.PathForStaticCrossData(epochStartMetaBlocksConfig.DB.FilePath)
+	epochStartMetaBlocksCacherConfig := GetCacherFromConfig(epochStartMetaBlocksConfig.Cache)
+	epochStartMetaBlocksStorageUnit, err := storageunit.NewStorageUnitFromConf(epochStartMetaBlocksCacherConfig, epochStartMetaBlocksDbConfig)
+	if err != nil {
+		return fmt.Errorf("%w for epochStartMetaBlocksStorageUnit", err)
+	}
+	store.AddStorer(dataRetriever.EpochStartMetaBlockUnit, epochStartMetaBlocksStorageUnit)
+
+	return nil
 }
 
 func (psf *StorageServiceFactory) setUpLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) error {

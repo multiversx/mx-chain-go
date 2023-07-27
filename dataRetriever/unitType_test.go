@@ -59,6 +59,8 @@ func TestUnitType_String(t *testing.T) {
 	require.Equal(t, "PeerAccountsCheckpointsUnit", ut.String())
 	ut = ScheduledSCRsUnit
 	require.Equal(t, "ScheduledSCRsUnit", ut.String())
+	ut = EpochStartMetaBlockUnit
+	require.Equal(t, "EpochStartMetaBlockUnit", ut.String())
 
 	ut = 200
 	require.Equal(t, "ShardHdrNonceHashDataUnit100", ut.String())
