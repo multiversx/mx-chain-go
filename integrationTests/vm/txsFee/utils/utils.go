@@ -33,7 +33,29 @@ var (
 )
 
 // DoDeploy -
-func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
+func DoDeploy(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+) (scAddr []byte, owner []byte) {
+	return doDeployInternal(t, testContext, pathToContract, 88100, 11900, 399)
+}
+
+// DoDeployOldCounter -
+func DoDeployOldCounter(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+) (scAddr []byte, owner []byte) {
+	return doDeployInternal(t, testContext, pathToContract, 89030, 10970, 368)
+}
+
+func doDeployInternal(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	expectedBalance, accFees, devFees int64,
+) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
@@ -52,17 +74,16 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, owner, senderNonce+1, expectedBalance)
+	vm.TestAccount(t, testContext.Accounts, owner, senderNonce+1, big.NewInt(expectedBalance))
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFees)
+	require.Equal(t, big.NewInt(accFees), accumulatedFees)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(devFees), developerFees)
 
 	return scAddr, owner
 }

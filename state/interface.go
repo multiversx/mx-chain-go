@@ -133,6 +133,12 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
+// AccountsAdapterWithClean extends the AccountsAdapter interface with a CleanCache method
+type AccountsAdapterWithClean interface {
+	AccountsAdapter
+	CleanCache()
+}
+
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error

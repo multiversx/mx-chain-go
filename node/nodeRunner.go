@@ -723,7 +723,6 @@ func (nr *nodeRunner) createApiFacade(
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   currentNode.processComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
@@ -1281,6 +1280,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:                  common.ChainRunTypeRegular,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

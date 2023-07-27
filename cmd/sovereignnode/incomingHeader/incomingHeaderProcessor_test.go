@@ -214,14 +214,18 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	addr2 := []byte("addr2")
 
 	scr1 := &smartContractResult.SmartContractResult{
+		Nonce:   0,
+		Value:   big.NewInt(0),
 		RcvAddr: addr1,
 		SndAddr: core.ESDTSCAddress,
-		Data:    []byte("MultiESDTNFTTransfer@6164647231@02@746f6b656e31@04@64@746f6b656e32@@32"),
+		Data:    []byte("MultiESDTNFTTransfer@02@746f6b656e31@04@64@746f6b656e32@@32"),
 	}
 	scr2 := &smartContractResult.SmartContractResult{
+		Nonce:   1,
+		Value:   big.NewInt(0),
 		RcvAddr: addr2,
 		SndAddr: core.ESDTSCAddress,
-		Data:    []byte("MultiESDTNFTTransfer@6164647232@01@746f6b656e31@01@96"),
+		Data:    []byte("MultiESDTNFTTransfer@01@746f6b656e31@01@96"),
 	}
 
 	scrHash1, err := core.CalculateHash(args.Marshaller, args.Hasher, scr1)
@@ -326,4 +330,82 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, wasAddedInHeaderPool)
 	require.True(t, wasAddedInTxPool)
+}
+
+func TestIncomingHeaderHandler_AddHeaderExpectNoncesIncremented(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+
+	addr1 := []byte("addr1")
+	addInTxPoolCt := uint64(0)
+	args.TxPool = &testscommon.ShardedDataStub{
+		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+			expectedSCR := &smartContractResult.SmartContractResult{
+				Nonce:   addInTxPoolCt,
+				Value:   big.NewInt(0),
+				RcvAddr: addr1,
+				SndAddr: core.ESDTSCAddress,
+				Data:    []byte("MultiESDTNFTTransfer@01@746f6b656e31@@64"),
+			}
+
+			expectedScrHash, err := core.CalculateHash(args.Marshaller, args.Hasher, expectedSCR)
+			require.Nil(t, err)
+			require.Equal(t, expectedScrHash, key)
+
+			addInTxPoolCt++
+		},
+	}
+
+	errCt := uint64(4)
+	errUnmarshall := errors.New("error unmarshall")
+	args.Marshaller = &marshallerMock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			if addInTxPoolCt == errCt {
+				return nil, errUnmarshall
+			}
+
+			return json.Marshal(obj)
+		},
+	}
+
+	handler, _ := NewIncomingHeaderProcessor(args)
+	incomingHeader := &sovereign.IncomingHeader{
+		Header: &block.HeaderV2{
+			ScheduledRootHash: []byte("root hash"),
+		},
+		IncomingEvents: []*transaction.Event{
+			{
+				Identifier: []byte("deposit"),
+				Topics: [][]byte{
+					addr1,
+					[]byte("token1"),
+					big.NewInt(0).Bytes(),
+					big.NewInt(100).Bytes(),
+				},
+			},
+		},
+	}
+
+	i := uint64(0)
+	for ; i < 4; i++ {
+		err := handler.AddHeader([]byte(fmt.Sprintf("hash%d", i)), incomingHeader)
+		require.Nil(t, err)
+		require.Equal(t, i+1, addInTxPoolCt)
+	}
+	require.Equal(t, uint64(4), handler.scrProc.nonce)
+
+	err := handler.AddHeader([]byte(fmt.Sprintf("hash%d", i)), incomingHeader)
+	require.Equal(t, errUnmarshall, err)
+	require.Equal(t, i, addInTxPoolCt)
+	require.Equal(t, uint64(4), handler.scrProc.nonce)
+
+	errCt = 0
+	for ; i < 10; i++ {
+		err = handler.AddHeader([]byte(fmt.Sprintf("hash%d", i)), incomingHeader)
+		require.Nil(t, err)
+		require.Equal(t, i+1, addInTxPoolCt)
+	}
+
+	require.Equal(t, uint64(10), handler.scrProc.nonce)
 }

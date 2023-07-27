@@ -194,6 +194,10 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
 			continue
 		}
+		// TODO: (sovereign) remove this line once shardCoordinator will return the correct shard id from task: MX-14132
+		if mb.ReceiverShardID == core.SovereignChainShardId && mb.SenderShardID == core.MainChainShardId {
+			continue
+		}
 
 		receivedCrossShard++
 		err := irp.verifyMiniBlock(createdMapMbs, mb)

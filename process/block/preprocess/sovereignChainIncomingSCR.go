@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -40,7 +41,7 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 		return nil, process.ErrNilBlockBody
 	}
 
-	log.Info("sovereignChainIncomingSCR.ProcessBlockTransactions called")
+	log.Debug("sovereignChainIncomingSCR.ProcessBlockTransactions")
 
 	createdMBs := make(block.MiniBlockSlice, 0)
 	// basic validation already done in interceptors
@@ -49,22 +50,26 @@ func (scr *sovereignChainIncomingSCR) ProcessBlockTransactions(
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+
+		// TODO: (sovereign) replace this check with != shardCoordinator.SelfID(), once MX-14132 task is completed
 		// smart contract results are needed to be processed only at destination and only if they are cross shard
-		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+		if miniBlock.ReceiverShardID != core.SovereignChainShardId {
 			continue
 		}
-		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID != core.MainChainShardId {
 			continue
 		}
 
 		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
+			log.Error("sovereignChainIncomingSCR.ProcessBlockTransactions.getIndexesOfLastTxProcessed", "error", err)
 			return nil, err
 		}
 
 		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
+			log.Error("sovereignChainIncomingSCR.ProcessBlockTransactions.CheckIfIndexesAreOutOfBound", "error", err)
 			return nil, err
 		}
 
@@ -140,9 +145,9 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
-	log.Debug("smartContractResults.ProcessMiniBlock: before processing")
+	log.Debug("sovereignChainIncomingSCR.ProcessMiniBlock: before processing")
 	defer func() {
-		log.Debug("smartContractResults.ProcessMiniBlock after processing")
+		log.Debug("sovereignChainIncomingSCR.ProcessMiniBlock after processing")
 	}()
 
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockScrs); txIndex++ {

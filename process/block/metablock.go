@@ -120,7 +120,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		enableRoundsHandler:           arguments.EnableRoundsHandler,
+		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -174,6 +175,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.shardsHeadersNonce = &sync.Map{}
 	mp.requestMissingHeadersFunc = mp.requestMissingHeaders
+	mp.cleanupBlockTrackerPoolsForShardFunc = mp.cleanupBlockTrackerPoolsForShard
+	mp.cleanupPoolsForCrossShardFunc = mp.cleanupPoolsForCrossShard
 
 	return &mp, nil
 }
@@ -209,7 +212,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return nil, nil, err
 	}
 
-	mp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
+	mp.roundNotifier.CheckRound(headerHandler)
 	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -2266,8 +2269,6 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.enableRoundsHandler.CheckRound(round)
-
 	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
 
@@ -2281,6 +2282,8 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 	if err != nil {
 		return nil, err
 	}
+
+	mp.roundNotifier.CheckRound(header)
 
 	err = metaHeader.SetNonce(nonce)
 	if err != nil {

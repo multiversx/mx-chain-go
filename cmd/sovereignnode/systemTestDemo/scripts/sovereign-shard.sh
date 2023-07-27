@@ -20,7 +20,7 @@ cloneDependencies(){
 
   git clone https://github.com/multiversx/mx-chain-go "$SOVEREIGN_DIR/mx-chain-go"
   cd $SOVEREIGN_DIR/mx-chain-go
-  git checkout 8743a639ce1287f7637fd42c6e984b38f57337a0
+  git checkout 0bcc42220f436b40db3f15cb611e2713d43c04fa
   cd ../..
 
   git clone https://github.com/multiversx/mx-chain-deploy-go "$SOVEREIGN_DIR/mx-chain-deploy-go"
@@ -74,6 +74,14 @@ sovereignStop(){
     ./mx-chain-go/scripts/testnet/stop.sh
 }
 
+sovereignReset(){
+  cd "$SOVEREIGN_DIR" && \
+    ./mx-chain-go/scripts/testnet/clean.sh && \
+      ./mx-chain-go/scripts/testnet/config.sh
+     ./mx-chain-go/scripts/testnet/sovereignStart.sh \
+
+}
+
 echoOptions(){
   echo "ERROR!!! Please choose one of the following parameters:
   - new to create a new sovereign shard
@@ -91,6 +99,8 @@ main(){
         sovereignStart ;;
       stop)
         sovereignStop ;;
+      reset)
+        sovereignReset ;;
       *)
         echoOptions ;;
       esac
