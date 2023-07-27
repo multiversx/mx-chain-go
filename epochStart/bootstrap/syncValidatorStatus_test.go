@@ -301,12 +301,13 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
-		PubKey:              []byte("public key"),
-		ShardIdAsObserver:   0,
-		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:       false,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodeShuffler:                     &shardingMocks.NodeShufflerMock{},
+		PubKey:                           []byte("public key"),
+		ShardIdAsObserver:                0,
+		ChanNodeStop:                     endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                 &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                    false,
+		EnableEpochsHandler:              &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 }
