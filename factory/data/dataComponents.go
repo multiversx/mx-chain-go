@@ -31,6 +31,7 @@ type DataComponentsFactoryArgs struct {
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
+	ChainRunType                  common.ChainRunType
 }
 
 type dataComponentsFactory struct {
@@ -44,6 +45,7 @@ type dataComponentsFactory struct {
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
 	nodeProcessingMode            common.NodeProcessingMode
+	chainRunType                  common.ChainRunType
 }
 
 // dataComponents struct holds the data components
@@ -82,6 +84,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		flagsConfig:                   args.FlagsConfigs,
 		nodeProcessingMode:            args.NodeProcessingMode,
 		crypto:                        args.Crypto,
+		chainRunType:                  args.ChainRunType,
 	}, nil
 }
 
@@ -174,6 +177,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			SnapshotsEnabled:              dcf.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
+			ChainRunType:                  dcf.chainRunType,
 		})
 	if err != nil {
 		return nil, err

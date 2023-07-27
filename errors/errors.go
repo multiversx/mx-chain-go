@@ -313,6 +313,9 @@ var ErrNilRequestersFinder = errors.New("nil requesters finder")
 // ErrNilResolversContainer signals that a nil resolvers container was provided
 var ErrNilResolversContainer = errors.New("nil resolvers container")
 
+// ErrNilRoundNotifier signals that a nil round notifier has been provided
+var ErrNilRoundNotifier = errors.New("nil round notifier")
+
 // ErrNilRoundHandler signals that a nil roundHandler was provided
 var ErrNilRoundHandler = errors.New("nil roundHandler")
 

@@ -83,6 +83,7 @@ type epochFlagsHolder struct {
 	setSenderInEeiOutputTransferFlag            *atomic.Flag
 	changeDelegationOwnerFlag                   *atomic.Flag
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
+	scProcessorV2Flag                           *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
@@ -181,6 +182,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		setSenderInEeiOutputTransferFlag:            &atomic.Flag{},
 		changeDelegationOwnerFlag:                   &atomic.Flag{},
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
+		scProcessorV2Flag:                           &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
@@ -641,6 +643,11 @@ func (holder *epochFlagsHolder) IsChangeDelegationOwnerFlagEnabled() bool {
 // IsRefactorPeersMiniBlocksFlagEnabled returns true if refactorPeersMiniBlocksFlag is enabled
 func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return holder.refactorPeersMiniBlocksFlag.IsSet()
+}
+
+// IsSCProcessorV2FlagEnabled returns true if scProcessorV2Flag is enabled
+func (holder *epochFlagsHolder) IsSCProcessorV2FlagEnabled() bool {
+	return holder.scProcessorV2Flag.IsSet()
 }
 
 // IsFixAsyncCallBackArgsListFlagEnabled returns true if fixAsyncCallBackArgsList is enabled

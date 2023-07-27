@@ -487,7 +487,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	sovereignWsReceiver, err := createSovereignWsReceiver(managedDataComponents.Datapool(), configs.NotifierConfig)
+	sovereignWsReceiver, err := createSovereignWsReceiver(
+		managedDataComponents.Datapool(),
+		configs.NotifierConfig,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -643,6 +646,7 @@ func getBaseAccountSyncerArgs(
 		CheckNodesOnDisk:                  true,
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
+		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
 	}
 }
 
@@ -683,7 +687,6 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   currentNode.GetProcessComponents().TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
@@ -1231,6 +1234,7 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		ChainRunType:                  common.ChainRunTypeSovereign,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1664,7 +1668,7 @@ func createSovereignWsReceiver(
 
 	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
 		HeadersPool: dataPool.Headers(),
-		TxPool:      dataPool.Transactions(),
+		TxPool:      dataPool.UnsignedTransactions(),
 		Marshaller:  marshaller,
 		Hasher:      hasher,
 	}
@@ -1686,6 +1690,7 @@ func createSovereignWsReceiver(
 			RetryDuration:      config.WebSocketConfig.RetryDuration,
 			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}

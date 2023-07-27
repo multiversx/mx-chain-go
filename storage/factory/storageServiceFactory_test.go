@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -13,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const numShardStoreres = 25
 
 func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 	pathMan, err := CreatePathManagerFromSinglePathString(t.TempDir())
@@ -45,6 +48,10 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			StatusMetricsStorage:               createMockStorageConfig("StatusMetricsStorage"),
 			PeerBlockBodyStorage:               createMockStorageConfig("PeerBlockBodyStorage"),
 			TrieEpochRootHashStorage:           createMockStorageConfig("TrieEpochRootHashStorage"),
+			SovereignConfig: config.SovereignConfig{
+				ExtendedShardHdrNonceHashStorage: createMockStorageConfig("ExtendedShardHdrNonceHashStorage"),
+				ExtendedShardHeaderStorage:       createMockStorageConfig("ExtendedShardHeaderStorage"),
+			},
 			DbLookupExtensions: config.DbLookupExtensionsConfig{
 				Enabled:                            true,
 				DbLookupMaxActivePersisters:        10,
@@ -416,8 +423,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25
-		assert.Equal(t, expectedStorers, len(allStorers))
+		assert.Equal(t, numShardStoreres, len(allStorers))
 		_ = storageService.CloseAll()
 	})
 	t.Run("should work without DbLookupExtensions", func(t *testing.T) {
@@ -431,7 +437,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		numDBLookupExtensionUnits := 6
-		expectedStorers := 25 - numDBLookupExtensionUnits
+		expectedStorers := numShardStoreres - numDBLookupExtensionUnits
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -445,8 +451,57 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25 // we still have a storer for trie epoch root hash
+		expectedStorers := numShardStoreres // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
+}
+
+func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
+	t.Parallel()
+
+	expectedErrForCacheString := "not supported cache type"
+
+	t.Run("wrong config for ExtendedShardHeaderStorage, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		args.Config.SovereignConfig.ExtendedShardHeaderStorage.Cache.Type = ""
+
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Equal(t, expectedErrForCacheString+" for ExtendedShardHeaderStorage", err.Error())
+		require.True(t, check.IfNil(storageService))
+	})
+
+	t.Run("wrong config for ExtendedShardHdrNonceHashStorage should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		args.Config.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache.Type = ""
+
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Equal(t, expectedErrForCacheString+" for ExtendedShardHdrNonceHashStorage", err.Error())
+		require.True(t, check.IfNil(storageService))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+
+		storageService, err := storageServiceFactory.CreateForShard()
+		require.Nil(t, err)
+		require.False(t, check.IfNil(storageService))
+
+		allStorers := storageService.GetAllStorers()
+		expectedStorers := numShardStoreres + 2 // ExtendedShardHeadersUnit + ExtendedShardHeadersNonceHashDataUnit
+		require.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
 }
@@ -507,7 +562,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 25 - missingStorers + numShardHdrStorage
+		expectedStorers := numShardStoreres - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
