@@ -4,7 +4,7 @@ type sovereignIndexHashedNodesCoordinatorWithRaterFactory struct {
 }
 
 // NewSovereignIndexHashedNodesCoordinatorWithRaterFactory creates a nodes coordinator factory for a sovereign chain
-func NewSovereignIndexHashedNodesCoordinatorWithRaterFactory() NodesCoordinatorWithRaterFactory {
+func NewSovereignIndexHashedNodesCoordinatorWithRaterFactory() *sovereignIndexHashedNodesCoordinatorWithRaterFactory {
 	return &sovereignIndexHashedNodesCoordinatorWithRaterFactory{}
 }
 

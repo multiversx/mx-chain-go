@@ -1,16 +1,10 @@
 package nodesCoordinator
 
-// NodesCoordinatorWithRaterArgs is a struct placeholder for necessary arguments to create a nodes coordinator with rater
-type NodesCoordinatorWithRaterArgs struct {
-	ArgNodesCoordinator ArgNodesCoordinator
-	ChanceComputer      ChanceComputer
-}
-
 type indexHashedNodesCoordinatorWithRaterFactory struct {
 }
 
 // NewIndexHashedNodesCoordinatorWithRaterFactory creates a nodes coordinator factory for regular chain running(shards + metachain)
-func NewIndexHashedNodesCoordinatorWithRaterFactory() NodesCoordinatorWithRaterFactory {
+func NewIndexHashedNodesCoordinatorWithRaterFactory() *indexHashedNodesCoordinatorWithRaterFactory {
 	return &indexHashedNodesCoordinatorWithRaterFactory{}
 }
 
