@@ -37,6 +37,7 @@ type BlockChainHookStub struct {
 	CloseCalled                   func() error
 	GetSnapshotCalled             func() int
 	RevertToSnapshotCalled        func(snapshot int) error
+	IsBuiltinFunctionNameCalled   func(functionName string) bool
 }
 
 // AccountExists -
@@ -264,4 +265,12 @@ func (b *BlockChainHookStub) RevertToSnapshot(snapshot int) error {
 		return b.RevertToSnapshotCalled(snapshot)
 	}
 	return nil
+}
+
+// IsBuiltinFunctionName -
+func (b *BlockChainHookStub) IsBuiltinFunctionName(functionName string) bool {
+	if b.IsBuiltinFunctionNameCalled != nil {
+		return b.IsBuiltinFunctionNameCalled(functionName)
+	}
+	return false
 }

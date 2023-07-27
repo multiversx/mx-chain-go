@@ -232,6 +232,14 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	}
 	log.Debug("config", "file", sovereignNotifierPath)
 
+	sovereignExtraConfigPath := ctx.GlobalString(sovereignConfigFile.Name)
+	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig(sovereignExtraConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", sovereignExtraConfigPath)
+	generalConfig.SovereignConfig = *sovereignExtraConfig
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}

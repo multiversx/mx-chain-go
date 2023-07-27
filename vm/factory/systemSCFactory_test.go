@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

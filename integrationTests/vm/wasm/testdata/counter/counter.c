@@ -1,9 +1,13 @@
-#include "../chain/context.h"
+#include "../mxvm/context.h"
 
 byte counterKey[32] = {'m','y','c','o','u','n','t','e','r',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 void init() {
     int64storageStore(counterKey, 32, 1);
+}
+
+void upgrade() {
+	init();
 }
 
 void increment() {

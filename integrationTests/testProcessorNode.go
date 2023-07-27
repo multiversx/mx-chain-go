@@ -85,6 +85,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -123,7 +125,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 var zero = big.NewInt(0)
@@ -265,6 +267,7 @@ type ArgTestProcessorNode struct {
 	WithBLSSigVerifier      bool
 	WithSync                bool
 	GasScheduleMap          GasScheduleMap
+	RoundsConfig            *config.RoundConfig
 	EpochsConfig            *config.EnableEpochs
 	VMConfig                *config.VirtualMachineConfig
 	EconomicsConfig         *config.EconomicsConfig
@@ -285,6 +288,7 @@ type ArgTestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
+	ChainRunType            common.ChainRunType
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -326,10 +330,11 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	BlockchainHook         *hooks.BlockChainHookImpl
+	BlockchainHook         process.BlockChainHookHandler
+	VMFactory              process.VirtualMachinesContainerFactory
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            *smartContract.TestScProcessor
+	ScProcessor            process.SmartContractProcessorFacade
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
@@ -382,7 +387,9 @@ type TestProcessorNode struct {
 	WaitTime                 time.Duration
 	HistoryRepository        dblookupext.HistoryRepository
 	EpochNotifier            process.EpochNotifier
+	RoundNotifier            process.RoundNotifier
 	EnableEpochs             config.EnableEpochs
+	EnableRoundsHandler      process.EnableRoundsHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
 	UseValidVmBlsSigVerifier bool
 
@@ -392,6 +399,8 @@ type TestProcessorNode struct {
 	HardforkTrigger         node.HardforkTrigger
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
+
+	ChainRunType common.ChainRunType
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -412,6 +421,11 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
+	chainRunType := args.ChainRunType
+	if len(args.ChainRunType) == 0 {
+		chainRunType = common.ChainRunTypeRegular
+	}
+
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(args.MaxShards, args.NodeShardId)
 
 	pksBytes := CreatePkBytes(args.MaxShards)
@@ -465,6 +479,13 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
+	if args.RoundsConfig == nil {
+		defaultRoundsConfig := GetDefaultRoundsConfig()
+		args.RoundsConfig = &defaultRoundsConfig
+	}
+	genericRoundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(*args.RoundsConfig, genericRoundNotifier)
+
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 	tpn := &TestProcessorNode{
 		ShardCoordinator:         shardCoordinator,
@@ -475,6 +496,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		NodesSetup:               nodesSetup,
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
 		EpochNotifier:            genericEpochNotifier,
+		RoundNotifier:            genericRoundNotifier,
+		EnableRoundsHandler:      enableRoundsHandler,
 		EnableEpochsHandler:      enableEpochsHandler,
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		TransactionLogProcessor:  logsProcessor,
@@ -490,6 +513,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		GuardedAccountHandler:    &guardianMocks.GuardedAccountHandlerStub{},
 		AppStatusHandler:         appStatusHandler,
 		PeersRatingMonitor:       peersRatingMonitor,
+		ChainRunType:             chainRunType,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -903,7 +927,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
+		blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:              *vmConfig,
 			BlockChainHook:      blockChainHookImpl,
@@ -1169,6 +1193,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	cryptoComponents := GetDefaultCryptoComponents()
@@ -1394,7 +1419,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 	}
 
 	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
-	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
 		tpn.RequestersFinder,
 		tpn.RequestedItemsHandler,
 		tpn.WhiteListHandler,
@@ -1402,6 +1427,14 @@ func (tpn *TestProcessorNode) initRequesters() {
 		tpn.ShardCoordinator.SelfId(),
 		time.Second,
 	)
+
+	switch tpn.ChainRunType {
+	case common.ChainRunTypeSovereign:
+		sovReqHandler, _ := requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
+		tpn.RequestHandler = sovReqHandler
+	default:
+		tpn.RequestHandler = requestHandler
+	}
 }
 
 func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
@@ -1521,7 +1554,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:              *vmConfig,
@@ -1537,12 +1570,13 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
+	tpn.VMFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	tpn.VMContainer, err = vmFactory.Create()
 	if err != nil {
 		panic(err)
 	}
 
-	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	tpn.BlockchainHook = vmFactory.BlockChainHookImpl()
 	_ = builtInFuncFactory.SetPayableHandler(tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
@@ -1564,7 +1598,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -1582,12 +1616,12 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasSchedule:         gasSchedule,
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 		BadTxForwarder:      badBlocksHandler,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 	}
-	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1605,6 +1639,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BadTxForwarder:      badBlocksHandler,
 		ArgsParser:          tpn.ArgsParser,
 		ScrForwarder:        tpn.ScrForwarder,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1644,7 +1679,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ChainRunType:                 common.ChainRunTypeRegular,
+		ChainRunType:                 tpn.ChainRunType,
 	}
 	fact, _ := shard.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -1809,8 +1844,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
+	tpn.VMFactory, _ = metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 	tpn.VMContainer, _ = vmFactory.Create()
-	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	tpn.BlockchainHook = vmFactory.BlockChainHookImpl()
 	tpn.SystemSCFactory = vmFactory.SystemSmartContractContainerFactory()
 	tpn.addMockVm(tpn.BlockchainHook)
 
@@ -1828,7 +1864,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
 		ArgsParser:          tpn.ArgsParser,
 		Hasher:              TestHasher,
@@ -1846,12 +1882,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasSchedule:         gasSchedule,
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 		BadTxForwarder:      badBlocksHandler,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 	}
-	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
+
+	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
+
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
@@ -1885,7 +1923,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Accounts:                     tpn.AccntState,
 		RequestHandler:               tpn.RequestHandler,
 		TxProcessor:                  tpn.TxProcessor,
-		ScResultProcessor:            scProcessor,
+		ScResultProcessor:            tpn.ScProcessor,
 		EconomicsFee:                 tpn.EconomicsData,
 		GasHandler:                   tpn.GasHandler,
 		BlockTracker:                 tpn.BlockTracker,
@@ -2052,7 +2090,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
+	coreComponents.EnableRoundsHandlerField = tpn.EnableRoundsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 
 	dataComponents := GetDefaultDataComponents()
@@ -2097,7 +2137,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockTracker:                 tpn.BlockTracker,
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
-		EnableRoundsHandler:          coreComponents.EnableRoundsHandler(),
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2289,7 +2328,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ArgBaseProcessor: argumentsBase,
 		}
 
-		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
+		bp, errNewShardProc := block.NewShardProcessor(arguments)
+		if tpn.ChainRunType == common.ChainRunTypeSovereign {
+			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(bp, tpn.ValidatorStatisticsProcessor)
+		} else {
+			tpn.BlockProcessor = bp
+			err = errNewShardProc
+		}
+
 	}
 
 	if err != nil {
@@ -2336,6 +2382,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.WasmVMChangeLockerInternal = tpn.WasmVMChangeLocker
 	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
 	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes
@@ -2906,6 +2953,16 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
 	}
+
+	if tpn.ChainRunType == common.ChainRunTypeSovereign {
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+		}
+
+		shardBlockTracker, _ := track.NewShardBlockTrack(arguments)
+		sovBlockTracker, _ := track.NewSovereignChainShardBlockTrack(shardBlockTracker)
+		tpn.BlockTracker = sovBlockTracker
+	}
 }
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
@@ -3104,6 +3161,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		CheckCorrectTokenIDForTransferRoleEnableEpoch:     UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 	}
 }
 
@@ -3402,5 +3460,16 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		ScheduledMiniBlocksEnableEpoch:              UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:     UnreachableEpoch,
+	}
+}
+
+// GetDefaultRoundsConfig -
+func GetDefaultRoundsConfig() config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "18446744073709551615",
+			},
+		},
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
@@ -20,9 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
-	"github.com/multiversx/mx-chain-go/process/transaction"
-	"github.com/multiversx/mx-chain-go/process/txsimulator"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -31,7 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 // TestProcessorNodeWithTestWebServer represents a TestProcessorNode with a test web server
@@ -81,12 +78,11 @@ func (node *TestProcessorNodeWithTestWebServer) DoRequest(request *http.Request)
 }
 
 func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
-	apiResolver, txSimulator := createFacadeComponents(tpn)
+	apiResolver := createFacadeComponents(tpn)
 
 	return nodeFacade.ArgNodeFacade{
 		Node:                   tpn.Node,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   txSimulator,
 		RestAPIServerDebugMode: false,
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
 			SimultaneousRequests:               1000,
@@ -136,7 +132,7 @@ func createTestApiConfig() config.ApiRoutesConfig {
 	return routesConfig
 }
 
-func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nodeFacade.TransactionSimulatorProcessor) {
+func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	gasMap := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
@@ -167,18 +163,39 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(
-		txTypeHandler,
-		tpn.EconomicsData,
-		&mock.TransactionSimulatorStub{
-			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*txSimData.SimulationResults, error) {
-				return &txSimData.SimulationResults{}, nil
-			},
-		},
-		tpn.AccntState,
-		tpn.ShardCoordinator,
-		tpn.EnableEpochsHandler,
-	)
+	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
+		AddressLength: TestAddressPubkeyConverter.Len(),
+		Marshalizer:   TestMarshalizer,
+	}
+	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
+	log.LogIfError(err)
+
+	argSimulator := transactionEvaluator.ArgsTxSimulator{
+		TransactionProcessor:      tpn.TxProcessor,
+		IntermediateProcContainer: tpn.InterimProcContainer,
+		AddressPubKeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		Marshalizer:               TestMarshalizer,
+		Hasher:                    TestHasher,
+		VMOutputCacher:            &testscommon.CacherMock{},
+		DataFieldParser:           dataFieldParser,
+	}
+
+	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
+	log.LogIfError(err)
+
+	wrappedAccounts, err := transactionEvaluator.NewSimulationAccountsDB(tpn.AccntState)
+	log.LogIfError(err)
+
+	argsTransactionEvaluator := transactionEvaluator.ArgsApiTransactionEvaluator{
+		TxTypeHandler:       txTypeHandler,
+		FeeHandler:          tpn.EconomicsData,
+		TxSimulator:         txSimulator,
+		Accounts:            wrappedAccounts,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{
@@ -203,13 +220,6 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 
 	logsFacade := &testscommon.LogsFacadeStub{}
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
-
-	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: TestAddressPubkeyConverter.Len(),
-		Marshalizer:   TestMarshalizer,
-	}
-	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
-	log.LogIfError(err)
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		Marshalizer:              TestMarshalizer,
@@ -256,7 +266,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	argsApiResolver := external.ArgNodeApiResolver{
 		SCQueryService:           tpn.SCQueryService,
 		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
-		TxCostHandler:            txCostHandler,
+		APITransactionEvaluator:  apiTransactionEvaluator,
 		TotalStakedValueHandler:  totalStakedValueHandler,
 		DirectStakedListHandler:  directStakedListHandler,
 		DelegatedListHandler:     delegatedListHandler,
@@ -272,20 +282,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
 	log.LogIfError(err)
 
-	argSimulator := txsimulator.ArgsTxSimulator{
-		TransactionProcessor:      tpn.TxProcessor,
-		IntermediateProcContainer: tpn.InterimProcContainer,
-		AddressPubKeyConverter:    TestAddressPubkeyConverter,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		Marshalizer:               TestMarshalizer,
-		Hasher:                    TestHasher,
-		VMOutputCacher:            &testscommon.CacherMock{},
-	}
-
-	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)
-	log.LogIfError(err)
-
-	return apiResolver, txSimulator
+	return apiResolver
 }
 
 func createGinServer(facade Facade, apiConfig config.ApiRoutesConfig) *gin.Engine {

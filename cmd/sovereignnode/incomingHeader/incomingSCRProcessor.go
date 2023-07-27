@@ -27,6 +27,7 @@ type scrProcessor struct {
 	txPool     TransactionPool
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
+	nonce      uint64
 }
 
 func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
@@ -45,9 +46,12 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 		}
 
 		scr := &smartContractResult.SmartContractResult{
-			RcvAddr: topics[0],
-			SndAddr: core.ESDTSCAddress,
-			Data:    createSCRData(topics),
+			Nonce:          sp.nonce, // TODO:  Save this nonce in storage + load in from storage in MX-14320 task
+			OriginalTxHash: nil,      // TODO:  Implement this in MX-14321 task
+			RcvAddr:        topics[0],
+			SndAddr:        core.ESDTSCAddress,
+			Data:           createSCRData(topics),
+			Value:          big.NewInt(0),
 		}
 
 		hash, err := core.CalculateHash(sp.marshaller, sp.hasher, scr)
@@ -55,6 +59,8 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 			return nil, err
 		}
 
+		// TODO: Should we revert nonce incrementation if processing fails later in code?
+		sp.nonce++
 		scrs = append(scrs, &scrInfo{
 			scr:  scr,
 			hash: hash,
@@ -69,7 +75,6 @@ func createSCRData(topics [][]byte) []byte {
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(topics[0]) + // topics[0] = address
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
 	for idx := 1; idx < len(topics[1:]); idx += 3 {

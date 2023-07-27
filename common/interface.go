@@ -374,6 +374,7 @@ type EnableEpochsHandler interface {
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsSCProcessorV2FlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool

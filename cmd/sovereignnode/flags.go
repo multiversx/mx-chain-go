@@ -117,6 +117,12 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
 		Value: "./config/notifierConfig.toml",
 	}
+	// sovereignConfigFile defines a flag for the path to the sovereign toml configuration file
+	sovereignConfigFile = cli.StringFlag{
+		Name:  "sovereign-config",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign configuration.",
+		Value: "./config/sovereignConfig.toml",
+	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
 		Name: "port",
@@ -412,6 +418,7 @@ func getFlags() []cli.Flag {
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
 		notifierConfigFile,
+		sovereignConfigFile,
 		port,
 		profileMode,
 		useHealthService,

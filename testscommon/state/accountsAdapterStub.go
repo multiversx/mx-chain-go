@@ -42,6 +42,10 @@ type AccountsStub struct {
 	StartSnapshotIfNeededCalled   func() error
 }
 
+// CleanCache -
+func (as *AccountsStub) CleanCache() {
+}
+
 // SetSyncer -
 func (as *AccountsStub) SetSyncer(syncer state.AccountsDBSyncer) error {
 	if as.SetSyncerCalled != nil {

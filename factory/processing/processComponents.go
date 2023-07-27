@@ -105,7 +105,7 @@ type processComponents struct {
 	txLogsProcessor              process.TransactionLogProcessorDatabase
 	headerConstructionValidator  process.HeaderConstructionValidator
 	peerShardMapper              process.NetworkShardingCollector
-	txSimulatorProcessor         factory.TransactionSimulatorProcessor
+	apiTransactionEvaluator      factory.TransactionEvaluator
 	miniBlocksPoolCleaner        process.PoolsCleaner
 	txsPoolCleaner               process.PoolsCleaner
 	fallbackHeaderValidator      process.FallbackHeaderValidator
@@ -131,6 +131,7 @@ type processComponents struct {
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                 config.Config
+	RoundConfig            config.RoundConfig
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
@@ -160,6 +161,7 @@ type ProcessComponentsFactoryArgs struct {
 
 type processComponentsFactory struct {
 	config                 config.Config
+	roundConfig            config.RoundConfig
 	epochConfig            config.EpochConfig
 	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
@@ -654,7 +656,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	txSimulatorProcessor, vmFactoryForTxSimulate, err := pcf.createTxSimulatorProcessor()
+	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator()
 	if err != nil {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
@@ -682,7 +684,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerConstructionValidator:  headerValidator,
 		headerIntegrityVerifier:      pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		peerShardMapper:              peerShardMapper,
-		txSimulatorProcessor:         txSimulatorProcessor,
+		apiTransactionEvaluator:      apiTransactionEvaluator,
 		miniBlocksPoolCleaner:        mbsPoolsCleaner,
 		txsPoolCleaner:               txsPoolsCleaner,
 		fallbackHeaderValidator:      fallbackHeaderValidator,
@@ -954,6 +956,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
+		RoundConfig:          &pcf.roundConfig,
 		EpochConfig:          &pcf.epochConfig,
 		ChainRunType:         pcf.chainRunType,
 	}
@@ -1619,6 +1622,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			SnapshotsEnabled:              pcf.flagsConfig.SnapshotsEnabled,
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
+			ChainRunType:                  pcf.chainRunType,
 		},
 	)
 	if err != nil {

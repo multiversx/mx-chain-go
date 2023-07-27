@@ -74,11 +74,10 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-
 	t.Run("should create a main chain instance", func(t *testing.T) {
 		t.Parallel()
 
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 		args.ChainRunType = common.ChainRunTypeRegular
 
 		esb, err := createEpochStartBootstrapper(args)
@@ -90,6 +89,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 	t.Run("should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 		args.ChainRunType = common.ChainRunTypeSovereign
 
 		esb, err := createEpochStartBootstrapper(args)
@@ -101,6 +101,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
 		t.Parallel()
 
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 		args.ChainRunType = "X"
 
 		esb, err := createEpochStartBootstrapper(args)

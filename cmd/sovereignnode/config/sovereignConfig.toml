@@ -1,0 +1,26 @@
+[ExtendedShardHdrNonceHashStorage]
+    [ExtendedShardHdrNonceHashStorage.Cache]
+        Name = "ExtendedShardHdrNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHdrNonceHashStorage.DB]
+        FilePath = "ExtendedShardHdrNonceHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+
+[ExtendedShardHeaderStorage]
+    [ExtendedShardHeaderStorage.Cache]
+        Name = "ExtendedShardHeaderStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHeaderStorage.DB]
+        FilePath = "ExtendedShardHeader"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
