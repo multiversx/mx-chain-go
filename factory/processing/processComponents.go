@@ -336,15 +336,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return nil, errors.New("genesis meta block does not exist")
-	}
+	//genesisBlock, ok := genesisBlocks[core.MetachainShardId]
+	//if !ok {
+	//	return nil, errors.New("genesis meta block does not exist")
+	//}
 
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
-	if !ok {
-		return nil, errors.New("genesis meta block invalid")
-	}
+	//genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	//if !ok {
+	//	return nil, errors.New("genesis meta block invalid")
+	//}
 
 	err = pcf.setGenesisHeader(genesisBlocks)
 	if err != nil {
@@ -361,10 +361,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
-	if err != nil {
-		return nil, err
-	}
+	//err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
@@ -808,7 +808,7 @@ func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args pee
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Hasher:      pcf.coreData.Hasher(),
 			Marshalizer: pcf.coreData.InternalMarshalizer(),
@@ -1355,7 +1355,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		FeeHandler:       pcf.coreData.EconomicsData(),
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return pcf.createShardBlockTracker(argBaseTracker)
 	}
 
@@ -1403,7 +1403,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetrieve
 		return nil, err
 	}
 
-	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
+	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() || pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.SovereignChainShardId {
 		return pcf.newShardResolverContainerFactory(payloadValidator)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -1500,7 +1500,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1520,7 +1520,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	hardforkTrigger factory.HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return pcf.newShardInterceptorContainerFactory(
 			headerSigVerifier,
 			headerIntegrityVerifier,
@@ -1771,7 +1771,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() || shardCoordinator.SelfId() == core.SovereignChainShardId {
 		return pcf.createShardForkDetector(headerBlackList, blockTracker)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {

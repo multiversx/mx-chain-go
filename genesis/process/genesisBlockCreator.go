@@ -275,6 +275,8 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
 	mapBodies := make(map[uint32]*block.Body)
 
+	shardIDs = make([]uint32, 1)
+	shardIDs[0] = core.SovereignChainShardId
 	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	if err != nil {
 		return nil, err
