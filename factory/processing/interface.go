@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -19,6 +20,12 @@ type TransactionCoordinatorCreator interface {
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
 	CreateBlockProcessor(argumentsBaseProcessor block.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
+type ScheduledTxsExecutionCreator interface {
+	CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 	IsInterfaceNil() bool
 }
 
