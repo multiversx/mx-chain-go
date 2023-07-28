@@ -124,6 +124,7 @@ func createMockEpochStartBootstrapArgs(
 			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
 			BootstrapStorage:                   generalCfg.BootstrapStorage,
 			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
+			BootstrapStaticStorage:             generalCfg.BootstrapStaticStorage,
 			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
 			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
 			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,

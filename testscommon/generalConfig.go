@@ -328,6 +328,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		BootstrapStaticStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("BootstrapStaticData"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 1,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		LogsAndEvents: config.LogsAndEventsConfig{
 			SaveInStorageEnabled: false,
 			TxLogsStorage: config.StorageConfig{

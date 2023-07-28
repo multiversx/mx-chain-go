@@ -58,27 +58,25 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	return sliceToRet, nil
 }
 
-func (bsh *baseStorageHandler) saveMetaHdrToStaticStorage(metaBlock data.HeaderHandler) ([]byte, error) {
+func (bsh *baseStorageHandler) saveMetaHdrToStaticStorage(metaBlock data.HeaderHandler) error {
 	headerBytes, err := bsh.marshalizer.Marshal(metaBlock)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	headerHash := bsh.hasher.Compute(string(headerBytes))
 
 	epochStartStaticStorage, err := bsh.storageService.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	epoch := fmt.Sprint(metaBlock.GetEpoch())
 	epochStartMetaBlockKey := append([]byte(common.EpochStartStaticBlocksKeyPrefix), []byte(epoch)...)
 	err = epochStartStaticStorage.Put(epochStartMetaBlockKey, headerBytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return headerHash, nil
+	return nil
 }
 
 func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler) ([]byte, error) {

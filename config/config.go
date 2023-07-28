@@ -152,8 +152,9 @@ type Config struct {
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
+	BootstrapStorage       StorageConfig
+	MetaBlockStorage       StorageConfig
+	BootstrapStaticStorage StorageConfig
 
 	AccountsTrieStorage                StorageConfig
 	PeerAccountsTrieStorage            StorageConfig

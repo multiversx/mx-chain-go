@@ -182,6 +182,11 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 		return err
 	}
 
+	err = ssh.saveMetaHdrToStaticStorage(components.EpochStartMetaBlock)
+	if err != nil {
+		return err
+	}
+
 	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
 	if err != nil {
 		return err
