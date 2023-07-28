@@ -693,7 +693,7 @@ func CreateVMAndBlockchainHookMeta(
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
-		NodesConfigProvider: &mock.NodesSetupStub{},
+		NodesConfigProvider: &testscommon.NodesSetupStub{},
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),

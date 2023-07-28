@@ -46,30 +46,32 @@ var log = logger.GetOrCreate("factory")
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config              config.Config
-	ConfigPathsHolder   config.ConfigurationPathsHolder
-	EpochConfig         config.EpochConfig
-	RoundConfig         config.RoundConfig
-	RatingsConfig       config.RatingsConfig
-	EconomicsConfig     config.EconomicsConfig
-	ImportDbConfig      config.ImportDbConfig
-	NodesFilename       string
-	WorkingDirectory    string
-	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	Config                   config.Config
+	ConfigPathsHolder        config.ConfigurationPathsHolder
+	EpochConfig              config.EpochConfig
+	RoundConfig              config.RoundConfig
+	RatingsConfig            config.RatingsConfig
+	EconomicsConfig          config.EconomicsConfig
+	ImportDbConfig           config.ImportDbConfig
+	NodesFilename            string
+	WorkingDirectory         string
+	ChanStopNodeProcess      chan endProcess.ArgEndProcess
+	GenesisNodesSetupFactory sharding.GenesisNodesSetupFactory
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config              config.Config
-	configPathsHolder   config.ConfigurationPathsHolder
-	epochConfig         config.EpochConfig
-	roundConfig         config.RoundConfig
-	ratingsConfig       config.RatingsConfig
-	economicsConfig     config.EconomicsConfig
-	importDbConfig      config.ImportDbConfig
-	nodesFilename       string
-	workingDir          string
-	chanStopNodeProcess chan endProcess.ArgEndProcess
+	config                   config.Config
+	configPathsHolder        config.ConfigurationPathsHolder
+	epochConfig              config.EpochConfig
+	roundConfig              config.RoundConfig
+	ratingsConfig            config.RatingsConfig
+	economicsConfig          config.EconomicsConfig
+	importDbConfig           config.ImportDbConfig
+	nodesFilename            string
+	workingDir               string
+	chanStopNodeProcess      chan endProcess.ArgEndProcess
+	genesisNodesSetupFactory sharding.GenesisNodesSetupFactory
 }
 
 // coreComponents is the DTO used for core components
@@ -112,17 +114,22 @@ type coreComponents struct {
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
+	if check.IfNil(args.GenesisNodesSetupFactory) {
+		return nil, errNilNodesSetupFactory
+	}
+
 	return &coreComponentsFactory{
-		config:              args.Config,
-		configPathsHolder:   args.ConfigPathsHolder,
-		epochConfig:         args.EpochConfig,
-		roundConfig:         args.RoundConfig,
-		ratingsConfig:       args.RatingsConfig,
-		importDbConfig:      args.ImportDbConfig,
-		economicsConfig:     args.EconomicsConfig,
-		workingDir:          args.WorkingDirectory,
-		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesFilename:       args.NodesFilename,
+		config:                   args.Config,
+		configPathsHolder:        args.ConfigPathsHolder,
+		epochConfig:              args.EpochConfig,
+		roundConfig:              args.RoundConfig,
+		ratingsConfig:            args.RatingsConfig,
+		importDbConfig:           args.ImportDbConfig,
+		economicsConfig:          args.EconomicsConfig,
+		workingDir:               args.WorkingDirectory,
+		chanStopNodeProcess:      args.ChanStopNodeProcess,
+		nodesFilename:            args.NodesFilename,
+		genesisNodesSetupFactory: args.GenesisNodesSetupFactory,
 	}, nil
 }
 
@@ -157,12 +164,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	addressPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
 	if err != nil {
-		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return nil, fmt.Errorf("%w for AddressPubKeyConverter", err)
 	}
 
 	validatorPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
-		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return nil, fmt.Errorf("%w for ValidatorPubKeyConverter", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(
@@ -179,11 +186,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
-	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ccf.nodesFilename,
-		addressPubkeyConverter,
-		validatorPubkeyConverter,
-		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
+	genesisNodesConfig, err := ccf.genesisNodesSetupFactory.CreateNodesSetup(
+		&sharding.NodesSetupArgs{
+			NodesFilePath:            ccf.nodesFilename,
+			AddressPubKeyConverter:   addressPubkeyConverter,
+			ValidatorPubKeyConverter: validatorPubkeyConverter,
+			GenesisMaxNumShards:      ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -192,19 +201,19 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	startRound := int64(0)
 	if ccf.config.Hardfork.AfterHardFork {
 		log.Debug("changed genesis time after hardfork",
-			"old genesis time", genesisNodesConfig.StartTime,
+			"old genesis time", genesisNodesConfig.GetStartTime(),
 			"new genesis time", ccf.config.Hardfork.GenesisTime)
-		genesisNodesConfig.StartTime = ccf.config.Hardfork.GenesisTime
+		genesisNodesConfig.SetStartTime(ccf.config.Hardfork.GenesisTime)
 		startRound = int64(ccf.config.Hardfork.StartRound)
 	}
 
-	if genesisNodesConfig.StartTime == 0 {
+	if genesisNodesConfig.GetStartTime() == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
-		genesisNodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+		genesisNodesConfig.SetStartTime((ntpTime.Unix()/60 + 1) * 60)
 	}
 
-	startTime := time.Unix(genesisNodesConfig.StartTime, 0)
+	startTime := time.Unix(genesisNodesConfig.GetStartTime(), 0)
 
 	log.Info("start time",
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
@@ -212,11 +221,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Debug("config", "file", ccf.nodesFilename)
 
-	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
+	genesisTime := time.Unix(genesisNodesConfig.GetStartTime(), 0)
 	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		time.Millisecond*time.Duration(genesisNodesConfig.GetRoundDuration()),
 		syncer,
 		startRound,
 	)
@@ -287,11 +296,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                   ccf.ratingsConfig,
-		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
-		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
-		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
-		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
-		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+		ShardConsensusSize:       genesisNodesConfig.GetShardConsensusGroupSize(),
+		MetaConsensusSize:        genesisNodesConfig.GetMetaConsensusGroupSize(),
+		ShardMinNodes:            genesisNodesConfig.MinNumberOfShardNodes(),
+		MetaMinNodes:             genesisNodesConfig.MinNumberOfMetaNodes(),
+		RoundDurationMiliseconds: genesisNodesConfig.GetRoundDuration(),
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {

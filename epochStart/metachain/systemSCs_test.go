@@ -943,7 +943,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		PeerAdapter:                          peerAccountsDB,
 		Rater:                                &mock.RaterStub{},
 		RewardsHandler:                       &mock.RewardsHandlerStub{},
-		NodesSetup:                           &mock.NodesSetupStub{},
+		NodesSetup:                           &testscommon.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EnableEpochsHandler:                  enableEpochsHandler,
@@ -959,7 +959,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasSchedule)
 
-	nodesSetup := &mock.NodesSetupStub{}
+	nodesSetup := &testscommon.NodesSetupStub{}
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 userAccountsDB,
