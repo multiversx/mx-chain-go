@@ -184,12 +184,12 @@
         MaxOpenFiles = 10
 
 [BootstrapStaticStorage]
-    [BootstrapStorage.Cache]
+    [BootstrapStaticStorage.Cache]
         Name = "BootstrapStaticStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
-    [BootstrapStorage.DB]
+    [BootstrapStaticStorage.DB]
         FilePath = "BootstrapStaticData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
