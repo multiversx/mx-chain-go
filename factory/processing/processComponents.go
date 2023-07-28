@@ -42,6 +42,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
+	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -193,7 +194,6 @@ type processComponentsFactory struct {
 	blockProcessorCreator               BlockProcessorCreator
 	chainRunType                        common.ChainRunType
 	resolverRequestCreator              RequestHandlerCreator
-	scheduledTxsExecutionCreator        ScheduledTxsExecutionCreator
 	blockTrackerCreator                 BlockTrackerCreator
 	transactionCoordinatorCreator       TransactionCoordinatorCreator
 	headerValidatorCreator              HeaderValidatorCreator
@@ -742,36 +742,26 @@ func (pcf *processComponentsFactory) createResolverRequestHandler(
 }
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
-	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	args := preprocess.ScheduledTxsExecutionFactoryArgs{
-		TxProcessor:      &disabled.TxProcessor{},
-		TxCoordinator:    &disabled.TxCoordinator{},
-		Storer:           scheduledSCRSStorer,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-	}
-
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		pcf.scheduledTxsExecutionCreator, err = preprocess.NewShardScheduledTxsExecutionFactory()
+		scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
 		if err != nil {
 			return nil, err
 		}
+
+		return preprocess.NewScheduledTxsExecution(
+			&disabled.TxProcessor{},
+			&disabled.TxCoordinator{},
+			scheduledSCRSStorer,
+			pcf.coreData.InternalMarshalizer(),
+			pcf.coreData.Hasher(),
+			pcf.bootstrapComponents.ShardCoordinator(),
+		)
 	case common.ChainRunTypeSovereign:
-		pcf.scheduledTxsExecutionCreator, err = preprocess.NewSovereignScheduledTxsExecutionFactory()
-		if err != nil {
-			return nil, err
-		}
+		return &processDisabled.ScheduledTxsExecutionHandler{}, nil
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
-
-	return pcf.scheduledTxsExecutionCreator.CreateScheduledTxsExecutionHandler(args)
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
