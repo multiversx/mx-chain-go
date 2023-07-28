@@ -1193,10 +1193,10 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		}
 	}
 
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
-	if bootstrapHeaderInfo != nil {
-		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
-	}
+	//bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
+	//if bootstrapHeaderInfo != nil {
+	//	lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
+	//}
 
 	if len(lastCrossNotarizedHeaders) == 0 {
 		return nil
