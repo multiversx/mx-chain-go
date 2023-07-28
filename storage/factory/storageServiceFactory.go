@@ -455,7 +455,7 @@ func (psf *StorageServiceFactory) setUpStaticCrossSharsStorageUnits(store dataRe
 	bootstrapStaticCacherConfig := GetCacherFromConfig(bootstrapStaticConfig.Cache)
 	bootstrapStaticStorageUnit, err := storageunit.NewStorageUnitFromConf(bootstrapStaticCacherConfig, bootstrapStaticDbConfig)
 	if err != nil {
-		return fmt.Errorf("%w for epochStartMetaBlocksStorageUnit", err)
+		return fmt.Errorf("%w for BootstrapStaticStorage", err)
 	}
 	store.AddStorer(dataRetriever.EpochStartMetaBlockUnit, bootstrapStaticStorageUnit)
 
