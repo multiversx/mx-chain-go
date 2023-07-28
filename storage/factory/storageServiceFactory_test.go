@@ -456,7 +456,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25 // we still have a storer for trie epoch root hash
+		expectedStorers := 26 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
