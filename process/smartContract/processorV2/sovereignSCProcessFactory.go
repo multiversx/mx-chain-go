@@ -1,16 +1,18 @@
-package smartContract
+package processorV2
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
 type sovereignSCProcessFactory struct {
-	scrProcessorCreator SCProcessorCreator
+	scrProcessorCreator smartContract.SCProcessorCreator
 }
 
 // NewSovereignSCProcessFactory creates a new smart contract process factory
-func NewSovereignSCProcessFactory(creator SCProcessorCreator) (*sovereignSCProcessFactory, error) {
+func NewSovereignSCProcessFactory(creator smartContract.SCProcessorCreator) (*sovereignSCProcessFactory, error) {
 	if check.IfNil(creator) {
 		return nil, process.ErrNilSCProcessorCreator
 	}
@@ -19,9 +21,9 @@ func NewSovereignSCProcessFactory(creator SCProcessorCreator) (*sovereignSCProce
 	}, nil
 }
 
-// CreateSCRProcessor creates a new smart contract processor
-func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args ArgsNewSmartContractProcessor) (SCRProcessorHandler, error) {
-	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args)
+// CreateSCProcessor CreateSCRProcessor creates a new smart contract processor
+func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier process.EpochNotifier) (scrCommon.SCRProcessorHandler, error) {
+	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
