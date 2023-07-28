@@ -68,3 +68,9 @@ type GenesisNodesSetupFactory interface {
 	CreateNodesSetup(args *NodesSetupArgs) (GenesisNodesSetupHandler, error)
 	IsInterfaceNil() bool
 }
+
+// ShardCoordinatorFactory defines a Coordinator factory behavior
+type ShardCoordinatorFactory interface {
+	CreateShardCoordinator(numberOfShards, selfId uint32) (Coordinator, error)
+	IsInterfaceNil() bool
+}
