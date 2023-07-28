@@ -169,7 +169,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	validatorPubkeyConverter, err := commonFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
-		return nil, fmt.Errorf("%w for AddressPubKeyConverter", err)
+		return nil, fmt.Errorf("%w for ValidatorPubKeyConverter", err)
 	}
 
 	pathHandler, err := storageFactory.CreatePathManager(
