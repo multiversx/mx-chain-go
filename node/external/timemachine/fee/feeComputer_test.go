@@ -7,17 +7,19 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockFeeComputerArgs() ArgsNewFeeComputer {
-	return ArgsNewFeeComputer{
+func createEconomicsData() EconomicsDataWithComputeFee {
+	economicsConfig := testscommon.GetEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		Economics:                   &economicsConfig,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: func(epoch uint32) bool {
 				return epoch >= 124
@@ -27,42 +29,33 @@ func createMockFeeComputerArgs() ArgsNewFeeComputer {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-	}
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+	})
+
+	return economicsData
 }
 
 func TestNewFeeComputer(t *testing.T) {
-	t.Run("nil builtin function cost handler should error", func(t *testing.T) {
-		args := createMockFeeComputerArgs()
-		args.BuiltInFunctionsCostHandler = nil
-		computer, err := NewFeeComputer(args)
-		require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
+	t.Parallel()
+
+	t.Run("nil economics data should error", func(t *testing.T) {
+		t.Parallel()
+
+		computer, err := NewFeeComputer(nil)
+		require.Equal(t, errNilEconomicsData, err)
 		require.Nil(t, computer)
 	})
-	t.Run("nil tx version checker should error", func(t *testing.T) {
-		args := createMockFeeComputerArgs()
-		args.TxVersionChecker = nil
-		computer, err := NewFeeComputer(args)
-		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
-		require.Nil(t, computer)
-	})
-	t.Run("nil enable epochs handler should error", func(t *testing.T) {
-		args := createMockFeeComputerArgs()
-		args.EnableEpochsHandler = nil
-		computer, err := NewFeeComputer(args)
-		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
-		require.Nil(t, computer)
-	})
-	t.Run("AllArgumentsProvided", func(t *testing.T) {
-		args := createMockFeeComputerArgs()
-		computer, err := NewFeeComputer(args)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		computer, err := NewFeeComputer(createEconomicsData())
 		require.Nil(t, err)
 		require.NotNil(t, computer)
 	})
 }
 
 func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
-	args := createMockFeeComputerArgs()
-	computer, _ := NewFeeComputer(args)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -89,8 +82,7 @@ func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
-	args := createMockFeeComputerArgs()
-	computer, _ := NewFeeComputer(args)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -115,8 +107,7 @@ func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeGasLimit(t *testing.T) {
-	args := createMockFeeComputerArgs()
-	computer, _ := NewFeeComputer(args)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -140,10 +131,9 @@ func TestFeeComputer_ComputeGasLimit(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testing.T) {
-	args := createMockFeeComputerArgs()
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
-	computer, _ := NewFeeComputer(args)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	checkComputedFee(t, "50000000000000", computer, 0, 80000, 1000000000, "", nil)
 	checkComputedFee(t, "57500000000000", computer, 0, 80000, 1000000000, "hello", nil)
@@ -174,8 +164,7 @@ func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, e
 }
 
 func TestFeeComputer_InHighConcurrency(t *testing.T) {
-	args := createMockFeeComputerArgs()
-	computer, _ := NewFeeComputer(args)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	n := 1000
 	wg := sync.WaitGroup{}
@@ -204,7 +193,6 @@ func TestFeeComputer_IsInterfaceNil(t *testing.T) {
 	var fc *feeComputer
 	require.True(t, fc.IsInterfaceNil())
 
-	args := createMockFeeComputerArgs()
-	fc, _ = NewFeeComputer(args)
+	fc, _ = NewFeeComputer(createEconomicsData())
 	require.False(t, fc.IsInterfaceNil())
 }

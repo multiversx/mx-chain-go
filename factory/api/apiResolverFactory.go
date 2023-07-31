@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/node/external/logs"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
@@ -199,12 +200,19 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		EconomicsConfig:             *args.Configs.EconomicsConfig,
-		EnableEpochsHandler:         args.CoreComponents.EnableEpochsHandler(),
+	argsEconomicsData := economics.ArgsNewEconomicsData{
 		TxVersionChecker:            args.CoreComponents.TxVersionChecker(),
-	})
+		BuiltInFunctionsCostHandler: builtInCostHandler,
+		Economics:                   args.Configs.EconomicsConfig,
+		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
+		EnableEpochsHandler:         args.CoreComponents.EnableEpochsHandler(),
+	}
+	economicsData, err := economics.NewEconomicsData(argsEconomicsData)
+	if err != nil {
+		return nil, err
+	}
+
+	feeComputer, err := fee.NewFeeComputer(economicsData)
 	if err != nil {
 		return nil, err
 	}

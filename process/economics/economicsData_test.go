@@ -490,18 +490,15 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1, 0)
-	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig := economicsData.GetRewardsActiveConfig(1)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2, 0)
-	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(2)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3, 0)
-	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(3)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 }
@@ -536,18 +533,15 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 	args.Economics.FeeSettings.GasLimitSettings = gls
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1, 0)
-	gasLimitSetting := economicsData.GetGasLimitSetting()
+	gasLimitSetting := economicsData.GetGasLimitSetting(1)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[0], *gasLimitSetting)
 
-	economicsData.EpochConfirmed(2, 0)
-	gasLimitSetting = economicsData.GetGasLimitSetting()
+	gasLimitSetting = economicsData.GetGasLimitSetting(2)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[1], *gasLimitSetting)
 
-	economicsData.EpochConfirmed(3, 0)
-	gasLimitSetting = economicsData.GetGasLimitSetting()
+	gasLimitSetting = economicsData.GetGasLimitSetting(3)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[1], *gasLimitSetting)
 }
@@ -580,18 +574,15 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1, 0)
-	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig := economicsData.GetRewardsActiveConfig(1)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2, 0)
-	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(2)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3, 0)
-	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(3)
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 }
@@ -626,18 +617,15 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 	args.Economics.FeeSettings.GasLimitSettings = gls
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1, 0)
-	gasLimitSetting := economicsData.GetGasLimitSetting()
+	gasLimitSetting := economicsData.GetGasLimitSetting(1)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[1], *gasLimitSetting)
 
-	economicsData.EpochConfirmed(2, 0)
-	gasLimitSetting = economicsData.GetGasLimitSetting()
+	gasLimitSetting = economicsData.GetGasLimitSetting(2)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[0], *gasLimitSetting)
 
-	economicsData.EpochConfirmed(3, 0)
-	gasLimitSetting = economicsData.GetGasLimitSetting()
+	gasLimitSetting = economicsData.GetGasLimitSetting(3)
 	require.NotNil(t, gasLimitSetting)
 	require.Equal(t, gls[0], *gasLimitSetting)
 }
