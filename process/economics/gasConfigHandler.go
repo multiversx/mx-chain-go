@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 )
 
+const epsilon = 0.00000001
+
 type gasConfig struct {
 	gasLimitSettingEpoch        uint32
 	maxGasLimitPerBlock         uint64
@@ -34,8 +36,8 @@ type gasConfigHandler struct {
 	maxGasPriceSetGuardian uint64
 }
 
-// NewGasConfigHandler returns a new instance of gasConfigHandler
-func NewGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, error) {
+// newGasConfigHandler returns a new instance of gasConfigHandler
+func newGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, error) {
 	gasConfigSlice, err := checkAndParseFeeSettings(economics.FeeSettings)
 	if err != nil {
 		return nil, err
@@ -60,8 +62,8 @@ func NewGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, 
 	}, nil
 }
 
-// SetStatusHandler sets the provided status handler if not nil
-func (handler *gasConfigHandler) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+// setStatusHandler sets the provided status handler if not nil
+func (handler *gasConfigHandler) setStatusHandler(statusHandler core.AppStatusHandler) error {
 	if check.IfNil(statusHandler) {
 		return core.ErrNilAppStatusHandler
 	}
@@ -71,56 +73,56 @@ func (handler *gasConfigHandler) SetStatusHandler(statusHandler core.AppStatusHa
 	return nil
 }
 
-// GetMinGasLimit returns min gas limit in a specific epoch
-func (handler *gasConfigHandler) GetMinGasLimit(epoch uint32) uint64 {
+// getMinGasLimit returns min gas limit in a specific epoch
+func (handler *gasConfigHandler) getMinGasLimit(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.minGasLimit
 }
 
-// GetExtraGasLimitGuardedTx returns extra gas limit for guarded tx in a specific epoch
-func (handler *gasConfigHandler) GetExtraGasLimitGuardedTx(epoch uint32) uint64 {
+// getExtraGasLimitGuardedTx returns extra gas limit for guarded tx in a specific epoch
+func (handler *gasConfigHandler) getExtraGasLimitGuardedTx(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.extraGasLimitGuardedTx
 }
 
-// GetMaxGasLimitPerMetaBlock returns max gas limit per meta block in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerMetaBlock(epoch uint32) uint64 {
+// getMaxGasLimitPerMetaBlock returns max gas limit per meta block in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerMetaBlock(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerMetaBlock
 }
 
-// GetMaxGasLimitPerBlock returns max gas limit per block in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerBlock(epoch uint32) uint64 {
+// getMaxGasLimitPerBlock returns max gas limit per block in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerBlock(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerBlock
 }
 
-// GetMaxGasLimitPerMetaMiniBlock returns max gas limit per meta mini block in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerMetaMiniBlock(epoch uint32) uint64 {
+// getMaxGasLimitPerMetaMiniBlock returns max gas limit per meta mini block in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerMetaMiniBlock(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerMetaMiniBlock
 }
 
-// GetMaxGasLimitPerMiniBlock returns max gas limit per mini block in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerMiniBlock(epoch uint32) uint64 {
+// getMaxGasLimitPerMiniBlock returns max gas limit per mini block in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerMiniBlock(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerMiniBlock
 }
 
-// GetMaxGasLimitPerBlockForSafeCrossShard returns maximum gas limit per block for safe cross shard in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerBlockForSafeCrossShard(epoch uint32) uint64 {
+// getMaxGasLimitPerBlockForSafeCrossShard returns maximum gas limit per block for safe cross shard in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerBlockForSafeCrossShard(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return core.MinUint64(gc.maxGasLimitPerBlock, gc.maxGasLimitPerMetaBlock)
 }
 
-// GetMaxGasLimitPerMiniBlockForSafeCrossShard returns maximum gas limit per mini block for safe cross shard in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerMiniBlockForSafeCrossShard(epoch uint32) uint64 {
+// getMaxGasLimitPerMiniBlockForSafeCrossShard returns maximum gas limit per mini block for safe cross shard in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerMiniBlockForSafeCrossShard(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return core.MinUint64(gc.maxGasLimitPerMiniBlock, gc.maxGasLimitPerMetaMiniBlock)
 }
 
-// GetMaxGasLimitPerTx returns max gas limit per tx in a specific epoch
-func (handler *gasConfigHandler) GetMaxGasLimitPerTx(epoch uint32) uint64 {
+// getMaxGasLimitPerTx returns max gas limit per tx in a specific epoch
+func (handler *gasConfigHandler) getMaxGasLimitPerTx(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerTx
 }

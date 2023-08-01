@@ -21,7 +21,6 @@ var _ process.EconomicsDataHandler = (*economicsData)(nil)
 var _ process.RewardsHandler = (*economicsData)(nil)
 var _ process.FeeHandler = (*economicsData)(nil)
 
-var epsilon = 0.00000001
 var log = logger.GetOrCreate("process/economics")
 
 // economicsData will store information about economics
@@ -84,12 +83,12 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		}
 	}
 
-	ed.gasConfigHandler, err = NewGasConfigHandler(args.Economics)
+	ed.gasConfigHandler, err = newGasConfigHandler(args.Economics)
 	if err != nil {
 		return nil, err
 	}
 
-	ed.rewardsConfigHandler, err = NewRewardsConfigHandler(args.Economics.RewardsSettings)
+	ed.rewardsConfigHandler, err = newRewardsConfigHandler(args.Economics.RewardsSettings)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 
 func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
-		return process.ErrInvalidRewardsPercentages
+		return process.ErrInvalidInflationPercentages
 	}
 
 	if len(economics.RewardsSettings.RewardsConfigByEpoch) == 0 {
@@ -127,11 +126,11 @@ func (ed *economicsData) SetStatusHandler(statusHandler core.AppStatusHandler) e
 	}
 	ed.statusHandler = statusHandler
 
-	err := ed.gasConfigHandler.SetStatusHandler(statusHandler)
+	err := ed.gasConfigHandler.setStatusHandler(statusHandler)
 	if err != nil {
 		return err
 	}
-	return ed.rewardsConfigHandler.SetStatusHandler(statusHandler)
+	return ed.rewardsConfigHandler.setStatusHandler(statusHandler)
 }
 
 // LeaderPercentage returns leader reward percentage
@@ -142,7 +141,7 @@ func (ed *economicsData) LeaderPercentage() float64 {
 
 // LeaderPercentageInEpoch returns leader reward percentage in a specific epoch
 func (ed *economicsData) LeaderPercentageInEpoch(epoch uint32) float64 {
-	return ed.GetLeaderPercentage(epoch)
+	return ed.getLeaderPercentage(epoch)
 }
 
 // MinInflationRate returns the minimum inflation rate
@@ -202,7 +201,7 @@ func (ed *economicsData) MinGasLimit() uint64 {
 
 // MinGasLimitInEpoch returns min gas limit in a specific epoch
 func (ed *economicsData) MinGasLimitInEpoch(epoch uint32) uint64 {
-	return ed.GetMinGasLimit(epoch)
+	return ed.getMinGasLimit(epoch)
 }
 
 // ExtraGasLimitGuardedTx returns the extra gas limit required by the guarded transactions
@@ -213,7 +212,7 @@ func (ed *economicsData) ExtraGasLimitGuardedTx() uint64 {
 
 // ExtraGasLimitGuardedTxInEpoch returns the extra gas limit required by the guarded transactions in a specific epoch
 func (ed *economicsData) ExtraGasLimitGuardedTxInEpoch(epoch uint32) uint64 {
-	return ed.GetExtraGasLimitGuardedTx(epoch)
+	return ed.getExtraGasLimitGuardedTx(epoch)
 }
 
 // MaxGasPriceSetGuardian returns the maximum gas price for set guardian transactions
@@ -347,7 +346,7 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 	}
 
 	// The following check should be kept as it is in order to avoid backwards compatibility issues
-	if tx.GetGasLimit() >= ed.GetMaxGasLimitPerBlock(epoch) {
+	if tx.GetGasLimit() >= ed.getMaxGasLimitPerBlock(epoch) {
 		return process.ErrMoreGasThanGasLimitPerBlock
 	}
 
@@ -372,9 +371,9 @@ func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
 // MaxGasLimitPerBlockInEpoch returns maximum gas limit allowed per block in a specific epoch
 func (ed *economicsData) MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64 {
 	if shardID == core.MetachainShardId {
-		return ed.GetMaxGasLimitPerMetaBlock(epoch)
+		return ed.getMaxGasLimitPerMetaBlock(epoch)
 	}
-	return ed.GetMaxGasLimitPerBlock(epoch)
+	return ed.getMaxGasLimitPerBlock(epoch)
 }
 
 // MaxGasLimitPerMiniBlock returns maximum gas limit allowed per mini block
@@ -386,9 +385,9 @@ func (ed *economicsData) MaxGasLimitPerMiniBlock(shardID uint32) uint64 {
 // MaxGasLimitPerMiniBlockInEpoch returns maximum gas limit allowed per mini block in a specific epoch
 func (ed *economicsData) MaxGasLimitPerMiniBlockInEpoch(shardID uint32, epoch uint32) uint64 {
 	if shardID == core.MetachainShardId {
-		return ed.GetMaxGasLimitPerMetaMiniBlock(epoch)
+		return ed.getMaxGasLimitPerMetaMiniBlock(epoch)
 	}
-	return ed.GetMaxGasLimitPerMiniBlock(epoch)
+	return ed.getMaxGasLimitPerMiniBlock(epoch)
 }
 
 // MaxGasLimitPerBlockForSafeCrossShard returns maximum gas limit per block for safe cross shard
@@ -399,18 +398,18 @@ func (ed *economicsData) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 
 // MaxGasLimitPerBlockForSafeCrossShardInEpoch returns maximum gas limit per block for safe cross shard in a specific epoch
 func (ed *economicsData) MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
-	return ed.GetMaxGasLimitPerBlockForSafeCrossShard(epoch)
+	return ed.getMaxGasLimitPerBlockForSafeCrossShard(epoch)
 }
 
 // MaxGasLimitPerMiniBlockForSafeCrossShard returns maximum gas limit per mini block for safe cross shard
 func (ed *economicsData) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.GetMaxGasLimitPerMiniBlockForSafeCrossShard(currentEpoch)
+	return ed.MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(currentEpoch)
 }
 
 // MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch returns maximum gas limit per mini block for safe cross shard in a specific epoch
 func (ed *economicsData) MaxGasLimitPerMiniBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
-	return ed.GetMaxGasLimitPerMiniBlockForSafeCrossShard(epoch)
+	return ed.getMaxGasLimitPerMiniBlockForSafeCrossShard(epoch)
 }
 
 // MaxGasLimitPerTx returns maximum gas limit per tx
@@ -421,7 +420,7 @@ func (ed *economicsData) MaxGasLimitPerTx() uint64 {
 
 // MaxGasLimitPerTxInEpoch returns maximum gas limit per tx in a specific epoch
 func (ed *economicsData) MaxGasLimitPerTxInEpoch(epoch uint32) uint64 {
-	return ed.GetMaxGasLimitPerTx(epoch)
+	return ed.getMaxGasLimitPerTx(epoch)
 }
 
 // DeveloperPercentage returns the developer percentage value
@@ -432,7 +431,7 @@ func (ed *economicsData) DeveloperPercentage() float64 {
 
 // DeveloperPercentageInEpoch returns the developer percentage value in a specific epoch
 func (ed *economicsData) DeveloperPercentageInEpoch(epoch uint32) float64 {
-	return ed.GetDeveloperPercentage(epoch)
+	return ed.getDeveloperPercentage(epoch)
 }
 
 // ProtocolSustainabilityPercentage returns the protocol sustainability percentage value
@@ -443,7 +442,7 @@ func (ed *economicsData) ProtocolSustainabilityPercentage() float64 {
 
 // ProtocolSustainabilityPercentageInEpoch returns the protocol sustainability percentage value in a specific epoch
 func (ed *economicsData) ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64 {
-	return ed.GetProtocolSustainabilityPercentage(epoch)
+	return ed.getProtocolSustainabilityPercentage(epoch)
 }
 
 // ProtocolSustainabilityAddress returns the protocol sustainability address
@@ -454,7 +453,7 @@ func (ed *economicsData) ProtocolSustainabilityAddress() string {
 
 // ProtocolSustainabilityAddressInEpoch returns the protocol sustainability address in a specific epoch
 func (ed *economicsData) ProtocolSustainabilityAddressInEpoch(epoch uint32) string {
-	return ed.GetProtocolSustainabilityAddress(epoch)
+	return ed.getProtocolSustainabilityAddress(epoch)
 }
 
 // RewardsTopUpGradientPoint returns the rewards top-up gradient point
@@ -465,7 +464,7 @@ func (ed *economicsData) RewardsTopUpGradientPoint() *big.Int {
 
 // RewardsTopUpGradientPointInEpoch returns the rewards top-up gradient point in a specific epoch
 func (ed *economicsData) RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int {
-	return big.NewInt(0).Set(ed.GetTopUpGradientPoint(epoch))
+	return big.NewInt(0).Set(ed.getTopUpGradientPoint(epoch))
 }
 
 // RewardsTopUpFactor returns the rewards top-up factor
@@ -476,7 +475,7 @@ func (ed *economicsData) RewardsTopUpFactor() float64 {
 
 // RewardsTopUpFactorInEpoch returns the rewards top-up factor in a specific epoch
 func (ed *economicsData) RewardsTopUpFactorInEpoch(epoch uint32) float64 {
-	return ed.GetTopUpFactor(epoch)
+	return ed.getTopUpFactor(epoch)
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
@@ -487,13 +486,13 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 
 // ComputeGasLimitInEpoch returns the gas limit need by the provided transaction in order to be executed in a specific epoch
 func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
-	gasLimit := ed.GetMinGasLimit(epoch)
+	gasLimit := ed.getMinGasLimit(epoch)
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
 	txInstance, ok := tx.(*transaction.Transaction)
 	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
-		gasLimit += ed.GetExtraGasLimitGuardedTx(epoch)
+		gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
 	}
 
 	return gasLimit

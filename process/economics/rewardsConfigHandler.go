@@ -28,8 +28,8 @@ type rewardsConfigHandler struct {
 	rewardsConfigSettings []*rewardsConfig
 }
 
-// NewRewardsConfigHandler returns a new instance of rewardsConfigHandler
-func NewRewardsConfigHandler(rewardsSettings config.RewardsSettings) (*rewardsConfigHandler, error) {
+// newRewardsConfigHandler returns a new instance of rewardsConfigHandler
+func newRewardsConfigHandler(rewardsSettings config.RewardsSettings) (*rewardsConfigHandler, error) {
 	rewardsConfigSlice, err := checkAndParseRewardsSettings(rewardsSettings)
 	if err != nil {
 		return nil, err
@@ -45,8 +45,8 @@ func NewRewardsConfigHandler(rewardsSettings config.RewardsSettings) (*rewardsCo
 	}, nil
 }
 
-// SetStatusHandler sets the provided status handler if not nil
-func (handler *rewardsConfigHandler) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+// setStatusHandler sets the provided status handler if not nil
+func (handler *rewardsConfigHandler) setStatusHandler(statusHandler core.AppStatusHandler) error {
 	if check.IfNil(statusHandler) {
 		return core.ErrNilAppStatusHandler
 	}
@@ -56,38 +56,38 @@ func (handler *rewardsConfigHandler) SetStatusHandler(statusHandler core.AppStat
 	return nil
 }
 
-// GetLeaderPercentage returns the leader percentage in a specific epoch
-func (handler *rewardsConfigHandler) GetLeaderPercentage(epoch uint32) float64 {
+// getLeaderPercentage returns the leader percentage in a specific epoch
+func (handler *rewardsConfigHandler) getLeaderPercentage(epoch uint32) float64 {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.leaderPercentage
 }
 
-// GetDeveloperPercentage returns the developer percentage in a specific epoch
-func (handler *rewardsConfigHandler) GetDeveloperPercentage(epoch uint32) float64 {
+// getDeveloperPercentage returns the developer percentage in a specific epoch
+func (handler *rewardsConfigHandler) getDeveloperPercentage(epoch uint32) float64 {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.developerPercentage
 }
 
-// GetProtocolSustainabilityPercentage returns the protocol sustainability percentage in a specific epoch
-func (handler *rewardsConfigHandler) GetProtocolSustainabilityPercentage(epoch uint32) float64 {
+// getProtocolSustainabilityPercentage returns the protocol sustainability percentage in a specific epoch
+func (handler *rewardsConfigHandler) getProtocolSustainabilityPercentage(epoch uint32) float64 {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.protocolSustainabilityPercentage
 }
 
-// GetProtocolSustainabilityAddress returns the protocol sustainability address in a specific epoch
-func (handler *rewardsConfigHandler) GetProtocolSustainabilityAddress(epoch uint32) string {
+// getProtocolSustainabilityAddress returns the protocol sustainability address in a specific epoch
+func (handler *rewardsConfigHandler) getProtocolSustainabilityAddress(epoch uint32) string {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.protocolSustainabilityAddress
 }
 
-// GetTopUpFactor returns the top-up factor in a specific epoch
-func (handler *rewardsConfigHandler) GetTopUpFactor(epoch uint32) float64 {
+// getTopUpFactor returns the top-up factor in a specific epoch
+func (handler *rewardsConfigHandler) getTopUpFactor(epoch uint32) float64 {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.topUpFactor
 }
 
-// GetTopUpGradientPoint returns the top-up gradient point in a specific epoch
-func (handler *rewardsConfigHandler) GetTopUpGradientPoint(epoch uint32) *big.Int {
+// getTopUpGradientPoint returns the top-up gradient point in a specific epoch
+func (handler *rewardsConfigHandler) getTopUpGradientPoint(epoch uint32) *big.Int {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 	return rc.topUpGradientPoint
 }
