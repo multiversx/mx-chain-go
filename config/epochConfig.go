@@ -95,6 +95,7 @@ type EnableEpochs struct {
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	SetGuardianEnableEpoch                            uint32
 	RelayedNonceFixEnableEpoch                        uint32
+	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 
