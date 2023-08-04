@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -26,7 +27,7 @@ const (
 
 // vmValuesFacadeHandler defines the methods to be implemented by a facade for vm-values requests
 type vmValuesFacadeHandler interface {
-	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, apiData.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
@@ -102,7 +103,7 @@ func (vvg *vmValuesGroup) getInt(context *gin.Context) {
 }
 
 func (vvg *vmValuesGroup) doGetVMValue(context *gin.Context, asType vm.ReturnDataKind) {
-	vmOutput, execErrMsg, err := vvg.doExecuteQuery(context)
+	vmOutput, execErrMsg, blockInfo, err := vvg.doExecuteQuery(context)
 
 	if err != nil {
 		vvg.returnBadRequest(context, "doGetVMValue", err)
@@ -114,40 +115,40 @@ func (vvg *vmValuesGroup) doGetVMValue(context *gin.Context, asType vm.ReturnDat
 		execErrMsg += " " + err.Error()
 	}
 
-	vvg.returnOkResponse(context, returnData, execErrMsg)
+	vvg.returnOkResponse(context, returnData, execErrMsg, blockInfo)
 }
 
 // executeQuery returns the data as string
 func (vvg *vmValuesGroup) executeQuery(context *gin.Context) {
-	vmOutput, execErrMsg, err := vvg.doExecuteQuery(context)
+	vmOutput, execErrMsg, blockInfo, err := vvg.doExecuteQuery(context)
 	if err != nil {
 		vvg.returnBadRequest(context, "executeQuery", err)
 		return
 	}
 
-	vvg.returnOkResponse(context, vmOutput, execErrMsg)
+	vvg.returnOkResponse(context, vmOutput, execErrMsg, blockInfo)
 }
 
-func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, string, error) {
+func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, string, apiData.BlockInfo, error) {
 	request := VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
 	if err != nil {
-		return nil, "", errors.ErrInvalidJSONRequest
+		return nil, "", apiData.BlockInfo{}, errors.ErrInvalidJSONRequest
 	}
 
 	command, err := vvg.createSCQuery(&request)
 	if err != nil {
-		return nil, "", err
+		return nil, "", apiData.BlockInfo{}, err
 	}
 
 	command.BlockNonce, command.BlockHash, err = extractBlockCoordinates(context)
 	if err != nil {
-		return nil, "", err
+		return nil, "", apiData.BlockInfo{}, err
 	}
 
-	vmOutputApi, err := vvg.getFacade().ExecuteSCQuery(command)
+	vmOutputApi, blockInfo, err := vvg.getFacade().ExecuteSCQuery(command)
 	if err != nil {
-		return nil, "", err
+		return nil, "", apiData.BlockInfo{}, err
 	}
 
 	vmExecErrMsg := ""
@@ -155,7 +156,7 @@ func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi,
 		vmExecErrMsg = vmOutputApi.ReturnCode + ":" + vmOutputApi.ReturnMessage
 	}
 
-	return vmOutputApi, vmExecErrMsg, nil
+	return vmOutputApi, vmExecErrMsg, blockInfo, nil
 }
 
 func extractBlockCoordinates(context *gin.Context) (core.OptionalUint64, []byte, error) {
@@ -229,11 +230,11 @@ func (vvg *vmValuesGroup) returnBadRequest(context *gin.Context, errScope string
 	)
 }
 
-func (vvg *vmValuesGroup) returnOkResponse(context *gin.Context, data interface{}, errorMsg string) {
+func (vvg *vmValuesGroup) returnOkResponse(context *gin.Context, data interface{}, errorMsg string, blockInfo apiData.BlockInfo) {
 	context.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"data": data},
+			Data:  gin.H{"data": data, "blockInfo": blockInfo},
 			Error: errorMsg,
 			Code:  shared.ReturnCodeSuccess,
 		},

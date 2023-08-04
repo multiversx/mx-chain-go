@@ -64,7 +64,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	vmOutput, err := service.ExecuteQuery(&query)
+	vmOutput, _, err := service.ExecuteQuery(&query)
 	assert.Nil(t, err)
 
 	returnData, _ := vmOutput.GetFirstReturnData(vmData.AsBigInt)

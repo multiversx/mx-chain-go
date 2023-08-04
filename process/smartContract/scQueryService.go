@@ -16,6 +16,7 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
@@ -141,16 +142,16 @@ func checkArgs(args ArgsNewSCQueryService) error {
 }
 
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
-func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	if !service.shouldAllowQueriesExecution() {
-		return nil, process.ErrQueriesNotAllowedYet
+		return nil, nil, process.ErrQueriesNotAllowedYet
 	}
 
 	if query.ScAddress == nil {
-		return nil, process.ErrNilScAddress
+		return nil, nil, process.ErrNilScAddress
 	}
 	if len(query.FuncName) == 0 {
-		return nil, process.ErrEmptyFunctionName
+		return nil, nil, process.ErrEmptyFunctionName
 	}
 
 	service.mutRunSc.Lock()
@@ -168,30 +169,41 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 	}
 }
 
-func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
-		return nil, process.ErrNodeIsNotSynced
+		return nil, nil, process.ErrNodeIsNotSynced
 	}
 
-	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
+	blockHeader, err := service.extractBlockHeader(query)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	var blockRootHash, blockHash []byte
+	var blockNonce uint64
+
+	if !check.IfNil(blockHeader) {
+		blockRootHash = blockHeader.GetRootHash()
+		blockNonce = blockHeader.GetNonce()
+		blockHash, err = service.blockChainHook.GetBlockhash(blockNonce)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	if len(blockRootHash) > 0 {
 		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
 		err = accountsAdapter.RecreateTrie(blockRootHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -208,7 +220,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		service.wasmVMChangeLocker.RUnlock()
-		return nil, err
+		return nil, nil, err
 	}
 
 	query = prepareScQuery(query)
@@ -216,7 +228,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if service.hasRetriableExecutionError(vmOutput) {
@@ -224,43 +236,44 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 		vmOutput, err = vm.RunSmartContractCall(vmInput)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	if query.SameScState {
 		err = service.checkForRootHashChanges(rootHashBeforeExecution)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return vmOutput, nil
+	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
+	return vmOutput, blockInfo, nil
 }
 
-func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
+// TODO: extract duplicated code with nodeBlocks.go
+func (service *SCQueryService) extractBlockHeader(query *process.SCQuery) (data.HeaderHandler, error) {
 
 	if len(query.BlockHash) > 0 {
 		blockHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
-			return nil, make([]byte, 0), err
+			return nil, err
 		}
 
 		header := service.getBlockHeader(blockHeader)
-		return header, header.GetRootHash(), nil
+		return header, nil
 	}
 
 	if query.BlockNonce.HasValue {
 		blockHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
-			return nil, make([]byte, 0), err
+			return nil, err
 		}
 
-		header := service.getBlockHeader(blockHeader)
-		return header, header.GetRootHash(), nil
+		return service.getBlockHeader(blockHeader), nil
 	}
 
-	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+	return service.mainBlockChain.GetCurrentBlockHeader(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
@@ -417,7 +430,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	vmOutput, err := service.executeScCall(query, 1)
+	vmOutput, _, err := service.executeScCall(query, 1)
 	if err != nil {
 		return 0, err
 	}

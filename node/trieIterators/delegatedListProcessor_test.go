@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -59,8 +60,8 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			return nil, expectedErr
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, expectedErr
 		},
 	}
 	dlp, _ := NewDelegatedListProcessor(arg)
@@ -71,10 +72,10 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 
 	arg = createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			return &vmcommon.VMOutput{
 				ReturnCode: vmcommon.UserError,
-			}, nil
+			}, nil, nil
 		},
 	}
 	dlp, _ = NewDelegatedListProcessor(arg)
@@ -93,24 +94,24 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getAllContractAddresses":
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
-				}, nil
+				}, nil, nil
 			case "getUserActiveStake":
 				for index, delegator := range delegators {
 					if bytes.Equal(delegator, query.Arguments[0]) {
 						value := big.NewInt(int64(index + 1))
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{value.Bytes()},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
@@ -140,24 +141,24 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getAllContractAddresses":
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
-				}, nil
+				}, nil, nil
 			case "getUserActiveStake":
 				for index, delegator := range delegators {
 					if bytes.Equal(delegator, query.Arguments[0]) {
 						value := big.NewInt(int64(index + 1))
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{value.Bytes()},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{

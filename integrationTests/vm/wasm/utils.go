@@ -736,7 +736,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 		Arguments: args,
 	}
 
-	vmOutput, err := context.QueryService.ExecuteQuery(&query)
+	vmOutput, _, err := context.QueryService.ExecuteQuery(&query)
 	require.Nil(context.T, err)
 
 	firstResult := vmOutput.ReturnData[0]

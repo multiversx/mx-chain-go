@@ -513,15 +513,15 @@ func TestNodeFacade_GetDataValue(t *testing.T) {
 	wasCalled := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, nil, nil
 		},
 	}
 	nf, err := NewNodeFacade(arg)
 	require.NoError(t, err)
 
-	_, _ = nf.ExecuteSCQuery(nil)
+	_, _, _ = nf.ExecuteSCQuery(nil)
 	require.True(t, wasCalled)
 }
 
@@ -1240,14 +1240,14 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
-				return nil, expectedErr
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		_, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		_, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1269,15 +1269,15 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 			},
 		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				executeScQueryHandlerWasCalled = true
-				return expectedVmOutput, nil
+				return expectedVmOutput, nil, nil
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		apiVmOutput, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		apiVmOutput, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.NoError(t, err)
 		require.True(t, executeScQueryHandlerWasCalled)
 		require.Equal(t, expectedVmOutput.ReturnData, apiVmOutput.ReturnData)

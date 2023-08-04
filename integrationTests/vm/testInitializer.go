@@ -270,7 +270,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,
@@ -1694,7 +1694,7 @@ func GetVmOutput(
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,

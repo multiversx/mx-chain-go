@@ -204,7 +204,7 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	output, err := target.ExecuteQuery(&query)
+	output, _, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrNilScAddress, err)
@@ -222,7 +222,7 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	output, err := target.ExecuteQuery(&query)
+	output, _, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrEmptyFunctionName, err)
@@ -242,12 +242,12 @@ func TestExecuteQuery_ShouldPerformActionsInRegardsToAllowanceChannel(t *testing
 		Arguments: [][]byte{},
 	}
 
-	output, err := target.ExecuteQuery(&query)
+	output, _, err := target.ExecuteQuery(&query)
 	assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
 	assert.Nil(t, output)
 
 	close(chanAllowedQueries)
-	_, err = target.ExecuteQuery(&query)
+	_, _, err = target.ExecuteQuery(&query)
 	assert.NoError(t, err)
 }
 
@@ -283,10 +283,10 @@ func TestExecuteQuery_AllowanceChannelShouldWorkUnderConcurrentRequests(t *testi
 		go func(idx int) {
 			select {
 			case <-chanAllowedQueries:
-				_, err := target.ExecuteQuery(&query)
+				_, _, err := target.ExecuteQuery(&query)
 				assert.NoError(t, err)
 			default:
-				output, err := target.ExecuteQuery(&query)
+				output, _, err := target.ExecuteQuery(&query)
 				assert.Equal(t, process.ErrQueriesNotAllowedYet, err)
 				assert.Nil(t, output)
 			}
@@ -345,7 +345,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			Arguments: dataArgs,
 		}
 
-		_, _ = target.ExecuteQuery(&query)
+		_, _, _ = target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 	})
 	t.Run("block hash should work", func(t *testing.T) {
@@ -433,7 +433,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			BlockHash: providedHash,
 		}
 
-		_, _ = target.ExecuteQuery(&query)
+		_, _, _ = target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 		assert.True(t, wasRecreateTrieCalled)
 	})
@@ -530,7 +530,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			},
 		}
 
-		_, _ = target.ExecuteQuery(&query)
+		_, _, _ = target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 		assert.True(t, wasRecreateTrieCalled)
 	})
@@ -570,7 +570,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	vmOutput, err := target.ExecuteQuery(&query)
+	vmOutput, _, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, err)
 	assert.Equal(t, d[0], vmOutput.ReturnData[0])
@@ -611,7 +611,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 			Arguments: [][]byte{},
 		}
 
-		_, err := target.ExecuteQuery(&query)
+		_, _, err := target.ExecuteQuery(&query)
 		require.Nil(t, err)
 		require.True(t, runSCWasCalled)
 	})
@@ -650,7 +650,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 			Arguments: [][]byte{},
 		}
 
-		_, err := target.ExecuteQuery(&query)
+		_, _, err := target.ExecuteQuery(&query)
 		require.Nil(t, err)
 		require.True(t, runSCWasCalled)
 	})
@@ -687,7 +687,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	returnedData, err := target.ExecuteQuery(&query)
+	returnedData, _, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, returnedData)
@@ -739,7 +739,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 				Arguments: [][]byte{},
 			}
 
-			_, _ = target.ExecuteQuery(&query)
+			_, _, _ = target.ExecuteQuery(&query)
 			wg.Done()
 		}()
 	}
@@ -782,7 +782,7 @@ func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *tes
 		Arguments: [][]byte{},
 	}
 
-	_, err := target.ExecuteQuery(&query)
+	_, _, err := target.ExecuteQuery(&query)
 	require.NoError(t, err)
 	require.True(t, callerAddressAndCallValueAreNotSet)
 }
@@ -826,7 +826,7 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 		Arguments:  [][]byte{},
 	}
 
-	_, err := target.ExecuteQuery(&query)
+	_, _, err := target.ExecuteQuery(&query)
 	require.NoError(t, err)
 	require.True(t, callerAddressAndCallValueAreSet)
 }
@@ -843,7 +843,7 @@ func TestSCQueryService_ShouldFailIfNodeIsNotSynced(t *testing.T) {
 
 	qs, _ := NewSCQueryService(args)
 
-	res, err := qs.ExecuteQuery(&process.SCQuery{
+	res, _, err := qs.ExecuteQuery(&process.SCQuery{
 		ShouldBeSynced: true,
 		ScAddress:      []byte(DummyScAddress),
 		FuncName:       "function",
@@ -864,7 +864,7 @@ func TestSCQueryService_ShouldWorkIfNodeIsSynced(t *testing.T) {
 
 	qs, _ := NewSCQueryService(args)
 
-	res, err := qs.ExecuteQuery(&process.SCQuery{
+	res, _, err := qs.ExecuteQuery(&process.SCQuery{
 		ShouldBeSynced: true,
 		ScAddress:      []byte(DummyScAddress),
 		FuncName:       "function",
@@ -901,7 +901,7 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 
 	qs, _ := NewSCQueryService(args)
 
-	res, err := qs.ExecuteQuery(&process.SCQuery{
+	res, _, err := qs.ExecuteQuery(&process.SCQuery{
 		SameScState: true,
 		ScAddress:   []byte(DummyScAddress),
 		FuncName:    "function",
@@ -926,7 +926,7 @@ func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
 
 	qs, _ := NewSCQueryService(args)
 
-	res, err := qs.ExecuteQuery(&process.SCQuery{
+	res, _, err := qs.ExecuteQuery(&process.SCQuery{
 		SameScState: true,
 		ScAddress:   []byte(DummyScAddress),
 		FuncName:    "function",
