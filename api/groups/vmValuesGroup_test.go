@@ -144,7 +144,6 @@ func TestQuery(t *testing.T) {
 
 	t.Run("invalid block nonce should error", testQueryShouldError("/vm-values/query?blockNonce=invalid_nonce"))
 	t.Run("invalid block hash should error", testQueryShouldError("/vm-values/query?blockHash=invalid_nonce"))
-	t.Run("invalid block root hash should error", testQueryShouldError("/vm-values/query?blockRootHash=invalid_nonce"))
 	t.Run("should work - block nonce", func(t *testing.T) {
 		t.Parallel()
 
@@ -176,21 +175,6 @@ func TestQuery(t *testing.T) {
 			},
 		}
 		url := fmt.Sprintf("/vm-values/query?blockHash=%s", hex.EncodeToString(providedBlockHash))
-		testQueryShouldWork(t, url, &facade)
-	})
-	t.Run("should work - block root hash", func(t *testing.T) {
-		t.Parallel()
-
-		providedBlockRootHash := []byte("provided root hash")
-		facade := mock.FacadeStub{
-			ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
-				require.Equal(t, providedBlockRootHash, query.BlockRootHash)
-				return &vm.VMOutputApi{
-					ReturnData: [][]byte{big.NewInt(42).Bytes()},
-				}, nil
-			},
-		}
-		url := fmt.Sprintf("/vm-values/query?blockRootHash=%s", hex.EncodeToString(providedBlockRootHash))
 		testQueryShouldWork(t, url, &facade)
 	})
 	t.Run("should work - no block coordinates", func(t *testing.T) {

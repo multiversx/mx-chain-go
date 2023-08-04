@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -28,40 +29,40 @@ var _ process.SCQueryService = (*SCQueryService)(nil)
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer                  process.VirtualMachinesContainer
-	economicsFee                 process.FeeHandler
-	mutRunSc                     sync.Mutex
-	blockChainHook               process.BlockChainHookHandler
-	blockChain                   data.ChainHandler
-	numQueries                   int
-	gasForQuery                  uint64
-	wasmVMChangeLocker           common.Locker
-	bootstrapper                 process.Bootstrapper
-	allowExternalQueriesChan     chan struct{}
-	historyRepository            dblookupext.HistoryRepository
-	shardCoordinator             sharding.Coordinator
-	storageService               dataRetriever.StorageService
-	marshaller                   marshal.Marshalizer
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	vmContainer              process.VirtualMachinesContainer
+	economicsFee             process.FeeHandler
+	mutRunSc                 sync.Mutex
+	blockChainHook           process.BlockChainHookHandler
+	mainBlockChain           data.ChainHandler
+	apiBlockChain            data.ChainHandler
+	numQueries               int
+	gasForQuery              uint64
+	wasmVMChangeLocker       common.Locker
+	bootstrapper             process.Bootstrapper
+	allowExternalQueriesChan chan struct{}
+	historyRepository        dblookupext.HistoryRepository
+	shardCoordinator         sharding.Coordinator
+	storageService           dataRetriever.StorageService
+	marshaller               marshal.Marshalizer
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
 type ArgsNewSCQueryService struct {
-	VmContainer                  process.VirtualMachinesContainer
-	EconomicsFee                 process.FeeHandler
-	BlockChainHook               process.BlockChainHookHandler
-	BlockChain                   data.ChainHandler
-	WasmVMChangeLocker           common.Locker
-	Bootstrapper                 process.Bootstrapper
-	AllowExternalQueriesChan     chan struct{}
-	MaxGasLimitPerQuery          uint64
-	HistoryRepository            dblookupext.HistoryRepository
-	ShardCoordinator             sharding.Coordinator
-	StorageService               dataRetriever.StorageService
-	Marshaller                   marshal.Marshalizer
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	VmContainer              process.VirtualMachinesContainer
+	EconomicsFee             process.FeeHandler
+	BlockChainHook           process.BlockChainHookHandler
+	MainBlockChain           data.ChainHandler
+	APIBlockChain            data.ChainHandler
+	WasmVMChangeLocker       common.Locker
+	Bootstrapper             process.Bootstrapper
+	AllowExternalQueriesChan chan struct{}
+	MaxGasLimitPerQuery      uint64
+	HistoryRepository        dblookupext.HistoryRepository
+	ShardCoordinator         sharding.Coordinator
+	StorageService           dataRetriever.StorageService
+	Marshaller               marshal.Marshalizer
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -78,20 +79,20 @@ func NewSCQueryService(
 		gasForQuery = args.MaxGasLimitPerQuery
 	}
 	return &SCQueryService{
-		vmContainer:                  args.VmContainer,
-		economicsFee:                 args.EconomicsFee,
-		blockChain:                   args.BlockChain,
-		blockChainHook:               args.BlockChainHook,
-		wasmVMChangeLocker:           args.WasmVMChangeLocker,
-		bootstrapper:                 args.Bootstrapper,
-		gasForQuery:                  gasForQuery,
-		allowExternalQueriesChan:     args.AllowExternalQueriesChan,
-		historyRepository:            args.HistoryRepository,
-		shardCoordinator:             args.ShardCoordinator,
-		storageService:               args.StorageService,
-		marshaller:                   args.Marshaller,
-		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
-		uint64ByteSliceConverter:     args.Uint64ByteSliceConverter,
+		vmContainer:              args.VmContainer,
+		economicsFee:             args.EconomicsFee,
+		mainBlockChain:           args.MainBlockChain,
+		apiBlockChain:            args.APIBlockChain,
+		blockChainHook:           args.BlockChainHook,
+		wasmVMChangeLocker:       args.WasmVMChangeLocker,
+		bootstrapper:             args.Bootstrapper,
+		gasForQuery:              gasForQuery,
+		allowExternalQueriesChan: args.AllowExternalQueriesChan,
+		historyRepository:        args.HistoryRepository,
+		shardCoordinator:         args.ShardCoordinator,
+		storageService:           args.StorageService,
+		marshaller:               args.Marshaller,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 	}, nil
 }
 
@@ -105,8 +106,11 @@ func checkArgs(args ArgsNewSCQueryService) error {
 	if check.IfNil(args.BlockChainHook) {
 		return process.ErrNilBlockChainHook
 	}
-	if check.IfNil(args.BlockChain) {
-		return process.ErrNilBlockChain
+	if check.IfNil(args.MainBlockChain) {
+		return fmt.Errorf("%w for main blockchain", process.ErrNilBlockChain)
+	}
+	if check.IfNil(args.APIBlockChain) {
+		return fmt.Errorf("%w for api blockchain", process.ErrNilBlockChain)
 	}
 	if check.IfNilReflect(args.WasmVMChangeLocker) {
 		return process.ErrNilLocker
@@ -128,9 +132,6 @@ func checkArgs(args ArgsNewSCQueryService) error {
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(args.ScheduledTxsExecutionHandler) {
-		return process.ErrNilScheduledTxsExecutionHandler
 	}
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return process.ErrNilUint64Converter
@@ -176,14 +177,32 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, process.ErrNodeIsNotSynced
 	}
 
+	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(blockRootHash) > 0 {
+		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
+		if err != nil {
+			return nil, err
+		}
+
+		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
+		err = accountsAdapter.RecreateTrie(blockRootHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	shouldCheckRootHashChanges := query.SameScState
 	rootHashBeforeExecution := make([]byte, 0)
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution = service.blockChain.GetCurrentBlockRootHash()
+		rootHashBeforeExecution = service.mainBlockChain.GetCurrentBlockRootHash()
 	}
 
-	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
+	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
@@ -192,28 +211,11 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, err
 	}
 
-	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-	blockRootHash, err := service.extractBlockRootHash(query)
-	if err != nil {
-		return nil, err
-	}
-	if len(blockRootHash) > 0 {
-		err = accountsAdapter.RecreateTrie(blockRootHash)
-		if err != nil {
-			return nil, err
-		}
-
-		// Temporary setting the root hash to the desired one until the sc call is ready
-		_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, blockRootHash)
-	}
-
 	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
-		// Cleaning the current root hash so the real one would be returned further
-		_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 		return nil, err
 	}
 
@@ -222,14 +224,9 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 		vmOutput, err = vm.RunSmartContractCall(vmInput)
 		if err != nil {
-			// Cleaning the current root hash so the real one would be returned further
-			_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 			return nil, err
 		}
 	}
-
-	// Cleaning the current root hash so the real one would be returned further
-	_ = service.blockChain.SetCurrentBlockHeaderAndRootHash(nil, nil)
 
 	if query.SameScState {
 		err = service.checkForRootHashChanges(rootHashBeforeExecution)
@@ -241,30 +238,29 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	return vmOutput, nil
 }
 
-func (service *SCQueryService) extractBlockRootHash(query *process.SCQuery) ([]byte, error) {
-	if len(query.BlockRootHash) > 0 {
-		return query.BlockRootHash, nil
-	}
+func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
 
 	if len(query.BlockHash) > 0 {
 		blockHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
-			return make([]byte, 0), err
+			return nil, make([]byte, 0), err
 		}
 
-		return service.getBlockRootHash(query.BlockHash, blockHeader), nil
+		header := service.getBlockHeader(blockHeader)
+		return header, header.GetRootHash(), nil
 	}
 
 	if query.BlockNonce.HasValue {
-		blockHeader, blockHash, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
+		blockHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
-			return make([]byte, 0), err
+			return nil, make([]byte, 0), err
 		}
 
-		return service.getBlockRootHash(blockHash, blockHeader), nil
+		header := service.getBlockHeader(blockHeader)
+		return header, header.GetRootHash(), nil
 	}
 
-	return make([]byte, 0), nil
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
@@ -321,15 +317,13 @@ func (service *SCQueryService) getBlockHeaderInEpochByHash(headerHash []byte, ep
 	return header, nil
 }
 
-func (service *SCQueryService) getBlockRootHash(headerHash []byte, header data.HeaderHandler) []byte {
-	blockRootHash, err := service.scheduledTxsExecutionHandler.GetScheduledRootHashForHeaderWithEpoch(
-		headerHash,
-		header.GetEpoch())
+func (service *SCQueryService) getBlockHeader(currentHeader data.HeaderHandler) data.HeaderHandler {
+	header, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
 	if err != nil {
-		blockRootHash = header.GetRootHash()
+		return currentHeader
 	}
 
-	return blockRootHash
+	return header
 }
 
 func (service *SCQueryService) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
@@ -360,7 +354,7 @@ func (service *SCQueryService) getBlockHashByNonce(nonce uint64) ([]byte, error)
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	rootHashAfter := service.blockChain.GetCurrentBlockRootHash()
+	rootHashAfter := service.mainBlockChain.GetCurrentBlockRootHash()
 
 	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil

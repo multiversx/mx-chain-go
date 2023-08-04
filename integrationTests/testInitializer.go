@@ -706,9 +706,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:                  &roundsConfig,
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		RoundConfig:       &roundsConfig,
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -812,8 +811,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

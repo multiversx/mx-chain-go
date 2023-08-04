@@ -780,7 +780,6 @@ type SCQuery struct {
 	ShouldBeSynced bool
 	BlockNonce     core.OptionalUint64
 	BlockHash      []byte
-	BlockRootHash  []byte
 }
 
 // GasHandler is able to perform some gas calculation

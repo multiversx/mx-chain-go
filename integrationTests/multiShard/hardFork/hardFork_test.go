@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -490,9 +489,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig:                  &roundConfig,
-			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+			RoundConfig:       &roundConfig,
+			HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

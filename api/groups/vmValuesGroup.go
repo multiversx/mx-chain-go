@@ -140,7 +140,7 @@ func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi,
 		return nil, "", err
 	}
 
-	command.BlockNonce, command.BlockHash, command.BlockRootHash, err = extractBlockCoordinates(context)
+	command.BlockNonce, command.BlockHash, err = extractBlockCoordinates(context)
 	if err != nil {
 		return nil, "", err
 	}
@@ -158,23 +158,18 @@ func (vvg *vmValuesGroup) doExecuteQuery(context *gin.Context) (*vm.VMOutputApi,
 	return vmOutputApi, vmExecErrMsg, nil
 }
 
-func extractBlockCoordinates(context *gin.Context) (core.OptionalUint64, []byte, []byte, error) {
+func extractBlockCoordinates(context *gin.Context) (core.OptionalUint64, []byte, error) {
 	blockNonce, err := parseUint64UrlParam(context, urlParamBlockNonce)
 	if err != nil {
-		return core.OptionalUint64{}, nil, nil, err
+		return core.OptionalUint64{}, nil, fmt.Errorf("%w for block nonce", err)
 	}
 
 	blockHash, err := parseHexBytesUrlParam(context, urlParamBlockHash)
 	if err != nil {
-		return core.OptionalUint64{}, nil, nil, err
+		return core.OptionalUint64{}, nil, fmt.Errorf("%w for block hash", err)
 	}
 
-	blockRootHash, err := parseHexBytesUrlParam(context, urlParamBlockRootHash)
-	if err != nil {
-		return core.OptionalUint64{}, nil, nil, err
-	}
-
-	return blockNonce, blockHash, blockRootHash, nil
+	return blockNonce, blockHash, nil
 }
 
 func (vvg *vmValuesGroup) createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {

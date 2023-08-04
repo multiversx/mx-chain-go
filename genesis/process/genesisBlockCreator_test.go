@@ -180,8 +180,7 @@ func createMockArgument(
 				},
 			},
 		},
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -455,16 +454,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, process.ErrNilHistoryRepository))
-		require.Nil(t, gbc)
-	})
-	t.Run("nil ScheduledTxsExecutionHandler should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.ScheduledTxsExecutionHandler = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilScheduledTxsExecutionHandler))
 		require.Nil(t, gbc)
 	})
 	t.Run("should work", func(t *testing.T) {

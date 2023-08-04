@@ -788,21 +788,26 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initInnerProcessors(gasMap, vmConfig)
 
 	if check.IfNil(args.TrieStore) {
-		apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
+		var apiBlockchain data.ChainHandler
+		if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+			apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		} else {
+			apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		}
 		argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-			VmContainer:                  tpn.VMContainer,
-			EconomicsFee:                 tpn.EconomicsData,
-			BlockChainHook:               tpn.BlockchainHook,
-			BlockChain:                   apiBlockchain,
-			WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
-			Bootstrapper:                 tpn.Bootstrapper,
-			AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-			HistoryRepository:            tpn.HistoryRepository,
-			ShardCoordinator:             tpn.ShardCoordinator,
-			StorageService:               tpn.Storage,
-			Marshaller:                   TestMarshaller,
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-			Uint64ByteSliceConverter:     TestUint64Converter,
+			VmContainer:              tpn.VMContainer,
+			EconomicsFee:             tpn.EconomicsData,
+			BlockChainHook:           tpn.BlockchainHook,
+			MainBlockChain:           tpn.BlockChain,
+			APIBlockChain:            apiBlockchain,
+			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
+			Bootstrapper:             tpn.Bootstrapper,
+			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+			HistoryRepository:        tpn.HistoryRepository,
+			ShardCoordinator:         tpn.ShardCoordinator,
+			StorageService:           tpn.Storage,
+			Marshaller:               TestMarshaller,
+			Uint64ByteSliceConverter: TestUint64Converter,
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	} else {
@@ -868,12 +873,10 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	smartContractsCache := testscommon.NewCacherMock()
 
-	apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 tpn.AccntState,
 		PubkeyConv:               TestAddressPubkeyConverter,
 		StorageService:           tpn.Storage,
-		BlockChain:               apiBlockchain,
 		ShardCoordinator:         tpn.ShardCoordinator,
 		Marshalizer:              TestMarshalizer,
 		Uint64Converter:          TestUint64Converter,
@@ -890,7 +893,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
+	var apiBlockchain data.ChainHandler
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		tpn.EnableEpochs = config.EnableEpochs{}
 		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
@@ -961,6 +968,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		})
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -982,19 +992,19 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	_ = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:                  vmContainer,
-		EconomicsFee:                 tpn.EconomicsData,
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		BlockChain:                   apiBlockchain,
-		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
-		Bootstrapper:                 tpn.Bootstrapper,
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            tpn.HistoryRepository,
-		ShardCoordinator:             tpn.ShardCoordinator,
-		StorageService:               tpn.Storage,
-		Marshaller:                   TestMarshaller,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     TestUint64Converter,
+		VmContainer:              vmContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
+		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -1004,21 +1014,26 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
-	apiBlockchain, _ := blockchain.NewApiBlockchain(tpn.BlockChain)
+	var apiBlockchain data.ChainHandler
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+	}
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:                  tpn.VMContainer,
-		EconomicsFee:                 tpn.EconomicsData,
-		BlockChainHook:               tpn.BlockchainHook,
-		BlockChain:                   apiBlockchain,
-		WasmVMChangeLocker:           tpn.WasmVMChangeLocker,
-		Bootstrapper:                 tpn.Bootstrapper,
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            tpn.HistoryRepository,
-		ShardCoordinator:             tpn.ShardCoordinator,
-		StorageService:               tpn.Storage,
-		Marshaller:                   TestMarshaller,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     TestUint64Converter,
+		VmContainer:              tpn.VMContainer,
+		EconomicsFee:             tpn.EconomicsData,
+		BlockChainHook:           tpn.BlockchainHook,
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
+		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
+		Bootstrapper:             tpn.Bootstrapper,
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -2467,12 +2482,10 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents.Accounts = tpn.AccntState
 	stateComponents.AccountsAPI = tpn.AccntState
 
-	finalAPIBlockchain, _ := blockchain.NewApiBlockchain(dataComponents.BlockChain)
-	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(finalAPIBlockchain)
+	finalProvider, _ := blockInfoProviders.NewFinalBlockInfo(dataComponents.BlockChain)
 	finalAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, finalProvider)
 
-	currentAPIBlockchain, _ := blockchain.NewApiBlockchain(dataComponents.BlockChain)
-	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(currentAPIBlockchain)
+	currentProvider, _ := blockInfoProviders.NewCurrentBlockInfo(dataComponents.BlockChain)
 	currentAccountsApi, _ := state.NewAccountsDBApi(tpn.AccntState, currentProvider)
 
 	historicalAccountsApi, _ := state.NewAccountsDBApiWithHistory(tpn.AccntState)

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -378,23 +379,11 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	apiBlockchain, err := blockchain.NewApiBlockchain(args.dataComponents.Blockchain())
-	if err != nil {
-		return nil, err
-	}
-
-	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
-	if err != nil {
-		return nil, err
-	}
-
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
 	scStorage.DB.FilePath += fmt.Sprintf("%d", args.index)
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:                 accountsAdapterApi,
 		PubkeyConv:               args.coreComponents.AddressPubKeyConverter(),
 		StorageService:           args.dataComponents.StorageService(),
-		BlockChain:               apiBlockchain,
 		ShardCoordinator:         args.processComponents.ShardCoordinator(),
 		Marshalizer:              args.coreComponents.InternalMarshalizer(),
 		Uint64Converter:          args.coreComponents.Uint64ByteSliceConverter(),
@@ -413,8 +402,22 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
+	var apiBlockchain data.ChainHandler
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		apiBlockchain, err = blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+		if err != nil {
+			return nil, err
+		}
+
+		accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+		if err != nil {
+			return nil, err
+		}
+
+		argsHook.BlockChain = apiBlockchain
+		argsHook.Accounts = accountsAdapterApi
+
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
 
 		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
@@ -443,6 +446,19 @@ func createScQueryElement(
 			return nil, err
 		}
 	} else {
+		apiBlockchain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+		if err != nil {
+			return nil, err
+		}
+
+		accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+		if err != nil {
+			return nil, err
+		}
+
+		argsHook.BlockChain = apiBlockchain
+		argsHook.Accounts = accountsAdapterApi
+
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
 		if errParser != nil {
@@ -495,20 +511,20 @@ func createScQueryElement(
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:                  vmContainer,
-		EconomicsFee:                 args.coreComponents.EconomicsData(),
-		BlockChainHook:               vmFactory.BlockChainHookImpl(),
-		BlockChain:                   apiBlockchain,
-		WasmVMChangeLocker:           args.coreComponents.WasmVMChangeLocker(),
-		Bootstrapper:                 args.bootstrapper,
-		AllowExternalQueriesChan:     args.allowVMQueriesChan,
-		MaxGasLimitPerQuery:          maxGasForVmQueries,
-		HistoryRepository:            args.processComponents.HistoryRepository(),
-		ShardCoordinator:             args.processComponents.ShardCoordinator(),
-		StorageService:               args.dataComponents.StorageService(),
-		Marshaller:                   args.coreComponents.InternalMarshalizer(),
-		ScheduledTxsExecutionHandler: args.processComponents.ScheduledTxsExecutionHandler(),
-		Uint64ByteSliceConverter:     args.coreComponents.Uint64ByteSliceConverter(),
+		VmContainer:              vmContainer,
+		EconomicsFee:             args.coreComponents.EconomicsData(),
+		BlockChainHook:           vmFactory.BlockChainHookImpl(),
+		MainBlockChain:           args.dataComponents.Blockchain(),
+		APIBlockChain:            apiBlockchain,
+		WasmVMChangeLocker:       args.coreComponents.WasmVMChangeLocker(),
+		Bootstrapper:             args.bootstrapper,
+		AllowExternalQueriesChan: args.allowVMQueriesChan,
+		MaxGasLimitPerQuery:      maxGasForVmQueries,
+		HistoryRepository:        args.processComponents.HistoryRepository(),
+		ShardCoordinator:         args.processComponents.ShardCoordinator(),
+		StorageService:           args.dataComponents.StorageService(),
+		Marshaller:               args.coreComponents.InternalMarshalizer(),
+		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)

@@ -254,19 +254,19 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:                  vmTestContext.VMContainer,
-		EconomicsFee:                 feeHandler,
-		BlockChainHook:               vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
-		BlockChain:                   &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:           &sync.RWMutex{},
-		Bootstrapper:                 syncDisabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
-		StorageService:               &storageStubs.ChainStorerStub{},
-		Marshaller:                   integrationTests.TestMarshalizer,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     integrationTests.TestUint64Converter,
+		VmContainer:              vmTestContext.VMContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1678,19 +1678,19 @@ func GetVmOutput(
 	}
 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
-		VmContainer:                  vmContainer,
-		EconomicsFee:                 feeHandler,
-		BlockChainHook:               blockChainHook,
-		BlockChain:                   &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:           &sync.RWMutex{},
-		Bootstrapper:                 syncDisabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
-		StorageService:               &storageStubs.ChainStorerStub{},
-		Marshaller:                   integrationTests.TestMarshalizer,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     integrationTests.TestUint64Converter,
+		VmContainer:              vmContainer,
+		EconomicsFee:             feeHandler,
+		BlockChainHook:           blockChainHook,
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -1731,22 +1731,22 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		VmContainer:    vmContainer,
 		EconomicsFee:   testContext.EconomicsData,
 		BlockChainHook: blockChainHook,
-		BlockChain: &testscommon.ChainHandlerStub{
+		MainBlockChain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					ShardID: testContext.ShardCoordinator.SelfId(),
 				}
 			},
 		},
-		WasmVMChangeLocker:           &sync.RWMutex{},
-		Bootstrapper:                 syncDisabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ShardCoordinator:             testContext.ShardCoordinator,
-		StorageService:               &storageStubs.ChainStorerStub{},
-		Marshaller:                   integrationTests.TestMarshalizer,
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     integrationTests.TestUint64Converter,
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testContext.ShardCoordinator,
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

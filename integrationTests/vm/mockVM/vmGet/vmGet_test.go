@@ -43,17 +43,17 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
-		BlockChainHook:               &testscommon.BlockChainHookStub{},
-		BlockChain:                   &testscommon.ChainHandlerStub{},
-		WasmVMChangeLocker:           &sync.RWMutex{},
-		Bootstrapper:                 disabled.NewDisabledBootstrapper(),
-		AllowExternalQueriesChan:     common.GetClosedUnbufferedChannel(),
-		HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
-		ShardCoordinator:             testscommon.NewMultiShardsCoordinatorMock(1),
-		StorageService:               &storageStubs.ChainStorerStub{},
-		Marshaller:                   &marshallerMock.MarshalizerStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		Uint64ByteSliceConverter:     &mock.Uint64ByteSliceConverterMock{},
+		BlockChainHook:           &testscommon.BlockChainHookStub{},
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
+		Bootstrapper:             disabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

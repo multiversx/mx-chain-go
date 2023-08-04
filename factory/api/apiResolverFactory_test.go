@@ -197,7 +197,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewESDTTransferParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 4
+		failingStepsInstance.marshallerFailingStep = 5
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		println(err.Error())

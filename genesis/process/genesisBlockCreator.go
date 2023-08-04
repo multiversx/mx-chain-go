@@ -196,9 +196,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arg.ScheduledTxsExecutionHandler) {
-		return process.ErrNilScheduledTxsExecutionHandler
-	}
 
 	return nil
 }

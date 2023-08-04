@@ -358,7 +358,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances(scheduledTxsExecutionHandler)
+	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
 		return nil, err
 	}
@@ -841,9 +841,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances(
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
-) (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
+func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
@@ -852,30 +850,29 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		GenesisTime:                  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		StartEpochNum:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-		Data:                         pcf.data,
-		Core:                         pcf.coreData,
-		Accounts:                     pcf.state.AccountsAdapter(),
-		ValidatorAccounts:            pcf.state.PeerAccounts(),
-		InitialNodesSetup:            pcf.coreData.GenesisNodesSetup(),
-		Economics:                    pcf.coreData.EconomicsData(),
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
-		AccountsParser:               pcf.accountsParser,
-		SmartContractParser:          pcf.smartContractParser,
-		GasSchedule:                  pcf.gasSchedule,
-		TxLogsProcessor:              pcf.txLogsProcessor,
-		VirtualMachineConfig:         genesisVmConfig,
-		HardForkConfig:               pcf.config.Hardfork,
-		TrieStorageManagers:          pcf.state.TrieStorageManagers(),
-		SystemSCConfig:               *pcf.systemSCConfig,
-		RoundConfig:                  &pcf.roundConfig,
-		EpochConfig:                  &pcf.epochConfig,
-		BlockSignKeyGen:              pcf.crypto.BlockSignKeyGen(),
-		HistoryRepository:            pcf.historyRepo,
-		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		GenesisNodePrice:             genesisNodePrice,
-		GenesisString:                pcf.config.GeneralSettings.GenesisString,
+		GenesisTime:          uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		StartEpochNum:        pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+		Data:                 pcf.data,
+		Core:                 pcf.coreData,
+		Accounts:             pcf.state.AccountsAdapter(),
+		ValidatorAccounts:    pcf.state.PeerAccounts(),
+		InitialNodesSetup:    pcf.coreData.GenesisNodesSetup(),
+		Economics:            pcf.coreData.EconomicsData(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		AccountsParser:       pcf.accountsParser,
+		SmartContractParser:  pcf.smartContractParser,
+		GasSchedule:          pcf.gasSchedule,
+		TxLogsProcessor:      pcf.txLogsProcessor,
+		VirtualMachineConfig: genesisVmConfig,
+		HardForkConfig:       pcf.config.Hardfork,
+		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
+		SystemSCConfig:       *pcf.systemSCConfig,
+		RoundConfig:          &pcf.roundConfig,
+		EpochConfig:          &pcf.epochConfig,
+		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
+		HistoryRepository:    pcf.historyRepo,
+		GenesisNodePrice:     genesisNodePrice,
+		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
