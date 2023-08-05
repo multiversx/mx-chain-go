@@ -298,7 +298,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	return networkComp.NetworkComponentsFactoryArgs{
 		MainP2pConfig:     p2pCfg,
-		NodeOperationMode: p2p.NormalOperation,
+		NodeOperationMode: common.NormalOperation,
 		MainConfig:        mainConfig,
 		StatusHandler:     appStatusHandler,
 		Marshalizer:       &mock.MarshalizerMock{},

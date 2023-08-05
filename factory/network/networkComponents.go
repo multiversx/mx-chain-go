@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -37,7 +38,7 @@ type NetworkComponentsFactoryArgs struct {
 	Syncer                p2p.SyncTimer
 	PreferredPeersSlices  []string
 	BootstrapWaitTime     time.Duration
-	NodeOperationMode     p2p.NodeOperation
+	NodeOperationMode     common.NodeOperation
 	ConnectionWatcherType string
 	CryptoComponents      factory.CryptoComponentsHolder
 }
@@ -52,7 +53,7 @@ type networkComponentsFactory struct {
 	syncer                p2p.SyncTimer
 	preferredPeersSlices  []string
 	bootstrapWaitTime     time.Duration
-	nodeOperationMode     p2p.NodeOperation
+	nodeOperationMode     common.NodeOperation
 	connectionWatcherType string
 	cryptoComponents      factory.CryptoComponentsHolder
 }
@@ -97,7 +98,7 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}
-	if args.NodeOperationMode != p2p.NormalOperation && args.NodeOperationMode != p2p.FullArchiveMode {
+	if args.NodeOperationMode != common.NormalOperation && args.NodeOperationMode != common.FullArchiveMode {
 		return nil, errors.ErrInvalidNodeOperationMode
 	}
 
@@ -243,7 +244,6 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 	}
 
 	argsMessenger := p2pFactory.ArgsNetworkMessenger{
-		ListenAddress:         ncf.listenAddress,
 		Marshaller:            ncf.marshalizer,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             ncf.syncer,
@@ -273,7 +273,7 @@ func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler 
 }
 
 func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	if ncf.nodeOperationMode != p2p.FullArchiveMode {
+	if ncf.nodeOperationMode != common.FullArchiveMode {
 		return networkComponentsHolder{
 			netMessenger:         p2pDisabled.NewNetworkMessenger(),
 			preferredPeersHolder: disabled.NewPreferredPeersHolder(),

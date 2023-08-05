@@ -4,15 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
-// NodeOperation defines the p2p node operation
-type NodeOperation = p2p.NodeOperation
-
-// NormalOperation defines the normal mode operation: either seeder, observer or validator
-const NormalOperation = p2p.NormalOperation
-
-// FullArchiveMode defines the node operation as a full archive mode
-const FullArchiveMode = p2p.FullArchiveMode
-
 // NetworkType defines the type of the network a messenger is running on
 type NetworkType = p2p.NetworkType
 

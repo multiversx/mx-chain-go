@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -29,9 +30,9 @@ func TestPeersRatingAndResponsiveness(t *testing.T) {
 
 	var numOfShards uint32 = 1
 	var shardID uint32 = 0
-	resolverNode := createNodeWithPeersRatingHandler(shardID, numOfShards, p2p.NormalOperation)
-	maliciousNode := createNodeWithPeersRatingHandler(shardID, numOfShards, p2p.NormalOperation)
-	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, p2p.NormalOperation)
+	resolverNode := createNodeWithPeersRatingHandler(shardID, numOfShards, common.NormalOperation)
+	maliciousNode := createNodeWithPeersRatingHandler(shardID, numOfShards, common.NormalOperation)
+	requesterNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, common.NormalOperation)
 
 	defer func() {
 		resolverNode.Close()
@@ -120,9 +121,9 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 
 	var numOfShards uint32 = 1
 	var shardID uint32 = 0
-	resolverFullArchiveNode := createNodeWithPeersRatingHandler(shardID, numOfShards, p2p.FullArchiveMode)
-	requesterFullArchiveNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, p2p.FullArchiveMode)
-	regularNode := createNodeWithPeersRatingHandler(shardID, numOfShards, p2p.FullArchiveMode)
+	resolverFullArchiveNode := createNodeWithPeersRatingHandler(shardID, numOfShards, common.FullArchiveMode)
+	requesterFullArchiveNode := createNodeWithPeersRatingHandler(core.MetachainShardId, numOfShards, common.FullArchiveMode)
+	regularNode := createNodeWithPeersRatingHandler(shardID, numOfShards, common.FullArchiveMode)
 
 	defer func() {
 		resolverFullArchiveNode.Close()
@@ -203,7 +204,7 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 	assert.Equal(t, mainResolverExpectedRating, mainResolverRating)
 }
 
-func createNodeWithPeersRatingHandler(shardID uint32, numShards uint32, nodeOperationMode p2p.NodeOperation) *integrationTests.TestProcessorNode {
+func createNodeWithPeersRatingHandler(shardID uint32, numShards uint32, nodeOperationMode common.NodeOperation) *integrationTests.TestProcessorNode {
 
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:              numShards,

@@ -1105,7 +1105,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRefactorPeersMiniBlocksFlagEnabledField:          false,
 		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
 	}
@@ -1197,7 +1197,7 @@ func TestValidatorInfoCreator_printAllMiniBlocksShouldNotPanic(t *testing.T) {
 	})
 	t.Run("marshal outputs error, should not panic", func(t *testing.T) {
 		localArguments := arguments
-		localArguments.Marshalizer = &testscommon.MarshalizerStub{
+		localArguments.Marshalizer = &testscommon.MarshallerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, fmt.Errorf("marshal error")
 			},
@@ -1224,7 +1224,7 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
 			IsDeterministicSortOnValidatorsInfoFixEnabledField: false,
 		}
@@ -1241,7 +1241,7 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
 			IsDeterministicSortOnValidatorsInfoFixEnabledField: true,
 		}

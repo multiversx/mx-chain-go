@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
 	disabledGenesis "github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -42,7 +41,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
-	NodeOperationMode       p2p.NodeOperation
+	NodeOperationMode       common.NodeOperation
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -126,7 +125,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, nil, err
 	}
 
-	if args.NodeOperationMode == p2p.FullArchiveMode {
+	if args.NodeOperationMode == common.FullArchiveMode {
 		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
 		if err != nil {
 			return nil, nil, err

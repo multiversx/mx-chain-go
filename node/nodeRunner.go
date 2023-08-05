@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"os/signal"
@@ -52,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -1114,7 +1112,7 @@ func (nr *nodeRunner) logSessionInformation(
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
-	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
+	err := os.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
 	log.LogIfError(err)
 
 	computedRatingsDataStr := createStringFromRatingsData(coreComponents.RatingsData())
@@ -1396,7 +1394,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 		CryptoComponents:      cryptoComponents,
 	}
@@ -1404,7 +1402,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
+		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
@@ -1604,7 +1602,7 @@ func copyConfigToStatsFolder(statsFolder string, gasScheduleDirectory string, co
 }
 
 func copyDirectory(source string, destination string) error {
-	fileDescriptors, err := ioutil.ReadDir(source)
+	fileDescriptors, err := os.ReadDir(source)
 	if err != nil {
 		return err
 	}

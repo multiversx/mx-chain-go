@@ -5,7 +5,16 @@ import (
 	"time"
 )
 
-// PeerType represents the type of a peer
+// NodeOperation defines the p2p node operation
+type NodeOperation string
+
+// NormalOperation defines the normal mode operation: either seeder, observer or validator
+const NormalOperation NodeOperation = "normal operation"
+
+// FullArchiveMode defines the node operation as a full archive mode
+const FullArchiveMode NodeOperation = "full archive mode"
+
+// PeerType represents the type of peer
 type PeerType string
 
 // EligibleList represents the list of peers who participate in consensus inside a shard
