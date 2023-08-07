@@ -61,7 +61,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
 
-	err := checkValues(args.Economics)
+	err := checkEconomicsConfig(args.Economics)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	return ed, nil
 }
 
-func checkValues(economics *config.EconomicsConfig) error {
+func checkEconomicsConfig(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidInflationPercentages
 	}
