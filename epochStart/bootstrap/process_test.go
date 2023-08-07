@@ -229,6 +229,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
