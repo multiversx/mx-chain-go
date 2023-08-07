@@ -6,16 +6,17 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var errNilEconomicsData = errors.New("nil economics data")
 
 type feeComputer struct {
-	economicsInstance EconomicsDataWithComputeFee
+	economicsInstance process.EconomicsDataHandler
 }
 
 // NewFeeComputer creates a fee computer which handles historical transactions, as well
-func NewFeeComputer(economicsInstance EconomicsDataWithComputeFee) (*feeComputer, error) {
+func NewFeeComputer(economicsInstance process.EconomicsDataHandler) (*feeComputer, error) {
 	if check.IfNil(economicsInstance) {
 		return nil, errNilEconomicsData
 	}

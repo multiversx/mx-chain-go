@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -34,6 +35,7 @@ type gasConfigHandler struct {
 	gasPerDataByte         uint64
 	genesisTotalSupply     *big.Int
 	maxGasPriceSetGuardian uint64
+	mut                    sync.RWMutex
 }
 
 // newGasConfigHandler returns a new instance of gasConfigHandler
@@ -68,7 +70,9 @@ func (handler *gasConfigHandler) setStatusHandler(statusHandler core.AppStatusHa
 		return core.ErrNilAppStatusHandler
 	}
 
+	handler.mut.Lock()
 	handler.statusHandler = statusHandler
+	handler.mut.Unlock()
 
 	return nil
 }
@@ -140,7 +144,9 @@ func (handler *gasConfigHandler) updateGasConfigMetrics(epoch uint32) {
 		"minGasLimit", gc.minGasLimit,
 	)
 
+	handler.mut.RLock()
 	handler.statusHandler.SetUInt64Value(common.MetricMaxGasPerTransaction, gc.maxGasLimitPerTx)
+	handler.mut.RUnlock()
 }
 
 func (handler *gasConfigHandler) getGasConfigForEpoch(epoch uint32) *gasConfig {

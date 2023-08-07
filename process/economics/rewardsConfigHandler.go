@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -26,6 +27,7 @@ type rewardsConfig struct {
 type rewardsConfigHandler struct {
 	statusHandler         core.AppStatusHandler
 	rewardsConfigSettings []*rewardsConfig
+	mut                   sync.RWMutex
 }
 
 // newRewardsConfigHandler returns a new instance of rewardsConfigHandler
@@ -51,7 +53,9 @@ func (handler *rewardsConfigHandler) setStatusHandler(statusHandler core.AppStat
 		return core.ErrNilAppStatusHandler
 	}
 
+	handler.mut.Lock()
 	handler.statusHandler = statusHandler
+	handler.mut.Unlock()
 
 	return nil
 }
@@ -108,9 +112,11 @@ func (handler *rewardsConfigHandler) updateRewardsConfigMetrics(epoch uint32) {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 
 	// TODO: add all metrics
+	handler.mut.RLock()
 	handler.statusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", rc.leaderPercentage))
 	handler.statusHandler.SetStringValue(common.MetricRewardsTopUpGradientPoint, rc.topUpGradientPoint.String())
 	handler.statusHandler.SetStringValue(common.MetricTopUpFactor, fmt.Sprintf("%f", rc.topUpFactor))
+	handler.mut.RUnlock()
 
 	log.Debug("economics: rewardsConfigHandler",
 		"epoch", rc.rewardsSettingEpoch,

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) fee.EconomicsDataWithComputeFee {
+func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},

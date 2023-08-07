@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/node/external/logs"
-	"github.com/multiversx/mx-chain-go/node/external/timemachine"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
@@ -23,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -192,27 +190,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: args.GasScheduleNotifier,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	argsEconomicsData := economics.ArgsNewEconomicsData{
-		TxVersionChecker:            args.CoreComponents.TxVersionChecker(),
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		Economics:                   args.Configs.EconomicsConfig,
-		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
-		EnableEpochsHandler:         args.CoreComponents.EnableEpochsHandler(),
-	}
-	economicsData, err := economics.NewEconomicsData(argsEconomicsData)
-	if err != nil {
-		return nil, err
-	}
-
-	feeComputer, err := fee.NewFeeComputer(economicsData)
+	feeComputer, err := fee.NewFeeComputer(args.CoreComponents.EconomicsData())
 	if err != nil {
 		return nil, err
 	}
