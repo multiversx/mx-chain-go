@@ -152,6 +152,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bcf.cryptoComponents.PublicKey(),
 		bcf.prefConfig.Preferences,
 		log,
+		bcf.shardCoordinatorFactory,
 	)
 	if err != nil {
 		return nil, err
