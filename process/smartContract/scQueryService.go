@@ -188,7 +188,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 	if !check.IfNil(blockHeader) {
 		blockNonce = blockHeader.GetNonce()
-		blockHash, err = service.blockChainHook.GetBlockhash(blockNonce)
+		blockHash, err = service.getBlockHashByNonce(blockNonce)
 		if err != nil {
 			return nil, nil, err
 		}
