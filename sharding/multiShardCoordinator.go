@@ -22,12 +22,12 @@ type multiShardCoordinator struct {
 
 // NewMultiShardCoordinator returns a new multiShardCoordinator and initializes the masks
 func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordinator, error) {
-	if numberOfShards != 1 {
+	if numberOfShards <= 1 {
 		return nil, nodesCoordinator.ErrInvalidNumberOfShards
 	}
-	//if selfId >= numberOfShards && selfId != core.MetachainShardId {
-	//	return nil, nodesCoordinator.ErrInvalidShardId
-	//}
+	if selfId >= numberOfShards && selfId != core.MetachainShardId {
+		return nil, nodesCoordinator.ErrInvalidShardId
+	}
 
 	sr := &multiShardCoordinator{}
 	sr.selfId = selfId
@@ -48,7 +48,7 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 
 // ComputeId calculates the shard for a given address container
 func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
-	return msc.selfId
+	return msc.ComputeIdFromBytes(address)
 }
 
 // ComputeIdFromBytes calculates the shard for a given address
