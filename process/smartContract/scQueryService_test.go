@@ -54,7 +54,11 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
 		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
-		StorageService:           &storageStubs.ChainStorerStub{},
+		StorageService: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
 		Marshaller:               &marshallerMock.MarshalizerStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}

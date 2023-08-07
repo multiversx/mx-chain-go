@@ -1744,7 +1744,11 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
 		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
 		ShardCoordinator:         testContext.ShardCoordinator,
-		StorageService:           &storageStubs.ChainStorerStub{},
+		StorageService: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
 		Marshaller:               integrationTests.TestMarshalizer,
 		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
