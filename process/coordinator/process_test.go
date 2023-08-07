@@ -46,6 +46,7 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func FeeHandlerMock() *economicsmocks.EconomicsHandlerStub {
 	return &economicsmocks.EconomicsHandlerStub{
@@ -551,14 +552,16 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              &hashingMocks.HasherMock{},
-		PubkeyConverter:     createMockPubkeyConverter(),
-		Store:               initStore(),
-		PoolsHolder:         initDataPool([]byte("test_hash1")),
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           &hashingMocks.HasherMock{},
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Store:            initStore(),
+		PoolsHolder:      initDataPool([]byte("test_hash1")),
+		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := preFactory.Create()
@@ -2186,14 +2189,16 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    shardCoordinator,
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              &hashingMocks.HasherMock{},
-		PubkeyConverter:     createMockPubkeyConverter(),
-		Store:               &storageStubs.ChainStorerStub{},
-		PoolsHolder:         tdp,
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           &hashingMocks.HasherMock{},
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Store:            &storageStubs.ChainStorerStub{},
+		PoolsHolder:      tdp,
+		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := preFactory.Create()
@@ -2253,7 +2258,9 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 				return MaxGasLimitPerBlock
 			},
 		},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	container, _ := interFactory.Create()
@@ -3686,8 +3693,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3770,8 +3777,8 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3851,8 +3858,8 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledField = true
+	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	header = &block.Header{
 		AccumulatedFees:  big.NewInt(101),
@@ -4083,7 +4090,7 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 		tc, _ := NewTransactionCoordinator(args)
-		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledField = true
+		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
 		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}

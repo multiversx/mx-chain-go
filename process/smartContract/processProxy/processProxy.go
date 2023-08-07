@@ -165,7 +165,8 @@ func (proxy *scProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
 	proxy.mutRc.Lock()
 	defer proxy.mutRc.Unlock()
 
-	if proxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+	currentEpoch := proxy.args.EnableEpochsHandler.GetCurrentEpoch()
+	if proxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabledInEpoch(currentEpoch) {
 		proxy.setActiveProcessorV2()
 		return
 	}

@@ -3,7 +3,6 @@ package enablers
 import (
 	"sync"
 
-	coreAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -13,7 +12,6 @@ import (
 var log = logger.GetOrCreate("common/enablers")
 
 type enableEpochsHandler struct {
-	*epochFlagsHolder
 	enableEpochsConfig config.EnableEpochs
 	currentEpoch       uint32
 	epochMut           sync.RWMutex
@@ -26,7 +24,6 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 	}
 
 	handler := &enableEpochsHandler{
-		epochFlagsHolder:   newEpochFlagsHolder(),
 		enableEpochsConfig: enableEpochsConfig,
 	}
 
@@ -40,48 +37,6 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Lock()
 	handler.currentEpoch = epoch
 	handler.epochMut.Unlock()
-
-	// TODO[Sorin]: remove the lines below with epochFlags.go
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch, handler.storageAPICostOptimizationFlag, "storageAPICostOptimizationFlag", epoch, handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch, handler.esdtRegisterAndSetAllRolesFlag, "esdtRegisterAndSetAllRolesFlag", epoch, handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch, handler.scheduledMiniBlocksFlag, "scheduledMiniBlocksFlag", epoch, handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CorrectJailedNotUnstakedEmptyQueueEpoch, handler.correctJailedNotUnStakedEmptyQueueFlag, "correctJailedNotUnStakedEmptyQueueFlag", epoch, handler.enableEpochsConfig.CorrectJailedNotUnstakedEmptyQueueEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DoNotReturnOldBlockInBlockchainHookEnableEpoch, handler.doNotReturnOldBlockInBlockchainHookFlag, "doNotReturnOldBlockInBlockchainHookFlag", epoch, handler.enableEpochsConfig.DoNotReturnOldBlockInBlockchainHookEnableEpoch)
-	handler.setFlagValue(epoch < handler.enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch, handler.addFailedRelayedTxToInvalidMBsFlag, "addFailedRelayedTxToInvalidMBsFlag", epoch, handler.enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCRSizeInvariantOnBuiltInResultEnableEpoch, handler.scrSizeInvariantOnBuiltInResultFlag, "scrSizeInvariantOnBuiltInResultFlag", epoch, handler.enableEpochsConfig.SCRSizeInvariantOnBuiltInResultEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch, handler.checkCorrectTokenIDForTransferRoleFlag, "checkCorrectTokenIDForTransferRoleFlag", epoch, handler.enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch, handler.failExecutionOnEveryAPIErrorFlag, "failExecutionOnEveryAPIErrorFlag", epoch, handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch, handler.isMiniBlockPartialExecutionFlag, "isMiniBlockPartialExecutionFlag", epoch, handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch, handler.managedCryptoAPIsFlag, "managedCryptoAPIsFlag", epoch, handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.esdtMetadataContinuousCleanupFlag, "esdtMetadataContinuousCleanupFlag", epoch, handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch, handler.disableExecByCallerFlag, "disableExecByCallerFlag", epoch, handler.enableEpochsConfig.DisableExecByCallerEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch, handler.refactorContextFlag, "refactorContextFlag", epoch, handler.enableEpochsConfig.RefactorContextEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch, handler.checkFunctionArgumentFlag, "checkFunctionArgumentFlag", epoch, handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch, handler.checkExecuteOnReadOnlyFlag, "checkExecuteOnReadOnlyFlag", epoch, handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch, handler.setSenderInEeiOutputTransferFlag, "setSenderInEeiOutputTransferFlag", epoch, handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch, handler.changeDelegationOwnerFlag, "changeDelegationOwnerFlag", epoch, handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch, handler.refactorPeersMiniBlocksFlag, "refactorPeersMiniBlocksFlag", epoch, handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch, handler.fixAsyncCallBackArgsList, "fixAsyncCallBackArgsList", epoch, handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch, handler.fixOldTokenLiquidity, "fixOldTokenLiquidity", epoch, handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch, handler.runtimeMemStoreLimitFlag, "runtimeMemStoreLimitFlag", epoch, handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch, handler.runtimeCodeSizeFixFlag, "runtimeCodeSizeFixFlag", epoch, handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch, handler.maxBlockchainHookCountersFlag, "maxBlockchainHookCountersFlag", epoch, handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch, handler.wipeSingleNFTLiquidityDecreaseFlag, "wipeSingleNFTLiquidityDecreaseFlag", epoch, handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch, handler.alwaysSaveTokenMetaDataFlag, "alwaysSaveTokenMetaDataFlag", epoch, handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch, handler.relayedNonceFixFlag, "relayedNonceFixFlag", epoch, handler.enableEpochsConfig.RelayedNonceFixEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SetGuardianEnableEpoch, handler.setGuardianFlag, "setGuardianFlag", epoch, handler.enableEpochsConfig.SetGuardianEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch, handler.multiClaimOnDelegationFlag, "multiClaimOnDelegationFlag", epoch, handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch, handler.keepExecOrderOnCreatedSCRsFlag, "keepExecOrderOnCreatedSCRsFlag", epoch, handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch, handler.changeUsernameFlag, "changeUsername", epoch, handler.enableEpochsConfig.ChangeUsernameEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch, handler.consistentTokensValuesCheckFlag, "consistentTokensValuesCheckFlag", epoch, handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch, handler.autoBalanceDataTriesFlag, "autoBalanceDataTriesFlag", epoch, handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.fixDelegationChangeOwnerOnAccountFlag, "fixDelegationChangeOwnerOnAccountFlag", epoch, handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch)
-	handler.setFlagValue(epoch >= handler.enableEpochsConfig.SCProcessorV2EnableEpoch, handler.scProcessorV2Flag, "scProcessorV2Flag", epoch, handler.enableEpochsConfig.SCProcessorV2EnableEpoch)
-}
-
-func (handler *enableEpochsHandler) setFlagValue(value bool, flag *coreAtomic.Flag, flagName string, epoch uint32, flagEpoch uint32) {
-	flag.SetValue(value)
-	log.Debug("EpochConfirmed", "flag", flagName, "enabled", flag.IsSet(), "epoch", epoch, "flag epoch", flagEpoch)
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active

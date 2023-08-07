@@ -1294,7 +1294,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	}()
 
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	initialVal := big.NewInt(10000000000)
@@ -2048,7 +2048,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
@@ -2133,11 +2133,11 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
-		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000, 0)
 		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}

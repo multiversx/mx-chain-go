@@ -3545,7 +3545,7 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: false,
+			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveFalseHandler,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -3563,7 +3563,7 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
+			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)

@@ -348,6 +348,7 @@ type EnableEpochsHandler interface {
 	IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(epoch uint32) bool
 	IsScheduledMiniBlocksFlagEnabledInEpoch(epoch uint32) bool
 	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(epoch uint32) bool
+	IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(epoch uint32) bool
 	IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(epoch uint32) bool
 	IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(epoch uint32) bool
 	IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpoch(epoch uint32) bool
@@ -387,45 +388,6 @@ type EnableEpochsHandler interface {
 	IsAutoBalanceDataTriesEnabledInEpoch(epoch uint32) bool
 	FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
-
-	// TODO[Sorin] remove these methods
-	IsStorageAPICostOptimizationFlagEnabled() bool
-	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
-	IsScheduledMiniBlocksFlagEnabled() bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
-	IsAddFailedRelayedTxToInvalidMBsFlag() bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
-	IsMiniBlockPartialExecutionFlagEnabled() bool
-	IsManagedCryptoAPIsFlagEnabled() bool
-	IsESDTMetadataContinuousCleanupFlagEnabled() bool
-	IsDisableExecByCallerFlagEnabled() bool
-	IsRefactorContextFlagEnabled() bool
-	IsCheckFunctionArgumentFlagEnabled() bool
-	IsCheckExecuteOnReadOnlyFlagEnabled() bool
-	IsFixAsyncCallbackCheckFlagEnabled() bool
-	IsSendAlwaysFlagEnabled() bool
-	IsSetSenderInEeiOutputTransferFlagEnabled() bool
-	IsChangeDelegationOwnerFlagEnabled() bool
-	IsRefactorPeersMiniBlocksFlagEnabled() bool
-	IsSCProcessorV2FlagEnabled() bool
-	IsFixAsyncCallBackArgsListFlagEnabled() bool
-	IsFixOldTokenLiquidityEnabled() bool
-	IsRuntimeMemStoreLimitEnabled() bool
-	IsRuntimeCodeSizeFixEnabled() bool
-	IsMaxBlockchainHookCountersFlagEnabled() bool
-	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
-	IsAlwaysSaveTokenMetaDataEnabled() bool
-	IsSetGuardianEnabled() bool
-	IsRelayedNonceFixEnabled() bool
-	IsKeepExecOrderOnCreatedSCRsEnabled() bool
-	IsMultiClaimOnDelegationEnabled() bool
-	IsChangeUsernameEnabled() bool
-	IsConsistentTokensValuesLengthCheckEnabled() bool
-	IsAutoBalanceDataTriesEnabled() bool
-	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
 }

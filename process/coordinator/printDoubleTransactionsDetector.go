@@ -100,7 +100,8 @@ func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 		detector.logger.Debug(noDoubledTransactionsFoundMessage)
 		return
 	}
-	if detector.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
+	currentEpoch := detector.enableEpochsHandler.GetCurrentEpoch()
+	if detector.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(currentEpoch) {
 		detector.logger.Debug(doubledTransactionsFoundButFlagActive)
 		return
 	}

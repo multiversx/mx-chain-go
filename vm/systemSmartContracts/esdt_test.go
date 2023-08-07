@@ -36,13 +36,13 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledInEpochCalled:                      flagActiveTrueHandler,
-			IsGlobalMintBurnFlagEnabledInEpochCalled:            flagActiveTrueHandler,
-			IsMetaESDTSetFlagEnabledInEpochCalled:               flagActiveTrueHandler,
-			IsESDTRegisterAndSetAllRolesFlagEnabledField:        true,
-			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled: flagActiveTrueHandler,
-			IsESDTTransferRoleFlagEnabledInEpochCalled:          flagActiveTrueHandler,
-			IsESDTMetadataContinuousCleanupFlagEnabledField:     true,
+			IsESDTFlagEnabledInEpochCalled:                          flagActiveTrueHandler,
+			IsGlobalMintBurnFlagEnabledInEpochCalled:                flagActiveTrueHandler,
+			IsMetaESDTSetFlagEnabledInEpochCalled:                   flagActiveTrueHandler,
+			IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled:    flagActiveTrueHandler,
+			IsESDTNFTCreateOnMultiShardFlagEnabledInEpochCalled:     flagActiveTrueHandler,
+			IsESDTTransferRoleFlagEnabledInEpochCalled:              flagActiveTrueHandler,
+			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
 		},
 	}
 }
@@ -2985,7 +2985,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
 	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
 	vmInput.CallerAddr = []byte("caller123")
@@ -3142,7 +3142,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveFalseHandler
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1234"),
@@ -3183,7 +3183,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.FunctionNotFound, retCode)
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveTrueHandler
 	eei.ReturnMessage = ""
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -4107,7 +4107,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = false
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4115,7 +4115,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = true
+	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4236,7 +4236,7 @@ func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expe
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveFalseHandler
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
@@ -4269,12 +4269,12 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("setBurnRoleGlobally", [][]byte{})
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveFalseHandler
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
@@ -4329,12 +4329,12 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("unsetBurnRoleGlobally", [][]byte{})
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveFalseHandler
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled = flagActiveTrueHandler
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
@@ -4395,11 +4395,11 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = false
+	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledInEpochCalled = flagActiveFalseHandler
 	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Nil(t, err)
 
-	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
+	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledInEpochCalled = flagActiveTrueHandler
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
 }

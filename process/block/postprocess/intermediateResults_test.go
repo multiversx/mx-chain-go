@@ -26,21 +26,26 @@ import (
 
 const maxGasLimitPerBlock = uint64(1500000000)
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+var flagActiveFalseHandler = func(epoch uint32) bool { return false }
+
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsProcessor {
 	args := ArgsNewIntermediateResultsProcessor{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		Coordinator:         mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConv:          createMockPubkeyConverter(),
-		Store:               &storage.ChainStorerStub{},
-		BlockType:           block.SmartContractResultBlock,
-		CurrTxs:             &mock.TxForCurrentBlockStub{},
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		Hasher:       &hashingMocks.HasherMock{},
+		Marshalizer:  &mock.MarshalizerMock{},
+		Coordinator:  mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConv:   createMockPubkeyConverter(),
+		Store:        &storage.ChainStorerStub{},
+		BlockType:    block.SmartContractResultBlock,
+		CurrTxs:      &mock.TxForCurrentBlockStub{},
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 
 	return args
@@ -632,7 +637,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 			return maxGasLimitPerBlock
 		},
 	}
-	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: false}
+	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveFalseHandler,
+	}
 	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
 
@@ -678,7 +685,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 
-	enableEpochHandler.IsKeepExecOrderOnCreatedSCRsEnabledField = true
+	enableEpochHandler.IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled = flagActiveTrueHandler
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
 

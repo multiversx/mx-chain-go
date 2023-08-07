@@ -441,7 +441,8 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 // arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings, list(address, special roles)
 func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabled() {
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	if !e.enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledInEpoch(currentEpoch) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}
@@ -836,7 +837,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
-		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
 			return vmcommon.UserError
 		}
 		return vmcommon.Ok
@@ -1099,7 +1100,8 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 }
 
 func (e *esdt) checkInputReturnDataBurnForAll(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
-	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if !isBurnForAllFlagEnabled {
 		e.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.FunctionNotFound
@@ -1165,7 +1167,8 @@ func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.
 }
 
 func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) {
-	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if !isBurnForAllFlagEnabled {
 		return
 	}
@@ -1576,7 +1579,8 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 	case core.SemiFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 	case metaESDT:
-		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+		currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledInEpoch(currentEpoch)
 		if isCheckMetaESDTOnRolesFlagEnabled {
 			return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 		}
@@ -1863,7 +1867,8 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address []byte) {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if !isSendTransferRoleAddressFlagEnabled {
 		return
 	}
@@ -1873,7 +1878,8 @@ func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address [
 }
 
 func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address []byte) {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if !isSendTransferRoleAddressFlagEnabled {
 		return
 	}
@@ -1883,7 +1889,8 @@ func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address 
 }
 
 func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := e.enableEpochsHandler.GetCurrentEpoch()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if !isSendTransferRoleAddressFlagEnabled {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound

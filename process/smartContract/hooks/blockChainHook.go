@@ -297,7 +297,8 @@ func (bh *BlockChainHookImpl) syncIfMissingDataTrieNode(err error) {
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -322,7 +323,8 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
-	if bh.enableEpochsHandler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() {
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	if bh.enableEpochsHandler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(currentEpoch) {
 		return nil, process.ErrInvalidNonceRequest
 	}
 
@@ -504,7 +506,8 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 }
 
 func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	currentEpoch := bh.enableEpochsHandler.GetCurrentEpoch()
+	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabledInEpoch(currentEpoch) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {

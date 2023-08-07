@@ -137,7 +137,8 @@ func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	currentEpoch := tth.enableEpochsHandler.GetCurrentEpoch()
+	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledInEpoch(currentEpoch)
 	if isTransferAndAsyncCallbackFixFlagSet && isCallOfType(tx, vm.AsynchronousCallBack) {
 		return true
 	}

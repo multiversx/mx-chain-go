@@ -875,7 +875,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	require.Nil(t, err)
 
 	_ = acntSrc.AddToBalance(big.NewInt(100))
-	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledField = true
+	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpochCalled = flagActiveTrueHandler
 	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
 	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -2783,7 +2783,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFixAsyncCallBackArgsListFlagEnabledField: false,
+		IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled: flagActiveFalseHandler,
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandler
 	arguments.AccountsDB = accountsDB
@@ -2848,7 +2848,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte(nil), lastScTx.Data)
 	})
-	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledField = true
+	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled = flagActiveTrueHandler
 
 	_, scTxs, err = sc.processSCOutputAccounts(
 		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},

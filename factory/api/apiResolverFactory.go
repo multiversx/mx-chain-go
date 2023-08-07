@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -191,20 +190,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: args.GasScheduleNotifier,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		EconomicsConfig:             *args.Configs.EconomicsConfig,
-		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
-		TxVersionChecker:            args.CoreComponents.TxVersionChecker(),
-	})
+	feeComputer, err := fee.NewFeeComputer(args.CoreComponents.EconomicsData())
 	if err != nil {
 		return nil, err
 	}

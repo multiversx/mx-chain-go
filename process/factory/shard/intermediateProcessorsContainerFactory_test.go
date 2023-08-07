@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var flagActiveTrueHandler = func(epoch uint32) bool { return true }
+
 func createDataPools() dataRetriever.PoolsHolder {
 	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
@@ -55,14 +57,16 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockArgsNewIntermediateProcessorsFactory() shard.ArgsNewIntermediateProcessorsContainerFactory {
 	args := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConverter:     createMockPubkeyConverter(),
-		Store:               &storageStubs.ChainStorerStub{},
-		PoolsHolder:         createDataPools(),
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Store:            &storageStubs.ChainStorerStub{},
+		PoolsHolder:      createDataPools(),
+		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+		},
 	}
 	return args
 }

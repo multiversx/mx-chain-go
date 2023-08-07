@@ -424,7 +424,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsScheduledMiniBlocksFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabledInEpoch(0))
-		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlag())
+		assert.True(t, handler.IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsCheckCorrectTokenIDForTransferRoleFlagEnabledInEpoch(0))
 		assert.False(t, handler.IsDisableExecByCallerFlagEnabledInEpoch(0))
