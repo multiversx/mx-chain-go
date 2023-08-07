@@ -262,7 +262,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		"numShards", bootstrapParameters.NumOfShards,
 	)
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(
+	shardCoordinator, err := bcf.shardCoordinatorFactory.CreateShardCoordinator(
 		bootstrapParameters.NumOfShards,
 		bootstrapParameters.SelfShardId)
 	if err != nil {

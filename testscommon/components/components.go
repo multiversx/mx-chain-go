@@ -564,7 +564,8 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 

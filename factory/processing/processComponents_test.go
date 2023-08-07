@@ -236,7 +236,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)

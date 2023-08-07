@@ -341,7 +341,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.cleanupOnBootstrapFinish()
 
 	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	e.shardCoordinator, err = e.shardCoordinatorFactory.CreateShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -678,7 +678,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
+	e.shardCoordinator, err = e.shardCoordinatorFactory.CreateShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
