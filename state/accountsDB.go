@@ -888,11 +888,11 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 }
 
 func (adb *AccountsDB) printTrieStorageStatistics() {
-	stats := adb.mainTrie.GetStats()
+	stats := adb.mainTrie.GetStorageStats()
 	if stats != "" {
 		log.Debug("trie storage statistics",
 			"storage manager", adb.mainTrie.GetStorageManager().GetIdentifier(),
-			"stats", adb.mainTrie.GetStats(),
+			"stats", stats,
 		)
 	}
 
@@ -902,6 +902,7 @@ func (adb *AccountsDB) printTrieStorageStatistics() {
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
 	defer func() {
+		adb.printTrieStorageStatistics()
 		adb.mutOp.Unlock()
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()

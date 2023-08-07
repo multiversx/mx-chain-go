@@ -269,11 +269,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	return nil
 }
 
-// GetStats will returns trie storage operations statistics as string
-func (tr *patriciaMerkleTrie) GetStats() string {
+// GetStorageStats will returns trie storage operations statistics as string
+func (tr *patriciaMerkleTrie) GetStorageStats() string {
 	dbWithStats, ok := tr.trieStorage.(storageManagerWithStats)
 	if !ok {
-		log.Warn("invalid trie storage type %T", tr.trieStorage)
+		log.Warn(fmt.Sprintf("invalid trie storage type %T", tr.trieStorage))
 		return ""
 	}
 

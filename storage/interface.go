@@ -91,7 +91,7 @@ type StorerWithPutInEpoch interface {
 	SetEpochForPutOperation(epoch uint32)
 }
 
-// StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations
+// StorerWithStats is an extended storer with statistics for get operation
 type StorerWithStats interface {
 	Storer
 	GetWithStats(key []byte) ([]byte, bool, error)

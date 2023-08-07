@@ -1,8 +1,6 @@
 package trie
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
@@ -10,7 +8,6 @@ import (
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
 type trieStorageManagerWithoutCheckpoints struct {
 	common.StorageManager
-	storerWithStats common.StorageManagerWithStats
 }
 
 // NewTrieStorageManagerWithoutCheckpoints creates a new instance of trieStorageManagerWithoutCheckpoints
@@ -19,14 +16,8 @@ func NewTrieStorageManagerWithoutCheckpoints(tsm common.StorageManager) (*trieSt
 		return nil, ErrNilTrieStorage
 	}
 
-	tsmWithStats, ok := tsm.GetBaseTrieStorageManager().(common.StorageManagerWithStats)
-	if !ok {
-		return nil, fmt.Errorf("invalid storage manager type %T", tsm.GetBaseTrieStorageManager())
-	}
-
 	return &trieStorageManagerWithoutCheckpoints{
-		StorageManager:  tsm,
-		storerWithStats: tsmWithStats,
+		StorageManager: tsm,
 	}, nil
 }
 
@@ -49,9 +40,4 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 // AddDirtyCheckpointHashes returns false
 func (tsm *trieStorageManagerWithoutCheckpoints) AddDirtyCheckpointHashes(_ []byte, _ common.ModifiedHashes) bool {
 	return false
-}
-
-// GetStatsCollector will return the stats collector component
-func (tsm *trieStorageManagerWithoutCheckpoints) GetStatsCollector() common.StateStatisticsHandler {
-	return tsm.storerWithStats.GetStatsCollector()
 }

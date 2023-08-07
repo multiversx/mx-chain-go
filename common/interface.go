@@ -56,7 +56,7 @@ type Trie interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
-	GetStats() string
+	GetStorageStats() string
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -115,12 +115,6 @@ type StorageManager interface {
 	IsClosed() bool
 	Close() error
 	IsInterfaceNil() bool
-}
-
-// StorageManagerWithStats defines the behaviour of a storage manager component with stats collector
-type StorageManagerWithStats interface {
-	StorageManager
-	GetStatsCollector() StateStatisticsHandler
 }
 
 // TrieStorageInteractor defines the methods used for interacting with the trie storage

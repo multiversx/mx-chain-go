@@ -444,7 +444,7 @@ func (ps *PruningStorer) getWithCacheStatus(key []byte) ([]byte, bool, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 
