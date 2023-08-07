@@ -1324,6 +1324,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		StatusCoreComponents:             statusCoreComponents,
 		ChainRunType:                     common.ChainRunTypeSovereign,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
