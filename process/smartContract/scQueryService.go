@@ -178,16 +178,15 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, nil, process.ErrNodeIsNotSynced
 	}
 
-	blockHeader, err := service.extractBlockHeader(query)
+	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var blockRootHash, blockHash []byte
+	var blockHash []byte
 	var blockNonce uint64
 
 	if !check.IfNil(blockHeader) {
-		blockRootHash = blockHeader.GetRootHash()
 		blockNonce = blockHeader.GetNonce()
 		blockHash, err = service.blockChainHook.GetBlockhash(blockNonce)
 		if err != nil {
@@ -252,28 +251,29 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
-func (service *SCQueryService) extractBlockHeader(query *process.SCQuery) (data.HeaderHandler, error) {
+func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
 
 	if len(query.BlockHash) > 0 {
 		blockHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		header := service.getBlockHeader(blockHeader)
-		return header, nil
+		return header, header.GetRootHash(), nil
 	}
 
 	if query.BlockNonce.HasValue {
 		blockHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		return service.getBlockHeader(blockHeader), nil
+		header := service.getBlockHeader(blockHeader)
+		return header, header.GetRootHash(), nil
 	}
 
-	return service.mainBlockChain.GetCurrentBlockHeader(), nil
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {

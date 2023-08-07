@@ -40,7 +40,11 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		EconomicsFee: &economicsmocks.EconomicsHandlerStub{},
 		BlockChainHook: &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return &stateMocks.AccountsStub{}
+				return &stateMocks.AccountsStub{
+					RecreateTrieCalled: func(rootHash []byte) error {
+						return nil
+					},
+				}
 			},
 		},
 		MainBlockChain:           &testscommon.ChainHandlerStub{},
