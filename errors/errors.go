@@ -573,3 +573,6 @@ var ErrNilTrieMigrator = errors.New("nil trie migrator")
 
 // ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
 var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
+
+// ErrNilShardCoordinatorFactory signals that a nil shard coordinator factory has been provided
+var ErrNilShardCoordinatorFactory = errors.New("nil shard coordinator factory provided")

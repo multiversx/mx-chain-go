@@ -178,7 +178,8 @@ func createMockArgument(
 				},
 			},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

@@ -69,4 +69,6 @@ type ArgsGenesisBlockCreator struct {
 	GenesisString    string
 	// created components
 	importHandler update.ImportHandler
+
+	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 }

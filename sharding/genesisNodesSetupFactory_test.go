@@ -1,7 +1,6 @@
 package sharding
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/sharding/mock"
@@ -21,5 +20,6 @@ func TestGenesisNodesSetupFactory_CreateNodesSetup(t *testing.T) {
 		GenesisMaxNumShards:      100,
 	})
 	require.Nil(t, err)
-	require.Equal(t, "*sharding.NodesSetup", fmt.Sprintf("%T", nodesHandler))
+	require.NotNil(t, nodesHandler)
+	require.IsType(t, &NodesSetup{}, nodesHandler)
 }

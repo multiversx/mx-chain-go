@@ -39,6 +39,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	TimeToWaitForRequestedData       time.Duration
 	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
 type storageEpochStartBootstrap struct {
@@ -51,6 +52,7 @@ type storageEpochStartBootstrap struct {
 	timeToWaitForRequestedData       time.Duration
 	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -73,6 +75,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		timeToWaitForRequestedData:       args.TimeToWaitForRequestedData,
 		chainRunType:                     args.ChainRunType,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 
 	return sesb, nil
@@ -126,7 +129,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	}()
 
 	var err error
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -268,7 +271,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
+	shardCoordinator, err := sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
@@ -365,7 +368,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	sesb.saveSelfShardId()
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
+	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	}
