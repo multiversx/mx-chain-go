@@ -341,7 +341,6 @@ func createScQueryService(
 func createScQueryElement(
 	args *scQueryElementArgs,
 ) (process.SCQueryService, error) {
-	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
 	pkConverter := args.coreComponents.AddressPubKeyConverter()
@@ -403,94 +402,16 @@ func createScQueryElement(
 	}
 
 	var apiBlockchain data.ChainHandler
+	var vmFactory process.VirtualMachinesContainerFactory
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		apiBlockchain, err = blockchain.NewMetaChain(disabled.NewAppStatusHandler())
-		if err != nil {
-			return nil, err
-		}
-
-		accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
-		if err != nil {
-			return nil, err
-		}
-
-		argsHook.BlockChain = apiBlockchain
-		argsHook.Accounts = accountsAdapterApi
-
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
-
-		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
-		if errBlockChainHook != nil {
-			return nil, errBlockChainHook
-		}
-
-		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
-			BlockChainHook:      blockChainHookImpl,
-			PubkeyConv:          argsHook.PubkeyConv,
-			Economics:           args.coreComponents.EconomicsData(),
-			MessageSignVerifier: args.messageSigVerifier,
-			GasSchedule:         args.gasScheduleNotifier,
-			NodesConfigProvider: args.coreComponents.GenesisNodesSetup(),
-			Hasher:              args.coreComponents.Hasher(),
-			Marshalizer:         args.coreComponents.InternalMarshalizer(),
-			SystemSCConfig:      args.systemSCConfig,
-			ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
-			UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(),
-			ChanceComputer:      args.coreComponents.Rater(),
-			ShardCoordinator:    args.processComponents.ShardCoordinator(),
-			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-		}
-		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
-		if err != nil {
-			return nil, err
-		}
+		apiBlockchain, vmFactory, err = createMetaVmContainerFactory(args, argsHook)
 	} else {
-		apiBlockchain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
-		if err != nil {
-			return nil, err
-		}
-
-		accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
-		if err != nil {
-			return nil, err
-		}
-
-		argsHook.BlockChain = apiBlockchain
-		argsHook.Accounts = accountsAdapterApi
-
-		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
-		if errParser != nil {
-			return nil, errParser
-		}
-
-		blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
-		if errBlockChainHook != nil {
-			return nil, errBlockChainHook
-		}
-
-		argsNewVMFactory := shard.ArgVMContainerFactory{
-			BlockChainHook:      blockChainHookImpl,
-			BuiltInFunctions:    argsHook.BuiltInFunctions,
-			Config:              queryVirtualMachineConfig,
-			BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			GasSchedule:         args.gasScheduleNotifier,
-			EpochNotifier:       args.coreComponents.EpochNotifier(),
-			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-			WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
-			ESDTTransferParser:  esdtTransferParser,
-			Hasher:              args.coreComponents.Hasher(),
-		}
-
-		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
-		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
-		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
-
-		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
-		if err != nil {
-			return nil, err
-		}
+		apiBlockchain, vmFactory, err = createShardVmContainerFactory(args, argsHook)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
@@ -524,10 +445,104 @@ func createScQueryElement(
 		ShardCoordinator:         args.processComponents.ShardCoordinator(),
 		StorageService:           args.dataComponents.StorageService(),
 		Marshaller:               args.coreComponents.InternalMarshalizer(),
+		Hasher:                   args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
+}
+
+func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (data.ChainHandler, process.VirtualMachinesContainerFactory, error) {
+	apiBlockchain, err := blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argsHook.BlockChain = apiBlockchain
+	argsHook.Accounts = accountsAdapterApi
+
+	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+	if errBlockChainHook != nil {
+		return nil, nil, errBlockChainHook
+	}
+
+	argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
+		Economics:           args.coreComponents.EconomicsData(),
+		MessageSignVerifier: args.messageSigVerifier,
+		GasSchedule:         args.gasScheduleNotifier,
+		NodesConfigProvider: args.coreComponents.GenesisNodesSetup(),
+		Hasher:              args.coreComponents.Hasher(),
+		Marshalizer:         args.coreComponents.InternalMarshalizer(),
+		SystemSCConfig:      args.systemSCConfig,
+		ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
+		UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(),
+		ChanceComputer:      args.coreComponents.Rater(),
+		ShardCoordinator:    args.processComponents.ShardCoordinator(),
+		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return apiBlockchain, vmFactory, nil
+}
+
+func createShardVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (data.ChainHandler, process.VirtualMachinesContainerFactory, error) {
+	apiBlockchain, err := blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argsHook.BlockChain = apiBlockchain
+	argsHook.Accounts = accountsAdapterApi
+
+	queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
+	esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
+	if errParser != nil {
+		return nil, nil, errParser
+	}
+
+	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+	if errBlockChainHook != nil {
+		return nil, nil, errBlockChainHook
+	}
+
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
+		BuiltInFunctions:    argsHook.BuiltInFunctions,
+		Config:              queryVirtualMachineConfig,
+		BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+		GasSchedule:         args.gasScheduleNotifier,
+		EpochNotifier:       args.coreComponents.EpochNotifier(),
+		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
+		ESDTTransferParser:  esdtTransferParser,
+		Hasher:              args.coreComponents.Hasher(),
+	}
+
+	log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
+	log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
+
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return apiBlockchain, vmFactory, nil
 }
 
 func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, error) {

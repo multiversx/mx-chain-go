@@ -53,6 +53,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
 		StorageService:           &storageStubs.ChainStorerStub{},
 		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)

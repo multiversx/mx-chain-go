@@ -60,6 +60,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 			},
 		},
 		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 }
@@ -177,6 +178,16 @@ func TestNewSCQueryService(t *testing.T) {
 
 		assert.Nil(t, target)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
+	})
+	t.Run("nil Hasher should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		args.Hasher = nil
+		target, err := NewSCQueryService(args)
+
+		assert.Nil(t, target)
+		assert.Equal(t, process.ErrNilHasher, err)
 	})
 	t.Run("nil Uint64ByteSliceConverter should error", func(t *testing.T) {
 		t.Parallel()
@@ -1036,6 +1047,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
 		StorageService:           &storageStubs.ChainStorerStub{},
 		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 

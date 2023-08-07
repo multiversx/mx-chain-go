@@ -1690,6 +1690,7 @@ func GetVmOutput(
 		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
 		StorageService:           &storageStubs.ChainStorerStub{},
 		Marshaller:               integrationTests.TestMarshalizer,
+		Hasher:                   integrationtests.TestHasher,
 		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
@@ -1750,6 +1751,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 			},
 		},
 		Marshaller:               integrationTests.TestMarshalizer,
+		Hasher:                   integrationtests.TestHasher,
 		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)

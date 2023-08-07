@@ -47,8 +47,9 @@ type simpleResponse struct {
 }
 
 type vmOutputResponse struct {
-	Data  *vmcommon.VMOutput `json:"data"`
-	Error string             `json:"error"`
+	Data      *vmcommon.VMOutput `json:"data"`
+	BlockInfo api.BlockInfo      `json:"blockInfo"`
+	Error     string             `json:"error"`
 }
 
 func init() {
@@ -181,15 +182,32 @@ func TestQuery(t *testing.T) {
 	t.Run("should work - no block coordinates", func(t *testing.T) {
 		t.Parallel()
 
+		providedBlockInfo := api.BlockInfo{
+			Nonce:    12,
+			Hash:     "provided hash",
+			RootHash: "provided root hash",
+		}
 		facade := mock.FacadeStub{
 			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
 
 				return &vm.VMOutputApi{
 					ReturnData: [][]byte{big.NewInt(42).Bytes()},
-				}, api.BlockInfo{}, nil
+				}, providedBlockInfo, nil
 			},
 		}
-		testQueryShouldWork(t, "/vm-values/query", &facade)
+		request := groups.VMValueRequest{
+			ScAddress: dummyScAddress,
+			FuncName:  "function",
+			Args:      []string{},
+		}
+
+		response := vmOutputResponse{}
+		statusCode := doPost(t, &facade, "/vm-values/query", request, &response)
+
+		require.Equal(t, http.StatusOK, statusCode)
+		require.Equal(t, "", response.Error)
+		require.Equal(t, int64(42), big.NewInt(0).SetBytes(response.Data.ReturnData[0]).Int64())
+		require.Equal(t, providedBlockInfo, response.BlockInfo)
 	})
 }
 

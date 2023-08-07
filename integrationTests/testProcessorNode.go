@@ -807,6 +807,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			ShardCoordinator:         tpn.ShardCoordinator,
 			StorageService:           tpn.Storage,
 			Marshaller:               TestMarshaller,
+			Hasher:                   TestHasher,
 			Uint64ByteSliceConverter: TestUint64Converter,
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
@@ -1004,6 +1005,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		ShardCoordinator:         tpn.ShardCoordinator,
 		StorageService:           tpn.Storage,
 		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
 		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
@@ -1033,6 +1035,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		ShardCoordinator:         tpn.ShardCoordinator,
 		StorageService:           tpn.Storage,
 		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
 		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)

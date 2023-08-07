@@ -176,6 +176,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
 		StorageService:           &storageStubs.ChainStorerStub{},
 		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -45,6 +46,7 @@ type SCQueryService struct {
 	shardCoordinator         sharding.Coordinator
 	storageService           dataRetriever.StorageService
 	marshaller               marshal.Marshalizer
+	hasher                   hashing.Hasher
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -63,6 +65,7 @@ type ArgsNewSCQueryService struct {
 	ShardCoordinator         sharding.Coordinator
 	StorageService           dataRetriever.StorageService
 	Marshaller               marshal.Marshalizer
+	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -93,6 +96,7 @@ func NewSCQueryService(
 		shardCoordinator:         args.ShardCoordinator,
 		storageService:           args.StorageService,
 		marshaller:               args.Marshaller,
+		hasher:                   args.Hasher,
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 	}, nil
 }
@@ -133,6 +137,9 @@ func checkArgs(args ArgsNewSCQueryService) error {
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return process.ErrNilHasher
 	}
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return process.ErrNilUint64Converter
@@ -183,16 +190,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, nil, err
 	}
 
-	var blockHash []byte
-	var blockNonce uint64
-
-	if !check.IfNil(blockHeader) {
-		blockNonce = blockHeader.GetNonce()
-		blockHash, err = service.getBlockHashByNonce(blockNonce)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
 	if len(blockRootHash) > 0 {
 		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
 		if err != nil {
@@ -246,6 +243,15 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 	}
 
+	var blockHash []byte
+	var blockNonce uint64
+	if !check.IfNil(blockHeader) {
+		blockNonce = blockHeader.GetNonce()
+		blockHash, err = core.CalculateHash(service.marshaller, service.hasher, blockHeader)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
 	return vmOutput, blockInfo, nil
 }
