@@ -3,7 +3,6 @@ package processProxy_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -16,7 +15,7 @@ func TestNewSCProcessProcessFactory(t *testing.T) {
 	fact, err := processProxy.NewSCProcessProxyFactory()
 	require.Nil(t, err)
 	require.NotNil(t, fact)
-	require.Implements(t, new(smartContract.SCProcessorCreator), fact)
+	require.Implements(t, new(scrCommon.SCProcessorCreator), fact)
 }
 
 func TestSCProcessProcessFactory_CreateSCProcessor(t *testing.T) {

@@ -26,3 +26,9 @@ type SCRProcessorHandler interface {
 	process.SmartContractProcessor
 	process.SmartContractResultProcessor
 }
+
+// SCProcessorCreator defines a scr processor creator
+type SCProcessorCreator interface {
+	CreateSCProcessor(args ArgsNewSmartContractProcessor, epochNotifier process.EpochNotifier) (SCRProcessorHandler, error)
+	IsInterfaceNil() bool
+}

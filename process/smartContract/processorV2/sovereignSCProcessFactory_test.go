@@ -3,7 +3,6 @@ package processorV2_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/stretchr/testify/require"
@@ -20,7 +19,7 @@ func TestNewSovereignSCProcessFactory(t *testing.T) {
 	fact, err = processorV2.NewSovereignSCProcessFactory(f)
 	require.Nil(t, err)
 	require.NotNil(t, fact)
-	require.Implements(t, new(smartContract.SCProcessorCreator), fact)
+	require.Implements(t, new(scrCommon.SCProcessorCreator), fact)
 }
 
 func TestSovereignSCProcessFactory_CreateSCProcessor(t *testing.T) {

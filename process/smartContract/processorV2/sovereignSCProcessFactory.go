@@ -3,16 +3,15 @@ package processorV2
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
 type sovereignSCProcessFactory struct {
-	scrProcessorCreator smartContract.SCProcessorCreator
+	scrProcessorCreator scrCommon.SCProcessorCreator
 }
 
 // NewSovereignSCProcessFactory creates a new smart contract process factory
-func NewSovereignSCProcessFactory(creator smartContract.SCProcessorCreator) (*sovereignSCProcessFactory, error) {
+func NewSovereignSCProcessFactory(creator scrCommon.SCProcessorCreator) (*sovereignSCProcessFactory, error) {
 	if check.IfNil(creator) {
 		return nil, process.ErrNilSCProcessorCreator
 	}

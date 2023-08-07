@@ -3,7 +3,6 @@ package processorV2_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -16,7 +15,7 @@ func TestNewSCProcessFactory(t *testing.T) {
 	fact, err := processorV2.NewSCProcessFactory()
 	require.Nil(t, err)
 	require.NotNil(t, fact)
-	require.Implements(t, new(smartContract.SCProcessorCreator), fact)
+	require.Implements(t, new(scrCommon.SCProcessorCreator), fact)
 }
 
 func TestSCProcessFactory_CreateSCProcessor(t *testing.T) {
