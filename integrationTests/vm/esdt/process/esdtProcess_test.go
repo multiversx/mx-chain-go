@@ -1410,10 +1410,11 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
-		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
-		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:                      integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:                integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:         integrationTests.UnreachableEpoch,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}

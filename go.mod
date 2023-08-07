@@ -24,7 +24,7 @@ require (
 	github.com/multiversx/mx-chain-vm-go v1.5.5-0.20230628071636-c6cc5531365a
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.59
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.60
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.86
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.87-0.20230717090724-6f7ee75d9dc8
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible

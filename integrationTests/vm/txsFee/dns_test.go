@@ -117,8 +117,9 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
 	enableEpochs := config.EnableEpochs{
-		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
-		SCProcessorV2EnableEpoch:  1000,
+		ChangeUsernameEnableEpoch:                       1000, // flag disabled, backwards compatibility
+		SCProcessorV2EnableEpoch:                        1000,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 1000,
 	}
 
 	vmConfig := vm.CreateVMConfigWithVersion("v1.4")
