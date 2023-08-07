@@ -1878,6 +1878,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:  pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:         pcf.config.TrieSync.TrieSyncerVersion,
 		PeersRatingHandler:        pcf.network.PeersRatingHandler(),
+		ShardCoordinatorFactory:   pcf.shardCoordinatorFactory,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
