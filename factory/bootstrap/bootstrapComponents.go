@@ -99,7 +99,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errors.ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	return &bootstrapComponentsFactory{
