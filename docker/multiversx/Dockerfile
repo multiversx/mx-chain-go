@@ -1,4 +1,4 @@
-FROM golang:1.17.6 as builder
+FROM golang:1.20.5 as builder
 
 RUN apt-get update && apt-get install -y
 WORKDIR /go/mx-chain-go
@@ -6,12 +6,14 @@ COPY . .
 RUN GO111MODULE=on go mod tidy
 # Multiversx node
 WORKDIR /go/mx-chain-go/cmd/node
-RUN go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+RUN go build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
 RUN cp /go/pkg/mod/github.com/multiversx/$(cat /go/mx-chain-go/go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')/wasmer/libwasmer_linux_amd64.so /lib/libwasmer_linux_amd64.so
 
 WORKDIR /go/mx-chain-go/cmd/node
+
 # ===== SECOND STAGE ======
 FROM ubuntu:22.04
+RUN apt-get update -y && apt-get upgrade -y
 COPY --from=builder "/go/mx-chain-go/cmd/node" "/go/mx-chain-go/cmd/node/"
 COPY --from=builder "/lib/libwasmer_linux_amd64.so" "/lib/libwasmer_linux_amd64.so"
 WORKDIR /go/mx-chain-go/cmd/node/
