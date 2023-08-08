@@ -42,6 +42,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		epochNotifier:                arguments.EpochNotifier,
 		processedMiniBlocksTracker:   arguments.ProcessedMiniBlocksTracker,
 		appStatusHandler:             arguments.AppStatusHandler,
+		accountsState:                arguments.AccountsState,
 	}
 
 	boot := shardStorageBootstrapper{

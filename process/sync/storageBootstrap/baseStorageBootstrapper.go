@@ -2,7 +2,6 @@ package storageBootstrap
 
 import (
 	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -44,6 +44,7 @@ type ArgsBaseStorageBootstrapper struct {
 	EpochNotifier                process.EpochNotifier
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	AppStatusHandler             core.AppStatusHandler
+	AccountsState                state.AccountsAdapter
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -79,6 +80,7 @@ type storageBootstrapper struct {
 	epochNotifier                process.EpochNotifier
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	appStatusHandler             core.AppStatusHandler
+	accountsState                state.AccountsAdapter
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -105,6 +107,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
 
 	log.Debug("Load blocks started...")
+	var rootHash []byte
 
 	for {
 		headerInfo, err = st.bootStorer.Get(round)
@@ -127,7 +130,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
 		st.blkExecutor.SetNumProcessedObj(numHdrs)
 
-		err = st.applyHeaderInfo(headerInfo)
+		rootHash, err = st.applyHeaderInfo(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -160,6 +163,15 @@ func (st *storageBootstrapper) loadBlocks() error {
 		)
 
 		return process.ErrNotEnoughValidBlocksInStorage
+	}
+
+	if !check.IfNil(st.accountsState) {
+		adbWithMigration, ok := st.accountsState.(state.AccountsAdapterWithMigration)
+		if !ok {
+			return fmt.Errorf("invalid accounts state for migration, %T", st.accountsState)
+		}
+
+		adbWithMigration.MigrateData(rootHash)
 	}
 
 	log.Debug("storageBootstrapper.loadBlocks",
@@ -257,20 +269,20 @@ func (st *storageBootstrapper) GetHighestBlockNonce() uint64 {
 	return st.highestNonce
 }
 
-func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) error {
+func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) ([]byte, error) {
 	headerHash := hdrInfo.LastHeader.Hash
 	log.Debug("storageBootstrapper.applyHeaderInfo", "headerHash", headerHash)
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
 		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
-		return err
+		return nil, err
 	}
 
 	if string(headerFromStorage.GetChainID()) != st.chainID {
 		log.Debug("chain ID missmatch for header with nonce", "nonce", headerFromStorage.GetNonce(),
 			"reference", []byte(st.chainID),
 			"fromStorage", headerFromStorage.GetChainID())
-		return process.ErrInvalidChainID
+		return nil, process.ErrInvalidChainID
 	}
 
 	rootHash := headerFromStorage.GetRootHash()
@@ -283,16 +295,16 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
-		return err
+		return nil, err
 	}
 
 	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
-		return err
+		return nil, err
 	}
 
-	return nil
+	return rootHash, nil
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {

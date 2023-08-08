@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -895,6 +897,117 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	}()
 
 	return adb.commit()
+}
+
+func (adb *AccountsDB) MigrateData(rootHash []byte) {
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	mainTrie := adb.getMainTrie()
+	err := mainTrie.GetAllLeavesOnChannel(
+		leavesChannels,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
+	if err != nil {
+		log.Error("error while getting all leaves from trie", "err", err)
+		return
+	}
+
+	trieMigrator := NewDataTrieMigratorMock()
+
+	for leaf := range leavesChannels.LeavesChan {
+		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
+		if err != nil {
+			log.Error("error while getting user account from bytes", "err", err)
+			return
+		}
+		if skipAccount {
+			continue
+		}
+
+		originalRootHash := userAccount.GetRootHash()
+		if len(originalRootHash) == 0 {
+			continue
+		}
+
+		tr, err := adb.mainTrie.Recreate(originalRootHash)
+		if err != nil {
+			log.Error("error while recreating data trie", "err", err)
+			return
+		}
+
+		dataTrie, ok := tr.(DataTrie)
+		if !ok {
+			log.Error(fmt.Sprintf("error while casting trie to data trie, trie type: %T", tr))
+			return
+		}
+
+		argsMigrateDataTrieLeaves := vmcommon.ArgsMigrateDataTrieLeaves{
+			OldVersion:   core.NotSpecified,
+			NewVersion:   core.AutoBalanceEnabled,
+			TrieMigrator: trieMigrator,
+		}
+
+		err = dataTrie.CollectLeavesForMigration(argsMigrateDataTrieLeaves)
+		if err != nil {
+			log.Error("error while collecting leaves for migration", "err", err)
+			return
+		}
+
+		newRootHash, err := adb.createAndCommitMigratedTrie(trieMigrator.GetLeavesToBeMigrated(), userAccount.AddressBytes())
+		if err != nil {
+			log.Error("error while creating and committing migrated trie", "err", err)
+			return
+		}
+
+		log.Debug("migrated trie", "oldRootHash", userAccount.GetRootHash(), "newRootHash", newRootHash)
+	}
+
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		log.Error("error while reading from err channel", "err", err)
+	}
+}
+
+func (adb *AccountsDB) createAndCommitMigratedTrie(leavesToBeMigrated []core.TrieData, address []byte) ([]byte, error) {
+	newTrie, err := adb.getMainTrie().Recreate(make([]byte, 0))
+	if err != nil {
+		return nil, err
+	}
+
+	dataTrie, ok := newTrie.(DataTrie)
+	if !ok {
+		return nil, errors.New("error while casting trie to DataTrie")
+	}
+
+	for _, leaf := range leavesToBeMigrated {
+		trieKey := adb.hasher.Compute(string(leaf.Key))
+		trieVal := &dataTrieValue.TrieLeafData{
+			Value:   leaf.Value,
+			Key:     leaf.Key,
+			Address: address,
+		}
+		trieValBytes, err := adb.marshaller.Marshal(trieVal)
+		if err != nil {
+			return nil, err
+		}
+
+		err = dataTrie.UpdateWithVersion(trieKey, trieValBytes, core.AutoBalanceEnabled)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = dataTrie.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return dataTrie.RootHash()
 }
 
 func (adb *AccountsDB) commit() ([]byte, error) {

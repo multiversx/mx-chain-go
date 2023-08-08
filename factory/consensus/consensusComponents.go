@@ -433,6 +433,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
+		AccountsState:                ccf.stateComponents.AccountsAdapter(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{

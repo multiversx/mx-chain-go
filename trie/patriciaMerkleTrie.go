@@ -690,19 +690,7 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrat
 	return nil
 }
 
-func (tr *patriciaMerkleTrie) checkIfMigrationPossible(args vmcommon.ArgsMigrateDataTrieLeaves) error {
-	if !tr.trieNodeVersionVerifier.IsValidVersion(args.NewVersion) {
-		return fmt.Errorf("%w: newVersion %v", errors.ErrInvalidTrieNodeVersion, args.NewVersion)
-	}
-
-	if !tr.trieNodeVersionVerifier.IsValidVersion(args.OldVersion) {
-		return fmt.Errorf("%w: oldVersion %v", errors.ErrInvalidTrieNodeVersion, args.OldVersion)
-	}
-
-	if args.NewVersion == core.NotSpecified && args.OldVersion == core.AutoBalanceEnabled {
-		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.AutoBalanceEnabled, core.NotSpecified)
-	}
-
+func (tr *patriciaMerkleTrie) checkIfMigrationPossible(_ vmcommon.ArgsMigrateDataTrieLeaves) error {
 	return nil
 }
 

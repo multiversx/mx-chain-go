@@ -54,6 +54,11 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
+type AccountsAdapterWithMigration interface {
+	AccountsAdapter
+	MigrateData(rootHash []byte)
+}
+
 // AccountsAdapterWithClean extends the AccountsAdapter interface with a CleanCache method
 type AccountsAdapterWithClean interface {
 	AccountsAdapter
