@@ -22,7 +22,7 @@ type multiShardCoordinator struct {
 
 // NewMultiShardCoordinator returns a new multiShardCoordinator and initializes the masks
 func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordinator, error) {
-	if numberOfShards <= 1 {
+	if numberOfShards < 1 {
 		return nil, nodesCoordinator.ErrInvalidNumberOfShards
 	}
 	if selfId >= numberOfShards && selfId != core.MetachainShardId {
