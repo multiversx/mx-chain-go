@@ -328,6 +328,9 @@ var ErrNilSoftwareVersion = errors.New("nil software version")
 // ErrNilStateComponents signals that a nil state components was provided
 var ErrNilStateComponents = errors.New("nil state components")
 
+// ErrNilRunTypeComponents signals that a nil runType components was provided
+var ErrNilRunTypeComponents = errors.New("nil runType components")
+
 // ErrNilStateComponentsHolder signals that a nil state components holder was provided
 var ErrNilStateComponentsHolder = errors.New("nil state components holder")
 
@@ -435,6 +438,9 @@ var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory cre
 
 // ErrStateComponentsFactoryCreate signals that an error occured on stateComponentsFactory create
 var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create failed")
+
+// ErrRunTypeComponentsFactoryCreate signals that an error occured on runTypeComponentsFactory create
+var ErrRunTypeComponentsFactoryCreate = errors.New("runTypeComponentsFactory create failed")
 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
@@ -591,3 +597,36 @@ var ErrNilEpochStartBootstrapperFactory = errors.New("nil epoch start bootstrapp
 
 // ErrNilBlockProcessorFactory signals that a nil block processor factory has been provided
 var ErrNilBlockProcessorFactory = errors.New("nil block processor factory")
+
+// ErrNilBlockChainHookHandlerCreator signals that a nil blockchain hook handler creator has been provided
+var ErrNilBlockChainHookHandlerCreator = errors.New("nil blockchain hook handler creator")
+
+// ErrNilEpochStartBootstrapperCreator signals that a nil epoch start bootstrapper creator has been provided
+var ErrNilEpochStartBootstrapperCreator = errors.New("nil epoch start bootstrapper creator")
+
+// ErrNilBootstrapperFromStorageCreator signals that a nil bootstrapper from storage creator has been provided
+var ErrNilBootstrapperFromStorageCreator = errors.New("nil bootstrapper from storage creator")
+
+// ErrNilBlockProcessorCreator signals that a nil block processor creator has been provided
+var ErrNilBlockProcessorCreator = errors.New("nil block processor creator")
+
+// ErrNilForkDetectorCreator signals that a nil fork detector creator has been provided
+var ErrNilForkDetectorCreator = errors.New("nil fork detector creator")
+
+// ErrNilBlockTrackerCreator signals that a nil block tracker creator has been provided
+var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
+
+// ErrNilRequestHandlerCreator signals that a nil request handler creator has been provided
+var ErrNilRequestHandlerCreator = errors.New("nil request handler creator")
+
+// ErrNilHeaderValidatorCreator signals that a nil header validator creator has been provided
+var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")
+
+// ErrNilScheduledTxsExecutionCreator signals that a nil scheduled txs execution creator has been provided
+var ErrNilScheduledTxsExecutionCreator = errors.New("nil scheduled txs execution creator")
+
+// ErrNilTransactionCoordinatorCreator signals that a nil transaction coordinator creator has been provided
+var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinator creator")
+
+// ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator has been provided
+var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")

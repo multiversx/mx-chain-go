@@ -190,15 +190,15 @@ type processComponentsFactory struct {
 	bootstrapComponents                 factory.BootstrapComponentsHolder
 	statusComponents                    factory.StatusComponentsHolder
 	statusCoreComponents                factory.StatusCoreComponentsHolder
-	blockProcessorCreator               BlockProcessorCreator
+	blockProcessorCreator               factory.BlockProcessorCreator
 	chainRunType                        common.ChainRunType
-	resolverRequestCreator              RequestHandlerCreator
-	scheduledTxsExecutionCreator        ScheduledTxsExecutionCreator
-	blockTrackerCreator                 BlockTrackerCreator
-	transactionCoordinatorCreator       TransactionCoordinatorCreator
-	headerValidatorCreator              HeaderValidatorCreator
-	forkDetectorCreator                 ForkDetectorCreator
-	validatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
+	resolverRequestCreator              factory.RequestHandlerCreator
+	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
+	blockTrackerCreator                 factory.BlockTrackerCreator
+	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
+	headerValidatorCreator              factory.HeaderValidatorCreator
+	forkDetectorCreator                 factory.ForkDetectorCreator
+	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
