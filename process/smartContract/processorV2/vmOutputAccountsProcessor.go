@@ -155,9 +155,10 @@ func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
-// 	(1) the account as found in the State
+//
+//	(1) the account as found in the State
 //	(2) the account as returned in VM Output
-// 	(3) the transaction that, upon execution, produced the VM Output
+//	(3) the transaction that, upon execution, produced the VM Output
 func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
@@ -200,7 +201,7 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	entry := &vmcommon.LogEntry{
 		Address: stateAccount.AddressBytes(),
 		Topics: [][]byte{
-			outputAccount.Address, outputAccount.CodeDeployerAddress,
+			outputAccount.Address, outputAccount.CodeDeployerAddress, stateAccount.GetCodeHash(),
 		},
 	}
 
