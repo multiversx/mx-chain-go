@@ -99,7 +99,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errors.ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	return &bootstrapComponentsFactory{
@@ -152,6 +152,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bcf.cryptoComponents.PublicKey(),
 		bcf.prefConfig.Preferences,
 		log,
+		bcf.shardCoordinatorFactory,
 	)
 	if err != nil {
 		return nil, err

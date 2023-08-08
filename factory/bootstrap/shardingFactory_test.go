@@ -33,7 +33,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 	t.Run("nil nodes config should error", func(t *testing.T) {
 		t.Parallel()
 
-		shardC, nodeType, err := CreateShardCoordinator(nil, nil, config.PreferencesConfig{}, nil)
+		shardC, nodeType, err := CreateShardCoordinator(nil, nil, config.PreferencesConfig{}, nil, sharding.NewMultiShardCoordinatorFactory())
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
@@ -41,7 +41,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 	t.Run("nil pub key should error", func(t *testing.T) {
 		t.Parallel()
 
-		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, nil, config.PreferencesConfig{}, nil)
+		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, nil, config.PreferencesConfig{}, nil, sharding.NewMultiShardCoordinatorFactory())
 		require.Equal(t, errErd.ErrNilPublicKey, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
@@ -49,7 +49,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 	t.Run("nil logger should error", func(t *testing.T) {
 		t.Parallel()
 
-		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, &cryptoMocks.PublicKeyStub{}, config.PreferencesConfig{}, nil)
+		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, &cryptoMocks.PublicKeyStub{}, config.PreferencesConfig{}, nil, sharding.NewMultiShardCoordinatorFactory())
 		require.Equal(t, errErd.ErrNilLogger, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
@@ -66,6 +66,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 			},
 			config.PreferencesConfig{},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.Equal(t, expectedErr, err)
 		require.Empty(t, nodeType)
@@ -85,6 +86,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 				DestinationShardAsObserver: "", // ProcessDestinationShardAsObserver fails
 			},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.NotNil(t, err)
 		require.Empty(t, nodeType)
@@ -113,6 +115,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 				DestinationShardAsObserver: "disabled", // force if branch
 			},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.NotNil(t, err)
 		require.True(t, errors.Is(err, expectedErr))
@@ -140,6 +143,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 				DestinationShardAsObserver: "disabled", // for coverage
 			},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.Nil(t, err)
 		require.Equal(t, core.NodeTypeObserver, nodeType)
@@ -160,6 +164,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 			&cryptoMocks.PublicKeyStub{},
 			config.PreferencesConfig{},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.NotNil(t, err)
 		require.Empty(t, nodeType)
@@ -177,6 +182,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 			&cryptoMocks.PublicKeyStub{},
 			config.PreferencesConfig{},
 			&testscommon.LoggerStub{},
+			sharding.NewMultiShardCoordinatorFactory(),
 		)
 		require.Nil(t, err)
 		require.Equal(t, core.NodeTypeValidator, nodeType)

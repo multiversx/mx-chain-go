@@ -29,6 +29,7 @@ func CreateShardCoordinator(
 	pubKey crypto.PublicKey,
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory,
 ) (sharding.Coordinator, core.NodeType, error) {
 	if check.IfNil(nodesConfig) {
 		return nil, "", errorsMx.ErrNilGenesisNodesSetupHandler
@@ -72,7 +73,7 @@ func CreateShardCoordinator(
 	}
 	log.Info("shard info", "started in shard", shardName)
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
+	shardCoordinator, err := shardCoordinatorFactory.CreateShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, "", err
 	}

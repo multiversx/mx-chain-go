@@ -1367,6 +1367,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		StatusCoreComponents:             statusCoreComponents,
 		ChainRunType:                     common.ChainRunTypeRegular,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

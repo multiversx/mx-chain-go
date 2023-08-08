@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -40,6 +41,7 @@ func createMockStorageEpochStartBootstrapArgs(
 		TimeToWaitForRequestedData:       time.Second,
 		ChainRunType:                     common.ChainRunTypeRegular,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
