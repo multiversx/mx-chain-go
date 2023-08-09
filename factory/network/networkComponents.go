@@ -127,12 +127,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	mainNetworkComp, err := ncf.createMainNetworkHolder(peersRatingHandler)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w for the main network holder", err)
 	}
 
 	fullArchiveNetworkComp, err := ncf.createFullArchiveNetworkHolder(peersRatingHandler)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w for the full archive network holder", err)
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
