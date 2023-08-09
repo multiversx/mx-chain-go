@@ -117,7 +117,7 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, errorsMx.ErrNilShardCoordinatorFactory)
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilShardCoordinatorFactory)
 	}
 
 	return nil
