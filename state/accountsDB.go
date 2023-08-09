@@ -1510,7 +1510,16 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 		}
 		if isSnapshot {
 			address := adb.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
-			adb.mainTrie.GetStorageManager().TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+			userAccountRootHash := userAccount.GetRootHash()
+			adb.mainTrie.GetStorageManager().TakeSnapshot(address, userAccountRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
+
+			stats.NewSnapshotStarted()
+			migratedDataTrieRootHash, err := adb.mainTrie.GetStorageManager().Get(append(userAccountRootHash, MigratedRootHashKeySuffix...))
+			if err != nil {
+				log.Error("could not get migrated data trie root hash", "error", err)
+				continue
+			}
+			adb.mainTrie.GetStorageManager().TakeSnapshot(address, migratedDataTrieRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
 
