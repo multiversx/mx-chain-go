@@ -6,12 +6,15 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 )
 
+// GenesisBlockCreatorHandler defines genesis block creator behavior
 type GenesisBlockCreatorHandler interface {
 	ImportHandler() update.ImportHandler
 	CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error)
 	GetIndexingData() map[uint32]*genesis.IndexingData
 }
 
+// GenesisBlockCreatorFactory defines a GenesisBlockCreatorFactory factory behavior
 type GenesisBlockCreatorFactory interface {
 	CreateGenesisBlockCreator(args ArgsGenesisBlockCreator) (GenesisBlockCreatorHandler, error)
+	IsInterfaceNil() bool
 }
