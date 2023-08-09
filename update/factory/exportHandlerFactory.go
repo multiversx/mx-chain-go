@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -242,7 +242,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilAppStatusHandler
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errorsMx.ErrNilShardCoordinatorFactory
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	e := &exportHandlerFactory{

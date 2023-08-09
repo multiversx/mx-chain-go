@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
@@ -564,8 +565,9 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType:            common.ChainRunTypeRegular,
-		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		ChainRunType:               common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
 	}
 }
 

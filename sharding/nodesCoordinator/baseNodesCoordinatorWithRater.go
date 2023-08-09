@@ -33,14 +33,14 @@ func (bnc *baseNodesCoordinatorWithRater) ValidatorsWeights(validators []Validat
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
 func (bnc *baseNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
 	extraLeavingNodesMap := make(map[uint32][]Validator)
-	minChances := bnc.GetChance(0)
+	minChance := bnc.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(common.InactiveList) || vInfo.List == string(common.JailedList) {
 			continue
 		}
-		chances := bnc.GetChance(vInfo.TempRating)
-		if chances < minChances {
-			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
+		chance := bnc.GetChance(vInfo.TempRating)
+		if chance < minChance {
+			val, err := NewValidator(vInfo.PublicKey, chance, vInfo.Index)
 			if err != nil {
 				return nil, err
 			}

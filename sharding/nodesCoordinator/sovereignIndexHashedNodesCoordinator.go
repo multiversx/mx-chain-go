@@ -163,20 +163,19 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) ComputeConsensusGroup(
 
 	ihnc.mutNodesConfig.RLock()
 	nodesConfig, ok := ihnc.nodesConfig[epoch]
-	if ok {
-		if shardID != core.SovereignChainShardId {
-			log.Warn("shardID is not ok, expected a sovereign chain id", "shardID", shardID, "nbShards", nodesConfig.nbShards)
-			ihnc.mutNodesConfig.RUnlock()
-			return nil, ErrInvalidShardId
-		}
-		selector = nodesConfig.selectors[shardID]
-		eligibleList = nodesConfig.eligibleMap[shardID]
-	}
-	ihnc.mutNodesConfig.RUnlock()
-
 	if !ok {
+		ihnc.mutNodesConfig.RUnlock()
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
+
+	if shardID != core.SovereignChainShardId {
+		log.Warn("shardID is not ok, expected a sovereign chain id", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+		ihnc.mutNodesConfig.RUnlock()
+		return nil, ErrInvalidShardId
+	}
+	selector = nodesConfig.selectors[shardID]
+	eligibleList = nodesConfig.eligibleMap[shardID]
+	ihnc.mutNodesConfig.RUnlock()
 
 	return ihnc.baseComputeConsensusGroup(randomness, round, shardID, epoch, selector, eligibleList)
 }
@@ -228,7 +227,7 @@ func displaySovereignNodesConfiguration(
 	}
 	for _, v := range actualRemaining[shardID] {
 		pk := v.PubKey()
-		log.Debug("actually remaining", "pk", pk, "shardID", shardID)
+		log.Debug("actual remaining", "pk", pk, "shardID", shardID)
 	}
 
 }

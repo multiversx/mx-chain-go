@@ -104,9 +104,11 @@ func (n *nodesCoordinator) GetNumTotalEligible() uint64 {
 	return 0
 }
 
+// EpochStartPrepare -
 func (n *nodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
+// NodesCoordinatorToRegistry -
 func (n *nodesCoordinator) NodesCoordinatorToRegistry() *nodesCoord.NodesCoordinatorRegistry {
 	return nil
 }

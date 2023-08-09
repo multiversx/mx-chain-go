@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -186,7 +186,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 		return genesis.ErrNilSmartContractParser
 	}
 	if check.IfNil(arg.ShardCoordinatorFactory) {
-		return errorsMx.ErrNilShardCoordinatorFactory
+		return errors.ErrNilShardCoordinatorFactory
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
@@ -249,15 +249,12 @@ func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]*genesis.IndexingDa
 
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	var err error
-	var lastPostMbs []*update.MbInfo
-
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createEmptyGenesisBlocks()
 	}
 
 	if mustDoHardForkImportProcess(gbc.arg) {
-		err = gbc.arg.importHandler.ImportAll()
+		err := gbc.arg.importHandler.ImportAll()
 		if err != nil {
 			return nil, err
 		}
@@ -274,13 +271,17 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 	shardIDs[gbc.arg.ShardCoordinator.NumberOfShards()] = core.MetachainShardId
 
+	return gbc.baseCreateGenesisBlocks(shardIDs)
+}
+
+func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (map[uint32]data.HeaderHandler, error) {
+	var lastPostMbs []*update.MbInfo
+
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
 	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
 	mapBodies := make(map[uint32]*block.Body)
 
-	shardIDs = make([]uint32, 1)
-	shardIDs[0] = core.SovereignChainShardId
-	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
+	err := gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	if err != nil {
 		return nil, err
 	}
