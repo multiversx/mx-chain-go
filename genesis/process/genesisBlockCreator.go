@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -186,7 +186,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 		return genesis.ErrNilSmartContractParser
 	}
 	if check.IfNil(arg.ShardCoordinatorFactory) {
-		return errorsMx.ErrNilShardCoordinatorFactory
+		return errors.ErrNilShardCoordinatorFactory
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager

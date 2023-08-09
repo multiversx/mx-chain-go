@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -124,7 +124,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		return nil, process.ErrNilAntifloodHandler
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errorsMx.ErrNilShardCoordinatorFactory
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{

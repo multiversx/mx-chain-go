@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -66,7 +66,7 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 		return nil, update.ErrNilPeersRatingHandler
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errorsMx.ErrNilShardCoordinatorFactory
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	return &requestersContainerFactory{
