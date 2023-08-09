@@ -996,8 +996,12 @@ func (adb *AccountsDB) createAndCommitMigratedTrie(leavesToBeMigrated []core.Tri
 
 	for _, leaf := range leavesToBeMigrated {
 		trieKey := adb.hasher.Compute(string(leaf.Key))
+
+		tailLength := len(leaf.Key) + len(address)
+		trimmedValue, _ := common.TrimSuffixFromValue(leaf.Value, tailLength)
+
 		trieVal := &dataTrieValue.TrieLeafData{
-			Value:   leaf.Value,
+			Value:   trimmedValue,
 			Key:     leaf.Key,
 			Address: address,
 		}
