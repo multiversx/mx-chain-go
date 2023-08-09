@@ -24,7 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -85,6 +85,7 @@ type trigger struct {
 	metaHdrStorage                storage.Storer
 	triggerStorage                storage.Storer
 	metaNonceHdrStorage           storage.Storer
+	epochStartStaticStorage       storage.Storer
 
 	uint64Converter typeConverters.Uint64ByteSliceConverter
 
@@ -215,6 +216,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
+	epochStartStaticStorage, err := args.Storage.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	t := &trigger{
@@ -254,6 +260,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
+		epochStartStaticStorage:       epochStartStaticStorage,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -684,6 +691,12 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 	if err != nil {
 		log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
 	}
+
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(metaHdr.GetEpoch()))...)
+	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, metaBuff)
+	if err != nil {
+		log.Debug("updateTriggerMeta put into epochStartStaticStorage", "error", err.Error())
+	}
 }
 
 // call only if mutex is locked before
@@ -740,6 +753,36 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	return true, finalityAttestingRound
 }
 
+func (t *trigger) saveSyncedMiniBlocksToStaticStorage(blockBody data.BodyHandler) error {
+	body, ok := blockBody.(*block.Body)
+	if !ok {
+		return epochStart.ErrWrongTypeAssertion
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		if body.MiniBlocks[i].Type != block.PeerBlock {
+			continue
+		}
+
+		marshalizedMiniBlock, err := t.marshaller.Marshal(body.MiniBlocks[i])
+		if err != nil {
+			log.Warn("saveSyncedMiniBlocksToStaticStorage.Marshal", "error", err.Error())
+			return err
+		}
+
+		miniBlockHash := t.hasher.Compute(string(marshalizedMiniBlock))
+		err = t.epochStartStaticStorage.Put(miniBlockHash, marshalizedMiniBlock)
+		if err != nil {
+			log.Warn("saveSyncedMiniBlocksToStaticStorage.Put miniblock", "error", err.Error())
+			return err
+		}
+
+		log.Debug("saveSyncedMiniBlocksToStaticStorage: peer miniblocks", "hash", miniBlockHash)
+	}
+
+	return nil
+}
+
 // call only if mutex is locked before
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
@@ -754,6 +797,11 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
+	err = t.saveSyncedMiniBlocksToStaticStorage(blockBody)
+	if err != nil {
+		return false, 0
+	}
+
 	if metaHdr.GetEpoch() >= t.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
 		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
@@ -764,6 +812,15 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 
 		for validatorInfoHash, validatorInfo := range validatorsInfo {
 			t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+
+			validatorInfoMarshalled, err := t.marshaller.Marshal(validatorInfo)
+			if err != nil {
+				return false, 0
+			}
+			err = t.epochStartStaticStorage.Put([]byte(validatorInfoHash), validatorInfoMarshalled)
+			if err != nil {
+				return false, 0
+			}
 		}
 	}
 

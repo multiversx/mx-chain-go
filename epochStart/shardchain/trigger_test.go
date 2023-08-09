@@ -23,6 +23,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -573,6 +574,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 
 func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
 	t.Parallel()
+
+	logger.SetLogLevel("*:DEBUG")
 
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 1

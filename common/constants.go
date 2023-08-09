@@ -677,6 +677,8 @@ const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 // EpochStartStaticBlocksKeyPrefix is the key prefix for epoch start meta block key
 const EpochStartStaticBlocksKeyPrefix = "epochStartBlock_"
 
+const EpochStartStaticBootstrapKeyPrefix = "epochStartBootstrap_"
+
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 

@@ -1210,6 +1210,10 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
+	if header.IsStartOfEpochBlock() {
+		mp.saveEpochStartInfoToStaticStorage(header, headerHash, marshalizedHeader, body)
+	}
+
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err

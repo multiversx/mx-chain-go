@@ -357,6 +357,11 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating nodes coordinator")
 	nodesCoordinatorInstance, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
@@ -377,6 +382,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		configs.GeneralConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
+		epochStartStaticStorer,
 	)
 	if err != nil {
 		return true, err

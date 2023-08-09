@@ -99,6 +99,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -351,6 +352,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -407,6 +409,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -477,6 +480,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -564,6 +568,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 	}
 
 	nc, err := NewIndexHashedNodesCoordinator(arguments)

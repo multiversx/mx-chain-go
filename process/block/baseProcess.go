@@ -1288,6 +1288,37 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return body
 }
 
+func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHandler, headerHash, marshalledHeader []byte, body *block.Body) error {
+	log.Debug("will save epoch start info to static storage", "headerHash", headerHash)
+
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
+	err := bp.store.Put(dataRetriever.EpochStartMetaBlockUnit, epochStartBootstrapKey, marshalledHeader)
+	if err != nil {
+		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		if body.MiniBlocks[i].Type != block.PeerBlock {
+			continue
+		}
+
+		marshalizedMiniBlock, err := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Marshal", "error", err.Error())
+		}
+
+		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
+		err = bp.store.Put(dataRetriever.EpochStartMetaBlockUnit, miniBlockHash, marshalizedMiniBlock)
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
+		}
+
+		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblocks", "hash", miniBlockHash)
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
