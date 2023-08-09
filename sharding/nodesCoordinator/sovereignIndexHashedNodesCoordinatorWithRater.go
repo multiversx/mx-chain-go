@@ -52,7 +52,7 @@ func NewSovereignIndexHashedNodesCoordinatorWithRater(
 	return ihncr, nil
 }
 
-//IsInterfaceNil verifies that the underlying value is nil
+// IsInterfaceNil verifies that the underlying value is nil
 func (ihnc *sovereignIndexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihnc == nil
 }
