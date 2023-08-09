@@ -27,6 +27,7 @@ type dirtyData struct {
 type trackableDataTrie struct {
 	dirtyData           map[string]dirtyData
 	tr                  common.Trie
+	migratedTrie        state.DataTrie
 	hasher              hashing.Hasher
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
@@ -52,6 +53,7 @@ func NewTrackableDataTrie(
 
 	return &trackableDataTrie{
 		tr:                  nil,
+		migratedTrie:        nil,
 		hasher:              hasher,
 		marshaller:          marshaller,
 		dirtyData:           make(map[string]dirtyData),
@@ -74,14 +76,23 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	if check.IfNil(tdt.tr) {
 		return nil, 0, state.ErrNilTrie
 	}
-	trieValue, depth, err := tdt.retrieveValueFromTrie(key)
-	if err != nil {
-		return nil, depth, err
+	if check.IfNil(tdt.migratedTrie) {
+		return nil, 0, fmt.Errorf("nil migrated trie")
 	}
 
-	val, err := tdt.getValueWithoutMetadata(key, trieValue)
+	hashedKey := tdt.hasher.Compute(string(key))
+	valWithMetadata, depth, err := tdt.migratedTrie.Get(hashedKey)
 	if err != nil {
-		return nil, depth, err
+		return nil, 0, err
+	}
+
+	if len(valWithMetadata) == 0 {
+		return nil, 0, nil
+	}
+
+	val, err := tdt.getValueAutoBalanceVersion(valWithMetadata)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
@@ -188,6 +199,40 @@ func (tdt *trackableDataTrie) getValueForVersion(key []byte, value []byte, versi
 // SetDataTrie sets the internal data trie
 func (tdt *trackableDataTrie) SetDataTrie(tr common.Trie) {
 	tdt.tr = tr
+
+	rootHash, err := tr.RootHash()
+	if err != nil {
+		log.Error("failed to get root hash", "err", err)
+		return
+	}
+
+	migratedDataTrieRootHash, err := tdt.tr.GetStorageManager().Get(append(rootHash, state.MigratedRootHashKeySuffix...))
+	if err != nil {
+		log.Error("failed to get migrated root hash", "err", err)
+		return
+	}
+
+	migratedDataTrie, err := tdt.getMigratedDataTrie(migratedDataTrieRootHash)
+	if err != nil {
+		log.Error("failed to get migrated trie", "err", err)
+		return
+	}
+
+	tdt.migratedTrie = migratedDataTrie
+}
+
+func (tdt *trackableDataTrie) getMigratedDataTrie(rootHash []byte) (state.DataTrie, error) {
+	migratedTrie, err := tdt.tr.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	migratedDataTrie, ok := migratedTrie.(state.DataTrie)
+	if !ok {
+		return nil, fmt.Errorf("invalid trie, type is %T", migratedTrie)
+	}
+
+	return migratedDataTrie, nil
 }
 
 // DataTrie sets the internal data trie
@@ -207,7 +252,13 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 			return nil, err
 		}
 
+		migratedTrie, err := tdt.getMigratedDataTrie(make([]byte, 0))
+		if err != nil {
+			return nil, err
+		}
+
 		tdt.tr = newDataTrie
+		tdt.migratedTrie = migratedTrie
 	}
 
 	dtr, ok := tdt.tr.(state.DataTrie)
@@ -215,7 +266,49 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 		return nil, fmt.Errorf("invalid trie, type is %T", tdt.tr)
 	}
 
-	return tdt.updateTrie(dtr)
+	migratedDataTrieRootHash, err := tdt.updateMigratedDataTrieAndCommit()
+	if err != nil {
+		return nil, err
+	}
+
+	oldValues, err := tdt.updateTrie(dtr)
+	if err != nil {
+		return nil, err
+	}
+
+	rootHash, err := tdt.tr.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	err = mainTrie.GetStorageManager().Put(append(rootHash, state.MigratedRootHashKeySuffix...), migratedDataTrieRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return oldValues, nil
+}
+
+func (tdt *trackableDataTrie) updateMigratedDataTrieAndCommit() ([]byte, error) {
+	for key, dataEntry := range tdt.dirtyData {
+		trieKey := tdt.getKeyForVersion([]byte(key), core.AutoBalanceEnabled)
+		trieVal, err := tdt.getValueForVersion([]byte(key), dataEntry.value, core.AutoBalanceEnabled)
+		if err != nil {
+			return nil, err
+		}
+
+		err = tdt.migratedTrie.UpdateWithVersion(trieKey, trieVal, core.AutoBalanceEnabled)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := tdt.migratedTrie.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return tdt.migratedTrie.RootHash()
 }
 
 func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, error) {

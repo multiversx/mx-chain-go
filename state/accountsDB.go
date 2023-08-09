@@ -37,6 +37,8 @@ const (
 	peerTrieSnapshotMsg     = "snapshotState peer trie"
 )
 
+var MigratedRootHashKeySuffix = []byte("migratedRootHash")
+
 type loadingMeasurements struct {
 	sync.Mutex
 	numCalls   uint64
@@ -905,6 +907,7 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	mainTrie := adb.getMainTrie()
+	trieStorage := mainTrie.GetStorageManager()
 	err := mainTrie.GetAllLeavesOnChannel(
 		leavesChannels,
 		context.Background(),
@@ -965,6 +968,13 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 		}
 
 		log.Debug("migrated trie", "oldRootHash", userAccount.GetRootHash(), "newRootHash", newRootHash)
+
+		migratedRootHashKey := append(originalRootHash, MigratedRootHashKeySuffix...)
+		err = trieStorage.Put(migratedRootHashKey, newRootHash)
+		if err != nil {
+			log.Error("error while putting migrated root hash", "err", err)
+			return
+		}
 	}
 
 	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
