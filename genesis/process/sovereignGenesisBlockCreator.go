@@ -21,7 +21,7 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 	}, nil
 }
 
-// CreateGenesisBlocks will try to create the genesis blocks for all shards
+// CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
