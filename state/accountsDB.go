@@ -205,10 +205,6 @@ func handleLoggingWhenError(message string, err error, extraArguments ...interfa
 
 // SetSyncer sets the given syncer as the syncer for the underlying trie
 func (adb *AccountsDB) SetSyncer(syncer AccountsDBSyncer) error {
-	if check.IfNil(syncer) {
-		return ErrNilTrieSyncer
-	}
-
 	return adb.snapshotsManger.SetSyncer(syncer)
 }
 
@@ -1103,38 +1099,6 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
-}
-
-func (adb *AccountsDB) waitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
-	if args.SnapshotWaitTimeout < args.WaitTimeForSnapshotEpochCheck {
-		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), args.SnapshotWaitTimeout)
-	defer cancel()
-
-	for {
-		storageManager := adb.getMainTrie().GetStorageManager()
-		latestStorageEpoch, err := storageManager.GetLatestStorageEpoch()
-		if err != nil {
-			return err
-		}
-
-		if latestStorageEpoch == args.Epoch {
-			return nil
-		}
-
-		if storageManager.IsClosed() {
-			return core.ErrContextClosing
-		}
-
-		select {
-		case <-time.After(args.WaitTimeForSnapshotEpochCheck):
-			continue
-		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for storage epoch change, snapshot epoch %d", args.Epoch)
-		}
-	}
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

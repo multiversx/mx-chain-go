@@ -15,8 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
-// StorageEpochChangeWaitArgs are the args needed for calling the WaitForStorageEpochChange function
-type StorageEpochChangeWaitArgs struct {
+// storageEpochChangeWaitArgs are the args needed for calling the WaitForStorageEpochChange function
+type storageEpochChangeWaitArgs struct {
 	TrieStorageManager            common.StorageManager
 	Epoch                         uint32
 	WaitTimeForSnapshotEpochCheck time.Duration
@@ -51,7 +51,7 @@ type snapshotsManager struct {
 	mutex                sync.RWMutex
 }
 
-// 	NewSnapshotsManager creates a new snapshots manager
+// NewSnapshotsManager creates a new snapshots manager
 func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, ErrNilMarshalizer
@@ -125,7 +125,7 @@ func (sm *snapshotsManager) StartSnapshotAfterRestartIfNeeded(trieStorageManager
 
 	rootHash, epoch, err := sm.getSnapshotRootHashAndEpoch(trieStorageManager)
 	if err != nil {
-		log.Debug("could not retrieve snapshot info", "error", err)
+		log.Warn("could not retrieve snapshot info", "error", err)
 		return nil
 	}
 
@@ -136,9 +136,6 @@ func (sm *snapshotsManager) StartSnapshotAfterRestartIfNeeded(trieStorageManager
 }
 
 func (sm *snapshotsManager) getSnapshotRootHashAndEpoch(trieStorageManager common.StorageManager) ([]byte, uint32, error) {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
-
 	rootHash, err := trieStorageManager.GetFromCurrentEpoch([]byte(lastSnapshot))
 	if err != nil {
 		return nil, 0, err
@@ -160,7 +157,7 @@ func (sm *snapshotsManager) SnapshotState(
 ) {
 	sm.mutex.Lock()
 
-	stats, skipSnapshot := sm.verifyAndStartSnapshot(rootHash, epoch, trieStorageManager)
+	stats, skipSnapshot := sm.prepareSnapshot(rootHash, epoch, trieStorageManager)
 	if skipSnapshot {
 		log.Debug("skipping snapshot",
 			"last snapshot rootHash", sm.lastSnapshot.rootHash,
@@ -188,7 +185,7 @@ func (sm *snapshotsManager) SetStateCheckpoint(rootHash []byte, trieStorageManag
 }
 
 func (sm *snapshotsManager) setStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager) {
-	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
+	log.Trace("snapshotsManager.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
 
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
@@ -212,7 +209,7 @@ func (sm *snapshotsManager) setStateCheckpoint(rootHash []byte, trieStorageManag
 	sm.waitForCompletionIfAppropriate(stats)
 }
 
-func (sm *snapshotsManager) verifyAndStartSnapshot(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager) (*snapshotStatistics, bool) {
+func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager) (*snapshotStatistics, bool) {
 	snapshotAlreadyTaken := bytes.Equal(sm.lastSnapshot.rootHash, rootHash) && sm.lastSnapshot.epoch == epoch
 	if snapshotAlreadyTaken {
 		return nil, true
@@ -242,7 +239,7 @@ func (sm *snapshotsManager) snapshotState(
 	trieStorageManager common.StorageManager,
 	stats *snapshotStatistics,
 ) {
-	err := sm.waitForStorageEpochChange(StorageEpochChangeWaitArgs{
+	err := sm.waitForStorageEpochChange(storageEpochChangeWaitArgs{
 		TrieStorageManager:            trieStorageManager,
 		Epoch:                         epoch,
 		WaitTimeForSnapshotEpochCheck: waitTimeForSnapshotEpochCheck,
@@ -288,7 +285,7 @@ func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics) {
 	sm.isSnapshotInProgress.Reset()
 }
 
-func (sm *snapshotsManager) waitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
+func (sm *snapshotsManager) waitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
 	if args.SnapshotWaitTimeout < args.WaitTimeForSnapshotEpochCheck {
 		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
 	}
@@ -317,7 +314,6 @@ func (sm *snapshotsManager) waitForStorageEpochChange(args StorageEpochChangeWai
 
 		select {
 		case <-timer.C:
-			continue
 		case <-ctx.Done():
 			return fmt.Errorf("timeout waiting for storage epoch change, snapshot epoch %d", args.Epoch)
 		}
@@ -339,7 +335,11 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 
 	for leaf := range iteratorChannels.LeavesChan {
 		userAccount, skipAccount, err := getUserAccountFromBytes(sm.accountFactory, sm.marshaller, leaf.Key(), leaf.Value())
-		if skipAccount || err != nil {
+		if err != nil {
+			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+			return
+		}
+		if skipAccount {
 			continue
 		}
 

@@ -153,14 +153,6 @@ func getDefaultStateComponents(
 	return adb, tr, trieStorage
 }
 
-func getStorageEpochChangeWaitArgs() state.StorageEpochChangeWaitArgs {
-	return state.StorageEpochChangeWaitArgs{
-		Epoch:                         1,
-		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
-		SnapshotWaitTimeout:           time.Second,
-	}
-}
-
 func TestNewAccountsDB(t *testing.T) {
 	t.Parallel()
 
@@ -3071,103 +3063,6 @@ func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
 	acc, err = adb.LoadAccount(addr)
 	require.Nil(t, err)
 	require.NotNil(t, acc)
-}
-
-func TestAccountsDB_WaitForStorageEpochChange(t *testing.T) {
-	t.Parallel()
-
-	t.Run("invalid args", func(t *testing.T) {
-		t.Parallel()
-
-		args := getStorageEpochChangeWaitArgs()
-		args.SnapshotWaitTimeout = time.Millisecond
-
-		adb := generateAccountDBFromTrie(&trieMock.TrieStub{})
-		err := adb.WaitForStorageEpochChange(args)
-		assert.Error(t, err)
-	})
-
-	t.Run("getLatestStorageEpoch error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedError := errors.New("getLatestStorageEpoch error")
-
-		trieStub := &trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, expectedError
-					},
-				}
-			},
-		}
-		adb := generateAccountDBFromTrie(trieStub)
-
-		err := adb.WaitForStorageEpochChange(getStorageEpochChangeWaitArgs())
-		assert.Equal(t, expectedError, err)
-	})
-
-	t.Run("storage manager closed error", func(t *testing.T) {
-		t.Parallel()
-
-		trieStub := &trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, nil
-					},
-					IsClosedCalled: func() bool {
-						return true
-					},
-				}
-			},
-		}
-
-		adb := generateAccountDBFromTrie(trieStub)
-
-		err := adb.WaitForStorageEpochChange(getStorageEpochChangeWaitArgs())
-		assert.Equal(t, core.ErrContextClosing, err)
-	})
-
-	t.Run("storage epoch change timeout", func(t *testing.T) {
-		t.Parallel()
-
-		args := getStorageEpochChangeWaitArgs()
-		args.WaitTimeForSnapshotEpochCheck = time.Millisecond
-		args.SnapshotWaitTimeout = time.Millisecond * 5
-
-		trieStub := &trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, nil
-					},
-				}
-			},
-		}
-		adb := generateAccountDBFromTrie(trieStub)
-
-		err := adb.WaitForStorageEpochChange(args)
-		assert.Error(t, err)
-	})
-
-	t.Run("returns when latestStorageEpoch == snapshotEpoch", func(t *testing.T) {
-		t.Parallel()
-
-		trieStub := &trieMock.TrieStub{
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 1, nil
-					},
-				}
-			},
-		}
-		adb := generateAccountDBFromTrie(trieStub)
-
-		err := adb.WaitForStorageEpochChange(getStorageEpochChangeWaitArgs())
-		assert.Nil(t, err)
-	})
 }
 
 func testAccountMethodsConcurrency(

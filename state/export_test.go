@@ -3,7 +3,9 @@ package state
 import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"time"
 )
 
 // LastSnapshotStarted -
@@ -27,11 +29,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 // GetObsoleteHashes -
 func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
-}
-
-// WaitForStorageEpochChange
-func (adb *AccountsDB) WaitForStorageEpochChange(args StorageEpochChangeWaitArgs) error {
-	return adb.waitForStorageEpochChange(args)
 }
 
 // GetCode -
@@ -92,4 +89,19 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 	defer sm.mutex.RUnlock()
 
 	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
+}
+
+// GetStorageEpochChangeWaitArgs -
+func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
+	return storageEpochChangeWaitArgs{
+		Epoch:                         1,
+		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
+		SnapshotWaitTimeout:           time.Second,
+		TrieStorageManager:            &storageManager.StorageManagerStub{},
+	}
+}
+
+// WaitForStorageEpochChange
+func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
+	return sm.waitForStorageEpochChange(args)
 }

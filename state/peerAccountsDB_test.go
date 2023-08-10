@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
