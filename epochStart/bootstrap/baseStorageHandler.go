@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"encoding/hex"
-	"fmt"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -11,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -56,27 +54,6 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	}
 
 	return sliceToRet, nil
-}
-
-func (bsh *baseStorageHandler) saveMetaHdrToStaticStorage(metaBlock data.HeaderHandler) error {
-	headerBytes, err := bsh.marshalizer.Marshal(metaBlock)
-	if err != nil {
-		return err
-	}
-
-	epochStartStaticStorage, err := bsh.storageService.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
-	if err != nil {
-		return err
-	}
-
-	epoch := fmt.Sprint(metaBlock.GetEpoch())
-	epochStartMetaBlockKey := append([]byte(common.EpochStartStaticBlocksKeyPrefix), []byte(epoch)...)
-	err = epochStartStaticStorage.Put(epochStartMetaBlockKey, headerBytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler) ([]byte, error) {
@@ -173,26 +150,6 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	return nil
 }
 
-func (bsh *baseStorageHandler) saveMiniblocksToStaticStorage(miniblocks map[string]*block.MiniBlock) error {
-	hashes := make([]string, 0, len(miniblocks))
-	for hash, mb := range miniblocks {
-		mbBytes, err := bsh.marshalizer.Marshal(mb)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := bsh.storageService.Put(dataRetriever.EpochStartMetaBlockUnit, []byte(hash), mbBytes)
-		if errNotCritical != nil {
-			log.Warn("baseStorageHandler.saveMiniblocksToStaticStorage - not a critical error", "error", errNotCritical)
-		}
-
-		hashes = append(hashes, hex.EncodeToString([]byte(hash)))
-	}
-
-	log.Debug("baseStorageHandler.saveMiniblocksToStaticStorage", "saved miniblocks", strings.Join(hashes, ", "))
-	return nil
-}
-
 func (bsh *baseStorageHandler) saveMiniblocks(miniblocks map[string]*block.MiniBlock) {
 	hashes := make([]string, 0, len(miniblocks))
 	for hash, mb := range miniblocks {
@@ -220,15 +177,11 @@ func (bsh *baseStorageHandler) saveMiniblocksFromComponents(components *Componen
 	log.Debug("saving pending miniblocks", "num pending miniblocks", len(components.PendingMiniBlocks))
 	bsh.saveMiniblocks(components.PendingMiniBlocks)
 
-	_ = bsh.saveMiniblocksToStaticStorage(components.PendingMiniBlocks)
-
 	peerMiniblocksMap := bsh.convertPeerMiniblocks(components.PeerMiniBlocks)
 	log.Debug("saving peer miniblocks",
 		"num peer miniblocks in slice", len(components.PeerMiniBlocks),
 		"num peer miniblocks in map", len(peerMiniblocksMap))
 	bsh.saveMiniblocks(peerMiniblocksMap)
-
-	_ = bsh.saveMiniblocksToStaticStorage(peerMiniblocksMap)
 }
 
 func (bsh *baseStorageHandler) convertPeerMiniblocks(slice []*block.MiniBlock) map[string]*block.MiniBlock {

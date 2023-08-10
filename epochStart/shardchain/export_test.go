@@ -1,6 +1,6 @@
 package shardchain
 
-// SaveEpochStartInfoToStaticStorage -
-func (t *trigger) SaveEpochStartInfoToStaticStorage() error {
-	return t.saveEpochStartInfoToStaticStorage()
+// SaveEpochStartInfoToStaticStorer -
+func (t *trigger) SaveEpochStartInfoToStaticStorer() error {
+	return t.saveEpochStartInfoToStaticStorer()
 }

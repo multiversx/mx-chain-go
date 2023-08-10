@@ -22,6 +22,7 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -216,6 +217,7 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 		},
 	}
 	sesb.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	sesb.storageService = genericMocks.NewChainStorerMock(0)
 
 	params, err := sesb.requestAndProcessFromStorage()
 
@@ -453,6 +455,7 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	sesb.requestHandler = &testscommon.RequestHandlerStub{}
 	sesb.epochStartMeta = metaBlock
 	sesb.prevEpochStartMeta = metaBlock
+	sesb.storageService = genericMocks.NewChainStorerMock(0)
 
 	err := sesb.processNodesConfig([]byte("pubkey"))
 

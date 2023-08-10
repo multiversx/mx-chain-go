@@ -844,7 +844,7 @@ func TestTrigger_SaveEpochStartInfoToStaticStorage(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, epochStartTrigger)
 
-	err = epochStartTrigger.SaveEpochStartInfoToStaticStorage()
+	err = epochStartTrigger.SaveEpochStartInfoToStaticStorer()
 	require.Nil(t, err)
 	require.Equal(t, 4, putCalls)
 }

@@ -748,30 +748,6 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	return true, finalityAttestingRound
 }
 
-func (t *trigger) saveSyncedPeerMiniBlocksToCache(blockBody data.BodyHandler) error {
-	body, ok := blockBody.(*block.Body)
-	if !ok {
-		return epochStart.ErrWrongTypeAssertion
-	}
-
-	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.Type != block.PeerBlock {
-			continue
-		}
-
-		miniBlockHash, err := core.CalculateHash(t.marshaller, t.hasher, miniBlock)
-		if err != nil {
-			log.Warn("saveSyncedPeerMiniBlocksToCache.CalculateHash", "error", err.Error())
-			return err
-		}
-		t.miniBlocksPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
-
-		log.Debug("saveSyncedPeerMiniBlocksToCache: peer miniblocks", "hash", miniBlockHash)
-	}
-
-	return nil
-}
-
 // call only if mutex is locked before
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderHandler) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)

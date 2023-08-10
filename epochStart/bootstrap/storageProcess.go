@@ -400,21 +400,28 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	if shardId > sesb.baseData.numberOfShards && shardId != core.MetachainShardId {
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
+
+	epochStartStaticStorer, err := sesb.storageService.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	if err != nil {
+		return err
+	}
+
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:            sesb.dataPool,
-		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:      sesb.requestHandler,
-		ChanceComputer:      sesb.rater,
-		GenesisNodesConfig:  sesb.genesisNodesConfig,
-		NodeShuffler:        sesb.nodeShuffler,
-		Hasher:              sesb.coreComponentsHolder.Hasher(),
-		PubKey:              pubKey,
-		ShardIdAsObserver:   shardId,
-		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:       sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
-		NumStoredEpochs:     sesb.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
+		DataPool:               sesb.dataPool,
+		Marshalizer:            sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:         sesb.requestHandler,
+		ChanceComputer:         sesb.rater,
+		GenesisNodesConfig:     sesb.genesisNodesConfig,
+		NodeShuffler:           sesb.nodeShuffler,
+		Hasher:                 sesb.coreComponentsHolder.Hasher(),
+		PubKey:                 pubKey,
+		ShardIdAsObserver:      shardId,
+		ChanNodeStop:           sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:       sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:          sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler:    sesb.coreComponentsHolder.EnableEpochsHandler(),
+		NumStoredEpochs:        sesb.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
+		EpochStartStaticStorer: epochStartStaticStorer,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

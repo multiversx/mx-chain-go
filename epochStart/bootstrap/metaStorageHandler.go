@@ -209,11 +209,6 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock data.HeaderHandler) (boo
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
 	}
 
-	err = msh.saveMetaHdrToStaticStorage(metaBlock)
-	if err != nil {
-		return bootstrapStorage.BootstrapHeaderInfo{}, err
-	}
-
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
 		Epoch:   metaBlock.GetEpoch(),

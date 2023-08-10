@@ -1673,6 +1673,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}, nil
 			},
 		}
+		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
@@ -1732,6 +1733,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}, nil
 			},
 		}
+		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
@@ -1801,6 +1803,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
+		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
@@ -1871,6 +1874,7 @@ func TestRequestAndProcessing(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
+		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
@@ -1956,6 +1960,7 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 	epochStartProvider.dataPool = dataRetrieverMock.NewPoolsHolderMock()
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 
 	pksBytes := createPkBytes(args.GenesisNodesConfig.NumberOfShards())
 
@@ -2029,6 +2034,8 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
 	epochStartProvider.prevEpochStartMeta = &block.MetaBlock{}
+	epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
+
 	peerMiniBlocks, err := epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)
 	assert.Empty(t, peerMiniBlocks)
