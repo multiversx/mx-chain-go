@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -70,6 +71,8 @@ type ArgsExporter struct {
 	NumConcurrentTrieSyncers  int
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
+
+	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 type exportHandlerFactory struct {
@@ -110,6 +113,8 @@ type exportHandlerFactory struct {
 	numConcurrentTrieSyncers  int
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
+
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -236,6 +241,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, update.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -272,6 +280,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		statusCoreComponents:      args.StatusCoreComponents,
+		shardCoordinatorFactory:   args.ShardCoordinatorFactory,
 	}
 
 	return e, nil
@@ -378,12 +387,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsRequesters := ArgsRequestersContainerFactory{
-		ShardCoordinator:       e.shardCoordinator,
-		Messenger:              e.messenger,
-		Marshaller:             e.CoreComponents.InternalMarshalizer(),
-		ExistingRequesters:     e.existingRequesters,
-		OutputAntifloodHandler: e.outputAntifloodHandler,
-		PeersRatingHandler:     e.peersRatingHandler,
+		ShardCoordinator:        e.shardCoordinator,
+		Messenger:               e.messenger,
+		Marshaller:              e.CoreComponents.InternalMarshalizer(),
+		ExistingRequesters:      e.existingRequesters,
+		OutputAntifloodHandler:  e.outputAntifloodHandler,
+		PeersRatingHandler:      e.peersRatingHandler,
+		ShardCoordinatorFactory: e.shardCoordinatorFactory,
 	}
 	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
 	if err != nil {
@@ -588,6 +598,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
 		InterceptorsContainer:   e.interceptorsContainer,
 		AntifloodHandler:        e.inputAntifloodHandler,
+		ShardCoordinatorFactory: e.shardCoordinatorFactory,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

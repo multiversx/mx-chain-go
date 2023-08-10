@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -23,23 +24,25 @@ const (
 )
 
 type requestersContainerFactory struct {
-	shardCoordinator       sharding.Coordinator
-	messenger              dataRetriever.TopicMessageHandler
-	marshaller             marshal.Marshalizer
-	intRandomizer          dataRetriever.IntRandomizer
-	container              dataRetriever.RequestersContainer
-	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
-	peersRatingHandler     dataRetriever.PeersRatingHandler
+	shardCoordinator        sharding.Coordinator
+	messenger               dataRetriever.TopicMessageHandler
+	marshaller              marshal.Marshalizer
+	intRandomizer           dataRetriever.IntRandomizer
+	container               dataRetriever.RequestersContainer
+	outputAntifloodHandler  dataRetriever.P2PAntifloodHandler
+	peersRatingHandler      dataRetriever.PeersRatingHandler
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // ArgsRequestersContainerFactory defines the arguments for the requestersContainerFactory constructor
 type ArgsRequestersContainerFactory struct {
-	ShardCoordinator       sharding.Coordinator
-	Messenger              dataRetriever.TopicMessageHandler
-	Marshaller             marshal.Marshalizer
-	ExistingRequesters     dataRetriever.RequestersContainer
-	OutputAntifloodHandler dataRetriever.P2PAntifloodHandler
-	PeersRatingHandler     dataRetriever.PeersRatingHandler
+	ShardCoordinator        sharding.Coordinator
+	Messenger               dataRetriever.TopicMessageHandler
+	Marshaller              marshal.Marshalizer
+	ExistingRequesters      dataRetriever.RequestersContainer
+	OutputAntifloodHandler  dataRetriever.P2PAntifloodHandler
+	PeersRatingHandler      dataRetriever.PeersRatingHandler
+	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // NewRequestersContainerFactory creates a new container filled with topic requesters
@@ -62,15 +65,19 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 	if check.IfNil(args.PeersRatingHandler) {
 		return nil, update.ErrNilPeersRatingHandler
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	return &requestersContainerFactory{
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		marshaller:             args.Marshaller,
-		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
-		container:              args.ExistingRequesters,
-		outputAntifloodHandler: args.OutputAntifloodHandler,
-		peersRatingHandler:     args.PeersRatingHandler,
+		shardCoordinator:        args.ShardCoordinator,
+		messenger:               args.Messenger,
+		marshaller:              args.Marshaller,
+		intRandomizer:           &random.ConcurrentSafeIntRandomizer{},
+		container:               args.ExistingRequesters,
+		outputAntifloodHandler:  args.OutputAntifloodHandler,
+		peersRatingHandler:      args.PeersRatingHandler,
+		shardCoordinatorFactory: args.ShardCoordinatorFactory,
 	}, nil
 }
 
@@ -138,7 +145,7 @@ func (rcf *requestersContainerFactory) checkIfRequesterExists(topic string) bool
 func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string, targetShardID uint32) (dataRetriever.Requester, error) {
 	// for each requester we create a pseudo-intra shard topic as to make at least of half of the requests target the proper peers
 	// this pseudo-intra shard topic is the consensus_targetShardID
-	targetShardCoordinator, err := sharding.NewMultiShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
+	targetShardCoordinator, err := rcf.shardCoordinatorFactory.CreateShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
 	if err != nil {
 		return nil, err
 	}

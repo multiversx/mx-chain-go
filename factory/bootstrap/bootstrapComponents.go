@@ -43,6 +43,7 @@ type BootstrapComponentsFactoryArgs struct {
 	StatusCoreComponents             factory.StatusCoreComponentsHolder
 	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
 type bootstrapComponentsFactory struct {
@@ -57,6 +58,7 @@ type bootstrapComponentsFactory struct {
 	statusCoreComponents             factory.StatusCoreComponentsHolder
 	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
 type bootstrapComponents struct {
@@ -96,6 +98,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:                           args.Config,
@@ -109,6 +114,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		statusCoreComponents:             args.StatusCoreComponents,
 		chainRunType:                     args.ChainRunType,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}, nil
 }
 
@@ -146,6 +152,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bcf.cryptoComponents.PublicKey(),
 		bcf.prefConfig.Preferences,
 		log,
+		bcf.shardCoordinatorFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -219,6 +226,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		TrieSyncStatisticsProvider:       tss,
 		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -230,6 +238,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
 			ChainRunType:                     bcf.chainRunType,
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+			ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
@@ -254,7 +263,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		"numShards", bootstrapParameters.NumOfShards,
 	)
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(
+	shardCoordinator, err := bcf.shardCoordinatorFactory.CreateShardCoordinator(
 		bootstrapParameters.NumOfShards,
 		bootstrapParameters.SelfShardId)
 	if err != nil {

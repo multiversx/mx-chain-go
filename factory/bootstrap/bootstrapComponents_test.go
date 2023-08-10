@@ -98,6 +98,15 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
 	})
+	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.ShardCoordinatorFactory = nil
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
+	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
