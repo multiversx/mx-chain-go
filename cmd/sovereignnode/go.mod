@@ -6,7 +6,7 @@ replace github.com/multiversx/mx-chain-go => ../../../mx-chain-go
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230717142101-59f40d2b9027
+	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230728093439-a4ffe12ea77f
 	github.com/multiversx/mx-chain-go v1.5.9-0.20230704130032-d1d35fc7862d
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230704120543-ebb0ce706b76
