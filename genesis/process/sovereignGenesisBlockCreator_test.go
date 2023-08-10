@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,6 +16,14 @@ func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	gbc, _ := NewGenesisBlockCreator(arg)
 	return gbc
+}
+
+func createSovereignGenesisBlockCreator(t *testing.T) GenesisBlockCreatorHandler {
+	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	gbc, _ := NewGenesisBlockCreator(arg)
+	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
+	return sgbc
 }
 
 func TestNewSovereignGenesisBlockCreator(t *testing.T) {
@@ -56,8 +65,7 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	t.Parallel()
 
-	gbc := createGenesisBlockCreator(t)
-	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
+	sgbc := createSovereignGenesisBlockCreator(t)
 
 	blocks, err := sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)

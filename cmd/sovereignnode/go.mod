@@ -2,12 +2,10 @@ module github.com/multiversx/mx-chain-go/sovereignnode
 
 go 1.17
 
-replace github.com/multiversx/mx-chain-go => ../../../mx-chain-go
-
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230728093439-a4ffe12ea77f
-	github.com/multiversx/mx-chain-go v1.5.9-0.20230704130032-d1d35fc7862d
+	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230703132206-b44cc03248c9
+	github.com/multiversx/mx-chain-go v1.5.9-0.20230706111957-6ee9685aad83
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230704120543-ebb0ce706b76
 	github.com/stretchr/testify v1.8.2
