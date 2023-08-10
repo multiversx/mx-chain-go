@@ -49,6 +49,8 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
+	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	require.Nil(t, err)
 	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
@@ -68,6 +70,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		configs.GeneralConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
+		epochStartStaticStorer,
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
