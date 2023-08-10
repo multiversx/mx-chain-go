@@ -589,3 +589,6 @@ var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
+
+// ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
+var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")

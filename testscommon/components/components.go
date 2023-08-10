@@ -261,9 +261,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
-				MaxFullHistoryObservers: 10,
-			},
 		},
 	}
 
@@ -295,10 +292,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pCfg,
-		MainConfig:    mainConfig,
-		StatusHandler: appStatusHandler,
-		Marshalizer:   &mock.MarshalizerMock{},
+		MainP2pConfig:     p2pCfg,
+		NodeOperationMode: p2p.NormalOperation,
+		MainConfig:        mainConfig,
+		StatusHandler:     appStatusHandler,
+		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -312,9 +310,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &p2pFactory.LocalSyncTimer{},
-		NodeOperationMode: p2p.NormalOperation,
-		CryptoComponents:  cryptoCompMock,
+		Syncer:           &p2pFactory.LocalSyncTimer{},
+		CryptoComponents: cryptoCompMock,
 	}
 }
 
