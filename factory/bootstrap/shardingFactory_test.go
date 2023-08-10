@@ -211,6 +211,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, errErd.ErrNilShuffleOutCloser, err)
 		require.True(t, check.IfNil(nodesC))
@@ -237,6 +238,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -263,6 +265,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, errErd.ErrNilEpochStartNotifier, err)
 		require.True(t, check.IfNil(nodesC))
@@ -289,6 +292,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, errErd.ErrNilPublicKey, err)
 		require.True(t, check.IfNil(nodesC))
@@ -315,6 +319,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, errErd.ErrNilBootstrapParamsHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -341,6 +346,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Equal(t, nodesCoordinator.ErrNilNodeStopChannel, err)
 		require.True(t, check.IfNil(nodesC))
@@ -369,6 +375,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -401,6 +408,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -433,6 +441,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -465,6 +474,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -497,6 +507,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -550,6 +561,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -603,6 +615,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			defaultNumStoredEpochs,
+			&storage.StorerStub{},
 		)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(nodesC))
