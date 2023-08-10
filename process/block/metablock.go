@@ -1205,7 +1205,7 @@ func (mp *metaProcessor) CommitBlock(
 	// must be called before commitEpochStart
 	rewardsTxs := mp.getRewardsTxs(header, body)
 
-	mp.commitEpochStart(header, body)
+	mp.commitEpochStart(header, marshalizedHeader, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
@@ -1213,10 +1213,6 @@ func (mp *metaProcessor) CommitBlock(
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
-	}
-
-	if header.IsStartOfEpochBlock() {
-		mp.saveEpochStartInfoToStaticStorage(header, marshalizedHeader, body)
 	}
 
 	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
@@ -1563,8 +1559,9 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 	return rewardsTx
 }
 
-func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
+func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, marshalizedHeader []byte, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
+		mp.saveEpochStartInfoToStaticStorage(header, marshalizedHeader, body)
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)

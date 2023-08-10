@@ -397,11 +397,11 @@ func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
 			log.Debug("validatorInfoCreator.saveValidatorInfo.Put", "hash", validatorInfoHash, "error", err)
 		}
 
+		// TODO: evaluate moving to process/block/metachain
 		err = vic.epochStartStaticStorage.Put(validatorInfoHash, marshalledData)
 		if err != nil {
 			log.Debug("validatorInfoCreator.epochStartStaticStorage.Put", "hash", validatorInfoHash, "error", err)
 		}
-		log.Debug("validatorInfoCreator.epochStartStaticStorage.Put to static storer", "hash", validatorInfoHash) // TODO: remove log
 	}
 }
 

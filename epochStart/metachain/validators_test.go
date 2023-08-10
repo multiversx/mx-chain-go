@@ -232,6 +232,17 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilEnableEpochsHandler
 	require.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
+func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilEpochStartStaticStorage(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.EpochStartStaticStorage = nil
+	vic, err := NewValidatorInfoCreator(arguments)
+
+	require.Nil(t, vic)
+	require.Equal(t, epochStart.ErrNilStorage, err)
+}
+
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
 	t.Parallel()
 

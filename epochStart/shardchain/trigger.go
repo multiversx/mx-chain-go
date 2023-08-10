@@ -984,12 +984,12 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.epochStartShardHeader = shardHdr
 	finishedStartOfEpochMetaHdrs := t.getAllFinishedStartOfEpochMetaHdrs()
 
-	t.epochStartNotifier.NotifyAll(shardHdr)
-
 	err := t.saveEpochStartInfoToStaticStorer()
 	if err != nil {
 		log.Warn("SetProcessed: failed to save epoch start info to static storage", "error", err)
 	}
+
+	t.epochStartNotifier.NotifyAll(shardHdr)
 
 	t.mapHashHdr = make(map[string]data.HeaderHandler)
 	t.mapNonceHashes = make(map[uint64][]string)
