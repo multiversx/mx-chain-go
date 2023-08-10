@@ -3,15 +3,10 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -40,130 +35,6 @@ type NodesCoordinatorRegistry struct {
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) error {
 	return ihnc.baseLoadState(key, epoch)
-}
-
-func GetNodesCoordinatorRegistryFromStatic(
-	key []byte, // old key
-	storer storage.Storer,
-	lastEpoch uint32,
-	numStoredEpochs uint32,
-) (*NodesCoordinatorRegistry, error) {
-	return nil, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoDataFromStatic(
-	txHash []byte,
-	epoch uint32,
-) (*state.ShardValidatorInfo, error) {
-	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
-		shardValidatorInfoBytes, err := ihnc.epochStartStaticStorer.Get(txHash)
-		if err != nil {
-			log.Error("getShardValidatorInfoDataFromStatic: ", "key", txHash, "error", err)
-			return nil, err
-		}
-
-		shardValidatorInfo := &state.ShardValidatorInfo{}
-		err = ihnc.marshalizer.Unmarshal(shardValidatorInfo, shardValidatorInfoBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		return shardValidatorInfo, nil
-	}
-
-	shardValidatorInfo := &state.ShardValidatorInfo{}
-	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return shardValidatorInfo, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
-	metaBlock data.HeaderHandler,
-	epoch uint32,
-) ([]*state.ShardValidatorInfo, error) {
-	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-
-	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
-
-	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
-
-	debug.PrintStack()
-
-	for i, mbHeader := range mbHeaderHandlers {
-		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
-			continue
-		}
-
-		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
-
-		mbBytes, err := ihnc.epochStartStaticStorer.Get(mbHeader.GetHash())
-		if err != nil {
-			log.Error("createValidatorInfoFromStatic: ", "key", mbHeader.GetHash(), "error", err)
-			continue
-		}
-		mb := &block.MiniBlock{}
-		err = ihnc.marshalizer.Unmarshal(mb, mbBytes)
-		if err != nil {
-			log.Error("createValidatorInfoFromStatic: Unmarshal ", "key", mbHeader.GetHash(), "error", err)
-			return nil, err
-		}
-
-		blockBody.MiniBlocks = append(blockBody.MiniBlocks, mb)
-
-		for _, txHash := range mb.TxHashes {
-			shardValidatorInfo, err := ihnc.getShardValidatorInfoDataFromStatic(txHash, epoch)
-			if err != nil {
-				return nil, err
-			}
-
-			allValidatorInfo = append(allValidatorInfo, shardValidatorInfo)
-		}
-	}
-
-	return allValidatorInfo, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) NodesConfigFromMetaBlock(
-	epoch uint32,
-) (*NodesCoordinatorRegistry, error) {
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
-	metaBlockBytes, err := ihnc.epochStartStaticStorer.Get(epochStartBootstrapKey)
-	if err != nil {
-		return nil, err
-	}
-
-	metaBlock := &block.MetaBlock{}
-	err = ihnc.marshalizer.Unmarshal(metaBlock, metaBlockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	if metaBlock.GetNonce() > 1 && !metaBlock.IsStartOfEpochBlock() {
-		return nil, epochStart.ErrNotEpochStartBlock
-	}
-
-	// get shard validators info
-	// from body if no refactored peer miniblocks
-	// from additional saved validator info data
-	//    similar as in EpochStartPrepare?
-
-	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	// set nodes config as in SetNodesConfigFromValidatorsInfo from lite implementation
-
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, metaBlock.GetRandSeed(), validatorsInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
 }
 
 // GetNodesCoordinatorRegistry will get the nodes coordinator registry from boot storage

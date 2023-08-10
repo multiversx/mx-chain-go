@@ -96,7 +96,7 @@ type indexHashedNodesCoordinator struct {
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
 	numStoredEpochs               uint32
 	nodesConfigCacher             Cacher
-	epochStartStaticStorer        storage.Storer
+	epochStartStaticStorer        storage.Storer // TODO: will be used in following PR
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -232,9 +232,6 @@ func checkArguments(args ArgNodesCoordinator) error {
 	}
 	if check.IfNil(args.NodesConfigCache) {
 		return ErrNilNodesConfigCacher
-	}
-	if check.IfNil(args.EpochStartStaticStorer) {
-		return ErrNilEpochStartStaticStorer
 	}
 
 	return nil
@@ -729,15 +726,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.mutSavedStateKey.Unlock()
 
 	ihnc.consensusGroupCacher.Clear()
-
-	log.Warn("will run nodes config from meta block")
-	epochToSet := metaHdr.GetEpoch() - 1
-	if epochToSet > 0 {
-		_, err = ihnc.NodesConfigFromMetaBlock(epochToSet)
-		if err != nil {
-			log.Error("failed to set nodes config from metablock", "error", err.Error())
-		}
-	}
 
 }
 

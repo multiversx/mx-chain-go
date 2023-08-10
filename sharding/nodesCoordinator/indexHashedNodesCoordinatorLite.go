@@ -46,14 +46,6 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		return err
 	}
 
-	log.Debug("SetNodesConfigFromValidatorsInfo: display")
-	displayNodesConfiguration(
-		resUpdateNodes.Eligible,
-		resUpdateNodes.Waiting,
-		leavingNodesMap,
-		make(map[uint32][]Validator),
-		newNodesConfig.nbShards)
-
 	ihnc.removeOlderEpochs(epoch, ihnc.numStoredEpochs)
 
 	return nil
