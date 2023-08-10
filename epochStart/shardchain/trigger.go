@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -691,12 +692,6 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 	if err != nil {
 		log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
 	}
-
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(metaHdr.GetEpoch()))...)
-	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, metaBuff)
-	if err != nil {
-		log.Debug("updateTriggerMeta put into epochStartStaticStorage", "error", err.Error())
-	}
 }
 
 // call only if mutex is locked before
@@ -753,31 +748,25 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	return true, finalityAttestingRound
 }
 
-func (t *trigger) saveSyncedMiniBlocksToStaticStorage(blockBody data.BodyHandler) error {
+func (t *trigger) saveSyncedPeerMiniBlocksToCache(blockBody data.BodyHandler) error {
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		if body.MiniBlocks[i].Type != block.PeerBlock {
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.PeerBlock {
 			continue
 		}
 
-		marshalizedMiniBlock, err := t.marshaller.Marshal(body.MiniBlocks[i])
+		miniBlockHash, err := core.CalculateHash(t.marshaller, t.hasher, miniBlock)
 		if err != nil {
-			log.Warn("saveSyncedMiniBlocksToStaticStorage.Marshal", "error", err.Error())
+			log.Warn("saveSyncedPeerMiniBlocksToCache.CalculateHash", "error", err.Error())
 			return err
 		}
+		t.miniBlocksPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 
-		miniBlockHash := t.hasher.Compute(string(marshalizedMiniBlock))
-		err = t.epochStartStaticStorage.Put(miniBlockHash, marshalizedMiniBlock)
-		if err != nil {
-			log.Warn("saveSyncedMiniBlocksToStaticStorage.Put miniblock", "error", err.Error())
-			return err
-		}
-
-		log.Debug("saveSyncedMiniBlocksToStaticStorage: peer miniblocks", "hash", miniBlockHash)
+		log.Debug("saveSyncedPeerMiniBlocksToCache: peer miniblocks", "hash", miniBlockHash)
 	}
 
 	return nil
@@ -797,11 +786,6 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
-	err = t.saveSyncedMiniBlocksToStaticStorage(blockBody)
-	if err != nil {
-		return false, 0
-	}
-
 	if metaHdr.GetEpoch() >= t.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
 		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
@@ -812,15 +796,6 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 
 		for validatorInfoHash, validatorInfo := range validatorsInfo {
 			t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
-
-			validatorInfoMarshalled, err := t.marshaller.Marshal(validatorInfo)
-			if err != nil {
-				return false, 0
-			}
-			err = t.epochStartStaticStorage.Put([]byte(validatorInfoHash), validatorInfoMarshalled)
-			if err != nil {
-				return false, 0
-			}
 		}
 	}
 
@@ -1035,6 +1010,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 
 	t.epochStartNotifier.NotifyAll(shardHdr)
 
+	// t.saveEpochStartInfoToStaticStorage()
+
 	t.mapHashHdr = make(map[string]data.HeaderHandler)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]data.HeaderHandler)
@@ -1063,6 +1040,91 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	for _, metaHdr := range finishedStartOfEpochMetaHdrs {
 		t.saveEpochStartMeta(metaHdr)
 	}
+}
+
+// this has to be run under trigger mutex
+func (t *trigger) saveEpochStartInfoToStaticStorage() error {
+	epoch := t.metaEpoch
+
+	// handler epoch start meta
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	marshalledMetaBlock, err := t.metaHdrStorage.Get([]byte(epochStartIdentifier))
+	if err != nil {
+		log.Debug("saveEpochStartInfoToStaticStorage get metaBlock from metaHdrStorage", "error", err.Error())
+		return err
+	}
+
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, marshalledMetaBlock)
+	if err != nil {
+		log.Debug("saveEpochStartInfoToStaticStorage put into epochStartStaticStorage", "error", err.Error())
+		return err
+	}
+	log.Debug("saveEpochStartInfoToStaticStorage put metaBlock into epochStartStaticStorage", "epoch", epoch)
+
+	// handle peer miniblocks
+	var epochStartMetablock data.HeaderHandler
+	err = t.marshaller.Unmarshal(epochStartMetablock, marshalledMetaBlock)
+	if err != nil {
+		log.Debug("saveEpochStartInfoToStaticStorage.Unmarshal metaBlock", "error", err.Error())
+		return err
+	}
+
+	for _, miniBlockHeader := range epochStartMetablock.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() != int32(block.PeerBlock) {
+			continue
+		}
+
+		miniBlockHash := miniBlockHeader.GetHash()
+		value, ok := t.miniBlocksPool.Get(miniBlockHash)
+		if !ok {
+			log.Debug("saveEpochStartInfoToStaticStorage: failed to get miniblock from pool", "miniblock hash", miniBlockHash)
+			return fmt.Errorf("key not found in miniblocks pool")
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("saveEpochStartInfoToStaticStorage: failed to cast miniblock")
+			return errors.ErrWrongTypeAssertion
+		}
+
+		marshalizedMiniBlock, err := t.marshaller.Marshal(miniBlock)
+		if err != nil {
+			log.Debug("saveSyncedMiniBlocksToStaticStorage.Marshal", "error", err.Error())
+			return err
+		}
+
+		err = t.epochStartStaticStorage.Put(miniBlockHash, marshalizedMiniBlock)
+		if err != nil {
+			log.Debug("saveSyncedMiniBlocksToStaticStorage.Put miniblock", "error", err.Error())
+			return err
+		}
+		log.Debug("saveEpochStartInfoToStaticStorage put miniBlock into epochStartStaticStorage", "miniBlock hash", miniBlockHash)
+
+		if epoch >= t.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+			for _, txHash := range miniBlock.TxHashes {
+				validatorInfo, err := t.currentEpochValidatorInfoPool.GetValidatorInfo(txHash)
+				if err != nil {
+					log.Debug("saveSyncedMiniBlocksToStaticStorage.Put miniblock", "error", err.Error())
+					return err
+				}
+
+				validatorInfoMarshalled, err := t.marshaller.Marshal(validatorInfo)
+				if err != nil {
+					log.Debug("saveSyncedMiniBlocksToStaticStorage.Marshal validatorInfo", "error", err.Error())
+					return err
+				}
+				err = t.epochStartStaticStorage.Put([]byte(txHash), validatorInfoMarshalled)
+				if err != nil {
+					log.Debug("saveSyncedMiniBlocksToStaticStorage.Put miniblock", "error", err.Error())
+					return err
+				}
+				log.Debug("saveEpochStartInfoToStaticStorage put validatorInfo into epochStartStaticStorage", "validatorInfo hash", txHash)
+			}
+		}
+	}
+
+	return nil
 }
 
 // RevertStateToBlock will revert the state of the trigger to the current block

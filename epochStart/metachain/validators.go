@@ -401,6 +401,7 @@ func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
 		if err != nil {
 			log.Debug("validatorInfoCreator.epochStartStaticStorage.Put", "hash", validatorInfoHash, "error", err)
 		}
+		log.Debug("validatorInfoCreator.epochStartStaticStorage.Put to static storer", "hash", validatorInfoHash) // TODO: remove log
 	}
 }
 
