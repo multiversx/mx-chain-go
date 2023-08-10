@@ -506,6 +506,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
+			managedProcessComponents.ShardCoordinator().SelfId(),
 			managedStatusComponents.OutportHandler(),
 			nodesCoordinatorInstance,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
@@ -1665,6 +1666,7 @@ func copySingleFile(destinationDirectory string, sourceFile string) {
 }
 
 func indexValidatorsListIfNeeded(
+	shardID uint32,
 	outportHandler outport.OutportHandler,
 	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
@@ -1680,6 +1682,7 @@ func indexValidatorsListIfNeeded(
 
 	if len(validatorsPubKeys) > 0 {
 		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                shardID,
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  epoch,
 		})

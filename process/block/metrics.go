@@ -173,7 +173,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{RoundsInfo: []*outportcore.RoundInfo{roundInfo}})
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: []*outportcore.RoundInfo{roundInfo}})
 		return
 	}
 
@@ -206,7 +206,7 @@ func indexRoundInfo(
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{RoundsInfo: roundsInfo})
+	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
 }
 
 func indexValidatorsRating(
