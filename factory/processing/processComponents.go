@@ -1132,6 +1132,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		arg := &outport.OutportBlockWithHeaderAndBody{
 			OutportBlock: &outport.OutportBlock{
+				ShardID:   currentShardID,
 				BlockData: nil, // this will be filled by outport handler
 				HeaderGasConsumption: &outport.HeaderGasConsumption{
 					GasProvided:    0,
