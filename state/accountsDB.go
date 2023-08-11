@@ -922,6 +922,8 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 
 	trieMigrator := NewDataTrieMigratorMock()
 
+	log.Debug("starting data trie migration", "rootHash", rootHash)
+
 	for leaf := range leavesChannels.LeavesChan {
 		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
 		if err != nil {
@@ -949,30 +951,9 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 			return
 		}
 
-		argsMigrateDataTrieLeaves := vmcommon.ArgsMigrateDataTrieLeaves{
-			OldVersion:   core.NotSpecified,
-			NewVersion:   core.AutoBalanceEnabled,
-			TrieMigrator: trieMigrator,
-		}
-
-		err = dataTrie.CollectLeavesForMigration(argsMigrateDataTrieLeaves)
+		err = adb.migrateDataTrie(originalRootHash, dataTrie, trieMigrator, trieStorage, userAccount.AddressBytes())
 		if err != nil {
-			log.Error("error while collecting leaves for migration", "err", err)
-			return
-		}
-
-		newRootHash, err := adb.createAndCommitMigratedTrie(trieMigrator.GetLeavesToBeMigrated(), userAccount.AddressBytes())
-		if err != nil {
-			log.Error("error while creating and committing migrated trie", "err", err)
-			return
-		}
-
-		log.Debug("migrated trie", "oldRootHash", userAccount.GetRootHash(), "newRootHash", newRootHash)
-
-		migratedRootHashKey := append(originalRootHash, MigratedRootHashKeySuffix...)
-		err = trieStorage.Put(migratedRootHashKey, newRootHash)
-		if err != nil {
-			log.Error("error while putting migrated root hash", "err", err)
+			log.Error("error while migrating data trie", "err", err)
 			return
 		}
 	}
@@ -983,8 +964,36 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 	}
 }
 
+func (adb *AccountsDB) migrateDataTrie(originalRootHash []byte, dataTrie DataTrie, trieMigrator vmcommon.DataTrieMigrator, trieStorage common.StorageManager, address []byte) error {
+	argsMigrateDataTrieLeaves := vmcommon.ArgsMigrateDataTrieLeaves{
+		OldVersion:   core.NotSpecified,
+		NewVersion:   core.AutoBalanceEnabled,
+		TrieMigrator: trieMigrator,
+	}
+
+	err := dataTrie.CollectLeavesForMigration(argsMigrateDataTrieLeaves)
+	if err != nil {
+		return err
+
+	}
+
+	newRootHash, err := adb.createAndCommitMigratedTrie(trieMigrator.GetLeavesToBeMigrated(), address)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("migrated trie",
+		"rootHash", originalRootHash,
+		"migratedRootHash", newRootHash,
+		"address", address,
+	)
+
+	migratedRootHashKey := append(originalRootHash, MigratedRootHashKeySuffix...)
+	return trieStorage.Put(migratedRootHashKey, newRootHash)
+}
+
 func (adb *AccountsDB) createAndCommitMigratedTrie(leavesToBeMigrated []core.TrieData, address []byte) ([]byte, error) {
-	newTrie, err := adb.getMainTrie().Recreate(make([]byte, 0))
+	newTrie, err := adb.mainTrie.Recreate(make([]byte, 0))
 	if err != nil {
 		return nil, err
 	}
@@ -1517,12 +1526,32 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(
 			userAccountRootHash := userAccount.GetRootHash()
 			adb.mainTrie.GetStorageManager().TakeSnapshot(address, userAccountRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 
-			stats.NewSnapshotStarted()
 			migratedDataTrieRootHash, err := adb.mainTrie.GetStorageManager().Get(append(userAccountRootHash, MigratedRootHashKeySuffix...))
 			if err != nil {
-				log.Error("could not get migrated data trie root hash", "error", err)
+				log.Warn("could not get migrated data trie root hash", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
+
+				dataTrie, err := adb.mainTrie.Recreate(userAccountRootHash)
+				if err != nil {
+					log.Warn("could not recreate data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
+					continue
+				}
+
+				dt, ok := dataTrie.(DataTrie)
+				if !ok {
+					log.Warn("could not get data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
+					continue
+				}
+
+				stats.NewSnapshotStarted()
+				err = adb.migrateDataTrie(userAccountRootHash, dt, NewDataTrieMigratorMock(), adb.mainTrie.GetStorageManager(), userAccount.AddressBytes())
+				if err != nil {
+					log.Error("could not migrate data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
+				}
+				stats.SnapshotFinished()
 				continue
 			}
+
+			stats.NewSnapshotStarted()
 			adb.mainTrie.GetStorageManager().TakeSnapshot(address, migratedDataTrieRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 			continue
 		}
