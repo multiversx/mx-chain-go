@@ -26,7 +26,7 @@ func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 }
 
 // ProcessReceivedMessage -
-func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
 	}

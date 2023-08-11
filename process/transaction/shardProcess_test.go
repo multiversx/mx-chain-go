@@ -93,6 +93,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
 }
@@ -277,6 +278,17 @@ func TestNewTxProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilTxLogsProcessor, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EnableRoundsHandler = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	assert.Nil(t, txProc)
 }
 
@@ -701,7 +713,7 @@ func TestTxProcessor_ProcessWithWrongAssertionShouldErr(t *testing.T) {
 	args := createArgsForTxProcessor()
 	args.Accounts = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return &mock.PeerAccountHandlerMock{}, nil
+			return &stateMock.PeerAccountHandlerMock{}, nil
 		},
 	}
 
@@ -3246,37 +3258,43 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 	t.Parallel()
 
-	args := createArgsForTxProcessor()
-	sender := []byte("sender")
-	relayer := []byte("relayer")
-	originalTx := &transaction.Transaction{
-		SndAddr: relayer,
-		RcvAddr: sender,
-	}
-	originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
-	assert.Nil(t, err)
-
 	t.Run("not a non-executable error should not record log", func(t *testing.T) {
 		t.Parallel()
 
-		argsLocal := args
-		argsLocal.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		args := createArgsForTxProcessor()
+		sender := []byte("sender")
+		relayer := []byte("relayer")
+		originalTx := &transaction.Transaction{
+			SndAddr: relayer,
+			RcvAddr: sender,
+		}
+		originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
+		assert.Nil(t, err)
+		args.TxLogsProcessor = &mock.TxLogsProcessorStub{
 			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 				assert.Fail(t, "should have not called SaveLog")
 
 				return nil
 			},
 		}
-		txProc, _ := txproc.NewTxProcessor(argsLocal)
+		txProc, _ := txproc.NewTxProcessor(args)
 		err = txProc.AddNonExecutableLog(errors.New("random error"), originalTxHash, originalTx)
 		assert.Nil(t, err)
 	})
 	t.Run("is non executable tx error should record log", func(t *testing.T) {
 		t.Parallel()
 
-		argsLocal := args
+		args := createArgsForTxProcessor()
+		sender := []byte("sender")
+		relayer := []byte("relayer")
+		originalTx := &transaction.Transaction{
+			SndAddr: relayer,
+			RcvAddr: sender,
+		}
+		originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
+		assert.Nil(t, err)
 		numLogsSaved := 0
-		argsLocal.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		args.TxLogsProcessor = &mock.TxLogsProcessorStub{
 			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 				assert.Equal(t, originalTxHash, txHash)
 				assert.Equal(t, originalTx, tx)
@@ -3292,7 +3310,7 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 			},
 		}
 
-		txProc, _ := txproc.NewTxProcessor(argsLocal)
+		txProc, _ := txproc.NewTxProcessor(args)
 		err = txProc.AddNonExecutableLog(process.ErrLowerNonceInTransaction, originalTxHash, originalTx)
 		assert.Nil(t, err)
 

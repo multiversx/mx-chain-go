@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
@@ -10,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -20,7 +23,8 @@ const defaultTargetShardID = uint32(0)
 
 type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
-	messenger              dataRetriever.TopicMessageHandler
+	mainMessenger          p2p.Messenger
+	fullArchiveMessenger   p2p.Messenger
 	marshalizer            marshal.Marshalizer
 	dataTrieContainer      common.TriesHolder
 	container              dataRetriever.ResolversContainer
@@ -32,7 +36,8 @@ type resolversContainerFactory struct {
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator           sharding.Coordinator
-	Messenger                  dataRetriever.TopicMessageHandler
+	MainMessenger              p2p.Messenger
+	FullArchiveMessenger       p2p.Messenger
 	Marshalizer                marshal.Marshalizer
 	DataTrieContainer          common.TriesHolder
 	ExistingResolvers          dataRetriever.ResolversContainer
@@ -46,8 +51,11 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.Messenger) {
-		return nil, update.ErrNilMessenger
+	if check.IfNil(args.MainMessenger) {
+		return nil, fmt.Errorf("%w on main network", update.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return nil, fmt.Errorf("%w on full archive network", update.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
@@ -65,7 +73,8 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	}
 	return &resolversContainerFactory{
 		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
+		mainMessenger:          args.MainMessenger,
+		fullArchiveMessenger:   args.FullArchiveMessenger,
 		marshalizer:            args.Marshalizer,
 		dataTrieContainer:      args.DataTrieContainer,
 		container:              args.ExistingResolvers,
@@ -143,11 +152,13 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 
 	arg := topicsender.ArgTopicResolverSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			Messenger:            rcf.messenger,
-			TopicName:            baseTopic,
-			OutputAntiflooder:    rcf.outputAntifloodHandler,
-			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:        defaultTargetShardID,
+			MainMessenger:                   rcf.mainMessenger,
+			FullArchiveMessenger:            rcf.fullArchiveMessenger,
+			TopicName:                       baseTopic,
+			OutputAntiflooder:               rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                   defaultTargetShardID,
 		},
 	}
 	resolverSender, err := topicsender.NewTopicResolverSender(arg)
@@ -170,7 +181,12 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	err = rcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -39,7 +40,7 @@ import (
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -171,6 +172,13 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		RoundConfig: &config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "18446744073709551615",
+				},
+			},
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -178,7 +186,7 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -207,7 +215,7 @@ func createMockArgument(
 			return nil
 		},
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewEmptyPeerAccount(), nil
+			return accounts.NewPeerAccount(address)
 		},
 	}
 

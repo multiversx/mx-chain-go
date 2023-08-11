@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -412,7 +413,7 @@ func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests
 
 		for index := range nodes {
 			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
-			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount, _ := accounts.NewPeerAccount(pubKey)
 			peerAccount.List = string(common.InactiveList)
 			peerAccount.BLSPublicKey = pubKey
 			err := node.PeerState.SaveAccount(peerAccount)

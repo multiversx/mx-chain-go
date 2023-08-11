@@ -38,7 +38,7 @@ func CreateResolverRequester(
 	})
 
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
+	err := nRequester.MainMessenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.MainMessenger))
 	Log.LogIfError(err)
 
 	time.Sleep(time.Second)
