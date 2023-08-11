@@ -69,7 +69,6 @@ type StorageServiceFactoryArgs struct {
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
-	SnapshotsEnabled              bool
 	RepopulateTokensSupplies      bool
 	ChainRunType                  common.ChainRunType
 }
@@ -105,7 +104,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		oldDataCleanerProvider:        oldDataCleanProvider,
 		storageType:                   args.StorageType,
 		nodeProcessingMode:            args.NodeProcessingMode,
-		snapshotsEnabled:              args.SnapshotsEnabled,
+		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
 		chainRunType:                  args.ChainRunType,
 	}, nil

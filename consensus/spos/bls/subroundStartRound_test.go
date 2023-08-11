@@ -423,6 +423,226 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	assert.True(t, r)
 }
 
+func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not in consensus node", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasCalled = true
+					assert.Equal(t, value, "not in consensus group")
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState.SetSelfPubKey("not in consensus")
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			executeStoredMessages,
+		)
+		srStartRound.Check()
+		assert.True(t, wasCalled)
+	})
+	t.Run("participant node", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasCalled = true
+					assert.Equal(t, value, "participant")
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			executeStoredMessages,
+		)
+		srStartRound.Check()
+		assert.True(t, wasCalled)
+	})
+	t.Run("main key leader", func(t *testing.T) {
+		t.Parallel()
+
+		wasMetricConsensusStateCalled := false
+		wasMetricCountLeaderCalled := false
+		cntMetricConsensusRoundStateCalled := 0
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasMetricConsensusStateCalled = true
+					assert.Equal(t, value, "proposer")
+				}
+				if key == common.MetricConsensusRoundState {
+					cntMetricConsensusRoundStateCalled++
+					switch cntMetricConsensusRoundStateCalled {
+					case 1:
+						assert.Equal(t, value, "")
+					case 2:
+						assert.Equal(t, value, "proposed")
+					default:
+						assert.Fail(t, "should have been called only twice")
+					}
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountLeader {
+					wasMetricCountLeaderCalled = true
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		leader, _ := consensusState.GetLeader()
+		consensusState.SetSelfPubKey(leader)
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			executeStoredMessages,
+		)
+		srStartRound.Check()
+		assert.True(t, wasMetricConsensusStateCalled)
+		assert.True(t, wasMetricCountLeaderCalled)
+		assert.Equal(t, 2, cntMetricConsensusRoundStateCalled)
+	})
+	t.Run("managed key leader", func(t *testing.T) {
+		t.Parallel()
+
+		wasMetricConsensusStateCalled := false
+		wasMetricCountLeaderCalled := false
+		cntMetricConsensusRoundStateCalled := 0
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasMetricConsensusStateCalled = true
+					assert.Equal(t, value, "proposer")
+				}
+				if key == common.MetricConsensusRoundState {
+					cntMetricConsensusRoundStateCalled++
+					switch cntMetricConsensusRoundStateCalled {
+					case 1:
+						assert.Equal(t, value, "")
+					case 2:
+						assert.Equal(t, value, "proposed")
+					default:
+						assert.Fail(t, "should have been called only twice")
+					}
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountLeader {
+					wasMetricCountLeaderCalled = true
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		leader, _ := consensusState.GetLeader()
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return string(pkBytes) == leader
+		}
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			executeStoredMessages,
+		)
+		srStartRound.Check()
+		assert.True(t, wasMetricConsensusStateCalled)
+		assert.True(t, wasMetricCountLeaderCalled)
+		assert.Equal(t, 2, cntMetricConsensusRoundStateCalled)
+	})
+}
+
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 

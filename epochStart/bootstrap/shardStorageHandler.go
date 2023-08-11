@@ -41,7 +41,6 @@ func NewShardStorageHandler(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	nodeProcessingMode common.NodeProcessingMode,
-	snapshotsEnabled bool,
 	managedPeersHolder common.ManagedPeersHolder,
 	chainRunType common.ChainRunType,
 ) (*shardStorageHandler, error) {
@@ -58,7 +57,6 @@ func NewShardStorageHandler(
 			StorageType:                   factory.BootstrapStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            nodeProcessingMode,
-			SnapshotsEnabled:              snapshotsEnabled,
 			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:            managedPeersHolder,
 			ChainRunType:                  chainRunType,

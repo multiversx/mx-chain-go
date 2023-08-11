@@ -30,14 +30,18 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -60,13 +64,15 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createAccount(address []byte) state.UserAccountHandler {
-	argsAccCreation := state.ArgsAccountCreation{
+	argsAccCreation := stateFactory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
-	acc, _ := state.NewUserAccount(address, argsAccCreation)
-	return acc
+	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
+	account, _ := accountFactory.CreateAccount(address)
+
+	return account.(state.UserAccountHandler)
 }
 
 func createAccounts(tx data.TransactionHandler) (state.UserAccountHandler, state.UserAccountHandler) {

@@ -120,7 +120,8 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
 			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
-			PeerMapper:                    &testsMocks.PeerShardMapperStub{},
+			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
+			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
 			ShardCoord:                    testscommon.NewMultiShardsCoordinatorMock(2),
 			RoundHandlerField: &testscommon.RoundHandlerMock{
 				TimeDurationCalled: func() time.Duration {
