@@ -252,12 +252,13 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 			return nil, err
 		}
 
+		tdt.tr = newDataTrie
+
 		migratedTrie, err := tdt.getMigratedDataTrie(make([]byte, 0))
 		if err != nil {
 			return nil, err
 		}
 
-		tdt.tr = newDataTrie
 		tdt.migratedTrie = migratedTrie
 	}
 
