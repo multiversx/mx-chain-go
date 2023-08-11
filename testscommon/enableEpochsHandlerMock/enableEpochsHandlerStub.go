@@ -110,6 +110,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsSCProcessorV2FlagEnabledField                              bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
@@ -119,6 +120,7 @@ type EnableEpochsHandlerStub struct {
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
 	IsRelayedNonceFixEnabledField                                bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
@@ -966,6 +968,14 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsSCProcessorV2FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSCProcessorV2FlagEnabledField
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	stub.RLock()
@@ -1036,6 +1046,14 @@ func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRelayedNonceFixEnabledField
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsDeterministicSortOnValidatorsInfoFixEnabledField
 }
 
 // IsKeepExecOrderOnCreatedSCRsEnabled -

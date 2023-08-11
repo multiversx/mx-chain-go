@@ -153,7 +153,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 	arg := createMockArgMultiDataInterceptor()
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
-	err := mdi.ProcessReceivedMessage(nil, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(nil, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -188,7 +188,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		DataField: []byte("data to be processed"),
 		PeerField: originatorPid,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, errExpeced, err)
 	assert.True(t, originatorBlackListed)
@@ -209,7 +209,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, process.ErrNoDataInMessage, err)
 }
@@ -251,7 +251,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 		DataField: dataField,
 		PeerField: originatorPid,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -301,7 +301,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -360,7 +360,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -401,7 +401,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -443,7 +443,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -496,7 +496,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -541,7 +541,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -611,7 +611,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 		PeerField: originator,
 	}
 
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, isFromConnectedPeerBlackListed)
 	assert.True(t, isOriginatorBlackListed)
@@ -686,7 +686,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	msg := &p2pmocks.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -699,7 +699,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
 		return false
 	}
-	err = mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err = mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, err, errOriginator)

@@ -140,6 +140,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.epochNotifier) {
 		return errors.ErrNilEpochNotifier
 	}
+	if check.IfNil(mcc.roundNotifier) {
+		return errors.ErrNilRoundNotifier
+	}
 	if check.IfNil(mcc.processStatusHandler) {
 		return errors.ErrNilProcessStatusHandler
 	}
@@ -471,6 +474,18 @@ func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	}
 
 	return mcc.coreComponents.epochNotifier
+}
+
+// RoundNotifier returns the epoch notifier
+func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.roundNotifier
 }
 
 // ChainParametersSubscriber returns the chain parameters subscriber

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
@@ -11,10 +12,11 @@ import (
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
 	IsImportDB                bool
+	ShardID                   uint32
 	RetrialInterval           time.Duration
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
-	HostDriverArgs            ArgsHostDriverFactory
+	HostDriversArgs           []ArgsHostDriverFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -25,6 +27,7 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 	}
 
 	cfg := outportcore.OutportConfig{
+		ShardID:          args.ShardID,
 		IsInImportDBMode: args.IsImportDB,
 	}
 
@@ -52,7 +55,14 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	return createAndSubscribeHostDriverIfNeeded(outport, args.HostDriverArgs)
+	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
+		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
+		if err != nil {
+			return fmt.Errorf("%w when calling createAndSubscribeHostDriverIfNeeded, host driver index %d", err, idx)
+		}
+	}
+
+	return nil
 }
 
 func createAndSubscribeElasticDriverIfNeeded(

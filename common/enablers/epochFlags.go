@@ -83,6 +83,7 @@ type epochFlagsHolder struct {
 	setSenderInEeiOutputTransferFlag            *atomic.Flag
 	changeDelegationOwnerFlag                   *atomic.Flag
 	refactorPeersMiniBlocksFlag                 *atomic.Flag
+	scProcessorV2Flag                           *atomic.Flag
 	fixAsyncCallBackArgsList                    *atomic.Flag
 	fixOldTokenLiquidity                        *atomic.Flag
 	runtimeMemStoreLimitFlag                    *atomic.Flag
@@ -92,6 +93,7 @@ type epochFlagsHolder struct {
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
 	relayedNonceFixFlag                         *atomic.Flag
+	deterministicSortOnValidatorsInfoFixFlag    *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
 	changeUsernameFlag                          *atomic.Flag
@@ -180,6 +182,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		setSenderInEeiOutputTransferFlag:            &atomic.Flag{},
 		changeDelegationOwnerFlag:                   &atomic.Flag{},
 		refactorPeersMiniBlocksFlag:                 &atomic.Flag{},
+		scProcessorV2Flag:                           &atomic.Flag{},
 		fixAsyncCallBackArgsList:                    &atomic.Flag{},
 		fixOldTokenLiquidity:                        &atomic.Flag{},
 		runtimeMemStoreLimitFlag:                    &atomic.Flag{},
@@ -189,6 +192,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
 		relayedNonceFixFlag:                         &atomic.Flag{},
+		deterministicSortOnValidatorsInfoFixFlag:    &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
@@ -641,6 +645,11 @@ func (holder *epochFlagsHolder) IsRefactorPeersMiniBlocksFlagEnabled() bool {
 	return holder.refactorPeersMiniBlocksFlag.IsSet()
 }
 
+// IsSCProcessorV2FlagEnabled returns true if scProcessorV2Flag is enabled
+func (holder *epochFlagsHolder) IsSCProcessorV2FlagEnabled() bool {
+	return holder.scProcessorV2Flag.IsSet()
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled returns true if fixAsyncCallBackArgsList is enabled
 func (holder *epochFlagsHolder) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return holder.fixAsyncCallBackArgsList.IsSet()
@@ -684,6 +693,11 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 // IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
 func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
 	return holder.relayedNonceFixFlag.IsSet()
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled returns true if deterministicSortOnValidatorsInfoFix is enabled
+func (holder *epochFlagsHolder) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return holder.deterministicSortOnValidatorsInfoFixFlag.IsSet()
 }
 
 // IsConsistentTokensValuesLengthCheckEnabled returns true if consistentTokensValuesCheckFlag is enabled

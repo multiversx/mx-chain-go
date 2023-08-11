@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,9 +33,10 @@ func TestNewValidatorGroup(t *testing.T) {
 	})
 }
 
+// ValidatorStatisticsResponse is the response for the validator statistics endpoint.
 type ValidatorStatisticsResponse struct {
-	Result map[string]*state.ValidatorApiResponse `json:"statistics"`
-	Error  string                                 `json:"error"`
+	Result map[string]*accounts.ValidatorApiResponse `json:"statistics"`
+	Error  string                                    `json:"error"`
 }
 
 func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
@@ -44,7 +45,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 	errStr := "error in facade"
 
 	facade := mock.FacadeStub{
-		ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+		ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
 			return nil, errors.New(errStr)
 		},
 	}
@@ -69,8 +70,8 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 
-	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	mapToReturn["test"] = &state.ValidatorApiResponse{
+	mapToReturn := make(map[string]*accounts.ValidatorApiResponse)
+	mapToReturn["test"] = &accounts.ValidatorApiResponse{
 		NumLeaderSuccess:    5,
 		NumLeaderFailure:    2,
 		NumValidatorSuccess: 7,
@@ -78,7 +79,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+		ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
 			return mapToReturn, nil
 		},
 	}
@@ -130,15 +131,15 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		mapToReturn := make(map[string]*state.ValidatorApiResponse)
-		mapToReturn["test"] = &state.ValidatorApiResponse{
+		mapToReturn := make(map[string]*accounts.ValidatorApiResponse)
+		mapToReturn["test"] = &accounts.ValidatorApiResponse{
 			NumLeaderSuccess:    5,
 			NumLeaderFailure:    2,
 			NumValidatorSuccess: 7,
 			NumValidatorFailure: 3,
 		}
 		facade := mock.FacadeStub{
-			ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+			ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
 				return mapToReturn, nil
 			},
 		}
@@ -162,7 +163,7 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		newFacade := mock.FacadeStub{
-			ValidatorStatisticsHandler: func() (map[string]*state.ValidatorApiResponse, error) {
+			ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
 				return nil, expectedErr
 			},
 		}

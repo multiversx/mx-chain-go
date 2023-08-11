@@ -778,7 +778,8 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
-	account, err := s.getPeerAccount(blsPubKey)
+
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(s.peerAccountsDB, blsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -790,12 +791,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if !isNew {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
 		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
@@ -1327,11 +1323,6 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 		}
 
 		err = peerAcc.SetRewardAddress(rewardAddress)
-		if err != nil {
-			return err
-		}
-
-		err = peerAcc.SetBLSPublicKey(blsKey)
 		if err != nil {
 			return err
 		}

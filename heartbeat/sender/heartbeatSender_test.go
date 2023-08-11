@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/heartbeat"
@@ -36,16 +35,27 @@ func createMockHeartbeatSenderArgs(argBase argBaseSender) argHeartbeatSender {
 func TestNewHeartbeatSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil peer messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		argBase := createMockBaseArgs()
-		argBase.messenger = nil
+		argBase.mainMessenger = nil
 		args := createMockHeartbeatSenderArgs(argBase)
 		senderInstance, err := newHeartbeatSender(args)
 
 		assert.Nil(t, senderInstance)
-		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		argBase := createMockBaseArgs()
+		argBase.fullArchiveMessenger = nil
+		args := createMockHeartbeatSenderArgs(argBase)
+		senderInstance, err := newHeartbeatSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -101,7 +111,7 @@ func TestNewHeartbeatSender(t *testing.T) {
 		args.privKey = nil
 		senderInstance, err := newHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
 	})
 	t.Run("nil redundancy handler should error", func(t *testing.T) {
@@ -111,7 +121,7 @@ func TestNewHeartbeatSender(t *testing.T) {
 		args.redundancyHandler = nil
 		senderInstance, err := newHeartbeatSender(args)
 
-		assert.True(t, check.IfNil(senderInstance))
+		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilRedundancyHandler, err)
 	})
 	t.Run("version number too long should error", func(t *testing.T) {
@@ -205,7 +215,7 @@ func TestNewHeartbeatSender(t *testing.T) {
 		args := createMockHeartbeatSenderArgs(createMockBaseArgs())
 		senderInstance, err := newHeartbeatSender(args)
 
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 		assert.Nil(t, err)
 	})
 }
@@ -278,7 +288,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(argsBase)
 		senderInstance, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 
 		err := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
@@ -301,7 +311,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 
 		args := createMockHeartbeatSenderArgs(argsBase)
 		senderInstance, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 
 		err := senderInstance.execute()
 		assert.Equal(t, expectedErr, err)
@@ -312,7 +322,20 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		providedNumTrieNodesSynced := 100
 		argsBase := createMockBaseArgs()
 		broadcastCalled := false
-		argsBase.messenger = &p2pmocks.MessengerStub{
+		argsBase.mainMessenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				assert.Equal(t, argsBase.topic, topic)
+				recoveredMessage := &heartbeat.HeartbeatV2{}
+				err := argsBase.marshaller.Unmarshal(recoveredMessage, buff)
+				assert.Nil(t, err)
+				pk := argsBase.privKey.GeneratePublic()
+				pkBytes, _ := pk.ToByteArray()
+				assert.Equal(t, pkBytes, recoveredMessage.Pubkey)
+				assert.Equal(t, uint64(providedNumTrieNodesSynced), recoveredMessage.NumTrieNodesSynced)
+				broadcastCalled = true
+			},
+		}
+		argsBase.fullArchiveMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Equal(t, argsBase.topic, topic)
 				recoveredMessage := &heartbeat.HeartbeatV2{}
@@ -343,7 +366,7 @@ func TestHeartbeatSender_execute(t *testing.T) {
 		}
 
 		senderInstance, _ := newHeartbeatSender(args)
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 
 		err := senderInstance.execute()
 		assert.Nil(t, err)
@@ -368,4 +391,15 @@ func TestHeartbeatSender_GetCurrentNodeType(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, string(common.EligibleList), peerType)
 	assert.Equal(t, core.FullHistoryObserver, subType)
+}
+
+func TestHeartbeatSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var senderInstance *heartbeatSender
+	assert.True(t, senderInstance.IsInterfaceNil())
+
+	args := createMockHeartbeatSenderArgs(createMockBaseArgs())
+	senderInstance, _ = newHeartbeatSender(args)
+	assert.False(t, senderInstance.IsInterfaceNil())
 }

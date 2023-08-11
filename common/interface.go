@@ -375,6 +375,7 @@ type EnableEpochsHandler interface {
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsSCProcessorV2FlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool
@@ -384,6 +385,7 @@ type EnableEpochsHandler interface {
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsSetGuardianEnabled() bool
 	IsRelayedNonceFixEnabled() bool
+	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool
@@ -425,6 +427,15 @@ type MissingTrieNodesNotifier interface {
 // StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
 type StateSyncNotifierSubscriber interface {
 	MissingDataTrieNodeFound(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
+type ManagedPeersMonitor interface {
+	GetManagedKeysCount() int
+	GetManagedKeys() [][]byte
+	GetEligibleManagedKeys() ([][]byte, error)
+	GetWaitingManagedKeys() ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

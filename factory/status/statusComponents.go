@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/outport"
 	outportDriverFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,11 +27,12 @@ import (
 )
 
 type statusComponents struct {
-	nodesCoordinator nodesCoordinator.NodesCoordinator
-	statusHandler    core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	softwareVersion  statistics.SoftwareVersionChecker
-	cancelFunc       func()
+	nodesCoordinator    nodesCoordinator.NodesCoordinator
+	statusHandler       core.AppStatusHandler
+	outportHandler      outport.OutportHandler
+	softwareVersion     statistics.SoftwareVersionChecker
+	managedPeersMonitor common.ManagedPeersMonitor
+	cancelFunc          func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
@@ -45,6 +47,7 @@ type StatusComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StateComponents      factory.StateComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
 }
 
@@ -60,6 +63,7 @@ type statusComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	stateComponents      factory.StateComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
 }
 
@@ -88,6 +92,9 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponents
+	}
 
 	return &statusComponentsFactory{
 		config:               args.Config,
@@ -101,6 +108,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		networkComponents:    args.NetworkComponents,
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
+		cryptoComponents:     args.CryptoComponents,
 	}, nil
 }
 
@@ -134,14 +142,26 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
+	managedPeersMonitorArgs := keysManagement.ArgManagedPeersMonitor{
+		ManagedPeersHolder: scf.cryptoComponents.ManagedPeersHolder(),
+		NodesCoordinator:   scf.nodesCoordinator,
+		ShardProvider:      scf.shardCoordinator,
+		EpochProvider:      scf.coreComponents.EpochNotifier(),
+	}
+	managedPeersMonitor, err := keysManagement.NewManagedPeersMonitor(managedPeersMonitorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	_, cancelFunc := context.WithCancel(context.Background())
 
 	statusComponentsInstance := &statusComponents{
-		nodesCoordinator: scf.nodesCoordinator,
-		softwareVersion:  softwareVersionChecker,
-		outportHandler:   outportHandler,
-		statusHandler:    scf.statusCoreComponents.AppStatusHandler(),
-		cancelFunc:       cancelFunc,
+		nodesCoordinator:    scf.nodesCoordinator,
+		softwareVersion:     softwareVersionChecker,
+		outportHandler:      outportHandler,
+		statusHandler:       scf.statusCoreComponents.AppStatusHandler(),
+		managedPeersMonitor: managedPeersMonitor,
+		cancelFunc:          cancelFunc,
 	}
 
 	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -162,6 +182,7 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 		}
 
 		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                hdr.GetShardID(),
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  currentEpoch,
 		})
@@ -190,7 +211,7 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
-	hostDriverArgs, err := scf.makeHostDriverArgs()
+	hostDriversArgs, err := scf.makeHostDriversArgs()
 	if err != nil {
 		return nil, err
 	}
@@ -201,10 +222,11 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		ShardID:                   scf.shardCoordinator.SelfId(),
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,
-		HostDriverArgs:            hostDriverArgs,
+		HostDriversArgs:           hostDriversArgs,
 		IsImportDB:                scf.isInImportMode,
 	}
 
@@ -250,18 +272,24 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFacto
 	}, nil
 }
 
-func (scf *statusComponentsFactory) makeHostDriverArgs() (outportDriverFactory.ArgsHostDriverFactory, error) {
-	if !scf.externalConfig.HostDriverConfig.Enabled {
-		return outportDriverFactory.ArgsHostDriverFactory{}, nil
+func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactory.ArgsHostDriverFactory, error) {
+	argsHostDriverFactorySlice := make([]outportDriverFactory.ArgsHostDriverFactory, 0, len(scf.externalConfig.HostDriversConfig))
+	for idx := 0; idx < len(scf.externalConfig.HostDriversConfig); idx++ {
+		hostConfig := scf.externalConfig.HostDriversConfig[idx]
+		if !hostConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(hostConfig.MarshallerType)
+		if err != nil {
+			return argsHostDriverFactorySlice, err
+		}
+
+		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsHostDriverFactory{
+			Marshaller: marshaller,
+			HostConfig: hostConfig,
+		})
 	}
 
-	marshaller, err := factoryMarshalizer.NewMarshalizer(scf.externalConfig.HostDriverConfig.MarshallerType)
-	if err != nil {
-		return outportDriverFactory.ArgsHostDriverFactory{}, err
-	}
-
-	return outportDriverFactory.ArgsHostDriverFactory{
-		Marshaller: marshaller,
-		HostConfig: scf.externalConfig.HostDriverConfig,
-	}, nil
+	return argsHostDriverFactorySlice, nil
 }

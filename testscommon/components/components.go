@@ -41,7 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -109,7 +109,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
-				"Example": {
+				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
 			},
@@ -259,6 +259,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -277,9 +282,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
-				MaxFullHistoryObservers: 10,
-			},
 		},
 	}
 
@@ -311,10 +313,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pCfg,
-		MainConfig:    mainConfig,
-		StatusHandler: appStatusHandler,
-		Marshalizer:   &mock.MarshalizerMock{},
+		MainP2pConfig:     p2pCfg,
+		NodeOperationMode: common.NormalOperation,
+		MainConfig:        mainConfig,
+		StatusHandler:     appStatusHandler,
+		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -328,9 +331,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &p2pFactory.LocalSyncTimer{},
-		NodeOperationMode: p2p.NormalOperation,
-		CryptoComponents:  cryptoCompMock,
+		Syncer:           &p2pFactory.LocalSyncTimer{},
+		CryptoComponents: cryptoCompMock,
 	}
 }
 
@@ -381,7 +383,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	return processArgs
 }
 
-//GetBootStrapFactoryArgs -
+// GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
@@ -612,6 +614,7 @@ func GetStatusComponents(
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
 		StatusCoreComponents: GetStatusCoreComponents(),
+		CryptoComponents:     GetDefaultCryptoComponents(),
 	}
 
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
@@ -664,11 +667,13 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				RequestTimeoutSec: 30,
 				MarshallerType:    "json",
 			},
-			HostDriverConfig: config.HostDriverConfig{
-				MarshallerType:     "json",
-				Mode:               "client",
-				URL:                "localhost:12345",
-				RetryDurationInSec: 1,
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType:     "json",
+					Mode:               "client",
+					URL:                "localhost:12345",
+					RetryDurationInSec: 1,
+				},
 			},
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
@@ -680,6 +685,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		StateComponents:      stateComponents,
 		StatusCoreComponents: statusCoreComponents,
 		IsInImportMode:       false,
+		CryptoComponents:     cryptoComponents,
 	}, processComponents
 }
 

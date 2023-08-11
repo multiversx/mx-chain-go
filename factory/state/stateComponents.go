@@ -28,7 +28,6 @@ type StateComponentsFactoryArgs struct {
 	StorageService           dataRetriever.StorageService
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
-	SnapshotsEnabled         bool
 	ChainHandler             chainData.ChainHandler
 }
 
@@ -39,7 +38,6 @@ type stateComponentsFactory struct {
 	storageService           dataRetriever.StorageService
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
-	snapshotsEnabled         bool
 	chainHandler             chainData.ChainHandler
 }
 
@@ -74,14 +72,12 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		processingMode:           args.ProcessingMode,
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		chainHandler:             args.ChainHandler,
-		snapshotsEnabled:         args.SnapshotsEnabled,
 	}, nil
 }
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
-		scf.snapshotsEnabled,
 		scf.config,
 		scf.core,
 		scf.storageService,
@@ -112,7 +108,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              scf.core.Hasher(),
 		Marshaller:          scf.core.InternalMarshalizer(),
 		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
