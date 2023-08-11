@@ -128,6 +128,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
+			ShardID:         odp.shardID,
 			BlockData:       nil, // this will be filled with specific data for each driver
 			TransactionPool: pool,
 			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
