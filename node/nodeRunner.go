@@ -357,7 +357,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartStaticUnit)
 	if err != nil {
 		return true, err
 	}

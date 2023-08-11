@@ -401,7 +401,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 
-	epochStartStaticStorer, err := sesb.storageService.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := sesb.storageService.GetStorer(dataRetriever.EpochStartStaticUnit)
 	if err != nil {
 		return err
 	}

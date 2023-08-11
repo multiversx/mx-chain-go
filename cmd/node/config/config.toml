@@ -183,14 +183,14 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[BootstrapStaticStorage]
-    [BootstrapStaticStorage.Cache]
-        Name = "BootstrapStaticStorage"
+[EpochStartStaticStorage]
+    [EpochStartStaticStorage.Cache]
+        Name = "EpochStartStaticStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
-    [BootstrapStaticStorage.DB]
-        FilePath = "BootstrapStaticData"
+    [EpochStartStaticStorage.DB]
+        FilePath = "EpochStartStaticData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100

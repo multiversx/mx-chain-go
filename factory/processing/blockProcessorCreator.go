@@ -792,7 +792,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	epochStartStaticStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.EpochStartStaticUnit)
 	if err != nil {
 		return nil, err
 	}

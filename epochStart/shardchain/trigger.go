@@ -217,7 +217,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	epochStartStaticStorage, err := args.Storage.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorage, err := args.Storage.GetStorer(dataRetriever.EpochStartStaticUnit)
 	if err != nil {
 		return nil, err
 	}

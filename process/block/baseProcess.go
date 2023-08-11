@@ -1290,7 +1290,7 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
 	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
-	err := bp.store.Put(dataRetriever.EpochStartMetaBlockUnit, epochStartBootstrapKey, marshalledHeader)
+	err := bp.store.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
 	if err != nil {
 		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
 	}
@@ -1306,7 +1306,7 @@ func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHan
 		}
 
 		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
-		err = bp.store.Put(dataRetriever.EpochStartMetaBlockUnit, miniBlockHash, marshalizedMiniBlock)
+		err = bp.store.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalizedMiniBlock)
 		if err != nil {
 			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
 		}

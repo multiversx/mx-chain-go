@@ -449,15 +449,15 @@ func (psf *StorageServiceFactory) createTrieUnit(
 }
 
 func (psf *StorageServiceFactory) setUpStaticCrossSharsStorageUnits(store dataRetriever.StorageService) error {
-	bootstrapStaticConfig := psf.generalConfig.BootstrapStaticStorage
-	bootstrapStaticDbConfig := GetDBFromConfig(bootstrapStaticConfig.DB)
-	bootstrapStaticDbConfig.FilePath = psf.pathManager.PathForStaticCrossData(bootstrapStaticConfig.DB.FilePath)
-	bootstrapStaticCacherConfig := GetCacherFromConfig(bootstrapStaticConfig.Cache)
-	bootstrapStaticStorageUnit, err := storageunit.NewStorageUnitFromConf(bootstrapStaticCacherConfig, bootstrapStaticDbConfig)
+	epochStartStaticConfig := psf.generalConfig.EpochStartStaticStorage
+	epochStartStaticDbConfig := GetDBFromConfig(epochStartStaticConfig.DB)
+	epochStartStaticDbConfig.FilePath = psf.pathManager.PathForStaticCrossData(epochStartStaticConfig.DB.FilePath)
+	bootstrapStaticCacherConfig := GetCacherFromConfig(epochStartStaticConfig.Cache)
+	bootstrapStaticStorageUnit, err := storageunit.NewStorageUnitFromConf(bootstrapStaticCacherConfig, epochStartStaticDbConfig)
 	if err != nil {
-		return fmt.Errorf("%w for BootstrapStaticStorage", err)
+		return fmt.Errorf("%w for EpochStartStaticStorage", err)
 	}
-	store.AddStorer(dataRetriever.EpochStartMetaBlockUnit, bootstrapStaticStorageUnit)
+	store.AddStorer(dataRetriever.EpochStartStaticUnit, bootstrapStaticStorageUnit)
 
 	return nil
 }

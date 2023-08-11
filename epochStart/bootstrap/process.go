@@ -725,7 +725,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 
-	epochStartStaticStorer, err := e.storageService.GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := e.storageService.GetStorer(dataRetriever.EpochStartStaticUnit)
 	if err != nil {
 		return nil, err
 	}

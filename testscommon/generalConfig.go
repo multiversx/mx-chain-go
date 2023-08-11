@@ -328,10 +328,10 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		BootstrapStaticStorage: config.StorageConfig{
+		EpochStartStaticStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("BootstrapStaticData"),
+				FilePath:          AddTimestampSuffix("EpochStartStaticData"),
 				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,

@@ -35,7 +35,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			ScheduledSCRsStorage:               createMockStorageConfig("ScheduledSCRsStorage"),
 			BootstrapStorage:                   createMockStorageConfig("BootstrapStorage"),
 			MiniBlocksStorage:                  createMockStorageConfig("MiniBlocksStorage"),
-			BootstrapStaticStorage:             createMockStorageConfig("BootstrapStaticStorage"),
+			EpochStartStaticStorage:            createMockStorageConfig("EpochStartStaticStorage"),
 			MetaBlockStorage:                   createMockStorageConfig("MetaBlockStorage"),
 			MetaHdrNonceHashStorage:            createMockStorageConfig("MetaHdrNonceHashStorage"),
 			BlockHeaderStorage:                 createMockStorageConfig("BlockHeaderStorage"),
@@ -412,10 +412,10 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.Config.BootstrapStaticStorage.Cache.Type = ""
+		args.Config.EpochStartStaticStorage.Cache.Type = ""
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 		storageService, err := storageServiceFactory.CreateForShard()
-		assert.Equal(t, expectedErrForCacheString+" for BootstrapStaticStorage", err.Error())
+		assert.Equal(t, expectedErrForCacheString+" for EpochStartStaticStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -511,10 +511,10 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.Config.BootstrapStaticStorage.Cache.Type = ""
+		args.Config.EpochStartStaticStorage.Cache.Type = ""
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 		storageService, err := storageServiceFactory.CreateForMeta()
-		assert.Equal(t, expectedErrForCacheString+" for BootstrapStaticStorage", err.Error())
+		assert.Equal(t, expectedErrForCacheString+" for EpochStartStaticStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
 	t.Run("should work", func(t *testing.T) {

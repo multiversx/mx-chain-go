@@ -285,7 +285,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 
 	bootstrapStorer, err := pr.DataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(tb, err)
-	epochStartStaticStorer, err := pr.DataComponents.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := pr.DataComponents.StorageService().GetStorer(dataRetriever.EpochStartStaticUnit)
 	require.Nil(tb, err)
 
 	numEpochsToStore := uint32(4)

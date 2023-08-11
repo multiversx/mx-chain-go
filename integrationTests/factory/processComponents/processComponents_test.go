@@ -50,7 +50,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
-	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartMetaBlockUnit)
+	epochStartStaticStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.EpochStartStaticUnit)
 	require.Nil(t, err)
 	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
