@@ -897,7 +897,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOOGReturnCodeEnableEpoch:                       46,
 			RemoveNonUpdatedStorageEnableEpoch:                47,
 			OptimizeNFTStoreEnableEpoch:                       48,
-			CreateNFTThroughExecByCallerEnableEpoch:            49,
+			CreateNFTThroughExecByCallerEnableEpoch:           49,
 			StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
 			FrontRunningProtectionEnableEpoch:                 51,
 			IsPayableBySCEnableEpoch:                          52,

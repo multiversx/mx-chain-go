@@ -253,7 +253,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err

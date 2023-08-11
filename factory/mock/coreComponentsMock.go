@@ -45,7 +45,7 @@ type CoreComponentsMock struct {
 	NodesConfig                    sharding.GenesisNodesSetupHandler
 	Shuffler                       nodesCoordinator.NodesShuffler
 	EpochChangeNotifier            process.EpochNotifier
-	RoundChangeNotifier          process.RoundNotifier
+	RoundChangeNotifier            process.RoundNotifier
 	EnableRoundsHandlerField       process.EnableRoundsHandler
 	EpochNotifierWithConfirm       factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler          process.TxVersionCheckerHandler

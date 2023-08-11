@@ -31,8 +31,8 @@ type CoreComponentsMock struct {
 	TxVersionCheckField            process.TxVersionCheckerHandler
 	EpochNotifierField             process.EpochNotifier
 	EnableEpochsHandlerField       common.EnableEpochsHandler
-	RoundNotifierField          process.RoundNotifier
-	EnableRoundsHandlerField    process.EnableRoundsHandler
+	RoundNotifierField             process.RoundNotifier
+	EnableRoundsHandlerField       process.EnableRoundsHandler
 	RoundField                     consensus.RoundHandler
 	StatusField                    core.AppStatusHandler
 	ChanStopNode                   chan endProcess.ArgEndProcess
