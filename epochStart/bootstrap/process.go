@@ -118,7 +118,7 @@ type epochStartBootstrap struct {
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
-	nodeOperationMode          p2p.NodeOperation
+	nodeOperationMode          common.NodeOperation
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -232,11 +232,11 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
-		nodeOperationMode:          p2p.NormalOperation,
+		nodeOperationMode:          common.NormalOperation,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
-		epochStartProvider.nodeOperationMode = p2p.FullArchiveMode
+		epochStartProvider.nodeOperationMode = common.FullArchiveMode
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
