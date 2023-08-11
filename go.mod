@@ -14,9 +14,9 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.5-0.20230805090807-4ef0f099265d
-	github.com/multiversx/mx-chain-core-go v1.2.11
+	github.com/multiversx/mx-chain-core-go v1.2.12
 	github.com/multiversx/mx-chain-crypto-go v1.2.7
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.7
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.8
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-scenario-go v1.1.2
 	github.com/multiversx/mx-chain-storage-go v1.0.11
@@ -56,6 +56,7 @@ require (
 	github.com/elastic/gosigar v0.14.2 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
