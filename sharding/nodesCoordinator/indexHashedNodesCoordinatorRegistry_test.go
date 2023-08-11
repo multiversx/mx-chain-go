@@ -9,9 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -537,4 +541,114 @@ func TestIndexHashedNodesCoordinator_SaveLoadNodesCoordinatorRegistry(t *testing
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.eligibleMap, actualConfig.eligibleMap))
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.waitingMap, actualConfig.waitingMap))
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.leavingMap, actualConfig.leavingMap))
+}
+
+func TestIndexHashedNodesCoordinator_NodesConfigFromMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(2)
+
+	args := createArguments()
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           2,
+		NodesMeta:            1,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+	}
+	nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	args.Shuffler = nodesShuffler
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		RefactorPeersMiniBlocksEnableEpochField: 1,
+	}
+	args.EpochStartStaticStorer = &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			var data []byte
+
+			if bytes.Equal(key, []byte(common.EpochStartStaticBootstrapKeyPrefix+fmt.Sprint(epoch))) {
+				data, _ = json.Marshal(&block.MetaBlock{
+					Epoch: 2,
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHeaderHash1"),
+							Type: block.PeerBlock,
+						},
+						{
+							Hash: []byte("mbHeaderHash2"),
+							Type: block.InvalidBlock,
+						},
+					},
+				})
+			} else if bytes.Equal(key, []byte("mbHeaderHash1")) {
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				})
+			} else if bytes.Equal(key, []byte("mbHeaderHash2")) {
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+					},
+					Type: block.TxBlock,
+				})
+			} else if bytes.Equal(key, []byte("txHash1")) {
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey1"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      0,
+					TempRating: 10,
+				})
+			} else if bytes.Equal(key, []byte("txHash2")) {
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey2"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      1,
+					TempRating: 11,
+				})
+			} else if bytes.Equal(key, []byte("txHash3")) {
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey3"),
+					ShardId:    core.MetachainShardId,
+					List:       "eligible",
+					Index:      2,
+					TempRating: 12,
+				})
+			} else if bytes.Equal(key, []byte("txHash4")) {
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey4"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      3,
+					TempRating: 13,
+				})
+			} else if bytes.Equal(key, []byte("txHash5")) {
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey5"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      4,
+					TempRating: 14,
+				})
+			}
+
+			return data, nil
+		},
+	}
+	ihnc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	_, err = ihnc.NodesConfigFromMetaBlock(epoch)
+	require.Nil(t, err)
 }
