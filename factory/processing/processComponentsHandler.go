@@ -90,7 +90,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.mainInterceptorsContainer) {
 		return fmt.Errorf("%w on main network", errors.ErrNilInterceptorsContainer)
 	}
-	if check.IfNil(m.processComponents.fullArchiveInterceptorsContainer) {
+	if check.IfNil(mpc.processComponents.fullArchiveInterceptorsContainer) {
 		return fmt.Errorf("%w on full archive network", errors.ErrNilInterceptorsContainer)
 	}
 	if check.IfNil(mpc.processComponents.resolversContainer) {
@@ -150,7 +150,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.mainPeerShardMapper) {
 		return fmt.Errorf("%w for main", errors.ErrNilPeerShardMapper)
 	}
-	if check.IfNil(m.processComponents.fullArchivePeerShardMapper) {
+	if check.IfNil(mpc.processComponents.fullArchivePeerShardMapper) {
 		return fmt.Errorf("%w for full archive", errors.ErrNilPeerShardMapper)
 	}
 	if check.IfNil(mpc.processComponents.fallbackHeaderValidator) {
