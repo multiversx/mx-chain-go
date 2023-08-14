@@ -91,7 +91,7 @@ func createSovereignSmartContractProcessorArguments() scrCommon.ArgsNewSmartCont
 }
 
 func createAccountsDB() *state.AccountsDB {
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              sovHasher,
 		Marshaller:          sovMarshaller,
 		EnableEpochsHandler: sovEnableEpochsHandler,

@@ -49,7 +49,7 @@ func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedMessagesCalls() {
 }
 
 // ProcessReceivedMessage -
-func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	return sposWorkerMock.ProcessReceivedMessageCalled(message)
 }
 

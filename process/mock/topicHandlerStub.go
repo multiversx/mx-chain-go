@@ -14,30 +14,39 @@ type TopicHandlerStub struct {
 }
 
 // HasTopic -
-func (ths *TopicHandlerStub) HasTopic(name string) bool {
-	return ths.HasTopicCalled(name)
+func (stub *TopicHandlerStub) HasTopic(name string) bool {
+	if stub.HasTopicCalled != nil {
+		return stub.HasTopicCalled(name)
+	}
+	return false
 }
 
 // CreateTopic -
-func (ths *TopicHandlerStub) CreateTopic(name string, createChannelForTopic bool) error {
-	return ths.CreateTopicCalled(name, createChannelForTopic)
+func (stub *TopicHandlerStub) CreateTopic(name string, createChannelForTopic bool) error {
+	if stub.CreateTopicCalled != nil {
+		return stub.CreateTopicCalled(name, createChannelForTopic)
+	}
+	return nil
 }
 
 // RegisterMessageProcessor -
-func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
-	return ths.RegisterMessageProcessorCalled(topic, identifier, handler)
+func (stub *TopicHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+	if stub.RegisterMessageProcessorCalled != nil {
+		return stub.RegisterMessageProcessorCalled(topic, identifier, handler)
+	}
+	return nil
 }
 
 // ID -
-func (ths *TopicHandlerStub) ID() core.PeerID {
-	if ths.IDCalled != nil {
-		return ths.IDCalled()
+func (stub *TopicHandlerStub) ID() core.PeerID {
+	if stub.IDCalled != nil {
+		return stub.IDCalled()
 	}
 
 	return "peer ID"
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ths *TopicHandlerStub) IsInterfaceNil() bool {
-	return ths == nil
+func (stub *TopicHandlerStub) IsInterfaceNil() bool {
+	return stub == nil
 }

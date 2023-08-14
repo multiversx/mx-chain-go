@@ -75,7 +75,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	round := uint64(0)
@@ -146,7 +146,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -583,16 +583,22 @@ func createHardForkExporter(
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		}
 
+		networkComponents := integrationTests.GetDefaultNetworkComponents()
+		networkComponents.Messenger = node.MainMessenger
+		networkComponents.FullArchiveNetworkMessengerField = node.FullArchiveMessenger
+		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
+		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,
+			NetworkComponents:    networkComponents,
 			HeaderValidator:      node.HeaderValidator,
 			DataPool:             node.DataPool,
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			Messenger:            node.Messenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
@@ -609,21 +615,20 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: exportConfig,
-			ExportStateKeysConfig:    keysConfig,
-			MaxTrieLevelInMemory:     uint(5),
-			WhiteListHandler:         node.WhiteListHandler,
-			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:    node.InterceptorsContainer,
-			ExistingResolvers:        node.ResolversContainer,
-			ExistingRequesters:       node.RequestersContainer,
-			NodesCoordinator:         node.NodesCoordinator,
-			HeaderSigVerifier:        node.HeaderSigVerifier,
-			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
-			ValidityAttester:         node.BlockTracker,
-			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			RoundHandler:             &mock.RoundHandlerMock{},
+			ExportStateStorageConfig:         exportConfig,
+			ExportStateKeysConfig:            keysConfig,
+			MaxTrieLevelInMemory:             uint(5),
+			WhiteListHandler:                 node.WhiteListHandler,
+			WhiteListerVerifiedTxs:           node.WhiteListerVerifiedTxs,
+			MainInterceptorsContainer:        node.MainInterceptorsContainer,
+			FullArchiveInterceptorsContainer: node.FullArchiveInterceptorsContainer,
+			ExistingResolvers:                node.ResolversContainer,
+			ExistingRequesters:               node.RequestersContainer,
+			NodesCoordinator:                 node.NodesCoordinator,
+			HeaderSigVerifier:                node.HeaderSigVerifier,
+			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
+			ValidityAttester:                 node.BlockTracker,
+			RoundHandler:                     &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,
@@ -636,8 +641,8 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
-			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			NodeOperationMode:         node.NodeOperationMode,
 			ShardCoordinatorFactory:   sharding.NewMultiShardCoordinatorFactory(),
 		}
 
