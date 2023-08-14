@@ -91,6 +91,13 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
+	// fullArchiveP2PConfigurationFile defines a flag for the path to the toml file containing P2P configuration for the full archive network
+	fullArchiveP2PConfigurationFile = cli.StringFlag{
+		Name: "full-archive-p2p-config",
+		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file for the full archive network. This TOML file contains peer-to-peer " +
+			"configurations such as port, target peer count or KadDHT settings",
+		Value: "./config/fullArchiveP2P.toml",
+	}
 	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
 	epochConfigurationFile = cli.StringFlag{
 		Name: "epoch-config",
@@ -123,11 +130,18 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for sovereign configuration.",
 		Value: "./config/sovereignConfig.toml",
 	}
-	// port defines a flag for setting the port on which the node will listen for connections
+	// port defines a flag for setting the port on which the node will listen for connections on the main network
 	port = cli.StringFlag{
 		Name: "port",
 		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
 			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "0",
+	}
+	// fullArchivePort defines a flag for setting the port on which the node will listen for connections on the full archive network
+	fullArchivePort = cli.StringFlag{
+		Name: "full-archive-port",
+		Usage: "The `[p2p port]` number on which the application will start the second network when running in full archive mode. " +
+			"Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000`",
 		Value: "0",
 	}
 	// profileMode defines a flag for profiling the binary
@@ -396,6 +410,12 @@ var (
 		Usage: "String flag for specifying the desired `operation mode`(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `\"\"` (empty). Multiple values can be separated via ,",
 		Value: "",
 	}
+
+	// repopulateTokensSupplies defines a flag that, if set, will repopulate the tokens supplies database by iterating over the trie
+	repopulateTokensSupplies = cli.BoolFlag{
+		Name:  "repopulate-tokens-supplies",
+		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -411,6 +431,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
+		fullArchiveP2PConfigurationFile,
 		epochConfigurationFile,
 		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,
@@ -420,6 +441,7 @@ func getFlags() []cli.Flag {
 		notifierConfigFile,
 		sovereignConfigFile,
 		port,
+		fullArchivePort,
 		profileMode,
 		useHealthService,
 		storageCleanup,
@@ -457,6 +479,7 @@ func getFlags() []cli.Flag {
 		dbDirectory,
 		logsDirectory,
 		operationMode,
+		repopulateTokensSupplies,
 	}
 }
 
@@ -484,8 +507,8 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
-	flagsConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
+	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 
 	return flagsConfig
 }
@@ -521,6 +544,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))
 		log.Info("setting a new value for the memoryUsageToCreateProfiles option",
 			"new value", cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles)
+	}
+	if ctx.IsSet(snapshotsEnabled.Name) {
+		cfgs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = ctx.GlobalBool(snapshotsEnabled.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
@@ -591,6 +617,10 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
 	}
+	if configs.PreferencesConfig.BlockProcessingCutoff.Enabled {
+		log.Debug("node is started by using the block processing cut-off - will disable the watchdog")
+		configs.FlagsConfig.DisableConsensusWatchdog = true
+	}
 
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
 	if err != nil {
@@ -616,9 +646,9 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		processDbLookupExtensionMode(log, configs)
 	}
 
-	isInLiteObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
-	if isInLiteObserverMode {
-		processLiteObserverMode(log, configs)
+	isInSnapshotLessObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
+	if isInSnapshotLessObserverMode {
+		processSnapshotLessObserverMode(log, configs)
 	}
 
 	return nil
@@ -656,14 +686,14 @@ func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
 	)
 }
 
-func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
+func processSnapshotLessObserverMode(log logger.Logger, configs *config.Configs) {
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = true
-	configs.FlagsConfig.SnapshotsEnabled = false
+	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
 	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = true
 
 	log.Warn("the node is in snapshotless observer mode! Will auto-set some config values",
 		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-		"FlagsConfig.SnapshotsEnabled", configs.FlagsConfig.SnapshotsEnabled,
+		"StateTriesConfig.SnapshotsEnabled", configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
 	)
 }
@@ -671,7 +701,8 @@ func processLiteObserverMode(log logger.Logger, configs *config.Configs) {
 func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
 	importDbFlags := configs.ImportDbConfig
 	generalConfigs := configs.GeneralConfig
-	p2pConfigs := configs.P2pConfig
+	p2pConfigs := configs.MainP2pConfig
+	fullArchiveP2PConfigs := configs.FullArchiveP2pConfig
 	prefsConfig := configs.PreferencesConfig
 
 	var err error
@@ -691,6 +722,8 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+	fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers = 0
+	fullArchiveP2PConfigs.KadDhtPeerDiscovery.Enabled = false
 
 	alterStorageConfigsForDBImport(generalConfigs)
 
@@ -701,6 +734,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"StoragePruning.NumEpochsToKeep", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumActivePersisters,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+		"fullArchiveP2P.ThresholdMinConnectedPeers", fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
 		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
