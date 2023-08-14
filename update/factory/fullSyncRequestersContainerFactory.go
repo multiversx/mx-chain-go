@@ -40,8 +40,9 @@ type requestersContainerFactory struct {
 
 // ArgsRequestersContainerFactory defines the arguments for the requestersContainerFactory constructor
 type ArgsRequestersContainerFactory struct {
-	ShardCoordinator sharding.Coordinator
-	MainMessenger    p2p.Messenger               FullArchiveMessenger   p2p.Messenger
+	ShardCoordinator        sharding.Coordinator
+	MainMessenger           p2p.Messenger
+	FullArchiveMessenger    p2p.Messenger
 	Marshaller              marshal.Marshalizer
 	ExistingRequesters      dataRetriever.RequestersContainer
 	OutputAntifloodHandler  dataRetriever.P2PAntifloodHandler

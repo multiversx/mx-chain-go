@@ -166,10 +166,11 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	CoreComponentsHolder       process.CoreComponentsHolder
-	CryptoComponentsHolder     process.CryptoComponentsHolder
-	DestinationShardAsObserver uint32
-	MainMessenger              p2p.Messenger                        FullArchiveMessenger       p2p.Messenger
+	CoreComponentsHolder             process.CoreComponentsHolder
+	CryptoComponentsHolder           process.CryptoComponentsHolder
+	DestinationShardAsObserver       uint32
+	MainMessenger                    p2p.Messenger
+	FullArchiveMessenger             p2p.Messenger
 	GeneralConfig                    config.Config
 	PrefsConfig                      config.PreferencesConfig
 	FlagsConfig                      config.ContextFlagsConfig
