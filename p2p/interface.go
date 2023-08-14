@@ -26,6 +26,9 @@ type Messenger = p2p.Messenger
 // MessageP2P defines what a p2p message can do (should return)
 type MessageP2P = p2p.MessageP2P
 
+// MessageHandler defines the behaviour of a component able to send and process messages
+type MessageHandler = p2p.MessageHandler
+
 // ChannelLoadBalancer defines what a load balancer that uses chans should do
 type ChannelLoadBalancer interface {
 	AddChannel(channel string) error
@@ -97,10 +100,7 @@ type PeersRatingHandler interface {
 }
 
 // PeersRatingMonitor represents an entity able to provide peers ratings
-type PeersRatingMonitor interface {
-	GetConnectedPeersRatings() string
-	IsInterfaceNil() bool
-}
+type PeersRatingMonitor = p2p.PeersRatingMonitor
 
 // PeerTopicNotifier represents an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
@@ -125,3 +125,9 @@ type P2PKeyConverter interface {
 	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
 	IsInterfaceNil() bool
 }
+
+// Logger defines the behavior of a data logger component
+type Logger = p2p.Logger
+
+// ConnectionsHandler defines the behaviour of a component able to handle connections
+type ConnectionsHandler = p2p.ConnectionsHandler

@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	mxState "github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
@@ -49,7 +49,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
+	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -217,11 +217,13 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
-			Messenger:               &p2pmocks.MessengerStub{},
-			InputAntiFlood:          &testsMocks.P2PAntifloodHandlerStub{},
-			OutputAntiFlood:         &testsMocks.P2PAntifloodHandlerStub{},
-			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
-			PeersRatingHandlerField: &p2pmocks.PeersRatingHandlerStub{},
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
+			InputAntiFlood:                   &testsMocks.P2PAntifloodHandlerStub{},
+			OutputAntiFlood:                  &testsMocks.P2PAntifloodHandlerStub{},
+			PreferredPeersHolder:             &p2pmocks.PeersHolderStub{},
+			PeersRatingHandlerField:          &p2pmocks.PeersRatingHandlerStub{},
+			FullArchivePreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		},
 		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
 			ShCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
@@ -769,7 +771,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
-		stateCompMock.Accounts = &state.AccountsStub{
+		stateCompMock.Accounts = &testState.AccountsStub{
 			GetAllLeavesCalled: realAccounts.GetAllLeaves,
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
@@ -802,7 +804,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
-		stateCompMock.Accounts = &state.AccountsStub{
+		stateCompMock.Accounts = &testState.AccountsStub{
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 				close(leavesChannels.LeavesChan)
 				leavesChannels.ErrChan.Close()
@@ -837,7 +839,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		stateCompMock := factoryMocks.NewStateComponentsMockFromRealComponent(args.State)
 		realAccounts := stateCompMock.AccountsAdapter()
-		stateCompMock.Accounts = &state.AccountsStub{
+		stateCompMock.Accounts = &testState.AccountsStub{
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 				addrOk, _ := addrPubKeyConv.Decode("erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4")
 				addrNOK, _ := addrPubKeyConv.Decode("erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp")
@@ -890,7 +892,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		realStateComp := args.State
 		args.State = &factoryMocks.StateComponentsMock{
-			Accounts: &state.AccountsStub{
+			Accounts: &testState.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
@@ -931,7 +933,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		realStateComp := args.State
 		args.State = &factoryMocks.StateComponentsMock{
-			Accounts: &state.AccountsStub{
+			Accounts: &testState.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("invalid addr"), []byte("value"))
 					close(leavesChannels.LeavesChan)
@@ -1019,7 +1021,7 @@ func fundGenesisWallets(t *testing.T, args processComp.ProcessComponentsFactoryA
 		account, err := accounts.LoadAccount(node.AddressBytes())
 		require.NoError(t, err)
 
-		userAccount := account.(mxState.UserAccountHandler)
+		userAccount := account.(state.UserAccountHandler)
 		err = userAccount.AddToBalance(nodePrice)
 		require.NoError(t, err)
 

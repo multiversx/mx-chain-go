@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/state"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -483,7 +482,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	}
 	newArgument := gbc.arg // copy the arguments
 
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              newArgument.Core.Hasher(),
 		Marshaller:          newArgument.Core.InternalMarshalizer(),
 		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),

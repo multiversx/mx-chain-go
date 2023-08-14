@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
@@ -12,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -25,7 +28,8 @@ const (
 
 type requestersContainerFactory struct {
 	shardCoordinator        sharding.Coordinator
-	messenger               dataRetriever.TopicMessageHandler
+	mainMessenger           p2p.Messenger
+	fullArchiveMessenger    p2p.Messenger
 	marshaller              marshal.Marshalizer
 	intRandomizer           dataRetriever.IntRandomizer
 	container               dataRetriever.RequestersContainer
@@ -36,8 +40,8 @@ type requestersContainerFactory struct {
 
 // ArgsRequestersContainerFactory defines the arguments for the requestersContainerFactory constructor
 type ArgsRequestersContainerFactory struct {
-	ShardCoordinator        sharding.Coordinator
-	Messenger               dataRetriever.TopicMessageHandler
+	ShardCoordinator sharding.Coordinator
+	MainMessenger    p2p.Messenger               FullArchiveMessenger   p2p.Messenger
 	Marshaller              marshal.Marshalizer
 	ExistingRequesters      dataRetriever.RequestersContainer
 	OutputAntifloodHandler  dataRetriever.P2PAntifloodHandler
@@ -50,8 +54,11 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.Messenger) {
-		return nil, update.ErrNilMessenger
+	if check.IfNil(args.MainMessenger) {
+		return nil, fmt.Errorf("%w on main network", update.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return nil, fmt.Errorf("%w on full archive network", update.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshaller) {
 		return nil, update.ErrNilMarshalizer
@@ -71,7 +78,8 @@ func NewRequestersContainerFactory(args ArgsRequestersContainerFactory) (*reques
 
 	return &requestersContainerFactory{
 		shardCoordinator:        args.ShardCoordinator,
-		messenger:               args.Messenger,
+		mainMessenger:           args.MainMessenger,
+		fullArchiveMessenger:    args.FullArchiveMessenger,
 		marshaller:              args.Marshaller,
 		intRandomizer:           &random.ConcurrentSafeIntRandomizer{},
 		container:               args.ExistingRequesters,
@@ -152,7 +160,7 @@ func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string
 
 	targetConsensusTopic := common.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
 	peerListCreator, err := topicsender.NewDiffPeerListCreator(
-		rcf.messenger,
+		rcf.mainMessenger,
 		baseTopic,
 		targetConsensusTopic,
 		resolverscontainer.EmptyExcludePeersOnTopic,
@@ -163,11 +171,13 @@ func (rcf *requestersContainerFactory) createTrieNodesRequester(baseTopic string
 
 	arg := topicsender.ArgTopicRequestSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			Messenger:            rcf.messenger,
-			TopicName:            baseTopic,
-			OutputAntiflooder:    rcf.outputAntifloodHandler,
-			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-			TargetShardId:        defaultTargetShardID,
+			MainMessenger:                   rcf.mainMessenger,
+			FullArchiveMessenger:            rcf.fullArchiveMessenger,
+			TopicName:                       baseTopic,
+			OutputAntiflooder:               rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                   defaultTargetShardID,
 		},
 		Marshaller:                  rcf.marshaller,
 		Randomizer:                  rcf.intRandomizer,
