@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -457,6 +458,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -499,6 +501,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -561,6 +564,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -627,6 +631,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
