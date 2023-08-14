@@ -99,6 +99,7 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
+	roundNotifier                 process.RoundNotifier
 	chainParametersSubscriber     process.ChainParametersSubscriber
 	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
@@ -246,7 +247,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig)
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -364,6 +366,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		roundNotifier:                 roundNotifier,
 		chainParametersSubscriber:     chainParametersNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: epochStartHandlerWithConfirm,

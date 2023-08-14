@@ -43,7 +43,10 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 	prefsConfig, err := common.LoadPreferencesConfig(path.Join(newConfigsPath, "prefs.toml"))
 	require.Nil(tb, err)
 
-	p2pConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
+	mainP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
+	require.Nil(tb, err)
+
+	fullArchiveP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "fullArchiveP2P.toml"))
 	require.Nil(tb, err)
 
 	externalConfig, err := common.LoadExternalConfig(path.Join(newConfigsPath, "external.toml"))
@@ -65,18 +68,21 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 	generalConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(nodesSetup.InitialNodes)), generalConfig.GeneralSettings.GenesisMaxNumberOfShards)
 
 	// make the node pass the network wait constraints
-	p2pConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
-	p2pConfig.Node.ThresholdMinConnectedPeers = 0
+	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
+	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
+	fullArchiveP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
+	fullArchiveP2PConfig.Node.ThresholdMinConnectedPeers = 0
 
 	return &config.Configs{
-		GeneralConfig:     generalConfig,
-		ApiRoutesConfig:   apiConfig,
-		EconomicsConfig:   economicsConfig,
-		SystemSCConfig:    systemSCConfig,
-		RatingsConfig:     ratingsConfig,
-		PreferencesConfig: prefsConfig,
-		ExternalConfig:    externalConfig,
-		P2pConfig:         p2pConfig,
+		GeneralConfig:        generalConfig,
+		ApiRoutesConfig:      apiConfig,
+		EconomicsConfig:      economicsConfig,
+		SystemSCConfig:       systemSCConfig,
+		RatingsConfig:        ratingsConfig,
+		PreferencesConfig:    prefsConfig,
+		ExternalConfig:       externalConfig,
+		MainP2pConfig:        mainP2PConfig,
+		FullArchiveP2pConfig: fullArchiveP2PConfig,
 		FlagsConfig: &config.ContextFlagsConfig{
 			WorkingDir:    tempDir,
 			NoKeyProvided: true,

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,10 +17,10 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandler(matchStrToErrOnCreate string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
+func createMessengerStub(matchStrToErrOnCreate string) p2p.Messenger {
+	stub := &p2pmocks.MessengerStub{}
 
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -30,7 +31,7 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string) dataRetriever.T
 		return nil
 	}
 
-	return tmhs
+	return stub
 }
 
 func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -44,15 +45,26 @@ func TestNewShardRequestersContainerFactory_NilShardCoordinatorShouldErr(t *test
 	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
-func TestNewShardRequestersContainerFactory_NilMessengerShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilMainMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.Messenger = nil
+	args.MainMessenger = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
+}
+
+func TestNewShardRequestersContainerFactory_NilFullArchiveMessengerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.FullArchiveMessenger = nil
+	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilMessenger))
 }
 
 func TestNewShardRequestersContainerFactory_NilMarshallerShouldErr(t *testing.T) {
@@ -89,15 +101,26 @@ func TestNewShardRequestersContainerFactory_NilUint64SliceConverterShouldErr(t *
 	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
-func TestNewShardRequestersContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+func TestNewShardRequestersContainerFactory_NilMainPreferredPeersHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.PreferredPeersHolder = nil
+	args.MainPreferredPeersHolder = nil
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
+}
+
+func TestNewShardRequestersContainerFactory_NilFullArchivePreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	args.FullArchivePreferredPeersHolder = nil
+	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPreferredPeersHolder))
 }
 
 func TestNewShardRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *testing.T) {
@@ -108,7 +131,7 @@ func TestNewShardRequestersContainerFactory_NilPeersRatingHandlerShouldErr(t *te
 	rcf, err := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilPeersRatingHandler, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeersRatingHandler))
 }
 
 func TestNewShardRequestersContainerFactory_InvalidNumTotalPeersShouldErr(t *testing.T) {
@@ -243,14 +266,16 @@ func getArguments() requesterscontainer.FactoryArgs {
 			NumTotalPeers:       3,
 			NumFullHistoryPeers: 3,
 		},
-		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
-		Messenger:                   createStubTopicMessageHandler(""),
-		Marshaller:                  &mock.MarshalizerMock{},
-		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
-		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
-		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		PeersRatingHandler:          &p2pmocks.PeersRatingHandlerStub{},
-		SizeCheckDelta:              0,
+		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
+		MainMessenger:                   createMessengerStub(""),
+		FullArchiveMessenger:            createMessengerStub(""),
+		Marshaller:                      &mock.MarshalizerMock{},
+		Uint64ByteSliceConverter:        &mock.Uint64ByteSliceConverterMock{},
+		OutputAntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
+		CurrentNetworkEpochProvider:     &mock.CurrentNetworkEpochProviderStub{},
+		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
+		SizeCheckDelta:                  0,
 	}
 }

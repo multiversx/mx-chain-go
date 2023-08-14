@@ -16,9 +16,15 @@ AUTHOR:
    
 GLOBAL OPTIONS:
    --num-keys value  How many keys should generate. Example: 1 (default: 1)
-   --key-type value  What kind of keys should generate. Available options: validator, wallet, both (default: "validator")
-   --help, -h        Show help
-   --version, -v     Print the version
-   --hex-key-prefix  Value special pattern for the hex key prefix: Example 0f00 (default nopattern). Give even number of hex chars.
-   --shard value     Which shard should manage the address: Example: 0 (default -1 - no prefference)
+   --key-type value  What kind of keys should generate. Available options: validator, wallet, p2p, both, mined-wallet (default: "validator")
+   --console-out     Boolean option that will enable printing the generated keys directly on the console
+   --no-split        Boolean option that will make each generated key added in the same file
+   --shard value     integer option that will make each generated wallet key allocated to the desired shard (affects suffix of the key)
+available patterns: -1, [0-2] (default: -1)
+   --hex-key-prefix value  only used for special patterns in key. Available options: nopattern, [0-f]+ (default: "nopattern")
+   --help, -h              show help
+   --version, -v           print the version
+   
+
 ```
+
