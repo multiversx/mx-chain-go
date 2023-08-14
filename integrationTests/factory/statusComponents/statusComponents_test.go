@@ -80,6 +80,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		nodesCoord,
 		false,
+		managedCryptoComponents,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedStatusComponents)

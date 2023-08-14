@@ -79,6 +79,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		nodesCoord,
 		false,
+		managedCryptoComponents,
 	)
 	require.Nil(t, err)
 

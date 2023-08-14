@@ -49,13 +49,13 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	})
 
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nResolver.ConnectTo(nRequester)
+	err := nResolver.ConnectOnMain(nRequester)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -117,13 +117,13 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	})
 
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nResolver.ConnectTo(nRequester)
+	err := nResolver.ConnectOnMain(nRequester)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)

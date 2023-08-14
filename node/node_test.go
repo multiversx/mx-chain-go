@@ -43,6 +43,9 @@ import (
 	nodeMockFactory "github.com/multiversx/mx-chain-go/node/mock/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
@@ -53,7 +56,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -94,12 +96,9 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createAcc(address []byte) state.UserAccountHandler {
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	acc, _ := state.NewUserAccount(address, argsAccCreation)
+	dtlp, _ := parsers.NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	acc, _ := accounts.NewUserAccount(address, dtt, dtlp)
 
 	return acc
 }
@@ -271,12 +270,7 @@ func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
+	testAccount, _ := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	testAccount.Balance = big.NewInt(100)
 
 	accountsRepository := &stateMock.AccountsRepositoryStub{
@@ -309,12 +303,7 @@ func TestGetUsername(t *testing.T) {
 
 	expectedUsername := []byte("elrond")
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
+	testAccount, _ := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	testAccount.UserName = expectedUsername
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -385,12 +374,7 @@ func TestGetCodeHash(t *testing.T) {
 
 	expectedCodeHash := []byte("hash")
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	testAccount, _ := state.NewUserAccount(testscommon.TestPubKeyAlice, argsAccCreation)
+	testAccount, _ := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	testAccount.CodeHash = expectedCodeHash
 	accountsRepository := &stateMock.AccountsRepositoryStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options api.AccountQueryOptions) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -1358,7 +1342,6 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	_ = acc.SaveKeyValue(esdtToken, marshalledData)
 
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
@@ -3233,12 +3216,12 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		},
 	}
 
-	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
-		apiResponses := make(map[string]*state.ValidatorApiResponse)
+	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*accounts.ValidatorApiResponse {
+		apiResponses := make(map[string]*accounts.ValidatorApiResponse)
 
 		for _, vis := range validatorsInfo {
 			for _, vi := range vis {
-				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &accounts.ValidatorApiResponse{}
 			}
 		}
 
@@ -3255,7 +3238,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	expectedData := &state.ValidatorApiResponse{}
+	expectedData := &accounts.ValidatorApiResponse{}
 	validatorsData, err := n.ValidatorStatisticsApi()
 	require.Equal(t, expectedData, validatorsData[hex.EncodeToString([]byte(keys[2][0]))])
 	require.Nil(t, err)
@@ -3752,7 +3735,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	pid2 := "pid2"
 
 	processComponents := getDefaultProcessComponents()
-	processComponents.PeerMapper = &p2pmocks.NetworkShardingCollectorStub{
+	processComponents.MainPeerMapper = &p2pmocks.NetworkShardingCollectorStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			return core.P2PPeerInfo{
 				PeerType: 0,
@@ -4732,12 +4715,8 @@ func TestNode_setTxGuardianData(t *testing.T) {
 
 func TestNode_GetGuardianData(t *testing.T) {
 	userAddressBytes := bytes.Repeat([]byte{3}, 32)
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	testAccount, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
+
+	testAccount, _ := accounts.NewUserAccount(userAddressBytes, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	testAccountsDB := &stateMock.AccountsStub{
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return testAccount, nil, nil
@@ -4923,7 +4902,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		require.Nil(t, err)
 	})
 	t.Run("one active and one pending and account guarded", func(t *testing.T) {
-		acc, _ := state.NewUserAccount(userAddressBytes, argsAccCreation)
+		acc, _ := accounts.NewUserAccount(userAddressBytes, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 		acc.CodeMetadata = (&vmcommon.CodeMetadata{Guarded: true}).ToBytes()
 		accDB := &stateMock.AccountsStub{
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
@@ -5130,7 +5109,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		ReqHandler:                           &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                        &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:             &mock.HeaderValidatorStub{},
-		PeerMapper:                           &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerMapper:                       &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerMapper:                &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal:       &testscommon.WhiteListHandlerStub{},
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},

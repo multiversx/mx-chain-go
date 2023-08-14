@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
@@ -120,15 +121,37 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	if trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
 		crossPeers = trs.peerListCreator.CrossShardPeerList()
 		preferredPeer := trs.getPreferredPeer(trs.targetShardId)
-		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, core.CrossShardPeer.String())
+		numSentCross = trs.sendOnTopic(
+			crossPeers,
+			preferredPeer,
+			topicToSendRequest,
+			buff,
+			trs.numCrossShardPeers,
+			core.CrossShardPeer.String(),
+			trs.mainMessenger)
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
-		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
+		numSentIntra = trs.sendOnTopic(
+			intraPeers,
+			preferredPeer,
+			topicToSendRequest,
+			buff,
+			trs.numIntraShardPeers,
+			core.IntraShardPeer.String(),
+			trs.mainMessenger)
 	} else {
-		// TODO: select preferred peers of type full history as well.
-		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
-		numSentIntra = trs.sendOnTopic(fullHistoryPeers, "", topicToSendRequest, buff, trs.numFullHistoryPeers, core.FullHistoryPeer.String())
+		preferredPeer := trs.getPreferredFullArchivePeer()
+		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
+
+		numSentIntra = trs.sendOnTopic(
+			fullHistoryPeers,
+			preferredPeer,
+			topicToSendRequest,
+			buff,
+			trs.numFullHistoryPeers,
+			core.FullHistoryPeer.String(),
+			trs.fullArchiveMessenger)
 	}
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
@@ -168,6 +191,7 @@ func (trs *topicRequestSender) sendOnTopic(
 	buff []byte,
 	maxToSend int,
 	peerType string,
+	messenger p2p.MessageHandler,
 ) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
@@ -189,7 +213,7 @@ func (trs *topicRequestSender) sendOnTopic(
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
-		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger)
 		if err != nil {
 			continue
 		}
@@ -226,13 +250,11 @@ func (trs *topicRequestSender) getPreferredPeer(shardID uint32) core.PeerID {
 		return ""
 	}
 
-	randomIdx := trs.randomizer.Intn(len(peersInShard))
-
-	return peersInShard[randomIdx]
+	return trs.getRandomPeerID(peersInShard)
 }
 
 func (trs *topicRequestSender) getPreferredPeersInShard(shardID uint32) ([]core.PeerID, bool) {
-	preferredPeers := trs.preferredPeersHolderHandler.Get()
+	preferredPeers := trs.mainPreferredPeersHolderHandler.Get()
 
 	peers, found := preferredPeers[shardID]
 	if !found || len(peers) == 0 {
@@ -240,6 +262,33 @@ func (trs *topicRequestSender) getPreferredPeersInShard(shardID uint32) ([]core.
 	}
 
 	return peers, true
+}
+
+func (trs *topicRequestSender) getPreferredFullArchivePeer() core.PeerID {
+	preferredPeersMap := trs.fullArchivePreferredPeersHolderHandler.Get()
+	preferredPeersSlice := mapToSlice(preferredPeersMap)
+
+	if len(preferredPeersSlice) == 0 {
+		return ""
+	}
+
+	return trs.getRandomPeerID(preferredPeersSlice)
+}
+
+func (trs *topicRequestSender) getRandomPeerID(peerIDs []core.PeerID) core.PeerID {
+	randomIdx := trs.randomizer.Intn(len(peerIDs))
+
+	return peerIDs[randomIdx]
+}
+
+func mapToSlice(initialMap map[uint32][]core.PeerID) []core.PeerID {
+	newSlice := make([]core.PeerID, 0, len(initialMap))
+
+	for _, peerIDsOnShard := range initialMap {
+		newSlice = append(newSlice, peerIDsOnShard...)
+	}
+
+	return newSlice
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query

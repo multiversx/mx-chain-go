@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -146,7 +145,7 @@ func TestTxExecutionProcessor_GetAccount(t *testing.T) {
 			&testscommon.TxProcessorStub{},
 			&stateMock.AccountsStub{
 				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-					return &processMock.PeerAccountHandlerMock{}, nil
+					return &stateMock.PeerAccountHandlerMock{}, nil
 				},
 			},
 		)

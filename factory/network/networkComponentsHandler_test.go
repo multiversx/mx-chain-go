@@ -37,7 +37,7 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 		t.Parallel()
 
 		networkArgs := componentsMock.GetNetworkFactoryArgs()
-		networkArgs.P2pConfig.Node.Port = "invalid"
+		networkArgs.MainP2pConfig.Node.Port = "invalid"
 		networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 		managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 		require.NoError(t, err)
@@ -61,6 +61,8 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 		require.Nil(t, managedNetworkComponents.PreferredPeersHolderHandler())
 		require.Nil(t, managedNetworkComponents.PeerHonestyHandler())
 		require.Nil(t, managedNetworkComponents.PeersRatingHandler())
+		require.Nil(t, managedNetworkComponents.FullArchiveNetworkMessenger())
+		require.Nil(t, managedNetworkComponents.FullArchivePreferredPeersHolderHandler())
 
 		err = managedNetworkComponents.Create()
 		require.NoError(t, err)
@@ -72,6 +74,8 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 		require.NotNil(t, managedNetworkComponents.PreferredPeersHolderHandler())
 		require.NotNil(t, managedNetworkComponents.PeerHonestyHandler())
 		require.NotNil(t, managedNetworkComponents.PeersRatingHandler())
+		require.NotNil(t, managedNetworkComponents.FullArchiveNetworkMessenger())
+		require.NotNil(t, managedNetworkComponents.FullArchivePreferredPeersHolderHandler())
 
 		require.Equal(t, factory.NetworkComponentsName, managedNetworkComponents.String())
 	})

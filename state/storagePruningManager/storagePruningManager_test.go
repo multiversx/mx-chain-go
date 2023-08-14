@@ -37,7 +37,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
