@@ -1,3 +1,5 @@
+//go:build !race
+
 package process
 
 import (
@@ -17,7 +19,7 @@ func TestNewGenesisBlockCreatorFactory(t *testing.T) {
 func TestNewGenesisBlockCreatorFactory_CreateGenesisBlockCreator(t *testing.T) {
 	factory := NewGenesisBlockCreatorFactory()
 
-	args := createSovereignMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	blockCreator, err := factory.CreateGenesisBlockCreator(args)
 	require.Nil(t, err)
 	require.IsType(t, &genesisBlockCreator{}, blockCreator)
