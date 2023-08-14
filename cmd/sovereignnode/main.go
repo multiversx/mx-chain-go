@@ -204,12 +204,19 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	}
 	log.Debug("config", "file", configurationPaths.External)
 
-	configurationPaths.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := common.LoadP2PConfig(configurationPaths.P2p)
+	configurationPaths.MainP2p = ctx.GlobalString(p2pConfigurationFile.Name)
+	mainP2PConfig, err := common.LoadP2PConfig(configurationPaths.MainP2p)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPaths.P2p)
+	log.Debug("config", "file", configurationPaths.MainP2p)
+
+	configurationPaths.FullArchiveP2p = ctx.GlobalString(fullArchiveP2PConfigurationFile.Name)
+	fullArchiveP2PConfig, err := common.LoadP2PConfig(configurationPaths.FullArchiveP2p)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.FullArchiveP2p)
 
 	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
 	epochConfig, err := common.LoadEpochConfig(configurationPaths.Epoch)
@@ -241,7 +248,10 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	generalConfig.SovereignConfig = *sovereignExtraConfig
 
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+		mainP2PConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+	if ctx.IsSet(fullArchivePort.Name) {
+		fullArchiveP2PConfig.Node.Port = ctx.GlobalString(fullArchivePort.Name)
 	}
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -262,7 +272,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 			RatingsConfig:            ratingsConfig,
 			PreferencesConfig:        preferencesConfig,
 			ExternalConfig:           externalConfig,
-			P2pConfig:                p2pConfig,
+			MainP2pConfig:            mainP2PConfig,
+			FullArchiveP2pConfig:     fullArchiveP2PConfig,
 			ConfigurationPathsHolder: configurationPaths,
 			EpochConfig:              epochConfig,
 			RoundConfig:              roundConfig,

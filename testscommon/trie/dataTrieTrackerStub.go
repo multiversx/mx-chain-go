@@ -2,12 +2,15 @@ package trie
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
+	dataTrie common.Trie
+
 	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
 	SaveKeyValueCalled          func(key []byte, value []byte) error
 	SetDataTrieCalled           func(tr common.Trie)
@@ -40,12 +43,18 @@ func (dtts *DataTrieTrackerStub) SetDataTrie(tr common.Trie) {
 	if dtts.SetDataTrieCalled != nil {
 		dtts.SetDataTrieCalled(tr)
 	}
+
+	dtts.dataTrie = tr
 }
 
 // DataTrie -
 func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 	if dtts.DataTrieCalled != nil {
 		return dtts.DataTrieCalled()
+	}
+
+	if !check.IfNil(dtts.dataTrie) {
+		return dtts.dataTrie
 	}
 
 	return nil

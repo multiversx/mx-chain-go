@@ -136,7 +136,7 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 	})
 
 	defer func() {
-		_ = node.Messenger.Close()
+		node.Close()
 	}()
 
 	tx := &transaction.Transaction{
