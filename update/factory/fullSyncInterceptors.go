@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -48,7 +47,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
 	preferredPeersHolder   update.PreferredPeersHolderHandler
-	nodeOperationMode      p2p.NodeOperation
+	nodeOperationMode      common.NodeOperation
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -75,7 +74,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	MainInterceptorsContainer        process.InterceptorsContainer
 	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	AntifloodHandler                 process.P2PAntifloodHandler
-	NodeOperationMode                p2p.NodeOperation
+	NodeOperationMode                common.NodeOperation
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -462,7 +461,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	if ficf.nodeOperationMode == p2p.FullArchiveMode {
+	if ficf.nodeOperationMode == common.FullArchiveMode {
 		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.fullArchiveMessenger)
 		if err != nil {
 			return nil, err
@@ -826,7 +825,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) addInterceptorsToContainers(ke
 		return err
 	}
 
-	if ficf.nodeOperationMode != p2p.FullArchiveMode {
+	if ficf.nodeOperationMode != common.FullArchiveMode {
 		return nil
 	}
 

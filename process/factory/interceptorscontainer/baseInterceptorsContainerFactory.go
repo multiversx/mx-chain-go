@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -54,7 +53,7 @@ type baseInterceptorsContainerFactory struct {
 	mainPeerShardMapper        process.PeerShardMapper
 	fullArchivePeerShardMapper process.PeerShardMapper
 	hardforkTrigger            heartbeat.HardforkTrigger
-	nodeOperationMode          p2p.NodeOperation
+	nodeOperationMode          common.NodeOperation
 }
 
 func checkBaseParams(
@@ -189,7 +188,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	if bicf.nodeOperationMode == p2p.FullArchiveMode {
+	if bicf.nodeOperationMode == common.FullArchiveMode {
 		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, bicf.fullArchiveMessenger)
 		if err != nil {
 			return nil, err
@@ -846,7 +845,7 @@ func (bicf *baseInterceptorsContainerFactory) addInterceptorsToContainers(keys [
 		return err
 	}
 
-	if bicf.nodeOperationMode != p2p.FullArchiveMode {
+	if bicf.nodeOperationMode != common.FullArchiveMode {
 		return nil
 	}
 

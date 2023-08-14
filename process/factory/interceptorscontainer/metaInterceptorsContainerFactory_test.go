@@ -536,7 +536,7 @@ func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOn
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsMeta(coreComp, cryptoComp)
 		if strings.Contains(t.Name(), "full_archive") {
-			args.NodeOperationMode = p2p.FullArchiveMode
+			args.NodeOperationMode = common.FullArchiveMode
 			args.FullArchiveMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
 		} else {
 			args.MainMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
@@ -634,7 +634,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsMeta(coreComp, cryptoComp)
-		args.NodeOperationMode = p2p.FullArchiveMode
+		args.NodeOperationMode = common.FullArchiveMode
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 
@@ -706,6 +706,6 @@ func getArgumentsMeta(
 		MainPeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 		FullArchivePeerShardMapper:   &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
-		NodeOperationMode:            p2p.NormalOperation,
+		NodeOperationMode:            common.NormalOperation,
 	}
 }
