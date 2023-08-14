@@ -14,13 +14,13 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.5
-	github.com/multiversx/mx-chain-core-go v1.2.9-0.20230703132206-b44cc03248c9
+	github.com/multiversx/mx-chain-core-go v1.2.13-0.20230814093628-1c16435b4253
 	github.com/multiversx/mx-chain-crypto-go v1.2.7
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.8
 	github.com/multiversx/mx-chain-logger-go v1.0.11
 	github.com/multiversx/mx-chain-scenario-go v1.1.2
 	github.com/multiversx/mx-chain-storage-go v1.0.11
-	github.com/multiversx/mx-chain-vm-common-go v1.5.1-0.20230703132628-6e682caa7997
+	github.com/multiversx/mx-chain-vm-common-go v1.5.1-0.20230814094236-f4c4d921d14e
 	github.com/multiversx/mx-chain-vm-go v1.5.4
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.59
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.60
