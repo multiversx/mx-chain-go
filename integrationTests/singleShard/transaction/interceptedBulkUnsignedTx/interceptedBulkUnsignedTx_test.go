@@ -91,7 +91,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		noOfUnsignedTx,
 		integrationTests.TestMarshalizer,
 		n.ShardCoordinator,
-		n.Messenger,
+		n.MainMessenger,
 	)
 
 	assert.Nil(t, err)

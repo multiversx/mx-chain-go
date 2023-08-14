@@ -79,7 +79,8 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.Messenger.Close()
+				_ = n.MainMessenger.Close()
+				_ = n.FullArchiveMessenger.Close()
 			}
 		}
 	}()

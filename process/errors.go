@@ -1214,3 +1214,6 @@ var ErrBuiltinFunctionMismatch = errors.New("builtin function mismatch")
 
 // ErrBuiltinFunctionNotExecutable signals that a builtin function is not executable
 var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executable")
+
+// ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
+var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")

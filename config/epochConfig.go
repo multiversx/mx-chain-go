@@ -96,6 +96,7 @@ type EnableEpochs struct {
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	SetGuardianEnableEpoch                            uint32
 	RelayedNonceFixEnableEpoch                        uint32
+	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
 	MultiClaimOnDelegationEnableEpoch                 uint32
 	ChangeUsernameEnableEpoch                         uint32

@@ -20,8 +20,8 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	shardIdRequester := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	reward, hash := resolvers.CreateReward(headerNonce)

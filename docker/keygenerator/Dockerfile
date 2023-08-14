@@ -3,7 +3,7 @@ FROM golang:1.17.6 as builder
 RUN apt-get update && apt-get install -y
 WORKDIR /go/mx-chain-go
 COPY . .
-RUN GO111MODULE=on go mod tidy
+RUN go mod tidy
 # Keygenerator node
 WORKDIR /go/mx-chain-go/cmd/keygenerator
 RUN go build

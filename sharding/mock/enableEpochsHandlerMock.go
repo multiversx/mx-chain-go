@@ -613,6 +613,11 @@ func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() 
 	return false
 }
 
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return false
+}
+
 // IsDynamicGasCostForDataTrieStorageLoadEnabled -
 func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return false

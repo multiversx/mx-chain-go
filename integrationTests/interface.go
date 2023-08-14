@@ -85,7 +85,7 @@ type Facade interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
@@ -111,5 +111,9 @@ type Facade interface {
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetAlteredAccountsForBlock(options dataApi.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
+	GetManagedKeysCount() int
+	GetManagedKeys() []string
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	IsInterfaceNil() bool
 }
