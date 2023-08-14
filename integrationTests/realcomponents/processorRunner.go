@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -169,7 +168,8 @@ func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 	argsNetwork := factoryNetwork.NetworkComponentsFactoryArgs{
-		P2pConfig:             *pr.Config.P2pConfig,
+		MainP2pConfig:         *pr.Config.MainP2pConfig,
+		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
@@ -177,7 +177,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		Syncer:                pr.CoreComponents.SyncTimer(),
 		PreferredPeersSlices:  make([]string, 0),
 		BootstrapWaitTime:     1,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: "",
 		CryptoComponents:      pr.CryptoComponents,
 	}
@@ -238,9 +238,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		FlagsConfigs: config.ContextFlagsConfig{
-			SnapshotsEnabled: false,
-		},
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -265,7 +263,6 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		StorageService:           pr.DataComponents.StorageService(),
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
-		SnapshotsEnabled:         false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
 	}
 
@@ -327,6 +324,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		StatusCoreComponents: pr.StatusCoreComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StateComponents:      pr.StateComponents,
+		CryptoComponents:     pr.CryptoComponents,
 		IsInImportMode:       false,
 	}
 
@@ -415,9 +413,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
-			Version:          "test",
-			WorkingDir:       pr.Config.FlagsConfig.WorkingDir,
-			SnapshotsEnabled: false,
+			Version:    "test",
+			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
 		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
