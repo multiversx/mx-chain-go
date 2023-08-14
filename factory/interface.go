@@ -248,6 +248,8 @@ type NetworkComponentsHolder interface {
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
 	PeersRatingMonitor() p2p.PeersRatingMonitor
+	FullArchiveNetworkMessenger() p2p.Messenger
+	FullArchivePreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 
@@ -269,6 +271,7 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
+	FullArchiveInterceptorsContainer() process.InterceptorsContainer
 	ResolversContainer() dataRetriever.ResolversContainer
 	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
@@ -288,6 +291,7 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
+	FullArchivePeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
 	APITransactionEvaluator() TransactionEvaluator
 	WhiteListHandler() process.WhiteListHandler
@@ -336,6 +340,7 @@ type StateComponentsHolder interface {
 type StatusComponentsHolder interface {
 	OutportHandler() outport.OutportHandler
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 	IsInterfaceNil() bool
 }
 
@@ -346,6 +351,7 @@ type StatusComponentsHandler interface {
 	// SetForkDetector should be set before starting Polling for updates
 	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -377,7 +383,7 @@ type ConsensusWorker interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
