@@ -405,7 +405,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						counter++
-						if counter > 1 {
+						if counter > 2 {
 							return nil, fmt.Errorf("no scheduled")
 						}
 						hdr := &block.Header{
@@ -498,7 +498,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 					},
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						counter++
-						if counter > 1 {
+						if counter > 2 {
 							return nil, fmt.Errorf("no scheduled")
 						}
 						hdr := &block.Header{
@@ -907,10 +907,11 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	}
 
 	rootHashCalledCounter := 0
-	args.MainBlockChain = &testscommon.ChainHandlerStub{
+	args.APIBlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockRootHashCalled: func() []byte {
 			rootHashCalledCounter++
-			if rootHashCalledCounter <= 2 { // first call is during root hash extraction for recreate trie
+			println(rootHashCalledCounter)
+			if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
 				return []byte("first root hash")
 			}
 

@@ -34,7 +34,7 @@ type SCQueryService struct {
 	vmContainer              process.VirtualMachinesContainer
 	economicsFee             process.FeeHandler
 	mutRunSc                 sync.Mutex
-	blockChainHook           process.BlockChainHookHandler
+	blockChainHook           process.BlockChainHookWithAccountsAdapter
 	mainBlockChain           data.ChainHandler
 	apiBlockChain            data.ChainHandler
 	numQueries               int
@@ -54,7 +54,7 @@ type SCQueryService struct {
 type ArgsNewSCQueryService struct {
 	VmContainer              process.VirtualMachinesContainer
 	EconomicsFee             process.FeeHandler
-	BlockChainHook           process.BlockChainHookHandler
+	BlockChainHook           process.BlockChainHookWithAccountsAdapter
 	MainBlockChain           data.ChainHandler
 	APIBlockChain            data.ChainHandler
 	WasmVMChangeLocker       common.Locker
@@ -207,7 +207,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	rootHashBeforeExecution := make([]byte, 0)
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution = service.mainBlockChain.GetCurrentBlockRootHash()
+		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
 	}
 
 	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
@@ -260,23 +260,41 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
 
 	if len(query.BlockHash) > 0 {
-		blockHeader, err := service.getBlockHeaderByHash(query.BlockHash)
+		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		header := service.getBlockHeader(blockHeader)
-		return header, header.GetRootHash(), nil
+		blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		additionalData := blockHeader.GetAdditionalData()
+		if check.IfNil(additionalData) {
+			return currentHeader, currentHeader.GetRootHash(), nil
+		}
+
+		return blockHeader, additionalData.GetScheduledRootHash(), nil
 	}
 
 	if query.BlockNonce.HasValue {
-		blockHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
+		currentHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		header := service.getBlockHeader(blockHeader)
-		return header, header.GetRootHash(), nil
+		blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		additionalData := blockHeader.GetAdditionalData()
+		if check.IfNil(additionalData) {
+			return currentHeader, currentHeader.GetRootHash(), nil
+		}
+
+		return blockHeader, additionalData.GetScheduledRootHash(), nil
 	}
 
 	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
@@ -336,15 +354,6 @@ func (service *SCQueryService) getBlockHeaderInEpochByHash(headerHash []byte, ep
 	return header, nil
 }
 
-func (service *SCQueryService) getBlockHeader(currentHeader data.HeaderHandler) data.HeaderHandler {
-	header, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
-	if err != nil {
-		return currentHeader
-	}
-
-	return header
-}
-
 func (service *SCQueryService) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
 	headerHash, err := service.getBlockHashByNonce(nonce)
 	if err != nil {
@@ -373,7 +382,7 @@ func (service *SCQueryService) getBlockHashByNonce(nonce uint64) ([]byte, error)
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	rootHashAfter := service.mainBlockChain.GetCurrentBlockRootHash()
+	rootHashAfter := service.apiBlockChain.GetCurrentBlockRootHash()
 
 	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil

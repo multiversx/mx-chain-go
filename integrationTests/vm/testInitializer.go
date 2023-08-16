@@ -256,7 +256,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmTestContext.VMContainer,
 		EconomicsFee:             feeHandler,
-		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
+		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookWithAccountsAdapter),
 		MainBlockChain:           &testscommon.ChainHandlerStub{},
 		APIBlockChain:            &testscommon.ChainHandlerStub{},
 		WasmVMChangeLocker:       &sync.RWMutex{},

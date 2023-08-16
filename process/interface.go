@@ -455,7 +455,7 @@ type VirtualMachinesContainer interface {
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
-	BlockChainHookImpl() BlockChainHookHandler
+	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
@@ -538,6 +538,11 @@ type BlockChainHookHandler interface {
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
+}
+
+// BlockChainHookWithAccountsAdapter defines an extension of BlockChainHookHandler with the AccountsAdapter exposed
+type BlockChainHookWithAccountsAdapter interface {
+	BlockChainHookHandler
 	GetAccountsAdapter() state.AccountsAdapter
 }
 
