@@ -1109,8 +1109,10 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
+		IsRefactorPeersMiniBlocksFlagEnabledInEpochCalled: flagActiveFalseHandler,
+		IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled: func(epoch uint32) bool {
+			return deterministFixEnabled
+		},
 	}
 
 	storer := createMemUnit()
@@ -1228,8 +1230,8 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-			IsDeterministicSortOnValidatorsInfoFixEnabledField: false,
+			IsRefactorPeersMiniBlocksFlagEnabledInEpochCalled:          flagActiveFalseHandler,
+			IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled: flagActiveFalseHandler,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -1245,8 +1247,8 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-			IsDeterministicSortOnValidatorsInfoFixEnabledField: true,
+			IsRefactorPeersMiniBlocksFlagEnabledInEpochCalled:          flagActiveFalseHandler,
+			IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled: flagActiveTrueHandler,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 

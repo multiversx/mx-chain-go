@@ -357,7 +357,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabledInEpoch(epoch))
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch))
 		assert.True(t, handler.IsSCProcessorV2FlagEnabledInEpoch(epoch))
-		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(currentEpoch))
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(epoch))
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()

@@ -597,8 +597,8 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 	return false
 }
 
-// IsDeterministicSortOnValidatorsInfoFixEnabled -
-func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+// IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch -
+func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(_ uint32) bool {
 	return false
 }
 

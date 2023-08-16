@@ -151,7 +151,8 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 }
 
 func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInfo) {
-	if vic.enableEpochsHandler.IsDeterministicSortOnValidatorsInfoFixEnabled() {
+	currentEpoch := vic.enableEpochsHandler.GetCurrentEpoch()
+	if vic.enableEpochsHandler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(currentEpoch) {
 		vic.deterministicSortValidators(validators)
 		return
 	}

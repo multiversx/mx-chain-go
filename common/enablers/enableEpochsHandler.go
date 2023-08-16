@@ -647,6 +647,11 @@ func (handler *enableEpochsHandler) FixDelegationChangeOwnerOnAccountEnabledInEp
 	return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
 }
 
+// IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch returns true if the deterministic sort on validators info fix is enabled
+func (handler *enableEpochsHandler) IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(epoch uint32) bool {
+	return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil
