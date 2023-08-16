@@ -20,7 +20,7 @@ func NewSovereignHeaderValidatorFactory(headerValidatorCreator HeaderValidatorCr
 	}, nil
 }
 
-// CreateHeaderValidator creates a new header validator for the chain run type shard
+// CreateHeaderValidator creates a new header validator for the chain run type sovereign
 func (shvf *sovereignHeaderValidatorFactory) CreateHeaderValidator(argsHeaderValidator ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
 	hv, err := shvf.headerValidatorCreator.CreateHeaderValidator(argsHeaderValidator)
 	if err != nil {

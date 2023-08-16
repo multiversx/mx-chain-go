@@ -36,7 +36,7 @@ type HeaderValidatorCreator interface {
 
 // BlockTrackerCreator is an interface for creating block trackers
 type BlockTrackerCreator interface {
-	CreateBlockTracker(argBaseTracker track.ArgShardTracker) (process.BlockTracker, error)
+	CreateBlockTracker(argShardTracker track.ArgShardTracker) (process.BlockTracker, error)
 	IsInterfaceNil() bool
 }
 

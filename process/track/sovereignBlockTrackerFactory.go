@@ -5,12 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// BlockTrackerCreator is an interface for creating block trackers
-type BlockTrackerCreator interface {
-	CreateBlockTracker(argBaseTracker ArgShardTracker) (process.BlockTracker, error)
-	IsInterfaceNil() bool
-}
-
 type sovereignBlockTrackerFactory struct {
 	blockTrackerCreator BlockTrackerCreator
 }
