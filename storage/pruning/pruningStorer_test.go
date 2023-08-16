@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/config"
@@ -132,7 +131,7 @@ func TestNewPruningStorer_InvalidNumberOfActivePersistersShouldErr(t *testing.T)
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrInvalidNumberOfPersisters, err)
 }
 
@@ -144,7 +143,7 @@ func TestNewPruningStorer_NilPersistersTrackerShouldErr(t *testing.T) {
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPersistersTracker, err)
 }
 
@@ -157,7 +156,7 @@ func TestNewPruningStorer_NumEpochKeepLowerThanNumActiveShouldErr(t *testing.T) 
 
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrEpochKeepIsLowerThanNumActive, err)
 }
 
@@ -168,7 +167,7 @@ func TestNewPruningStorer_NilEpochStartHandlerShouldErr(t *testing.T) {
 	args.Notifier = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilEpochStartNotifier, err)
 }
 
@@ -179,7 +178,7 @@ func TestNewPruningStorer_NilShardCoordinatorShouldErr(t *testing.T) {
 	args.ShardCoordinator = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilShardCoordinator, err)
 }
 
@@ -190,7 +189,7 @@ func TestNewPruningStorer_NilPathManagerShouldErr(t *testing.T) {
 	args.PathManager = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPathManager, err)
 }
 
@@ -201,7 +200,7 @@ func TestNewPruningStorer_NilOldDataCleanerProviderShouldErr(t *testing.T) {
 	args.OldDataCleanerProvider = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilOldDataCleanerProvider, err)
 }
 
@@ -212,7 +211,7 @@ func TestNewPruningStorer_NilCustomDatabaseRemoverProviderShouldErr(t *testing.T
 	args.CustomDatabaseRemover = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilCustomDatabaseRemover, err)
 }
 
@@ -223,7 +222,7 @@ func TestNewPruningStorer_NilPersisterFactoryShouldErr(t *testing.T) {
 	args.PersisterFactory = nil
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrNilPersisterFactory, err)
 }
 
@@ -234,7 +233,7 @@ func TestNewPruningStorer_CacheSizeLowerThanBatchSizeShouldErr(t *testing.T) {
 	args.MaxBatchSize = 11
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.True(t, check.IfNil(ps))
+	assert.Nil(t, ps)
 	assert.Equal(t, storage.ErrCacheSizeIsLowerThanBatchSize, err)
 }
 
@@ -244,7 +243,7 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 	args := getDefaultArgs()
 	ps, err := pruning.NewPruningStorer(args)
 
-	assert.False(t, check.IfNil(ps))
+	assert.NotNil(t, ps)
 	assert.Nil(t, err)
 	assert.False(t, ps.IsInterfaceNil())
 }
@@ -1050,14 +1049,20 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	fmt.Println(testDir)
 	args := getDefaultArgs()
-	args.PersisterFactory = factory.NewPersisterFactory(config.DBConfig{
-		FilePath:          filepath.Join(testDir, dbName),
-		Type:              "LvlDBSerial",
-		MaxBatchSize:      100,
-		MaxOpenFiles:      10,
-		BatchDelaySeconds: 2,
-	})
-	var err error
+
+	dbConfigHandler := factory.NewDBConfigHandler(
+		config.DBConfig{
+			FilePath:          filepath.Join(testDir, dbName),
+			Type:              "LvlDBSerial",
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			BatchDelaySeconds: 2,
+		},
+	)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	require.Nil(t, err)
+
+	args.PersisterFactory = persisterFactory
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
 
@@ -1147,4 +1152,179 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
 	require.True(t, elapsedTime < 100*time.Second)
+}
+
+func TestPruningStorer_RangeKeys(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewPruningStorer(args)
+
+	t.Run("should not panic with nil handler", func(t *testing.T) {
+		t.Parallel()
+
+		assert.NotPanics(t, func() {
+			ps.RangeKeys(nil)
+		})
+	})
+	t.Run("should not call handler", func(t *testing.T) {
+		t.Parallel()
+
+		ps.RangeKeys(func(key []byte, val []byte) bool {
+			assert.Fail(t, "should not have called handler")
+			return false
+		})
+	})
+}
+
+func TestPruningStorer_GetOldestEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error if no persisters are found", func(t *testing.T) {
+		t.Parallel()
+
+		epochsData := pruning.EpochArgs{
+			NumOfEpochsToKeep:     0,
+			NumOfActivePersisters: 0,
+		}
+
+		args := getDefaultArgs()
+		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+		ps, _ := pruning.NewPruningStorer(args)
+
+		epoch, err := ps.GetOldestEpoch()
+		assert.NotNil(t, err)
+		assert.Zero(t, epoch)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		epochsData := pruning.EpochArgs{
+			NumOfEpochsToKeep:     2,
+			NumOfActivePersisters: 2,
+			StartingEpoch:         5,
+		}
+
+		args := getDefaultArgs()
+		args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+		args.EpochsData = epochsData
+		ps, _ := pruning.NewPruningStorer(args)
+
+		epoch, err := ps.GetOldestEpoch()
+		assert.Nil(t, err)
+		expectedEpoch := uint32(4) // 5 and 4 are the active epochs
+		assert.Equal(t, expectedEpoch, epoch)
+	})
+}
+
+func TestPruningStorer_PutInEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+		StartingEpoch:         5,
+	}
+	args := getDefaultArgs()
+	args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+	args.EpochsData = epochsData
+	ps, _ := pruning.NewPruningStorer(args)
+
+	t.Run("if the epoch is not handled, should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := ps.PutInEpoch([]byte("key"), []byte("value"), 3) // only 4 and 5 are handled
+		expectedErrorString := "put in epoch: persister for epoch 3 not found"
+		assert.Equal(t, expectedErrorString, err.Error())
+	})
+	t.Run("put in existing epochs", func(t *testing.T) {
+		t.Parallel()
+
+		key4 := []byte("key4")
+		value4 := []byte("value4")
+		key5 := []byte("key5")
+		value5 := []byte("value5")
+
+		err := ps.PutInEpoch(key4, value4, 4)
+		assert.Nil(t, err)
+
+		err = ps.PutInEpoch(key5, value5, 5)
+		assert.Nil(t, err)
+
+		t.Run("get from their respective epochs should work", func(t *testing.T) {
+			ps.ClearCache()
+			recovered4, errGet := ps.GetFromEpoch(key4, 4)
+			assert.Nil(t, errGet)
+			assert.Equal(t, value4, recovered4)
+
+			ps.ClearCache()
+			recovered5, errGet := ps.GetFromEpoch(key5, 5)
+			assert.Nil(t, errGet)
+			assert.Equal(t, value5, recovered5)
+		})
+		t.Run("get from wrong epochs should error", func(t *testing.T) {
+			ps.ClearCache()
+			result, errGet := ps.GetFromEpoch(key4, 3)
+			expectedErrorString := fmt.Sprintf("key %x not found in id", key4)
+			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.Nil(t, result)
+
+			ps.ClearCache()
+			result, errGet = ps.GetFromEpoch(key4, 5)
+			expectedErrorString = fmt.Sprintf("key %x not found in id", key4)
+			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.Nil(t, result)
+		})
+	})
+}
+
+func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
+	t.Parallel()
+
+	epochsData := pruning.EpochArgs{
+		NumOfEpochsToKeep:     2,
+		NumOfActivePersisters: 2,
+		StartingEpoch:         5,
+	}
+	args := getDefaultArgs()
+	args.PersistersTracker = pruning.NewPersistersTracker(epochsData)
+	args.EpochsData = epochsData
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// current epoch is 5
+	key := []byte("key")
+	value := []byte("value")
+
+	// put in epoch 4
+	_ = ps.PutInEpoch(key, value, 4)
+	// put in epoch 5
+	_ = ps.PutInEpoch(key, value, 5)
+
+	// remove from epoch 5
+	err := ps.RemoveFromCurrentEpoch(key)
+	assert.Nil(t, err)
+
+	// get from epoch 5 should error
+	ps.ClearCache()
+	result, errGet := ps.GetFromEpoch(key, 5)
+	expectedErrorString := fmt.Sprintf("key %x not found in id", key)
+	assert.Equal(t, expectedErrorString, errGet.Error())
+	assert.Nil(t, result)
+
+	// get from epoch 4 should work
+	ps.ClearCache()
+	recovered, errGet := ps.GetFromEpoch(key, 4)
+	assert.Nil(t, errGet)
+	assert.Equal(t, value, recovered)
+}
+
+func TestPruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var ps *pruning.PruningStorer
+	require.True(t, ps.IsInterfaceNil())
+
+	args := getDefaultArgs()
+	ps, _ = pruning.NewPruningStorer(args)
+	require.False(t, ps.IsInterfaceNil())
 }

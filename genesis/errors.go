@@ -167,8 +167,11 @@ var ErrBLSKeyNotStaked = errors.New("bls key not staked")
 // ErrMissingDeployedSC signals that a delegation referenced an un-deployed contract
 var ErrMissingDeployedSC = errors.New("missing deployed SC")
 
-// ErrNilGeneralSettingsConfig signals that a nil general settings config was provided
-var ErrNilGeneralSettingsConfig = errors.New("nil general settings config")
-
 // ErrNilEpochConfig signals that a nil epoch config was provided
 var ErrNilEpochConfig = errors.New("nil epoch config")
+
+// ErrNilRoundConfig signals that a nil round config was provided
+var ErrNilRoundConfig = errors.New("nil round config")
+
+// ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
+var ErrNilGasSchedule = errors.New("nil gas schedule")

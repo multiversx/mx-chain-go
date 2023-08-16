@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -16,7 +17,7 @@ func NewPeerAccountCreator() state.AccountFactory {
 
 // CreateAccount calls the new Account creator and returns the result
 func (pac *PeerAccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return state.NewPeerAccount(address)
+	return accounts.NewPeerAccount(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

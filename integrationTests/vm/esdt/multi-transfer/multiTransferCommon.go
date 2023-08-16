@@ -35,26 +35,36 @@ func IssueFungibleToken(
 	ticker string,
 	initialSupply int64,
 ) string {
+	return IssueFungibleTokenWithIssuerAddress(t, net, issuerNode, issuerNode.OwnAccount, ticker, initialSupply)
+}
 
-	issuerAddress := issuerNode.OwnAccount.Address
-
+// IssueFungibleTokenWithIssuerAddress -
+func IssueFungibleTokenWithIssuerAddress(
+	t *testing.T,
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
+	ticker string,
+	initialSupply int64,
+) string {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 	txData := txDataBuilder.NewBuilder()
 	txData.IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	integrationTests.CreateAndSendTransaction(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		issuePrice,
+		issuerAccount,
 		vm.ESDTSCAddress,
 		txData.ToString(), core.MinMetaTxExtraGasCost)
 	WaitForOperationCompletion(net, numRoundsCrossShard)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker))
 
-	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
+	esdt.CheckAddressHasTokens(t, issuerAccount.Address, net.Nodes,
 		tokenIdentifier, 0, initialSupply)
 
 	return string(tokenIdentifier)
@@ -64,6 +74,17 @@ func IssueFungibleToken(
 func IssueNft(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
+	ticker string,
+	semiFungible bool,
+) string {
+	return IssueNftWithIssuerAddress(net, issuerNode, issuerNode.OwnAccount, ticker, semiFungible)
+}
+
+// IssueNftWithIssuerAddress -
+func IssueNftWithIssuerAddress(
+	net *integrationTests.TestNetwork,
+	issuerNode *integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
 	ticker string,
 	semiFungible bool,
 ) string {
@@ -81,16 +102,16 @@ func IssueNft(
 	txData.Func(issueFunc).Str(tokenName).Str(ticker)
 	txData.CanFreeze(false).CanWipe(false).CanPause(false).CanTransferNFTCreateRole(true)
 
-	integrationTests.CreateAndSendTransaction(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		issuePrice,
+		issuerAccount,
 		vm.ESDTSCAddress,
 		txData.ToString(),
 		core.MinMetaTxExtraGasCost)
 	WaitForOperationCompletion(net, numRoundsCrossShard)
 
-	issuerAddress := issuerNode.OwnAccount.Address
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(net.Nodes, []byte(ticker)))
 
 	roles := [][]byte{
@@ -100,7 +121,7 @@ func IssueNft(
 		roles = append(roles, []byte(core.ESDTRoleNFTAddQuantity))
 	}
 
-	SetLocalRoles(net, issuerNode, issuerAddress, tokenIdentifier, roles)
+	SetLocalRoles(net, issuerNode, issuerAccount, tokenIdentifier, roles)
 
 	return tokenIdentifier
 }
@@ -109,22 +130,23 @@ func IssueNft(
 func SetLocalRoles(
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
-	addrForRole []byte,
+	issuerAccount *integrationTests.TestWalletAccount,
 	tokenIdentifier string,
 	roles [][]byte,
 ) {
 	txData := "setSpecialRole" +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
-		"@" + hex.EncodeToString(addrForRole)
+		"@" + hex.EncodeToString(issuerAccount.Address)
 
 	for _, role := range roles {
 		txData += "@" + hex.EncodeToString(role)
 	}
 
-	integrationTests.CreateAndSendTransaction(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		big.NewInt(0),
+		issuerAccount,
 		vm.ESDTSCAddress,
 		txData,
 		core.MinMetaTxExtraGasCost)
@@ -136,13 +158,11 @@ func CreateSFT(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
 	tokenIdentifier string,
 	createdTokenNonce int64,
 	initialSupply int64,
 ) {
-
-	issuerAddress := issuerNode.OwnAccount.Address
-
 	tokenName := "token"
 	royalties := big.NewInt(0)
 	hash := "someHash"
@@ -159,16 +179,17 @@ func CreateSFT(
 	txData.Str(attributes)
 	txData.Str(uri)
 
-	integrationTests.CreateAndSendTransaction(
+	integrationTests.CreateAndSendTransactionWithSenderAccount(
 		issuerNode,
 		net.Nodes,
 		big.NewInt(0),
-		issuerAddress,
+		issuerAccount,
+		issuerAccount.Address,
 		txData.ToString(),
 		integrationTests.AdditionalGasLimit)
 	WaitForOperationCompletion(net, numRoundsSameShard)
 
-	esdt.CheckAddressHasTokens(t, issuerAddress, net.Nodes,
+	esdt.CheckAddressHasTokens(t, issuerAccount.Address, net.Nodes,
 		[]byte(tokenIdentifier), createdTokenNonce, initialSupply)
 }
 
@@ -177,11 +198,12 @@ func CreateNFT(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
 	issuerNode *integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
 	tokenIdentifier string,
 	createdTokenNonce int64,
 ) {
 
-	CreateSFT(t, net, issuerNode, tokenIdentifier, createdTokenNonce, 1)
+	CreateSFT(t, net, issuerNode, issuerAccount, tokenIdentifier, createdTokenNonce, 1)
 }
 
 // BuildEsdtMultiTransferTxData -
@@ -355,8 +377,8 @@ func EsdtMultiTransferToVault(t *testing.T, crossShard bool, scCodeFilename stri
 	expectedVaultBalance[nonFungibleTokenIdentifier2] = make(map[int64]int64)
 
 	for i := int64(1); i <= 10; i++ {
-		CreateNFT(t, net, senderNode, nonFungibleTokenIdentifier1, i)
-		CreateNFT(t, net, senderNode, nonFungibleTokenIdentifier2, i)
+		CreateNFT(t, net, senderNode, senderNode.OwnAccount, nonFungibleTokenIdentifier1, i)
+		CreateNFT(t, net, senderNode, senderNode.OwnAccount, nonFungibleTokenIdentifier2, i)
 
 		expectedIssuerBalance[nonFungibleTokenIdentifier1][i] = 1
 		expectedIssuerBalance[nonFungibleTokenIdentifier2][i] = 1
@@ -373,8 +395,8 @@ func EsdtMultiTransferToVault(t *testing.T, crossShard bool, scCodeFilename stri
 	expectedVaultBalance[semiFungibleTokenIdentifier2] = make(map[int64]int64)
 
 	for i := int64(1); i <= 2; i++ {
-		CreateSFT(t, net, senderNode, semiFungibleTokenIdentifier1, i, 1000)
-		CreateSFT(t, net, senderNode, semiFungibleTokenIdentifier2, i, 1000)
+		CreateSFT(t, net, senderNode, senderNode.OwnAccount, semiFungibleTokenIdentifier1, i, 1000)
+		CreateSFT(t, net, senderNode, senderNode.OwnAccount, semiFungibleTokenIdentifier2, i, 1000)
 
 		expectedIssuerBalance[semiFungibleTokenIdentifier1][i] = 1000
 		expectedIssuerBalance[semiFungibleTokenIdentifier2][i] = 1000

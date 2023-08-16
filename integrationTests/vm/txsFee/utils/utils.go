@@ -2,22 +2,20 @@ package utils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -31,12 +29,33 @@ import (
 )
 
 var (
-	protoMarshalizer = &marshal.GogoProtoMarshalizer{}
-	log              = logger.GetOrCreate("integrationTests/vm/txFee/utils")
+	log = logger.GetOrCreate("integrationTests/vm/txFee/utils")
 )
 
 // DoDeploy -
-func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
+func DoDeploy(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+) (scAddr []byte, owner []byte) {
+	return doDeployInternal(t, testContext, pathToContract, 88100, 11900, 399)
+}
+
+// DoDeployOldCounter -
+func DoDeployOldCounter(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+) (scAddr []byte, owner []byte) {
+	return doDeployInternal(t, testContext, pathToContract, 89030, 10970, 368)
+}
+
+func doDeployInternal(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	expectedBalance, accFees, devFees int64,
+) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
@@ -55,19 +74,35 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, owner, senderNonce+1, expectedBalance)
+	vm.TestAccount(t, testContext.Accounts, owner, senderNonce+1, big.NewInt(expectedBalance))
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFees)
+	require.Equal(t, big.NewInt(accFees), accumulatedFees)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.WasmVirtualMachine)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(devFees), developerFees)
 
 	return scAddr, owner
+}
+
+func generateRandomArray(length int) []byte {
+	result := make([]byte, length)
+	_, _ = rand.Read(result)
+
+	return result
+}
+
+func generateAddressForContextShardID(testContext *vm.VMTestContext) []byte {
+	shardID := testContext.ShardCoordinator.SelfId()
+	for {
+		address := generateRandomArray(32)
+		if testContext.ShardCoordinator.ComputeId(address) == shardID {
+			return address
+		}
+	}
 }
 
 // DoDeployWithCustomParams -
@@ -79,13 +114,14 @@ func DoDeployWithCustomParams(
 	gasLimit uint64,
 	contractHexParams []string,
 ) (scAddr []byte, owner []byte) {
-	owner = []byte("12345678901234567890123456789011")
+	owner = generateAddressForContextShardID(testContext)
 	account, err := testContext.Accounts.LoadAccount(owner)
 	require.Nil(tb, err)
 	senderNonce := account.GetNonce()
 	gasPrice := uint64(10)
 
-	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+	_, err = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+	require.Nil(tb, err)
 
 	scCode := wasm.GetSCCode(pathToContract)
 	txData := wasm.CreateDeployTxData(scCode)
@@ -257,12 +293,6 @@ func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract str
 	return scAddr, owner
 }
 
-// PrepareRelayerTxData -
-func PrepareRelayerTxData(innerTx *transaction.Transaction) []byte {
-	userTxBytes, _ := protoMarshalizer.Marshal(innerTx)
-	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
-}
-
 // CheckOwnerAddr -
 func CheckOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, owner []byte) {
 	acc, err := testContext.Accounts.GetExistingAccount(scAddr)
@@ -359,15 +389,21 @@ const letterBytes = "abcdefghijklmnopqrstuvwxyz"
 func randStringBytes(n int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		idxBig, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterBytes))))
+		b[i] = letterBytes[idxBig.Int64()]
 	}
 	return string(b)
 }
 
-// GenerateUserNameForMyDNSContract -
-func GenerateUserNameForMyDNSContract() []byte {
+// GenerateUserNameForDefaultDNSContract -
+func GenerateUserNameForDefaultDNSContract() []byte {
+	return GenerateUserNameForDNSContract([]byte{49})
+}
+
+// GenerateUserNameForDNSContract -
+func GenerateUserNameForDNSContract(contractAddress []byte) []byte {
 	testHasher := keccak.NewKeccak()
-	contractLastByte := byte(49)
+	contractLastByte := contractAddress[len(contractAddress)-1]
 
 	for {
 		userName := randStringBytes(10)

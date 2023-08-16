@@ -31,7 +31,7 @@ func NewMessageProcessor(antiflooder process.P2PAntifloodHandler, messenger p2p.
 }
 
 // ProcessReceivedMessage is the callback function from the p2p side whenever a new message is received
-func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	atomic.AddUint32(&mp.numMessagesReceived, 1)
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 	atomic.AddUint32(&mp.numMessagesReceivedPerInterval, 1)

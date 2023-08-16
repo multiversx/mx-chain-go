@@ -1,10 +1,10 @@
 package enablers
 
 type roundFlagsHolder struct {
-	example *roundFlag
+	disableAsyncCallV1 *roundFlag
 }
 
-// IsExampleEnabled provides an example how to use this component. Replace this getter with the first use case
-func (holder *roundFlagsHolder) IsExampleEnabled() bool {
-	return holder.example.IsSet()
+// IsDisableAsyncCallV1Enabled returns true for the round where async calls will be disabled in processor v1
+func (holder *roundFlagsHolder) IsDisableAsyncCallV1Enabled() bool {
+	return holder.disableAsyncCallV1.IsSet()
 }

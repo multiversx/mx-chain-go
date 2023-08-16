@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -21,11 +21,12 @@ import (
 
 func createMockSenderArgs() ArgSender {
 	return ArgSender{
-		Messenger:                          &p2pmocks.MessengerStub{},
-		Marshaller:                         &testscommon.MarshalizerMock{},
-		PeerAuthenticationTopic:            "pa-topic",
-		HeartbeatTopic:                     "hb-topic",
-		PeerAuthenticationTimeBetweenSends: time.Second,
+		MainMessenger:                               &p2pmocks.MessengerStub{},
+		FullArchiveMessenger:                        &p2pmocks.MessengerStub{},
+		Marshaller:                                  &marshallerMock.MarshalizerMock{},
+		PeerAuthenticationTopic:                     "pa-topic",
+		HeartbeatTopic:                              "hb-topic",
+		PeerAuthenticationTimeBetweenSends:          time.Second,
 		PeerAuthenticationTimeBetweenSendsWhenError: time.Second,
 		PeerAuthenticationTimeThresholdBetweenSends: 0.1,
 		HeartbeatTimeBetweenSends:                   time.Second,
@@ -54,15 +55,25 @@ func createMockSenderArgs() ArgSender {
 func TestNewSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil peer messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSenderArgs()
-		args.Messenger = nil
+		args.MainMessenger = nil
 		senderInstance, err := NewSender(args)
 
 		assert.Nil(t, senderInstance)
-		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSenderArgs()
+		args.FullArchiveMessenger = nil
+		senderInstance, err := NewSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -302,7 +313,7 @@ func TestNewSender(t *testing.T) {
 		args := createMockSenderArgs()
 		senderInstance, err := NewSender(args)
 
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 		assert.Nil(t, err)
 	})
 }
@@ -341,4 +352,14 @@ func TestSender_GetCurrentNodeTypeShouldNotPanic(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = senderInstance.Close()
+}
+
+func TestSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var senderInstance *sender
+	assert.True(t, senderInstance.IsInterfaceNil())
+
+	senderInstance, _ = NewSender(createMockSenderArgs())
+	assert.False(t, senderInstance.IsInterfaceNil())
 }

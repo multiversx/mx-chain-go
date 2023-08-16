@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -18,7 +17,7 @@ func TestNewBootstrapDataProvider_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bdp, err := NewBootstrapDataProvider(nil)
-	require.True(t, check.IfNil(bdp))
+	require.Nil(t, bdp)
 	require.Equal(t, storage.ErrNilMarshalizer, err)
 }
 
@@ -26,7 +25,7 @@ func TestNewBootstrapDataProvider_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bdp, err := NewBootstrapDataProvider(&mock.MarshalizerMock{})
-	require.False(t, check.IfNil(bdp))
+	require.NotNil(t, bdp)
 	require.NoError(t, err)
 }
 
@@ -92,4 +91,14 @@ func TestBootstrapDataProvider_LoadForPath_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, storer)
 	require.Equal(t, expectedBD, bootstrapData)
+}
+
+func TestBootstrapDataProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var bdp *bootstrapDataProvider
+	require.True(t, bdp.IsInterfaceNil())
+
+	bdp, _ = NewBootstrapDataProvider(&mock.MarshalizerMock{})
+	require.False(t, bdp.IsInterfaceNil())
 }

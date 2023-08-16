@@ -6,9 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
@@ -18,8 +18,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -126,20 +127,7 @@ func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.Account
 }
 
 // CreateTransaction return nil and error
-func (inf *initialNodeFacade) CreateTransaction(
-	_ uint64,
-	_ string,
-	_ string,
-	_ []byte,
-	_ string,
-	_ []byte,
-	_ uint64,
-	_ uint64,
-	_ []byte,
-	_ string,
-	_ string,
-	_ uint32,
-	_ uint32) (*transaction.Transaction, []byte, error) {
+func (inf *initialNodeFacade) CreateTransaction(_ *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 
@@ -154,7 +142,7 @@ func (inf *initialNodeFacade) ValidateTransactionForSimulation(_ *transaction.Tr
 }
 
 // ValidatorStatisticsApi returns nil and error
-func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return nil, errNodeStarting
 }
 
@@ -164,7 +152,7 @@ func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nil, errNodeStarting
 }
 
@@ -253,9 +241,9 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetConnectedPeersRatings returns empty string
-func (inf *initialNodeFacade) GetConnectedPeersRatings() string {
-	return ""
+// GetConnectedPeersRatingsOnMainNetwork returns empty string and error
+func (inf *initialNodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return "", errNodeStarting
 }
 
 // GetEpochStartDataAPI returns nil and error
@@ -284,7 +272,7 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions)
 }
 
 // GetAlteredAccountsForBlock returns nil and error
-func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nil, errNodeStarting
 }
 
@@ -341,6 +329,11 @@ func (inf *initialNodeFacade) Close() error {
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
+}
+
+// GetGuardianData returns error
+func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice
@@ -405,6 +398,31 @@ func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common
 
 // GetGasConfigs return a nil map and error
 func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
+	return nil, errNodeStarting
+}
+
+// IsDataTrieMigrated returns false and error
+func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
+	return false, errNodeStarting
+}
+
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetManagedKeys returns nil
+func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
 }
 

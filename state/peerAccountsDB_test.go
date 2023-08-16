@@ -12,8 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	testState "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -98,7 +100,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 	args := createMockAccountsDBArgs()
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
+			return &storageManager.StorageManagerStub{
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
 				},
@@ -121,7 +123,7 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 	args := createMockAccountsDBArgs()
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
+			return &storageManager.StorageManagerStub{
 				GetLatestStorageEpochCalled: func() (uint32, error) {
 					return 0, fmt.Errorf("new error")
 				},
@@ -146,7 +148,7 @@ func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
 	args := createMockAccountsDBArgs()
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
+			return &storageManager.StorageManagerStub{
 				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler) {
 					checkpointCalled = true
 				},
@@ -169,7 +171,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 	args := createMockAccountsDBArgs()
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{}
+			return &storageManager.StorageManagerStub{}
 		},
 		RecreateCalled: func(_ []byte) (common.Trie, error) {
 			recreateCalled = true
@@ -198,7 +200,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 			return rootHash, nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
+			return &storageManager.StorageManagerStub{
 				GetCalled: func(key []byte) ([]byte, error) {
 					if bytes.Equal(key, []byte(common.ActiveDBKey)) {
 						return nil, fmt.Errorf("key not found")
@@ -253,7 +255,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					PutInEpochCalled: func(bytes []byte, bytes2 []byte, u uint32) error {
 						assert.Fail(t, "should have not called put in epoch")
 						return nil
@@ -283,7 +285,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
@@ -306,7 +308,7 @@ func TestPeerAccountsDB_MarkSnapshotDone(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.Trie = &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					PutInEpochWithoutCacheCalled: func(key []byte, value []byte, epoch uint32) error {
 						assert.Equal(t, common.ActiveDBKey, string(key))
 						assert.Equal(t, common.ActiveDBVal, string(value))
@@ -337,7 +339,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 				return rootHash, nil
 			},
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					ShouldTakeSnapshotCalled: func() bool {
 						return true
 					},
@@ -372,7 +374,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 				return rootHash, nil
 			},
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					ShouldTakeSnapshotCalled: func() bool {
 						return true
 					},
@@ -403,7 +405,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 				return rootHash, nil
 			},
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{
+				return &storageManager.StorageManagerStub{
 					ShouldTakeSnapshotCalled: func() bool {
 						return true
 					},
@@ -443,7 +445,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 	activeDBWasPut := false
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &testscommon.StorageManagerStub{
+			return &storageManager.StorageManagerStub{
 				ShouldTakeSnapshotCalled: func() bool {
 					return true
 				},
@@ -453,22 +455,16 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 				IsClosedCalled: func() bool {
 					return true
 				},
-				PutCalled: func(key []byte, val []byte) error {
-					mut.Lock()
-					defer mut.Unlock()
-
-					if string(key) == state.LastSnapshotStarted {
-						lastSnapshotStartedWasPut = true
-					}
-
-					return nil
-				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
 					mut.Lock()
 					defer mut.Unlock()
 
 					if string(key) == common.ActiveDBKey {
 						activeDBWasPut = true
+					}
+
+					if string(key) == state.LastSnapshotStarted {
+						lastSnapshotStartedWasPut = true
 					}
 
 					return nil
@@ -487,4 +483,93 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 	defer mut.RUnlock()
 	assert.True(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
+}
+
+func TestGetPeerAccountAndReturnIfNew(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error if failed account creation", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error if wrong type of existent account", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &testState.UserAccountStub{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, state.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return error if wrong type of created accounts", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return &testState.UserAccountStub{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.Nil(t, acc)
+		assert.False(t, isNew)
+		assert.Equal(t, state.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should work if account exists", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &testState.PeerAccountHandlerMock{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.NotNil(t, acc)
+		assert.False(t, isNew)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create account if missing", func(t *testing.T) {
+		t.Parallel()
+
+		adb := &testState.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return nil, errors.New("account does not exist")
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return &testState.PeerAccountHandlerMock{}, nil
+			},
+		}
+
+		acc, isNew, err := state.GetPeerAccountAndReturnIfNew(adb, []byte("address"))
+		assert.NotNil(t, acc)
+		assert.True(t, isNew)
+		assert.Nil(t, err)
+	})
 }

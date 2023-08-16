@@ -9,7 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
@@ -20,7 +22,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		HasDrivers:             false,
 		AddressConverter:       testscommon.NewPubkeyConverterMock(32),
 		AccountsDB:             &state.AccountsStub{},
-		Marshaller:             &testscommon.MarshalizerMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
 		TransactionsStorer:     &genericMocks.StorerMock{},
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
@@ -30,7 +32,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
 		Hasher:                 &testscommon.KeccakMock{},
 		MbsStorer:              &genericMocks.StorerMock{},
-		EnableEpochsHandler:    &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }

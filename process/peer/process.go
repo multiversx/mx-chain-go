@@ -14,12 +14,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -440,7 +443,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
 	for pa := range leavesChannels.LeavesChan {
-		peerAccount, err := vs.unmarshalPeer(pa.Value())
+		peerAccount, err := vs.unmarshalPeer(pa)
 		if err != nil {
 			return nil, err
 		}
@@ -450,7 +453,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +490,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	}
 
 	return &state.ValidatorInfo{
-		PublicKey:                       peerAccount.GetBLSPublicKey(),
+		PublicKey:                       peerAccount.AddressBytes(),
 		ShardId:                         peerAccount.GetShardId(),
 		List:                            list,
 		Index:                           peerAccount.GetIndexInList(),
@@ -495,15 +498,15 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
 		RewardAddress:                   peerAccount.GetRewardAddress(),
-		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().NumFailure,
+		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().GetNumSuccess(),
+		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().GetNumFailure(),
+		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().GetNumSuccess(),
+		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().GetNumFailure(),
 		ValidatorIgnoredSignatures:      peerAccount.GetValidatorIgnoredSignaturesRate(),
-		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().GetNumSuccess(),
+		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().GetNumFailure(),
+		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().GetNumSuccess(),
+		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().GetNumFailure(),
 		TotalValidatorIgnoredSignatures: peerAccount.GetTotalValidatorIgnoredSignaturesRate(),
 		NumSelectedInSuccessBlocks:      peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:                 big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
@@ -545,9 +548,12 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
 }
 
-func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
-	peerAccount := state.NewEmptyPeerAccount()
-	err := vs.marshalizer.Unmarshal(peerAccount, pa)
+func (vs *validatorStatistics) unmarshalPeer(peerAccountData core.KeyValueHolder) (state.PeerAccountHandler, error) {
+	peerAccount, err := accounts.NewPeerAccount(peerAccountData.Key())
+	if err != nil {
+		return nil, err
+	}
+	err = vs.marshalizer.Unmarshal(peerAccount, peerAccountData.Value())
 	if err != nil {
 		return nil, err
 	}
@@ -565,9 +571,9 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash)
+	err := vs.peerAdapter.GetAllLeaves(leavesChannels, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	if err != nil {
 		return nil, err
 	}
@@ -975,11 +981,6 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKey(node.PubKeyBytes())
-	if err != nil {
-		return err
-	}
-
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)
@@ -1027,7 +1028,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			log.Debug("updateValidatorInfoOnSuccessfulBlock",
 				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
 				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
-				"leader", core.GetTrimmedPk(string(peerAcc.GetBLSPublicKey())))
+				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())))
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
@@ -1145,12 +1146,12 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Trace("validator statistics",
-		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.GetBLSPublicKey())),
-		"leader fail", peerAcc.GetLeaderSuccessRate().NumFailure,
-		"leader success", peerAcc.GetLeaderSuccessRate().NumSuccess,
-		"val success", peerAcc.GetValidatorSuccessRate().NumSuccess,
+		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.AddressBytes())),
+		"leader fail", peerAcc.GetLeaderSuccessRate().GetNumFailure(),
+		"leader success", peerAcc.GetLeaderSuccessRate().GetNumSuccess(),
+		"val success", peerAcc.GetValidatorSuccessRate().GetNumSuccess(),
 		"val ignored sigs", peerAcc.GetValidatorIgnoredSignaturesRate(),
-		"val fail", peerAcc.GetValidatorSuccessRate().NumFailure,
+		"val fail", peerAcc.GetValidatorSuccessRate().GetNumFailure(),
 		"temp rating", peerAcc.GetTempRating(),
 		"rating", peerAcc.GetRating(),
 	)

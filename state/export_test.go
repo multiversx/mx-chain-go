@@ -1,20 +1,18 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
-const LastSnapshotStarted = lastSnapshotStarted
+const LastSnapshotStarted = lastSnapshot
 
-// NewEmptyBaseAccount -
-func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
-	return &baseAccount{
-		address:         address,
-		dataTrieTracker: tracker,
-	}
+// IsSnapshotInProgress -
+func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
+	return &adb.isSnapshotInProgress
 }
 
 // LoadCode -
@@ -22,9 +20,9 @@ func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
-// LoadDataTrie -
-func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
-	return adb.loadDataTrie(accountHandler, adb.getMainTrie())
+// LoadDataTrieConcurrentSafe -
+func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler baseAccountHandler) error {
+	return adb.loadDataTrieConcurrentSafe(accountHandler, adb.getMainTrie())
 }
 
 // GetAccount -
