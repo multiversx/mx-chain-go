@@ -117,10 +117,10 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	if check.IfNil(args.GenesisNodesSetupFactory) {
-		return nil, errNilNodesSetupFactory
+		return nil, errors.ErrNilNodesSetupFactory
 	}
 	if check.IfNil(args.RatingsDataFactory) {
-		return nil, errNilRatingsDataFactory
+		return nil, errors.ErrNilRatingsDataFactory
 	}
 
 	return &coreComponentsFactory{
