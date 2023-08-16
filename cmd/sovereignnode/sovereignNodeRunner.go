@@ -1133,6 +1133,10 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	if err != nil {
 		return nil, err
 	}
+	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
+	if err != nil {
+		return nil, err
+	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		configurationPaths.SmartContracts,
@@ -1185,7 +1189,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		EpochConfig:                *configs.EpochConfig,
 		PrefConfigs:                *configs.PreferencesConfig,
 		ImportDBConfig:             *configs.ImportDbConfig,
-		AccountsParser:             accountsParser,
+		AccountsParser:             sovereignAccountsParser,
 		SmartContractParser:        smartContractParser,
 		GasSchedule:                gasScheduleNotifier,
 		NodesCoordinator:           nodesCoordinator,
