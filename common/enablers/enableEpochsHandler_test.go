@@ -103,6 +103,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 		SCProcessorV2EnableEpoch:                          88,
+		DeterministicSortOnValidatorsInfoEnableEpoch:      89,
 	}
 }
 
@@ -242,6 +243,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabledInEpoch(currentEpoch))
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(currentEpoch))
 		assert.True(t, handler.IsSCProcessorV2FlagEnabledInEpoch(currentEpoch))
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(currentEpoch))
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
@@ -355,6 +357,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabledInEpoch(epoch))
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch))
 		assert.True(t, handler.IsSCProcessorV2FlagEnabledInEpoch(epoch))
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(currentEpoch))
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -462,6 +465,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsESDTNFTImprovementV1FlagEnabledInEpoch(0))
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(0))
 		assert.False(t, handler.IsSCProcessorV2FlagEnabledInEpoch(0))
+		assert.False(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(0))
 	})
 }
 

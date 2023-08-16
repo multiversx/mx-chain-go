@@ -127,6 +127,7 @@ func createArgBaseProcessor(
 		ProcessedMiniBlocksTracker:     &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -766,6 +767,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
 			},
 			expectedErr: process.ErrNilVersionedHeaderFactory,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.ManagedPeersHolder = nil
+				return args
+			},
+			expectedErr: process.ErrNilManagedPeersHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {

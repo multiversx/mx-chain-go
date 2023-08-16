@@ -388,6 +388,7 @@ type EnableEpochsHandler interface {
 	IsAutoBalanceDataTriesEnabledInEpoch(epoch uint32) bool
 	FixDelegationChangeOwnerOnAccountEnabledInEpoch(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(epoch uint32) bool
 
 	IsInterfaceNil() bool
 }
@@ -423,5 +424,14 @@ type MissingTrieNodesNotifier interface {
 // StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
 type StateSyncNotifierSubscriber interface {
 	MissingDataTrieNodeFound(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
+type ManagedPeersMonitor interface {
+	GetManagedKeysCount() int
+	GetManagedKeys() [][]byte
+	GetEligibleManagedKeys() ([][]byte, error)
+	GetWaitingManagedKeys() ([][]byte, error)
 	IsInterfaceNil() bool
 }
