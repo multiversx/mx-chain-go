@@ -291,7 +291,7 @@ type ArgTestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
-	NodeOperationMode       p2p.NodeOperation
+	NodeOperationMode       common.NodeOperation
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -304,7 +304,7 @@ type TestProcessorNode struct {
 	NodesSetup                 sharding.GenesisNodesSetupHandler
 	MainMessenger              p2p.Messenger
 	FullArchiveMessenger       p2p.Messenger
-	NodeOperationMode          p2p.NodeOperation
+	NodeOperationMode          common.NodeOperation
 
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestNodeKeys
@@ -479,7 +479,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 
-	nodeOperationMode := p2p.NormalOperation
+	nodeOperationMode := common.NormalOperation
 	if len(args.NodeOperationMode) != 0 {
 		nodeOperationMode = args.NodeOperationMode
 	}

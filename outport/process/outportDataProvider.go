@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
@@ -33,6 +34,7 @@ type ArgOutportDataProvider struct {
 	EconomicsData            EconomicsDataHandler
 	ExecutionOrderHandler    ExecutionOrderHandler
 	Marshaller               marshal.Marshalizer
+	Hasher                   hashing.Hasher
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -60,6 +62,7 @@ type outportDataProvider struct {
 	economicsData            EconomicsDataHandler
 	executionOrderHandler    ExecutionOrderHandler
 	marshaller               marshal.Marshalizer
+	hasher                   hashing.Hasher
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -75,6 +78,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		economicsData:            arg.EconomicsData,
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
+		hasher:                   arg.Hasher,
 	}, nil
 }
 
@@ -117,8 +121,14 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
+			ShardID:         odp.shardID,
 			BlockData:       nil, // this will be filled with specific data for each driver
 			TransactionPool: pool,
 			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
@@ -136,9 +146,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 		},
 		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
-			Body:       arg.Body,
-			Header:     arg.Header,
-			HeaderHash: arg.HeaderHash,
+			Body:                 arg.Body,
+			Header:               arg.Header,
+			HeaderHash:           arg.HeaderHash,
+			IntraShardMiniBlocks: intraMiniBlocks,
 		},
 	}, nil
 }
@@ -357,4 +368,40 @@ func getLogs(logs []*data.LogData) ([]*outportcore.LogData, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (odp *outportDataProvider) IsInterfaceNil() bool {
 	return odp == nil
+}
+
+func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler) ([]*block.MiniBlock, error) {
+	body, err := outportcore.GetBody(bodyHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return odp.filterOutDuplicatedMiniBlocks(body.MiniBlocks, odp.txCoordinator.GetCreatedInShardMiniBlocks())
+}
+
+func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody []*block.MiniBlock, intraMiniBlocks []*block.MiniBlock) ([]*block.MiniBlock, error) {
+	filteredMiniBlocks := make([]*block.MiniBlock, 0, len(intraMiniBlocks))
+	mapMiniBlocksFromBody := make(map[string]struct{})
+	for _, mb := range miniBlocksFromBody {
+		mbHash, err := core.CalculateHash(odp.marshaller, odp.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+		mapMiniBlocksFromBody[string(mbHash)] = struct{}{}
+	}
+
+	for _, mb := range intraMiniBlocks {
+		mbHash, err := core.CalculateHash(odp.marshaller, odp.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+
+		_, found := mapMiniBlocksFromBody[string(mbHash)]
+		if found {
+			continue
+		}
+		filteredMiniBlocks = append(filteredMiniBlocks, mb)
+	}
+
+	return filteredMiniBlocks, nil
 }

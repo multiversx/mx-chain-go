@@ -1133,6 +1133,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 
 		arg := &outport.OutportBlockWithHeaderAndBody{
 			OutportBlock: &outport.OutportBlock{
+				ShardID:   currentShardID,
 				BlockData: nil, // this will be filled by outport handler
 				HeaderGasConsumption: &outport.HeaderGasConsumption{
 					GasProvided:    0,
@@ -1453,9 +1454,9 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
-	nodeOperationMode := p2p.NormalOperation
+	nodeOperationMode := common.NormalOperation
 	if pcf.prefConfigs.Preferences.FullArchive {
-		nodeOperationMode = p2p.FullArchiveMode
+		nodeOperationMode = common.FullArchiveMode
 	}
 
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
@@ -1618,7 +1619,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
-	nodeOperationMode p2p.NodeOperation,
+	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1671,7 +1672,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
-	nodeOperationMode p2p.NodeOperation,
+	nodeOperationMode common.NodeOperation,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1768,9 +1769,9 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	accountsDBs[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDBs[state.PeerAccountsState] = pcf.state.PeerAccounts()
 	exportFolder := filepath.Join(pcf.flagsConfig.WorkingDir, hardforkConfig.ImportFolder)
-	nodeOperationMode := p2p.NormalOperation
+	nodeOperationMode := common.NormalOperation
 	if pcf.prefConfigs.Preferences.FullArchive {
-		nodeOperationMode = p2p.FullArchiveMode
+		nodeOperationMode = common.FullArchiveMode
 	}
 	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:                   pcf.coreData,
