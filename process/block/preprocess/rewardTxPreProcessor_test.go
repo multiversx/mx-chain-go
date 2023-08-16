@@ -752,6 +752,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}

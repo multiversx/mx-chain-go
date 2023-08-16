@@ -1967,7 +1967,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStatusCoreComponents)
 	}
 	if check.IfNil(args.TxExecutionOrderHandler) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilTxExecutionOrderHandler)
+		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
 
 	return nil

@@ -2,11 +2,11 @@ package process
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -275,10 +275,10 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 	t.Run("nil pool txs, scrs, rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
-		pool := &outportcore.Pool{
-			Txs:     nil,
-			Scrs:    nil,
-			Rewards: nil,
+		pool := &outportcore.TransactionPool{
+			Transactions:         nil,
+			SmartContractResults: nil,
+			Rewards:              nil,
 		}
 
 		txHashes := createRandTxHashes(10)
@@ -295,24 +295,24 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 	t.Run("transactions not found in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"tx1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				"tx1": {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"scr1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				"scr1": {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"reward1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				"reward1": {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -335,24 +335,24 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[0]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHashes[0]): {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[1]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				hex.EncodeToString(txHashes[1]): {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[2]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				hex.EncodeToString(txHashes[2]): {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -367,33 +367,33 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 
 		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
 		require.Equal(t, 3, numProcessed)
-		require.Equal(t, pool.Txs[string(txHashes[0])].GetExecutionOrder(), 0)
-		require.Equal(t, pool.Scrs[string(txHashes[1])].GetExecutionOrder(), 1)
-		require.Equal(t, pool.Rewards[string(txHashes[2])].GetExecutionOrder(), 2)
+		require.Equal(t, uint32(0), pool.Transactions[hex.EncodeToString(txHashes[0])].GetExecutionOrder())
+		require.Equal(t, uint32(1), pool.SmartContractResults[hex.EncodeToString(txHashes[1])].GetExecutionOrder())
+		require.Equal(t, uint32(2), pool.Rewards[hex.EncodeToString(txHashes[2])].GetExecutionOrder())
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
 	t.Run("transactions partially found (last txs in list) in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[7]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHashes[7]): {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[8]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				hex.EncodeToString(txHashes[8]): {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[9]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				hex.EncodeToString(txHashes[9]): {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -408,9 +408,9 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 
 		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
 		require.Equal(t, 3, numProcessed)
-		require.Equal(t, pool.Txs[string(txHashes[7])].GetExecutionOrder(), 7)
-		require.Equal(t, pool.Scrs[string(txHashes[8])].GetExecutionOrder(), 8)
-		require.Equal(t, pool.Rewards[string(txHashes[9])].GetExecutionOrder(), 9)
+		require.Equal(t, uint32(7), pool.Transactions[hex.EncodeToString(txHashes[7])].GetExecutionOrder())
+		require.Equal(t, uint32(8), pool.SmartContractResults[hex.EncodeToString(txHashes[8])].GetExecutionOrder())
+		require.Equal(t, uint32(9), pool.Rewards[hex.EncodeToString(txHashes[9])].GetExecutionOrder())
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
 }
@@ -490,32 +490,6 @@ func Test_checkBodyTransactionsHaveOrder(t *testing.T) {
 		executedTxHashes["newTxHash"] = struct{}{}
 		err := checkBodyTransactionsHaveOrder(orderedTxHashes, executedTxHashes)
 		require.True(t, errors.Is(err, ErrExecutedTxNotFoundInOrderedTxs))
-	})
-}
-
-func Test_setExecutionOrderIfFound(t *testing.T) {
-	t.Parallel()
-
-	t.Run("transaction not found", func(t *testing.T) {
-		txHash := []byte("txHash")
-		transactionHandlers := make(map[string]data.TransactionHandlerWithGasUsedAndFee)
-		order := 0
-
-		found := setExecutionOrderIfFound(txHash, transactionHandlers, order)
-		require.False(t, found)
-		require.Len(t, transactionHandlers, 0)
-	})
-	t.Run("transaction found", func(t *testing.T) {
-		txHash := []byte("txHash")
-		transactionHandlers := map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(txHash): &outportcore.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{},
-			},
-		}
-
-		res := setExecutionOrderIfFound(txHash, transactionHandlers, 0)
-		require.True(t, res)
-		require.Equal(t, 0, transactionHandlers[string(txHash)].GetExecutionOrder())
 	})
 }
 

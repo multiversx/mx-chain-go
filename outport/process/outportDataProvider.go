@@ -36,7 +36,6 @@ type ArgOutportDataProvider struct {
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
-	ExecutionOrderHandler    ExecutionOrderHandler
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
@@ -218,29 +217,33 @@ func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *b
 }
 
 func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
-	pool *outportcore.Pool,
+	pool *outportcore.TransactionPool,
 ) ([][]byte, int) {
 	orderedTxHashes := odp.executionOrderHandler.GetItems()
 	if pool == nil {
 		return orderedTxHashes, 0
 	}
 
-	txGroups := []map[string]data.TransactionHandlerWithGasUsedAndFee{
-		pool.Txs,
-		pool.Scrs,
+	txGroups := map[string]data.TxWithExecutionOrderHandler{}
+	for txHash, txInfo := range pool.Transactions {
+		txGroups[txHash] = txInfo
+	}
+	for scrHash, scrInfo := range pool.SmartContractResults {
+		txGroups[scrHash] = scrInfo
 	}
 
 	if odp.shardID != core.MetachainShardId {
-		txGroups = append(txGroups, pool.Rewards)
+		for txHash, rewardInfo := range pool.Rewards {
+			txGroups[txHash] = rewardInfo
+		}
 	}
 
 	foundTxHashes := 0
-	for i, txHash := range orderedTxHashes {
-		for _, group := range txGroups {
-			if setExecutionOrderIfFound(txHash, group, i) {
-				foundTxHashes++
-				break
-			}
+	for order, txHash := range orderedTxHashes {
+		tx, found := txGroups[hex.EncodeToString(txHash)]
+		if found {
+			tx.SetExecutionOrder(uint32(order))
+			foundTxHashes++
 		}
 	}
 
@@ -277,19 +280,6 @@ func checkBodyTransactionsHaveOrder(orderedTxHashes [][]byte, executedTxHashes m
 		}
 	}
 	return nil
-}
-
-func setExecutionOrderIfFound(
-	txHash []byte,
-	transactionHandlers map[string]data.TransactionHandlerWithGasUsedAndFee,
-	order int,
-) bool {
-	tx, ok := transactionHandlers[string(txHash)]
-	if ok {
-		tx.SetExecutionOrder(order)
-	}
-
-	return ok
 }
 
 func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
@@ -544,35 +534,37 @@ func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody
 	return filteredMiniBlocks, nil
 }
 
-func printPool(pool *outportcore.Pool) {
-	printMapTxs := func(txs map[string]data.TransactionHandlerWithGasUsedAndFee) {
-		for hash, tx := range txs {
-			log.Warn(hex.EncodeToString([]byte(hash)), "order", tx.GetExecutionOrder())
-		}
-	}
-
-	total := len(pool.Txs) + len(pool.Invalid) + len(pool.Scrs) + len(pool.Rewards)
+func printPool(pool *outportcore.TransactionPool) {
+	total := len(pool.Transactions) + len(pool.InvalidTxs) + len(pool.SmartContractResults) + len(pool.Rewards)
 	if total > 0 {
 		log.Warn("###################################")
 	}
 
-	if len(pool.Txs) > 0 {
+	if len(pool.Transactions) > 0 {
 		log.Warn("############### NORMAL TXS ####################")
-		printMapTxs(pool.Txs)
+		for hash, tx := range pool.Transactions {
+			log.Warn(hash, "order", tx.GetExecutionOrder())
+		}
 	}
-	if len(pool.Invalid) > 0 {
+	if len(pool.InvalidTxs) > 0 {
 		log.Warn("############### INVALID ####################")
-		printMapTxs(pool.Invalid)
+		for hash, tx := range pool.Transactions {
+			log.Warn(hash, "order", tx.GetExecutionOrder())
+		}
 	}
 
-	if len(pool.Scrs) > 0 {
+	if len(pool.SmartContractResults) > 0 {
 		log.Warn("############### SCRS ####################")
-		printMapTxs(pool.Scrs)
+		for hash, tx := range pool.SmartContractResults {
+			log.Warn(hash, "order", tx.GetExecutionOrder())
+		}
 	}
 
 	if len(pool.Rewards) > 0 {
 		log.Warn("############### REWARDS ####################")
-		printMapTxs(pool.Rewards)
+		for hash, tx := range pool.Rewards {
+			log.Warn(hash, "order", tx.GetExecutionOrder())
+		}
 	}
 	if total > 0 {
 		log.Warn("###################################")
