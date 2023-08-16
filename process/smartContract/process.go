@@ -2863,7 +2863,9 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	if isReturnOKTxHandler(scResult) {
+	isTransferValueOnlySCR := len(scResult.Data) == 0 && scResult.Value.Cmp(zero) > 0
+	shouldGenerateCompleteEvent := isReturnOKTxHandler(scResult) || isTransferValueOnlySCR
+	if shouldGenerateCompleteEvent {
 		completedTxLog := createCompleteEventLog(scResult, txHash)
 		ignorableError := sc.txLogsProcessor.SaveLog(txHash, scResult, []*vmcommon.LogEntry{completedTxLog})
 		if ignorableError != nil {

@@ -597,6 +597,11 @@ func (mock *EnableEpochsHandlerMock) IsCorrectLastUnJailedFlagEnabledInSpecificE
 	return false
 }
 
+// IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch -
+func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(_ uint32) bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

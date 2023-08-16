@@ -43,7 +43,7 @@ type FacadeStub struct {
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                       func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatingsCalled              func() string
+	GetConnectedPeersRatingsOnMainNetworkCalled func() (string, error)
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -89,6 +89,10 @@ type FacadeStub struct {
 	PprofEnabledCalled                          func() bool
 	DecodeAddressPubkeyCalled                   func(pk string) ([]byte, error)
 	IsDataTrieMigratedCalled                    func(address string, options api.AccountQueryOptions) (bool, error)
+	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
 
 // GetTokenSupply -
@@ -384,9 +388,9 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
 }
 
-// GetConnectedPeersRatings -
-func (f *FacadeStub) GetConnectedPeersRatings() string {
-	return f.GetConnectedPeersRatingsCalled()
+// GetConnectedPeersRatingsOnMainNetwork -
+func (f *FacadeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return f.GetConnectedPeersRatingsOnMainNetworkCalled()
 }
 
 // GetEpochStartDataAPI -
@@ -572,6 +576,38 @@ func (f *FacadeStub) Trigger(_ uint32, _ bool) error {
 // IsSelfTrigger -
 func (f *FacadeStub) IsSelfTrigger() bool {
 	return false
+}
+
+// GetManagedKeysCount -
+func (f *FacadeStub) GetManagedKeysCount() int {
+	if f.GetManagedKeysCountCalled != nil {
+		return f.GetManagedKeysCountCalled()
+	}
+	return 0
+}
+
+// GetManagedKeys -
+func (f *FacadeStub) GetManagedKeys() []string {
+	if f.GetManagedKeysCalled != nil {
+		return f.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetEligibleManagedKeys -
+func (f *FacadeStub) GetEligibleManagedKeys() ([]string, error) {
+	if f.GetEligibleManagedKeysCalled != nil {
+		return f.GetEligibleManagedKeysCalled()
+	}
+	return make([]string, 0), nil
+}
+
+// GetWaitingManagedKeys -
+func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
+	if f.GetWaitingManagedKeysCalled != nil {
+		return f.GetWaitingManagedKeysCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // Close -

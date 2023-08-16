@@ -53,6 +53,7 @@ type ApiResolverArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
+	StatusComponents     factory.StatusComponentsHolder
 	GasScheduleNotifier  common.GasScheduleNotifierAPI
 	Bootstrapper         process.Bootstrapper
 	AllowVMQueriesChan   chan struct{}
@@ -253,6 +254,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ValidatorPubKeyConverter: args.CoreComponents.ValidatorPubKeyConverter(),
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
 		GasScheduleNotifier:      args.GasScheduleNotifier,
+		ManagedPeersMonitor:      args.StatusComponents.ManagedPeersMonitor(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)

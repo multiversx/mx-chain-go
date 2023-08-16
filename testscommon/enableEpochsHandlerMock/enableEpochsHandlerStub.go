@@ -123,6 +123,7 @@ type EnableEpochsHandlerStub struct {
 	IsAutoBalanceDataTriesEnabledInEpochCalled                        func(epoch uint32) bool
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled        func(epoch uint32) bool
 }
 
 // GetCurrentEpoch -
@@ -1065,6 +1066,14 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabledInE
 func (stub *EnableEpochsHandlerStub) IsFixOOGReturnCodeFlagEnabledInEpoch(epoch uint32) bool {
 	if stub.IsFixOOGReturnCodeFlagEnabledInEpochCalled != nil {
 		return stub.IsFixOOGReturnCodeFlagEnabledInEpochCalled(epoch)
+	}
+	return false
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch -
+func (stub *EnableEpochsHandlerStub) IsDeterministicSortOnValidatorsInfoFixEnabledInEpoch(epoch uint32) bool {
+	if stub.IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled != nil {
+		return stub.IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled(epoch)
 	}
 	return false
 }

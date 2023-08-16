@@ -241,9 +241,9 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetConnectedPeersRatings returns empty string
-func (inf *initialNodeFacade) GetConnectedPeersRatings() string {
-	return ""
+// GetConnectedPeersRatingsOnMainNetwork returns empty string and error
+func (inf *initialNodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return "", errNodeStarting
 }
 
 // GetEpochStartDataAPI returns nil and error
@@ -404,6 +404,26 @@ func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, err
 // IsDataTrieMigrated returns false and error
 func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
 	return false, errNodeStarting
+}
+
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetManagedKeys returns nil
+func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
