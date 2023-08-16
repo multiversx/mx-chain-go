@@ -3,6 +3,7 @@ package topicsender
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
@@ -30,8 +31,8 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
-func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
-	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
+func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID, destination p2p.MessageHandler) error {
+	return trs.sendToConnectedPeer(trs.topicName, buff, peer, destination)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -203,9 +203,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:             bcf.coreComponents,
-		CryptoComponentsHolder:           bcf.cryptoComponents,
-		Messenger:                        bcf.networkComponents.NetworkMessenger(),
+		CoreComponentsHolder:   bcf.coreComponents,
+		CryptoComponentsHolder: bcf.cryptoComponents,
+		MainMessenger:          bcf.networkComponents.NetworkMessenger(), FullArchiveMessenger: bcf.networkComponents.FullArchiveNetworkMessenger(),
 		GeneralConfig:                    bcf.config,
 		PrefsConfig:                      bcf.prefConfig.Preferences,
 		FlagsConfig:                      bcf.flagsConfig,

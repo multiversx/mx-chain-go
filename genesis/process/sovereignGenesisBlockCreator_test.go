@@ -1,3 +1,5 @@
+//go:build !race
+
 package process
 
 import (
@@ -30,6 +32,8 @@ func TestNewSovereignGenesisBlockCreator(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		gbc := createGenesisBlockCreator(t)
 		sgbc, err := NewSovereignGenesisBlockCreator(gbc)
 		require.Nil(t, err)
@@ -37,6 +41,8 @@ func TestNewSovereignGenesisBlockCreator(t *testing.T) {
 	})
 
 	t.Run("nil genesis block creator, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		sgbc, err := NewSovereignGenesisBlockCreator(nil)
 		require.Equal(t, errNilGenesisBlockCreator, err)
 		require.Nil(t, sgbc)
@@ -44,8 +50,6 @@ func TestNewSovereignGenesisBlockCreator(t *testing.T) {
 }
 
 func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.T) {
-	t.Parallel()
-
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.StartEpochNum = 1
 	gbc, _ := NewGenesisBlockCreator(arg)
@@ -63,8 +67,6 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 }
 
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
-	t.Parallel()
-
 	sgbc := createSovereignGenesisBlockCreator(t)
 
 	blocks, err := sgbc.CreateGenesisBlocks()
