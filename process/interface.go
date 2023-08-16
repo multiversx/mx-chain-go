@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -27,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -57,6 +59,12 @@ type SmartContractResultProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// SmartContractProcessorFacade is the main interface for smart contract result execution engine
+type SmartContractProcessorFacade interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
+}
+
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
@@ -65,7 +73,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	CheckTxValidity(txHandler TxValidatorHandler) error
+	CheckTxValidity(interceptedTx InterceptedTransactionHandler) error
 	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
@@ -79,8 +87,20 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
+// InterceptedTransactionHandler defines an intercepted data wrapper over transaction handler that has
+// receiver and sender shard getters
+type InterceptedTransactionHandler interface {
+	SenderShardId() uint32
+	ReceiverShardId() uint32
+	Nonce() uint64
+	SenderAddress() []byte
+	Fee() *big.Int
+	Transaction() data.TransactionHandler
+}
+
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
 type TxVersionCheckerHandler interface {
+	IsGuardedTransaction(tx *transaction.Transaction) bool
 	IsSignedWithHash(tx *transaction.Transaction) bool
 	CheckTxVersion(tx *transaction.Transaction) error
 	IsInterfaceNil() bool
@@ -164,6 +184,7 @@ type SmartContractProcessor interface {
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
+	CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -247,6 +268,12 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// SmartContractProcessorFull is the main interface for smart contract result execution engine
+type SmartContractProcessorFull interface {
+	SmartContractProcessor
+	SmartContractResultProcessor
+}
+
 // ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
 type ScheduledBlockProcessor interface {
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
@@ -290,7 +317,7 @@ type TransactionLogProcessorDatabase interface {
 
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
-	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	GetLatestValidators() map[string]*accounts.ValidatorApiResponse
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -334,7 +361,7 @@ type Bootstrapper interface {
 	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
-	StartSyncingBlocks()
+	StartSyncingBlocks() error
 	IsInterfaceNil() bool
 }
 
@@ -371,7 +398,7 @@ type InterceptorsContainer interface {
 
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
-	Create() (InterceptorsContainer, error)
+	Create() (InterceptorsContainer, InterceptorsContainer, error)
 	IsInterfaceNil() bool
 }
 
@@ -502,18 +529,21 @@ type BlockChainHookHandler interface {
 	ClearCompiledCodes()
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
+	ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetVMContainer(vmContainer VirtualMachinesContainer) error
 	Close() error
 	FilterCodeMetadataForUpgrade(input []byte) ([]byte, error)
-	ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
 	ResetCounters()
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
+	IsBuiltinFunctionName(functionName string) bool
 }
 
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	Close() error
@@ -645,8 +675,10 @@ type feeHandler interface {
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
+	MaxGasPriceSetGuardian() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
+	ExtraGasLimitGuardedTx() uint64
 	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
@@ -1073,16 +1105,24 @@ type NodesCoordinator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
+	// TODO RoundSubscriberHandler should be move to elrond-core
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
+// RoundNotifier can notify upon an epoch change and provide the current epoch
+type RoundNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.RoundSubscriberHandler)
+	CurrentRound() uint64
+	CheckRound(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
-	CheckRound(round uint64)
-	IsExampleEnabled() bool
+	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
 
@@ -1179,7 +1219,7 @@ type InterceptedChunksProcessor interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 
@@ -1212,6 +1252,36 @@ type ScheduledTxsExecutionHandler interface {
 	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsScheduledTx(txHash []byte) bool
 	IsMiniBlockExecuted(mbHash []byte) bool
+	IsInterfaceNil() bool
+}
+
+// ShardedPool is a perspective of the sharded data pool
+type ShardedPool interface {
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
+}
+
+// InterceptedSignedTransactionHandler provides additional handling for signed transactions
+type InterceptedSignedTransactionHandler interface {
+	InterceptedTransactionHandler
+	GetTxMessageForSignatureVerification() ([]byte, error)
+}
+
+// GuardianChecker can check an account guardian
+type GuardianChecker interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
+	IsInterfaceNil() bool
+}
+
+// GuardedAccountHandler allows setting and getting the configured account guardian
+type GuardedAccountHandler interface {
+	GetActiveGuardian(handler vmcommon.UserAccountHandler) ([]byte, error)
+	HasActiveGuardian(uah state.UserAccountHandler) bool
+	HasPendingGuardian(uah state.UserAccountHandler) bool
+	SetGuardian(uah vmcommon.UserAccountHandler, guardianAddress []byte, txGuardianAddress []byte, guardianServiceUID []byte) error
+	CleanOtherThanActive(uah vmcommon.UserAccountHandler)
+	GetConfiguredGuardians(uah state.UserAccountHandler) (active *guardians.Guardian, pending *guardians.Guardian, err error)
 	IsInterfaceNil() bool
 }
 

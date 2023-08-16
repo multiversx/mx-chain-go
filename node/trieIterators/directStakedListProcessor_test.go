@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -42,24 +42,19 @@ func TestNewDirectStakedListProcessor(t *testing.T) {
 			},
 			exError: ErrNilAccountsAdapter,
 		},
-		{
-			name: "ShouldWork",
-			argsFunc: func() ArgTrieIteratorProcessor {
-				return createMockArgs()
-			},
-			exError: nil,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewDirectStakedListProcessor(tt.argsFunc())
+			dslp, err := NewDirectStakedListProcessor(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
+			require.Nil(t, dslp)
 		})
 	}
 
-	dslp, _ := NewDirectStakedListProcessor(createMockArgs())
-	assert.False(t, check.IfNil(dslp))
+	dslp, err := NewDirectStakedListProcessor(createMockArgs())
+	require.NotNil(t, dslp)
+	require.Nil(t, err)
 }
 
 func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
@@ -76,7 +71,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, time.Second), nil
+			return createScAccount(addressContainer, validators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -120,7 +115,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, 0), nil
+			return createScAccount(addressContainer, validators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -152,27 +147,42 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)
 }
 
-func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return rootHash, nil
-		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
-			go func() {
-				time.Sleep(timeSleep)
-				for _, leafBuff := range leaves {
-					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChan <- leaf
-				}
+func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
+	dtt := &trieMock.DataTrieTrackerStub{
+		DataTrieCalled: func() common.Trie {
+			return &trieMock.TrieStub{
+				RootCalled: func() ([]byte, error) {
+					return rootHash, nil
+				},
+				GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+					go func() {
+						time.Sleep(timeSleep)
+						for _, leafBuff := range leaves {
+							leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
+							leavesChannels.LeavesChan <- leaf
+						}
 
-				close(leavesChannels.LeavesChan)
-				close(leavesChannels.ErrChan)
-			}()
+						close(leavesChannels.LeavesChan)
+						leavesChannels.ErrChan.Close()
+					}()
 
-			return nil
+					return nil
+				},
+			}
 		},
-	})
+	}
+
+	acc, _ := accounts.NewUserAccount(address, dtt, &trieMock.TrieLeafParserStub{})
 
 	return acc
+}
+
+func TestDirectStakedListProcessor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var dslp *directStakedListProcessor
+	require.True(t, dslp.IsInterfaceNil())
+
+	dslp, _ = NewDirectStakedListProcessor(createMockArgs())
+	require.False(t, dslp.IsInterfaceNil())
 }

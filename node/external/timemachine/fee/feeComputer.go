@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -15,6 +16,7 @@ import (
 var log = logger.GetOrCreate("node/external/timemachine/fee")
 
 type feeComputer struct {
+	txVersionChecker            process.TxVersionCheckerHandler
 	builtInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	economicsConfig             config.EconomicsConfig
 	economicsInstances          map[uint32]economicsDataWithComputeFee
@@ -35,6 +37,7 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		// TODO: use a LRU cache instead
 		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
 		enableEpochsConfig: args.EnableEpochsConfig,
+		txVersionChecker:   args.TxVersionChecker,
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
@@ -132,6 +135,7 @@ func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDat
 		BuiltInFunctionsCostHandler: computer.builtInFunctionsCostHandler,
 		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
 		EnableEpochsHandler:         enableEpochsHandler,
+		TxVersionChecker:            computer.txVersionChecker,
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

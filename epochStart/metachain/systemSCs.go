@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -777,7 +776,8 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
-	account, err := s.getPeerAccount(blsPubKey)
+
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(s.peerAccountsDB, blsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -789,12 +789,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if !isNew {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
 		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
@@ -1095,27 +1090,18 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandle
 func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 
-	rootHash, err := userValidatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+	err := userValidatorAccount.GetAllLeaves(leavesChannels, context.Background())
 	if err != nil {
 		return nil, err
 	}
 	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
-		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
-		if errTrim != nil {
-			return nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
-		}
 
-		err = s.marshalizer.Unmarshal(validatorData, value)
+		err = s.marshalizer.Unmarshal(validatorData, leaf.Value())
 		if err != nil {
 			continue
 		}
@@ -1125,7 +1111,7 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 		}
 	}
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -1335,11 +1321,6 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 		}
 
 		err = peerAcc.SetRewardAddress(rewardAddress)
-		if err != nil {
-			return err
-		}
-
-		err = peerAcc.SetBLSPublicKey(blsKey)
 		if err != nil {
 			return err
 		}

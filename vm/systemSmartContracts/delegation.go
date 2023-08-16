@@ -268,6 +268,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.correctNodesStatus(args)
 	case changeOwner:
 		return d.changeOwner(args)
+	case "synchronizeOwner":
+		return d.synchronizeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -917,7 +919,8 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage("wrong number of arguments, expected 1")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
+	newOwner := args.Arguments[0]
+	if len(newOwner) != len(args.CallerAddr) {
 		d.eei.AddReturnMessage("invalid argument, wanted an address")
 		return vmcommon.UserError
 	}
@@ -928,7 +931,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	isNew, _, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	isNew, _, err := d.getOrCreateDelegatorData(newOwner)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -949,17 +952,61 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	d.eei.SetStorage(args.CallerAddr, nil)
-	err = d.saveDelegatorData(args.Arguments[0], ownerDelegatorData)
+	err = d.saveDelegatorData(newOwner, ownerDelegatorData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, newOwner, args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
-	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+	d.eei.SetStorage([]byte(ownerKey), newOwner)
+
+	err = d.saveOwnerToAccount(newOwner)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		return nil
+	}
+
+	return d.eei.SetOwnerOperatingOnAccount(newOwner)
+}
+
+func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("invalid number of arguments, expected 0")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	err = d.eei.SetOwnerOperatingOnAccount(ownerAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -1685,11 +1732,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(valueToUnDelegate) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
-		return vmcommon.UserError
-	}
-
-	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
-		d.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 

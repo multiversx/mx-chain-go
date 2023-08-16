@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strconv"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const millisecondsInSecond = 1000
@@ -17,6 +19,8 @@ const initUint = uint64(0)
 const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
+
+var log = logger.GetOrCreate("node/metrics")
 
 // InitBaseMetrics will initialize base, default metrics to 0 values
 func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
@@ -65,7 +69,6 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
-	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
@@ -124,6 +127,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(enableEpochs.SetGuardianEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -271,10 +275,20 @@ func InitMetrics(
 
 // SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
+	if check.IfNil(ash) {
+		log.Error("programming error: nil AppStatusHandler in SaveUint64Metric", "stack", string(debug.Stack()))
+		return
+	}
+
 	ash.SetUInt64Value(key, value)
 }
 
 // SaveStringMetric will save a string metric in status handler
 func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
+	if check.IfNil(ash) {
+		log.Error("programming error: nil AppStatusHandler in SaveStringMetric", "stack", string(debug.Stack()))
+		return
+	}
+
 	ash.SetStringValue(key, value)
 }

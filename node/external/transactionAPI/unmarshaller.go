@@ -110,7 +110,7 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
-	return &transaction.ApiTransactionResult{
+	apiTx := &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeNormal),
 		Nonce:            tx.Nonce,
@@ -127,13 +127,20 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 		Version:          tx.Version,
 		ChainID:          string(tx.ChainID),
 	}
+
+	if len(tx.GuardianAddr) > 0 {
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
+		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	return apiTx
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
-	return &transaction.ApiTransactionResult{
+	apiTx := &transaction.ApiTransactionResult{
 		Tx:               tx,
 		Type:             string(transaction.TxTypeInvalid),
 		Nonce:            tx.Nonce,
@@ -146,7 +153,17 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 		GasLimit:         tx.GasLimit,
 		Data:             tx.Data,
 		Signature:        hex.EncodeToString(tx.Signature),
+		Options:          tx.Options,
+		Version:          tx.Version,
+		ChainID:          string(tx.ChainID),
 	}
+
+	if len(tx.GuardianAddr) > 0 {
+		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
+		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	return apiTx
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult {

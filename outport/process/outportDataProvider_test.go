@@ -2,11 +2,11 @@ package process
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -17,13 +17,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
 	txsFeeProc, _ := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshaller:         &testscommon.MarshalizerMock{},
+		Marshaller:         &marshallerMock.MarshalizerMock{},
 		TransactionsStorer: &genericMocks.StorerMock{},
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
@@ -38,6 +40,8 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		EconomicsData:            &mock.EconomicsHandlerMock{},
 		ShardCoordinator:         &testscommon.ShardsCoordinatorMock{},
 		ExecutionOrderHandler:    &commonMocks.TxExecutionOrderHandlerStub{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
+		Hasher:                   &hashingMocks.HasherMock{},
 	}
 }
 
@@ -93,12 +97,57 @@ func TestPrepareOutportSaveBlockData(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, res)
-	require.NotNil(t, res.HeaderHash)
-	require.NotNil(t, res.Body)
-	require.NotNil(t, res.Header)
+	require.NotNil(t, res.HeaderDataWithBody.HeaderHash)
+	require.NotNil(t, res.HeaderDataWithBody.Body)
+	require.NotNil(t, res.HeaderDataWithBody.Header)
 	require.NotNil(t, res.SignersIndexes)
 	require.NotNil(t, res.HeaderGasConsumption)
-	require.NotNil(t, res.TransactionsPool)
+	require.NotNil(t, res.TransactionPool)
+}
+
+func TestOutportDataProvider_GetIntraShardMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	mb1 := &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scr1")},
+	}
+	mb2 := &block.MiniBlock{
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        [][]byte{[]byte("scr2"), []byte("scr3")},
+	}
+	mb3 := &block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: [][]byte{[]byte("scr4"), []byte("scr5")},
+	}
+
+	arg := createArgOutportDataProvider()
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
+			return nil, nil
+		},
+		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
+			return []uint64{0, 1}, nil
+		},
+	}
+	arg.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
+			return []*block.MiniBlock{mb1, mb3}
+		},
+	}
+	outportDataP, _ := NewOutportDataProvider(arg)
+
+	res, err := outportDataP.PrepareOutportSaveBlockData(ArgPrepareOutportSaveBlockData{
+		Header: &block.Header{},
+		Body: &block.Body{
+			MiniBlocks: []*block.MiniBlock{mb1, mb2},
+		},
+		HeaderHash: []byte("something"),
+	})
+	require.Nil(t, err)
+	require.Equal(t, []*block.MiniBlock{mb3}, res.HeaderDataWithBody.IntraShardMiniBlocks)
 }
 
 func Test_extractExecutedTxsFromMb(t *testing.T) {
@@ -226,10 +275,10 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 	t.Run("nil pool txs, scrs, rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
-		pool := &outportcore.Pool{
-			Txs:     nil,
-			Scrs:    nil,
-			Rewards: nil,
+		pool := &outportcore.TransactionPool{
+			Transactions:         nil,
+			SmartContractResults: nil,
+			Rewards:              nil,
 		}
 
 		txHashes := createRandTxHashes(10)
@@ -246,24 +295,24 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 	t.Run("transactions not found in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"tx1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				"tx1": {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"scr1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				"scr1": {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				"reward1": &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				"reward1": {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -286,24 +335,24 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[0]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHashes[0]): {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[1]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				hex.EncodeToString(txHashes[1]): {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[2]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				hex.EncodeToString(txHashes[2]): {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -318,33 +367,33 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 
 		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
 		require.Equal(t, 3, numProcessed)
-		require.Equal(t, pool.Txs[string(txHashes[0])].GetExecutionOrder(), 0)
-		require.Equal(t, pool.Scrs[string(txHashes[1])].GetExecutionOrder(), 1)
-		require.Equal(t, pool.Rewards[string(txHashes[2])].GetExecutionOrder(), 2)
+		require.Equal(t, uint32(0), pool.Transactions[hex.EncodeToString(txHashes[0])].GetExecutionOrder())
+		require.Equal(t, uint32(1), pool.SmartContractResults[hex.EncodeToString(txHashes[1])].GetExecutionOrder())
+		require.Equal(t, uint32(2), pool.Rewards[hex.EncodeToString(txHashes[2])].GetExecutionOrder())
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
 	t.Run("transactions partially found (last txs in list) in pool txs, scrs or rewards", func(t *testing.T) {
 		args := createArgOutportDataProvider()
 		odp, _ := NewOutportDataProvider(args)
 		txHashes := createRandTxHashes(10)
-		pool := &outportcore.Pool{
-			Txs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[7]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &transaction.Transaction{
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHashes[7]): {
+					Transaction: &transaction.Transaction{
 						Nonce: 0,
 					},
 				},
 			},
-			Scrs: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[8]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &smartContractResult.SmartContractResult{
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				hex.EncodeToString(txHashes[8]): {
+					SmartContractResult: &smartContractResult.SmartContractResult{
 						Nonce: 0,
 					},
 				},
 			},
-			Rewards: map[string]data.TransactionHandlerWithGasUsedAndFee{
-				string(txHashes[9]): &outportcore.TransactionHandlerWithGasAndFee{
-					TransactionHandler: &rewardTx.RewardTx{
+			Rewards: map[string]*outportcore.RewardInfo{
+				hex.EncodeToString(txHashes[9]): {
+					Reward: &rewardTx.RewardTx{
 						Epoch: 0,
 					},
 				},
@@ -359,9 +408,9 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 
 		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
 		require.Equal(t, 3, numProcessed)
-		require.Equal(t, pool.Txs[string(txHashes[7])].GetExecutionOrder(), 7)
-		require.Equal(t, pool.Scrs[string(txHashes[8])].GetExecutionOrder(), 8)
-		require.Equal(t, pool.Rewards[string(txHashes[9])].GetExecutionOrder(), 9)
+		require.Equal(t, uint32(7), pool.Transactions[hex.EncodeToString(txHashes[7])].GetExecutionOrder())
+		require.Equal(t, uint32(8), pool.SmartContractResults[hex.EncodeToString(txHashes[8])].GetExecutionOrder())
+		require.Equal(t, uint32(9), pool.Rewards[hex.EncodeToString(txHashes[9])].GetExecutionOrder())
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
 }
@@ -441,32 +490,6 @@ func Test_checkBodyTransactionsHaveOrder(t *testing.T) {
 		executedTxHashes["newTxHash"] = struct{}{}
 		err := checkBodyTransactionsHaveOrder(orderedTxHashes, executedTxHashes)
 		require.True(t, errors.Is(err, ErrExecutedTxNotFoundInOrderedTxs))
-	})
-}
-
-func Test_setExecutionOrderIfFound(t *testing.T) {
-	t.Parallel()
-
-	t.Run("transaction not found", func(t *testing.T) {
-		txHash := []byte("txHash")
-		transactionHandlers := make(map[string]data.TransactionHandlerWithGasUsedAndFee)
-		order := 0
-
-		found := setExecutionOrderIfFound(txHash, transactionHandlers, order)
-		require.False(t, found)
-		require.Len(t, transactionHandlers, 0)
-	})
-	t.Run("transaction found", func(t *testing.T) {
-		txHash := []byte("txHash")
-		transactionHandlers := map[string]data.TransactionHandlerWithGasUsedAndFee{
-			string(txHash): &outportcore.TransactionHandlerWithGasAndFee{
-				TransactionHandler: &transaction.Transaction{},
-			},
-		}
-
-		res := setExecutionOrderIfFound(txHash, transactionHandlers, 0)
-		require.True(t, res)
-		require.Equal(t, 0, transactionHandlers[string(txHash)].GetExecutionOrder())
 	})
 }
 

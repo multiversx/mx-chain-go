@@ -12,4 +12,5 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	PathHandler() storage.PathManagerHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	EnableEpochsHandler() common.EnableEpochsHandler
 }

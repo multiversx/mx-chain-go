@@ -1,5 +1,7 @@
 package common
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 // GetClosedUnbufferedChannel returns an instance of a 'chan struct{}' that is already closed
 func GetClosedUnbufferedChannel() chan struct{} {
 	ch := make(chan struct{})
@@ -8,12 +10,9 @@ func GetClosedUnbufferedChannel() chan struct{} {
 	return ch
 }
 
-// GetErrorFromChanNonBlocking will get the error from channel
-func GetErrorFromChanNonBlocking(errChan chan error) error {
-	select {
-	case err := <-errChan:
-		return err
-	default:
-		return nil
+// CloseKeyValueHolderChan will close the channel if not nil
+func CloseKeyValueHolderChan(ch chan core.KeyValueHolder) {
+	if ch != nil {
+		close(ch)
 	}
 }

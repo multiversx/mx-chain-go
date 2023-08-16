@@ -12,7 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,10 +22,10 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
+func createMessengerStubForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
+	stub := &p2pmocks.MessengerStub{}
 
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -35,7 +37,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -47,7 +49,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	return tmhs
+	return stub
 }
 
 func createStoreForShard() dataRetriever.StorageService {
@@ -201,13 +203,13 @@ func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
 		WorkingDirectory:         "",
 		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-		Messenger:                createStubTopicMessageHandlerForShard("", ""),
+		Messenger:                createMessengerStubForShard("", ""),
 		Store:                    createStoreForShard(),
 		Marshalizer:              &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		SnapshotsEnabled:         true,
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

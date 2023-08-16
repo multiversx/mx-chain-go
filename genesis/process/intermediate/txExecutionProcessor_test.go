@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var expectedErr = errors.New("expected error")
+
 func TestNewTxExecutionProcessor_NilTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -81,7 +83,6 @@ func TestTxExecutionProcessor_ExecuteTransaction(t *testing.T) {
 func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
@@ -118,12 +119,64 @@ func TestTxExecutionProcessor_GetNonceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestTxExecutionProcessor_GetAccount(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetExistingAccount error should error", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return nil, expectedErr
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.False(t, found)
+		assert.Nil(t, acc)
+	})
+	t.Run("GetExistingAccount returns invalid data should error", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return &stateMock.PeerAccountHandlerMock{}, nil
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.False(t, found)
+		assert.Nil(t, acc)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return &stateMock.UserAccountStub{}, nil
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.True(t, found)
+		assert.Equal(t, &stateMock.UserAccountStub{}, acc)
+	})
+}
+
 //------- AddBalance
 
 func TestTxExecutionProcessor_AddBalanceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
@@ -213,7 +266,6 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 func TestTxExecutionProcessor_AddNonceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{

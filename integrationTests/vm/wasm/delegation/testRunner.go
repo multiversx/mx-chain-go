@@ -53,7 +53,12 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
+	dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	tempDir, err := ioutil.TempDir("", "integrationTest")
 	if err != nil {
 		return nil, err

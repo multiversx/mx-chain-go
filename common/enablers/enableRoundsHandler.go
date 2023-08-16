@@ -7,14 +7,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 const (
 	conversionBase    = 10
 	bitConversionSize = 64
 
-	// TODO replace the example with the first use case
-	exampleName = "Example"
+	disableAsyncCallV1 = "DisableAsyncCallV1"
 )
 
 type enableRoundsHandler struct {
@@ -22,17 +22,21 @@ type enableRoundsHandler struct {
 }
 
 // NewEnableRoundsHandler creates a new enable rounds handler instance
-func NewEnableRoundsHandler(args config.RoundConfig) (*enableRoundsHandler, error) {
-	example, err := getRoundConfig(args, exampleName)
+func NewEnableRoundsHandler(args config.RoundConfig, roundNotifier process.RoundNotifier) (*enableRoundsHandler, error) {
+	disableAsyncCallV1, err := getRoundConfig(args, disableAsyncCallV1)
 	if err != nil {
 		return nil, err
 	}
 
-	return &enableRoundsHandler{
+	handler := &enableRoundsHandler{
 		roundFlagsHolder: &roundFlagsHolder{
-			example: example,
+			disableAsyncCallV1: disableAsyncCallV1,
 		},
-	}, nil
+	}
+
+	roundNotifier.RegisterNotifyHandler(handler)
+
+	return handler, nil
 }
 
 func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, error) {
@@ -58,9 +62,9 @@ func getRoundConfig(args config.RoundConfig, configName string) (*roundFlag, err
 	}, nil
 }
 
-// CheckRound should be called whenever a new round is known. It will trigger the updating of all containing round flags
-func (handler *enableRoundsHandler) CheckRound(round uint64) {
-	handler.example.SetValue(handler.example.round <= round)
+// RoundConfirmed is called whenever a new round is confirmed
+func (handler *enableRoundsHandler) RoundConfirmed(round uint64, timestamp uint64) {
+	handler.disableAsyncCallV1.SetValue(handler.disableAsyncCallV1.round <= round)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

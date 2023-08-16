@@ -29,6 +29,7 @@ var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 type vmContainerFactory struct {
 	chanceComputer         nodesCoordinator.ChanceComputer
 	validatorAccountsDB    state.AccountsAdapter
+	userAccountsDB         state.AccountsAdapter
 	blockChainHook         process.BlockChainHookHandler
 	cryptoHook             vmcommon.CryptoHook
 	systemContracts        vm.SystemSCContainer
@@ -55,6 +56,7 @@ type ArgsNewVMContainerFactory struct {
 	Marshalizer         marshal.Marshalizer
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
+	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
@@ -68,7 +70,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilEconomicsData)
 	}
 	if check.IfNil(args.MessageSignVerifier) {
-		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilKeyGen)
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesConfigProvider)
@@ -84,6 +86,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	}
 	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilValidatorAccountsDB)
+	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilUserAccountsDB)
 	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilChanceComputer)
@@ -117,6 +122,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		marshalizer:            args.Marshalizer,
 		systemSCConfig:         args.SystemSCConfig,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
+		userAccountsDB:         args.UserAccountsDB,
 		chanceComputer:         args.ChanceComputer,
 		addressPubKeyConverter: args.PubkeyConv,
 		shardCoordinator:       args.ShardCoordinator,
@@ -173,6 +179,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		CryptoHook:          vmf.cryptoHook,
 		InputParser:         atArgumentParser,
 		ValidatorAccountsDB: vmf.validatorAccountsDB,
+		UserAccountsDB:      vmf.userAccountsDB,
 		ChanceComputer:      vmf.chanceComputer,
 		EnableEpochsHandler: vmf.enableEpochsHandler,
 	}
