@@ -1,6 +1,9 @@
 package rating
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 type sovereignRatingsData struct {
 	*RatingsData
@@ -9,7 +12,7 @@ type sovereignRatingsData struct {
 // NewSovereignRatingsData creates a sovereign ratings data
 func NewSovereignRatingsData(args RatingsDataArg) (*sovereignRatingsData, error) {
 	ratingsConfig := args.Config
-	err := verifyRatingsConfig(ratingsConfig)
+	err := verifySovereignRatingsConfig(ratingsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -45,9 +48,18 @@ func NewSovereignRatingsData(args RatingsDataArg) (*sovereignRatingsData, error)
 			maxRating:             ratingsConfig.General.MaxRating,
 			minRating:             ratingsConfig.General.MinRating,
 			signedBlocksThreshold: ratingsConfig.General.SignedBlocksThreshold,
-			metaRatingsStepData:   shardRatingStep,
+			metaRatingsStepData:   shardRatingStep, // filling it so that no nil pointer is used further in code
 			shardRatingsStepData:  shardRatingStep,
 			selectionChances:      chances,
 		},
 	}, nil
+}
+
+func verifySovereignRatingsConfig(settings config.RatingsConfig) error {
+	err := verifyGeneralConfig(settings.General)
+	if err != nil {
+		return err
+	}
+
+	return verifyShardConfig(settings.ShardChain)
 }
