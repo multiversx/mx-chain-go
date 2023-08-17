@@ -2584,6 +2584,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			if err != nil {
 				return false, nil, err
 			}
+			addCodeHashInLogEntryTopics(logEntry, acc.GetCodeHash())
 
 			continue
 		}
@@ -2600,9 +2601,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return false, nil, err
 		}
 
-		if logEntry != nil {
-			logEntry.Topics = append(logEntry.Topics, acc.GetCodeHash())
-		}
+		addCodeHashInLogEntryTopics(logEntry, acc.GetCodeHash())
 	}
 
 	if sumOfAllDiff.Cmp(zero) != 0 {
@@ -2610,6 +2609,17 @@ func (sc *scProcessor) processSCOutputAccounts(
 	}
 
 	return createdAsyncCallback, scResults, nil
+}
+
+func addCodeHashInLogEntryTopics(entry *vmcommon.LogEntry, codeHash []byte) {
+	if entry == nil {
+		return
+	}
+	if string(entry.Identifier) != core.SCUpgradeIdentifier && string(entry.Identifier) != core.SCDeployIdentifier {
+		return
+	}
+
+	entry.Topics = append(entry.Topics, codeHash)
 }
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
