@@ -13,18 +13,18 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.6-0.20230816102554-567e1f606ee9
-	github.com/multiversx/mx-chain-core-go v1.2.13-0.20230816090241-133da66033a9
-	github.com/multiversx/mx-chain-crypto-go v1.2.8-0.20230816100617-0f47cf084591
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.9-0.20230816125625-2e376ab7c63c
-	github.com/multiversx/mx-chain-logger-go v1.0.13-0.20230816094710-e4e216ffef4e
-	github.com/multiversx/mx-chain-scenario-go v1.1.3-0.20230816122928-779702688b08
-	github.com/multiversx/mx-chain-storage-go v1.0.12-0.20230816101312-3d09977f9d2c
-	github.com/multiversx/mx-chain-vm-common-go v1.5.1-0.20230816095353-9830338a04e4
-	github.com/multiversx/mx-chain-vm-go v1.5.5-0.20230816124515-260eeeaa8338
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.60-0.20230816104834-52bb04e8fbc1
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.61-0.20230816110425-c7f09589c1e1
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.87-0.20230816121653-92224253c518
+	github.com/multiversx/mx-chain-communication-go v1.0.6
+	github.com/multiversx/mx-chain-core-go v1.2.13
+	github.com/multiversx/mx-chain-crypto-go v1.2.8
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.9
+	github.com/multiversx/mx-chain-logger-go v1.0.13
+	github.com/multiversx/mx-chain-scenario-go v1.2.1
+	github.com/multiversx/mx-chain-storage-go v1.0.12
+	github.com/multiversx/mx-chain-vm-common-go v1.5.2
+	github.com/multiversx/mx-chain-vm-go v1.5.5
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.60
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.61
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.87
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -131,7 +131,7 @@ require (
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/mx-components-big-int v0.1.2-0.20230816103517-09138310f17a // indirect
+	github.com/multiversx/mx-components-big-int v1.0.0 // indirect
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/onsi/ginkgo/v2 v2.9.7 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
