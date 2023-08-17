@@ -31,7 +31,8 @@ func NewMetaInterceptorsContainerFactory(
 		args.Accounts,
 		args.Store,
 		args.DataPool,
-		args.Messenger,
+		args.MainMessenger,
+		args.FullArchiveMessenger,
 		args.NodesCoordinator,
 		args.BlockBlackList,
 		args.AntifloodHandler,
@@ -39,7 +40,8 @@ func NewMetaInterceptorsContainerFactory(
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
 		args.RequestHandler,
-		args.PeerShardMapper,
+		args.MainPeerShardMapper,
+		args.FullArchivePeerShardMapper,
 		args.HardforkTrigger,
 	)
 	if err != nil {
@@ -96,29 +98,32 @@ func NewMetaInterceptorsContainerFactory(
 		PeerSignatureHandler:         args.PeerSignatureHandler,
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
-		PeerID:                       args.Messenger.ID(),
+		PeerID:                       args.MainMessenger.ID(),
 	}
 
-	container := containers.NewInterceptorsContainer()
 	base := &baseInterceptorsContainerFactory{
-		container:              container,
-		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
-		store:                  args.Store,
-		dataPool:               args.DataPool,
-		nodesCoordinator:       args.NodesCoordinator,
-		blockBlackList:         args.BlockBlackList,
-		argInterceptorFactory:  argInterceptorFactory,
-		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
-		accounts:               args.Accounts,
-		antifloodHandler:       args.AntifloodHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:   args.PreferredPeersHolder,
-		hasher:                 args.CoreComponents.Hasher(),
-		requestHandler:         args.RequestHandler,
-		peerShardMapper:        args.PeerShardMapper,
-		hardforkTrigger:        args.HardforkTrigger,
+		mainContainer:              containers.NewInterceptorsContainer(),
+		fullArchiveContainer:       containers.NewInterceptorsContainer(),
+		shardCoordinator:           args.ShardCoordinator,
+		mainMessenger:              args.MainMessenger,
+		fullArchiveMessenger:       args.FullArchiveMessenger,
+		store:                      args.Store,
+		dataPool:                   args.DataPool,
+		nodesCoordinator:           args.NodesCoordinator,
+		blockBlackList:             args.BlockBlackList,
+		argInterceptorFactory:      argInterceptorFactory,
+		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
+		accounts:                   args.Accounts,
+		antifloodHandler:           args.AntifloodHandler,
+		whiteListHandler:           args.WhiteListHandler,
+		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:       args.PreferredPeersHolder,
+		hasher:                     args.CoreComponents.Hasher(),
+		requestHandler:             args.RequestHandler,
+		mainPeerShardMapper:        args.MainPeerShardMapper,
+		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
+		hardforkTrigger:            args.HardforkTrigger,
+		nodeOperationMode:          args.NodeOperationMode,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -134,63 +139,63 @@ func NewMetaInterceptorsContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
+func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	err := micf.generateMetachainHeaderInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateShardHeaderInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateTxInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateUnsignedTxsInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateRewardTxInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateMiniBlocksInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateTrieNodesInterceptors()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generatePeerAuthenticationInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateHeartbeatInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generatePeerShardInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = micf.generateValidatorInfoInterceptor()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return micf.container, nil
+	return micf.mainContainer, micf.fullArchiveContainer, nil
 }
 
 // AddShardTrieNodeInterceptors will add the shard trie node interceptors into the existing container
@@ -238,7 +243,7 @@ func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() 
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	return micf.container.AddMultiple(keys, interceptorsSlice)
+	return micf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
 func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
@@ -264,7 +269,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 			Throttler:            micf.globalThrottler,
 			AntifloodHandler:     micf.antifloodHandler,
 			WhiteListRequest:     micf.whiteListHandler,
-			CurrentPeerId:        micf.messenger.ID(),
+			CurrentPeerId:        micf.mainMessenger.ID(),
 			PreferredPeersHolder: micf.preferredPeersHolder,
 		},
 	)
@@ -297,7 +302,7 @@ func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() er
 	keys = append(keys, identifierTrieNodes)
 	trieInterceptors = append(trieInterceptors, interceptor)
 
-	return micf.container.AddMultiple(keys, trieInterceptors)
+	return micf.addInterceptorsToContainers(keys, trieInterceptors)
 }
 
 //------- Reward transactions interceptors
@@ -321,7 +326,7 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return micf.container.AddMultiple(keys, interceptorSlice)
+	return micf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

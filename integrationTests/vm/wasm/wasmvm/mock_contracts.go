@@ -1,9 +1,6 @@
 package wasmvm
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"math/big"
 	"strings"
 	"testing"
@@ -12,6 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-vm-go/executor"
 	contextmock "github.com/multiversx/mx-chain-vm-go/mock/context"
@@ -89,19 +90,22 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	require.Nil(t, err)
 
 	address := net.NewAddressWithVM(wallet, vmType)
-	argsAccCreation := state.ArgsAccountCreation{
+	argsAccCreation := stateFactory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
-	account, _ := state.NewUserAccount(address, argsAccCreation)
-	account.Balance = MockInitialBalance
-	account.SetCode(address)
-	account.SetCodeHash(address)
-	err = node.AccntState.SaveAccount(account)
+	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
+
+	account, _ := accountFactory.CreateAccount(address)
+	userAccount := account.(state.UserAccountHandler)
+	_ = userAccount.AddToBalance(MockInitialBalance)
+	userAccount.SetCode(address)
+	userAccount.SetCodeHash(address)
+	err = node.AccntState.SaveAccount(userAccount)
 	require.Nil(t, err)
 
-	return address, account
+	return address, userAccount
 }
 
 // SetCodeMetadata -

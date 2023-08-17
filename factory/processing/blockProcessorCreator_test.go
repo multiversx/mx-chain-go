@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -177,14 +178,14 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              coreComponents.Hasher(),
 		Marshaller:          coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
-	accounts, err := createAccountAdapter(
+	adb, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
 		accCreator,
@@ -206,15 +207,15 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return nil
 				},
 				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-					return state.NewEmptyPeerAccount(), nil
+					return accounts.NewPeerAccount(address)
 				},
 			}
 		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
-			return accounts
+			return adb
 		},
 		AccountsAdapterAPICalled: func() state.AccountsAdapter {
-			return accounts
+			return adb
 		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{

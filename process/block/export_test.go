@@ -166,6 +166,7 @@ func NewShardProcessorEmptyWith3shards(
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
