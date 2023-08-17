@@ -94,7 +94,7 @@ type NodeHandler interface {
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 
@@ -140,6 +140,10 @@ type ApiResolver interface {
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetGasConfigs() map[string]map[string]uint64
+	GetManagedKeysCount() int
+	GetManagedKeys() []string
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	Close() error
 	IsInterfaceNil() bool
 }
