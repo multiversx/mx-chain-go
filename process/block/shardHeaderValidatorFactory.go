@@ -10,7 +10,7 @@ func NewShardHeaderValidatorFactory() (*shardHeaderValidatorFactory, error) {
 	return &shardHeaderValidatorFactory{}, nil
 }
 
-// CreateHeaderValidator creates a new header validator for the chain run type shard
+// CreateHeaderValidator creates a new header validator for the chain run type normal
 func (shvf *shardHeaderValidatorFactory) CreateHeaderValidator(argsHeaderValidator ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
 	return NewHeaderValidator(argsHeaderValidator)
 }

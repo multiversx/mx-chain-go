@@ -20,7 +20,7 @@ func NewSovereignSCProcessFactory(creator scrCommon.SCProcessorCreator) (*sovere
 	}, nil
 }
 
-// CreateSCProcessor CreateSCRProcessor creates a new smart contract processor
+// CreateSCProcessor creates a new smart contract processor
 func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier process.EpochNotifier) (scrCommon.SCRProcessorHandler, error) {
 	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args, epochNotifier)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+// SmartContractResultPreProcessorCreatorArgs is the struct containing the data needed to create a SmartContractResultPreProcessor
 type SmartContractResultPreProcessorCreatorArgs struct {
 	ScrDataPool                  dataRetriever.ShardedDataCacherNotifier
 	Store                        dataRetriever.StorageService

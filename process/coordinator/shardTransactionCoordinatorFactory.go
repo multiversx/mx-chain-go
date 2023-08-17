@@ -10,7 +10,7 @@ func NewShardTransactionCoordinatorFactory() (*shardTransactionCoordinatorFactor
 	return &shardTransactionCoordinatorFactory{}, nil
 }
 
-// CreateTransactionCoordinator creates a new sovereign transaction coordinator for the chain run type sovereign
+// CreateTransactionCoordinator creates a new transaction coordinator for the chain run type normal
 func (stcf *shardTransactionCoordinatorFactory) CreateTransactionCoordinator(argsTransactionCoordinator ArgTransactionCoordinator) (process.TransactionCoordinator, error) {
 	return NewTransactionCoordinator(argsTransactionCoordinator)
 }

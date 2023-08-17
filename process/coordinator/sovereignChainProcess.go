@@ -18,13 +18,13 @@ type sovereignChainTransactionCoordinator struct {
 
 // NewSovereignChainTransactionCoordinator creates a new sovereign chain transaction coordinator
 func NewSovereignChainTransactionCoordinator(
-	trasnsactionCoordinator process.TransactionCoordinator,
+	txCoordinator process.TransactionCoordinator,
 ) (*sovereignChainTransactionCoordinator, error) {
-	if trasnsactionCoordinator == nil {
+	if txCoordinator == nil {
 		return nil, process.ErrNilTransactionCoordinator
 	}
 
-	tc, ok := trasnsactionCoordinator.(*transactionCoordinator)
+	tc, ok := txCoordinator.(*transactionCoordinator)
 	if !ok {
 		return nil, errorsMx.ErrWrongTypeAssertion
 	}
