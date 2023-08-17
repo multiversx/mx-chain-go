@@ -57,7 +57,6 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -396,6 +395,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		nodesCoordinatorInstance,
 		configs.ImportDbConfig.IsImportDBMode,
+		managedCryptoComponents,
 	)
 	if err != nil {
 		return true, err
@@ -672,6 +672,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		GasScheduleNotifier:  gasScheduleNotifier,
 		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
+		StatusComponents:     currentNode.GetStatusComponents(),
 		ChainRunType:         common.ChainRunTypeSovereign,
 	}
 
@@ -779,6 +780,12 @@ func (snr *sovereignNodeRunner) createMetrics(
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
+	if snr.configs.PreferencesConfig.Preferences.FullArchive {
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
+	}
+
 	return nil
 }
 
@@ -1012,6 +1019,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 	managedStateComponents mainFactory.StateComponentsHolder,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	isInImportMode bool,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := statusComp.StatusComponentsFactoryArgs{
 		Config:               *snr.configs.GeneralConfig,
@@ -1025,6 +1033,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		StateComponents:      managedStateComponents,
 		IsInImportMode:       isInImportMode,
 		StatusCoreComponents: managedStatusCoreComponents,
+		CryptoComponents:     cryptoComponents,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
@@ -1054,18 +1063,20 @@ func (snr *sovereignNodeRunner) logSessionInformation(
 		statsFolder,
 		configurationPaths.GasScheduleDirectoryName,
 		[]string{
+			configurationPaths.ApiRoutes,
 			configurationPaths.MainConfig,
 			configurationPaths.Economics,
-			configurationPaths.Ratings,
-			configurationPaths.Preferences,
-			configurationPaths.P2p,
-			configurationPaths.Genesis,
-			configurationPaths.Nodes,
-			configurationPaths.ApiRoutes,
-			configurationPaths.External,
-			configurationPaths.SystemSC,
-			configurationPaths.RoundActivation,
 			configurationPaths.Epoch,
+			configurationPaths.RoundActivation,
+			configurationPaths.External,
+			configurationPaths.Genesis,
+			configurationPaths.SmartContracts,
+			configurationPaths.Nodes,
+			configurationPaths.MainP2p,
+			configurationPaths.FullArchiveP2p,
+			configurationPaths.Preferences,
+			configurationPaths.Ratings,
+			configurationPaths.SystemSC,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -1234,6 +1245,8 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 		Crypto:                        crypto,
 		CurrentEpoch:                  storerEpoch,
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                  *configs.FlagsConfig,
+		NodeProcessingMode:            common.GetNodeProcessingMode(snr.configs.ImportDbConfig),
 		ChainRunType:                  common.ChainRunTypeSovereign,
 	}
 
@@ -1270,18 +1283,13 @@ func (snr *sovereignNodeRunner) CreateManagedStateComponents(
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
-	processingMode := common.Normal
-	if snr.configs.ImportDbConfig.IsImportDBMode {
-		processingMode = common.ImportDb
-	}
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *snr.configs.GeneralConfig,
 		Core:                     coreComponents,
 		StatusCore:               statusCoreComponents,
 		StorageService:           dataComponents.StorageService(),
-		ProcessingMode:           processingMode,
+		ProcessingMode:           common.GetNodeProcessingMode(snr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: snr.configs.FlagsConfig.SerializeSnapshots,
-		SnapshotsEnabled:         snr.configs.FlagsConfig.SnapshotsEnabled,
 		ChainHandler:             dataComponents.Blockchain(),
 	}
 
@@ -1348,7 +1356,8 @@ func (snr *sovereignNodeRunner) CreateManagedNetworkComponents(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:             *snr.configs.P2pConfig,
+		MainP2pConfig:         *snr.configs.MainP2pConfig,
+		FullArchiveP2pConfig:  *snr.configs.FullArchiveP2pConfig,
 		MainConfig:            *snr.configs.GeneralConfig,
 		RatingsConfig:         *snr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
@@ -1356,7 +1365,7 @@ func (snr *sovereignNodeRunner) CreateManagedNetworkComponents(
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  snr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: snr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 		CryptoComponents:      cryptoComponents,
 	}
@@ -1364,7 +1373,7 @@ func (snr *sovereignNodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if snr.configs.PreferencesConfig.Preferences.FullArchive {
-		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
+		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
@@ -1550,11 +1559,12 @@ func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
 	return os.RemoveAll(dbPath)
 }
 
-func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
+func copyConfigToStatsFolder(statsFolder string, gasScheduleDirectory string, configs []string) {
 	err := os.MkdirAll(statsFolder, os.ModePerm)
 	log.LogIfError(err)
 
-	err = copyDirectory(gasScheduleFolder, statsFolder)
+	newGasScheduleDirectory := path.Join(statsFolder, filepath.Base(gasScheduleDirectory))
+	err = copyDirectory(gasScheduleDirectory, newGasScheduleDirectory)
 	log.LogIfError(err)
 
 	for _, configFile := range configs {
@@ -1581,21 +1591,21 @@ func copyDirectory(source string, destination string) error {
 
 	for _, fd := range fileDescriptors {
 		srcFilePath := path.Join(source, fd.Name())
-		dstFilePath := path.Join(destination, fd.Name())
 		if fd.IsDir() {
+			dstFilePath := path.Join(destination, filepath.Base(srcFilePath))
 			err = copyDirectory(srcFilePath, dstFilePath)
 			log.LogIfError(err)
 		} else {
-			copySingleFile(dstFilePath, srcFilePath)
+			copySingleFile(destination, srcFilePath)
 		}
 	}
 	return nil
 }
 
-func copySingleFile(folder string, configFile string) {
-	fileName := filepath.Base(configFile)
+func copySingleFile(destinationDirectory string, sourceFile string) {
+	fileName := filepath.Base(sourceFile)
 
-	source, err := core.OpenFile(configFile)
+	source, err := core.OpenFile(sourceFile)
 	if err != nil {
 		return
 	}
@@ -1606,7 +1616,7 @@ func copySingleFile(folder string, configFile string) {
 		}
 	}()
 
-	destPath := filepath.Join(folder, fileName)
+	destPath := filepath.Join(destinationDirectory, fileName)
 	destination, err := os.Create(destPath)
 	if err != nil {
 		return

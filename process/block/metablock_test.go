@@ -149,6 +149,7 @@ func createMockMetaArguments(
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

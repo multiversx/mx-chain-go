@@ -42,13 +42,13 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)

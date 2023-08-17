@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
+	accountFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -101,17 +102,18 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, MaxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
+	argsAccCreator := accountFactory.ArgsAccountCreator{
+		Hasher:              TestHasher,
+		Marshaller:          TestMarshalizer,
+		EnableEpochsHandler: enableEpochs,
+	}
+	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
+
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:       tr,
-		Hasher:     TestHasher,
-		Marshaller: TestMarshalizer,
-		AccountFactory: &TestAccountFactory{
-			args: state.ArgsAccountCreation{
-				Hasher:              TestHasher,
-				Marshaller:          TestMarshalizer,
-				EnableEpochsHandler: enableEpochs,
-			},
-		},
+		Trie:                  tr,
+		Hasher:                TestHasher,
+		Marshaller:            TestMarshalizer,
+		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},

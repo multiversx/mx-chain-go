@@ -59,22 +59,23 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 	return &mock.CryptoComponentsMock{
-		PubKey:            &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyStub{},
-		P2pPubKey:         &mock.PublicKeyMock{},
-		P2pPrivKey:        mock.NewP2pPrivateKeyMock(),
-		P2pSig:            &mock.SinglesignMock{},
-		PubKeyString:      "pubKey",
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SinglesignMock{},
-		TxSig:             &mock.SinglesignMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		P2PKeyGen:         &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SigHandler:        &consensus.SigningHandlerStub{},
+		PubKey:                  &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyStub{},
+		P2pPubKey:               &mock.PublicKeyMock{},
+		P2pPrivKey:              mock.NewP2pPrivateKeyMock(),
+		P2pSig:                  &mock.SinglesignMock{},
+		PubKeyString:            "pubKey",
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SinglesignMock{},
+		TxSig:                   &mock.SinglesignMock{},
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		P2PKeyGen:               &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		SigHandler:              &consensus.SigningHandlerStub{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -137,7 +138,8 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		ReqHandler:               &testscommon.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
-		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerMapper:           &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerMapper:    &p2pmocks.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {

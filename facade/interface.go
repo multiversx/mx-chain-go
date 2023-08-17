@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -84,7 +85,7 @@ type NodeHandler interface {
 	IsInterfaceNil() bool
 
 	// ValidatorStatisticsApi return the statistics for all the validators
-	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
 	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 
@@ -93,7 +94,7 @@ type NodeHandler interface {
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 
@@ -139,6 +140,10 @@ type ApiResolver interface {
 	GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string)
 	GetGenesisBalances() ([]*common.InitialAccountAPI, error)
 	GetGasConfigs() map[string]map[string]uint64
+	GetManagedKeysCount() int
+	GetManagedKeys() []string
+	GetEligibleManagedKeys() ([]string, error)
+	GetWaitingManagedKeys() ([]string, error)
 	Close() error
 	IsInterfaceNil() bool
 }

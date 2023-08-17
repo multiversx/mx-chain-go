@@ -12,6 +12,7 @@ import (
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
 	IsImportDB                bool
+	ShardID                   uint32
 	RetrialInterval           time.Duration
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
@@ -26,6 +27,7 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 	}
 
 	cfg := outportcore.OutportConfig{
+		ShardID:          args.ShardID,
 		IsInImportDBMode: args.IsImportDB,
 	}
 
