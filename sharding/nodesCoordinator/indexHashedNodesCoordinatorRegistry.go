@@ -2,6 +2,7 @@ package nodesCoordinator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -130,20 +131,9 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 func (ihnc *indexHashedNodesCoordinator) NodesConfigFromMetaBlock(
 	epoch uint32,
 ) (*NodesCoordinatorRegistry, error) {
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
-	metaBlockBytes, err := ihnc.epochStartStaticStorer.Get(epochStartBootstrapKey)
+	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
 	if err != nil {
 		return nil, err
-	}
-
-	metaBlock := &block.MetaBlock{}
-	err = ihnc.marshalizer.Unmarshal(metaBlock, metaBlockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	if metaBlock.GetNonce() > 1 && !metaBlock.IsStartOfEpochBlock() {
-		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
 	// get shard validators info
@@ -164,6 +154,111 @@ func (ihnc *indexHashedNodesCoordinator) NodesConfigFromMetaBlock(
 	}
 
 	return nil, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) NodesConfigFromStaticStorer(
+	epoch uint32,
+) (*epochNodesConfig, error) {
+	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	// get shard validators info
+	// from body if no refactored peer miniblocks
+	// from additional saved validator info data
+	//    similar as in EpochStartPrepare?
+
+	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	// set nodes config as in SetNodesConfigFromValidatorsInfo from lite implementation
+
+	return ihnc.nodesConfigFromValidatorsInfo(metaBlock, validatorsInfo)
+}
+
+func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(
+	metaBlock data.HeaderHandler,
+	validatorsInfo []*state.ShardValidatorInfo,
+) (*epochNodesConfig, error) {
+	epoch := metaBlock.GetEpoch()
+	randomness := metaBlock.GetRandSeed()
+
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(validatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
+	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
+
+	shufflerArgs := ArgsUpdateNodes{
+		Eligible:          newNodesConfig.eligibleMap,
+		Waiting:           newNodesConfig.waitingMap,
+		NewNodes:          newNodesConfig.newList,
+		UnStakeLeaving:    unStakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              randomness,
+		NbShards:          newNodesConfig.nbShards,
+		Epoch:             epoch,
+	}
+
+	resUpdateNodes, err := ihnc.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	leavingNodesMap, _ := createActuallyLeavingPerShards(
+		newNodesConfig.leavingMap,
+		additionalLeavingMap,
+		resUpdateNodes.Leaving,
+	)
+
+	nodesConfig := &epochNodesConfig{}
+	nodesConfig.nbShards = uint32(len(resUpdateNodes.Eligible) - 1)
+	nodesConfig.eligibleMap = resUpdateNodes.Eligible
+	nodesConfig.waitingMap = resUpdateNodes.Waiting
+	nodesConfig.leavingMap = leavingNodesMap
+	nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesConfig, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) metaBlockFromStaticStorer(
+	epoch uint32,
+) (data.HeaderHandler, error) {
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	metaBlockBytes, err := ihnc.epochStartStaticStorer.Get(epochStartBootstrapKey)
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlock := &block.MetaBlock{}
+	err = ihnc.marshalizer.Unmarshal(metaBlock, metaBlockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if metaBlock.GetNonce() > 1 && !metaBlock.IsStartOfEpochBlock() {
+		return nil, epochStart.ErrNotEpochStartBlock
+	}
+
+	if metaBlock.GetEpoch() != epoch {
+		return nil, errors.New("epoch start epoch does not match")
+	}
+
+	return metaBlock, nil
 }
 
 // GetNodesCoordinatorRegistry will get the nodes coordinator registry from boot storage

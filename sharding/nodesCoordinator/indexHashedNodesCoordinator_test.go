@@ -233,6 +233,15 @@ func TestNewIndexHashedNodesCoordinator_NilNodesConfigCacherShouldErr(t *testing
 	require.Nil(t, ihnc)
 }
 
+func TestNewIndexHashedNodesCoordinator_NilEpochStartStaticStorerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EpochStartStaticStorer = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilEpochStartStaticStorer, err)
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2597,6 +2606,7 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		args := createArguments()
 		args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
 		args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
+		args.EpochStartStaticStorer = genericMocks.NewStorerMockWithEpoch(1)
 
 		wasCalled := false
 		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{

@@ -2,7 +2,6 @@ package nodesCoordinator
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -256,47 +255,14 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		}
 	}
 
-	epochConfigBytes, err := ihnc.getNodesConfigFromStorer(epoch)
+	nodesConfig, err := ihnc.NodesConfigFromStaticStorer(epoch)
 	if err != nil {
 		return nil, false
 	}
 
-	registry := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(epochConfigBytes, registry)
-	if err != nil {
-		return nil, false
-	}
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 
-	nodesConfig, err := ihnc.registryToNodesCoordinator(registry)
-	if err != nil {
-		return nil, false
-	}
-
-	nodesConfigEpoch, ok := nodesConfig[epoch]
-	if !ok {
-		return nil, ok
-	}
-	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfigEpoch, 0)
-
-	return nodesConfigEpoch, ok
-}
-
-func (ihnc *indexHashedNodesCoordinator) getNodesConfigFromStorer(epoch uint32) ([]byte, error) {
-	var err error
-
-	mostRecentEpoch := epoch + ihnc.numStoredEpochs - 1
-
-	for mostRecentEpoch >= epoch {
-		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-		epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, mostRecentEpoch)
-		if err == nil {
-			return epochConfigBytes, nil
-		}
-
-		mostRecentEpoch--
-	}
-
-	return nil, err
+	return nodesConfig, ok
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
