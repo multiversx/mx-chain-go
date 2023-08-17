@@ -435,7 +435,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 		TopicField:     "topic1",
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, "peer")
+	err := wrk.ProcessReceivedMessage(msg, "peer", &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -551,7 +551,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Nil(t, err)
 }
@@ -559,7 +559,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	err := wrk.ProcessReceivedMessage(nil, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(nil, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -569,7 +569,7 @@ func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	err := wrk.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -584,6 +584,7 @@ func TestWorker_ProcessReceivedMessageEmptySignatureFieldShouldErr(t *testing.T)
 			DataField: []byte("data field"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -611,6 +612,7 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 
 	assert.True(t, wasCalled)
@@ -645,6 +647,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -758,7 +761,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	_ = wrk.ProcessReceivedMessage(msg, "")
+	_ = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 
 	return receivedValue
 }
@@ -793,6 +796,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 
 	assert.True(t, errors.Is(err, spos.ErrInvalidChainID))
@@ -827,6 +831,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -863,6 +868,7 @@ func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -899,6 +905,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -935,6 +942,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -971,17 +979,17 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 		SignatureField: []byte("signature"),
 	}
 
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Nil(t, err)
 
-	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
 
-	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err = wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
@@ -1016,6 +1024,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -1051,7 +1060,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -1087,7 +1096,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -1140,6 +1149,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
 	)
 	time.Sleep(time.Second)
 
@@ -1195,7 +1205,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 		PeerField:      "other originator",
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
@@ -1265,7 +1275,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
@@ -1795,7 +1805,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
-	err := wrk.ProcessReceivedMessage(msg, "")
+	err := wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
 }
 
@@ -1841,7 +1851,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 			PeerField:      currentPid,
 			SignatureField: []byte("signature"),
 		}
-		err = wrk.ProcessReceivedMessage(msg, "")
+		err = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 		assert.Nil(t, err)
 
 		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))

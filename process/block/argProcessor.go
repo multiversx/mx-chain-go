@@ -92,6 +92,7 @@ type ArgBaseProcessor struct {
 	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 	ReceiptsRepository             receiptsRepository
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
+	ManagedPeersHolder             common.ManagedPeersHolder
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 }
 

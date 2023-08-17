@@ -20,7 +20,8 @@ const minDelayBetweenSends = time.Second
 
 // ArgPeerShardSender represents the arguments for the peer shard sender
 type ArgPeerShardSender struct {
-	Messenger                 p2p.Messenger
+	MainMessenger             p2p.Messenger
+	FullArchiveMessenger      p2p.Messenger
 	Marshaller                marshal.Marshalizer
 	ShardCoordinator          sharding.Coordinator
 	TimeBetweenSends          time.Duration
@@ -29,7 +30,8 @@ type ArgPeerShardSender struct {
 }
 
 type peerShardSender struct {
-	messenger                 p2p.Messenger
+	mainMessenger             p2p.Messenger
+	fullArchiveMessenger      p2p.Messenger
 	marshaller                marshal.Marshalizer
 	shardCoordinator          sharding.Coordinator
 	timeBetweenSends          time.Duration
@@ -46,7 +48,8 @@ func NewPeerShardSender(args ArgPeerShardSender) (*peerShardSender, error) {
 	}
 
 	pss := &peerShardSender{
-		messenger:                 args.Messenger,
+		mainMessenger:             args.MainMessenger,
+		fullArchiveMessenger:      args.FullArchiveMessenger,
 		marshaller:                args.Marshaller,
 		shardCoordinator:          args.ShardCoordinator,
 		timeBetweenSends:          args.TimeBetweenSends,
@@ -63,8 +66,11 @@ func NewPeerShardSender(args ArgPeerShardSender) (*peerShardSender, error) {
 }
 
 func checkArgPeerShardSender(args ArgPeerShardSender) error {
-	if check.IfNil(args.Messenger) {
-		return process.ErrNilMessenger
+	if check.IfNil(args.MainMessenger) {
+		return fmt.Errorf("%w for main", process.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return fmt.Errorf("%w for full archive", process.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
@@ -132,7 +138,8 @@ func (pss *peerShardSender) broadcastShard() {
 	}
 
 	log.Debug("broadcast peer shard", "shard", peerShard.ShardId)
-	pss.messenger.Broadcast(common.ConnectionTopic, peerShardBuff)
+	pss.mainMessenger.Broadcast(common.ConnectionTopic, peerShardBuff)
+	pss.fullArchiveMessenger.Broadcast(common.ConnectionTopic, peerShardBuff)
 }
 
 func (pss *peerShardSender) isCurrentNodeValidator() bool {
