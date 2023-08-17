@@ -138,7 +138,7 @@ func (stub *EnableEpochsHandlerStub) IsFlagDefined(flag core.EnableEpochFlag) bo
 	if stub.IsFlagDefinedCalled != nil {
 		return stub.IsFlagDefinedCalled(flag)
 	}
-	return false
+	return true
 }
 
 // IsFlagEnabledInCurrentEpoch -

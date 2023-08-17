@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-
 func TestNewDataTrieLeafParser(t *testing.T) {
 	t.Parallel()
 
@@ -71,7 +69,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		address := []byte("address")
 		suffix := append(key, address...)
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == core.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
@@ -96,7 +96,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		serializedLeafData, _ := marshaller.Marshal(leafData)
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == core.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
 
@@ -120,7 +122,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		valWithAppendedData = append(valWithAppendedData, addrBytes...)
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == core.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(addrBytes, marshaller, enableEpochsHandler)
 
