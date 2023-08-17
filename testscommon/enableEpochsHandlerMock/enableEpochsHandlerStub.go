@@ -1,6 +1,10 @@
 package enableEpochsHandlerMock
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
@@ -124,6 +128,33 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledInEpochCalled             func(epoch uint32) bool
 	IsFixOOGReturnCodeFlagEnabledInEpochCalled                        func(epoch uint32) bool
 	IsDeterministicSortOnValidatorsInfoFixEnabledInEpochCalled        func(epoch uint32) bool
+	IsFlagDefinedCalled                                               func(flag core.EnableEpochFlag) bool
+	IsFlagEnabledInCurrentEpochCalled                                 func(flag core.EnableEpochFlag) bool
+	IsFlagEnabledInEpochCalled                                        func(flag core.EnableEpochFlag, epoch uint32) bool
+}
+
+// IsFlagDefined -
+func (stub *EnableEpochsHandlerStub) IsFlagDefined(flag core.EnableEpochFlag) bool {
+	if stub.IsFlagDefinedCalled != nil {
+		return stub.IsFlagDefinedCalled(flag)
+	}
+	return false
+}
+
+// IsFlagEnabledInCurrentEpoch -
+func (stub *EnableEpochsHandlerStub) IsFlagEnabledInCurrentEpoch(flag core.EnableEpochFlag) bool {
+	if stub.IsFlagEnabledInCurrentEpochCalled != nil {
+		return stub.IsFlagEnabledInCurrentEpochCalled(flag)
+	}
+	return false
+}
+
+// IsFlagEnabledInEpoch -
+func (stub *EnableEpochsHandlerStub) IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool {
+	if stub.IsFlagEnabledInEpochCalled != nil {
+		return stub.IsFlagEnabledInEpochCalled(flag, epoch)
+	}
+	return false
 }
 
 // GetCurrentEpoch -

@@ -1,8 +1,10 @@
 package enablers
 
 import (
+	"runtime/debug"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -37,6 +39,330 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Lock()
 	handler.currentEpoch = epoch
 	handler.epochMut.Unlock()
+}
+
+// IsFlagDefined checks if a specific flag is supported by the current version of mx-chain-core-go
+func (handler *enableEpochsHandler) IsFlagDefined(flag core.EnableEpochFlag) bool {
+	switch flag {
+	case core.SCDeployFlag,
+		core.BuiltInFunctionsFlag,
+		core.RelayedTransactionsFlag,
+		core.PenalizedTooMuchGasFlag,
+		core.SwitchJailWaitingFlag,
+		core.BelowSignedThresholdFlag,
+		core.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly,
+		core.TransactionSignedWithTxHashFlag,
+		core.MetaProtectionFlag,
+		core.AheadOfTimeGasUsageFlag,
+		core.GasPriceModifierFlag,
+		core.RepairCallbackFlag,
+		core.ReturnDataToLastTransferFlagAfterEpoch,
+		core.SenderInOutTransferFlag,
+		core.StakeFlag,
+		core.StakingV2Flag,
+		core.StakingV2OwnerFlagInSpecificEpochOnly,
+		core.StakingV2FlagAfterEpoch,
+		core.DoubleKeyProtectionFlag,
+		core.ESDTFlag,
+		core.ESDTFlagInSpecificEpochOnly,
+		core.GovernanceFlag,
+		core.GovernanceFlagInSpecificEpochOnly,
+		core.DelegationManagerFlag,
+		core.DelegationSmartContractFlag,
+		core.DelegationSmartContractFlagInSpecificEpochOnly,
+		core.CorrectLastUnJailedFlagInSpecificEpochOnly,
+		core.CorrectLastUnJailedFlag,
+		core.RelayedTransactionsV2Flag,
+		core.UnBondTokensV2Flag,
+		core.SaveJailedAlwaysFlag,
+		core.ReDelegateBelowMinCheckFlag,
+		core.ValidatorToDelegationFlag,
+		core.IncrementSCRNonceInMultiTransferFlag,
+		core.ESDTMultiTransferFlag,
+		core.GlobalMintBurnFlag,
+		core.ESDTTransferRoleFlag,
+		core.BuiltInFunctionOnMetaFlag,
+		core.ComputeRewardCheckpointFlag,
+		core.SCRSizeInvariantCheckFlag,
+		core.BackwardCompSaveKeyValueFlag,
+		core.ESDTNFTCreateOnMultiShardFlag,
+		core.MetaESDTSetFlag,
+		core.AddTokensToDelegationFlag,
+		core.MultiESDTTransferFixOnCallBackFlag,
+		core.OptimizeGasUsedInCrossMiniBlocksFlag,
+		core.CorrectFirstQueuedFlag,
+		core.DeleteDelegatorAfterClaimRewardsFlag,
+		core.RemoveNonUpdatedStorageFlag,
+		core.OptimizeNFTStoreFlag,
+		core.CreateNFTThroughExecByCallerFlag,
+		core.StopDecreasingValidatorRatingWhenStuckFlag,
+		core.FrontRunningProtectionFlag,
+		core.PayableBySCFlag,
+		core.CleanUpInformativeSCRsFlag,
+		core.StorageAPICostOptimizationFlag,
+		core.ESDTRegisterAndSetAllRolesFlag,
+		core.ScheduledMiniBlocksFlag,
+		core.CorrectJailedNotUnStakedEmptyQueueFlag,
+		core.DoNotReturnOldBlockInBlockchainHookFlag,
+		core.AddFailedRelayedTxToInvalidMBsFlag,
+		core.SCRSizeInvariantOnBuiltInResultFlag,
+		core.CheckCorrectTokenIDForTransferRoleFlag,
+		core.FailExecutionOnEveryAPIErrorFlag,
+		core.MiniBlockPartialExecutionFlag,
+		core.ManagedCryptoAPIsFlag,
+		core.ESDTMetadataContinuousCleanupFlag,
+		core.DisableExecByCallerFlag,
+		core.RefactorContextFlag,
+		core.CheckFunctionArgumentFlag,
+		core.CheckExecuteOnReadOnlyFlag,
+		core.SetSenderInEeiOutputTransferFlag,
+		core.FixAsyncCallbackCheckFlag,
+		core.SaveToSystemAccountFlag,
+		core.CheckFrozenCollectionFlag,
+		core.SendAlwaysFlag,
+		core.ValueLengthCheckFlag,
+		core.CheckTransferFlag,
+		core.TransferToMetaFlag,
+		core.ESDTNFTImprovementV1Flag,
+		core.ChangeDelegationOwnerFlag,
+		core.RefactorPeersMiniBlocksFlag,
+		core.SCProcessorV2Flag,
+		core.FixAsyncCallBackArgsListFlag,
+		core.FixOldTokenLiquidityFlag,
+		core.RuntimeMemStoreLimitFlag,
+		core.RuntimeCodeSizeFixFlag,
+		core.MaxBlockchainHookCountersFlag,
+		core.WipeSingleNFTLiquidityDecreaseFlag,
+		core.AlwaysSaveTokenMetaDataFlag,
+		core.SetGuardianFlag,
+		core.RelayedNonceFixFlag,
+		core.ConsistentTokensValuesLengthCheckFlag,
+		core.KeepExecOrderOnCreatedSCRsFlag,
+		core.MultiClaimOnDelegationFlag,
+		core.ChangeUsernameFlag,
+		core.AutoBalanceDataTriesFlag,
+		core.FixDelegationChangeOwnerOnAccountFlag,
+		core.FixOOGReturnCodeFlag,
+		core.DeterministicSortOnValidatorsInfoFixFlag:
+		return true
+	default:
+		log.Warn("programming error, incompatible handler detected",
+			"flag", flag,
+			"stack trace", string(debug.Stack()))
+		return false
+	}
+}
+
+// IsFlagEnabledInCurrentEpoch returns true if the provided flag is enabled in the current epoch
+func (handler *enableEpochsHandler) IsFlagEnabledInCurrentEpoch(flag core.EnableEpochFlag) bool {
+	handler.epochMut.RLock()
+	currentEpoch := handler.currentEpoch
+	handler.epochMut.RUnlock()
+
+	return handler.IsFlagEnabledInEpoch(flag, currentEpoch)
+}
+
+// IsFlagEnabledInEpoch returns true if the provided flag is enabled in the provided epoch
+func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool {
+	switch flag {
+	case core.SCDeployFlag:
+		return epoch >= handler.enableEpochsConfig.SCDeployEnableEpoch
+	case core.BuiltInFunctionsFlag:
+		return epoch >= handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch
+	case core.RelayedTransactionsFlag:
+		return epoch >= handler.enableEpochsConfig.RelayedTransactionsEnableEpoch
+	case core.PenalizedTooMuchGasFlag:
+		return epoch >= handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch
+	case core.SwitchJailWaitingFlag:
+		return epoch >= handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch
+	case core.BelowSignedThresholdFlag:
+		return epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch
+	case core.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch
+	case core.TransactionSignedWithTxHashFlag:
+		return epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch
+	case core.MetaProtectionFlag:
+		return epoch >= handler.enableEpochsConfig.MetaProtectionEnableEpoch
+	case core.AheadOfTimeGasUsageFlag:
+		return epoch >= handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch
+	case core.GasPriceModifierFlag:
+		return epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch
+	case core.RepairCallbackFlag:
+		return epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch
+	case core.ReturnDataToLastTransferFlagAfterEpoch:
+		return epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch
+	case core.SenderInOutTransferFlag:
+		return epoch >= handler.enableEpochsConfig.SenderInOutTransferEnableEpoch
+	case core.StakeFlag:
+		return epoch >= handler.enableEpochsConfig.StakeEnableEpoch
+	case core.StakingV2Flag:
+		return epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch
+	case core.StakingV2OwnerFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.StakingV2EnableEpoch
+	case core.StakingV2FlagAfterEpoch:
+		return epoch > handler.enableEpochsConfig.StakingV2EnableEpoch
+	case core.DoubleKeyProtectionFlag:
+		return epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch
+	case core.ESDTFlag:
+		return epoch >= handler.enableEpochsConfig.ESDTEnableEpoch
+	case core.ESDTFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.ESDTEnableEpoch
+	case core.GovernanceFlag:
+		return epoch >= handler.enableEpochsConfig.GovernanceEnableEpoch
+	case core.GovernanceFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.GovernanceEnableEpoch
+	case core.DelegationManagerFlag:
+		return epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch
+	case core.DelegationSmartContractFlag:
+		return epoch >= handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
+	case core.DelegationSmartContractFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
+	case core.CorrectLastUnJailedFlagInSpecificEpochOnly:
+		return epoch == handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
+	case core.CorrectLastUnJailedFlag:
+		return epoch >= handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
+	case core.RelayedTransactionsV2Flag:
+		return epoch >= handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch
+	case core.UnBondTokensV2Flag:
+		return epoch >= handler.enableEpochsConfig.UnbondTokensV2EnableEpoch
+	case core.SaveJailedAlwaysFlag:
+		return epoch >= handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch
+	case core.ReDelegateBelowMinCheckFlag:
+		return epoch >= handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch
+	case core.ValidatorToDelegationFlag:
+		return epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch
+	case core.IncrementSCRNonceInMultiTransferFlag:
+		return epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch
+	case core.ESDTMultiTransferFlag,
+		core.ESDTNFTImprovementV1Flag:
+		return epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch
+	case core.GlobalMintBurnFlag:
+		return epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch
+	case core.ESDTTransferRoleFlag:
+		return epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch
+	case core.BuiltInFunctionOnMetaFlag,
+		core.TransferToMetaFlag:
+		return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
+	case core.ComputeRewardCheckpointFlag:
+		return epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch
+	case core.SCRSizeInvariantCheckFlag:
+		return epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch
+	case core.BackwardCompSaveKeyValueFlag:
+		return epoch < handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch
+	case core.ESDTNFTCreateOnMultiShardFlag:
+		return epoch >= handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch
+	case core.MetaESDTSetFlag:
+		return epoch >= handler.enableEpochsConfig.MetaESDTSetEnableEpoch
+	case core.AddTokensToDelegationFlag:
+		return epoch >= handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch
+	case core.MultiESDTTransferFixOnCallBackFlag:
+		return epoch >= handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch
+	case core.OptimizeGasUsedInCrossMiniBlocksFlag:
+		return epoch >= handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch
+	case core.CorrectFirstQueuedFlag:
+		return epoch >= handler.enableEpochsConfig.CorrectFirstQueuedEpoch
+	case core.DeleteDelegatorAfterClaimRewardsFlag:
+		return epoch >= handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch
+	case core.RemoveNonUpdatedStorageFlag:
+		return epoch >= handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch
+	case core.OptimizeNFTStoreFlag,
+		core.SaveToSystemAccountFlag,
+		core.CheckFrozenCollectionFlag,
+		core.ValueLengthCheckFlag,
+		core.CheckTransferFlag:
+		return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+	case core.CreateNFTThroughExecByCallerFlag:
+		return epoch >= handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch
+	case core.StopDecreasingValidatorRatingWhenStuckFlag:
+		return epoch >= handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch
+	case core.FrontRunningProtectionFlag:
+		return epoch >= handler.enableEpochsConfig.FrontRunningProtectionEnableEpoch
+	case core.PayableBySCFlag:
+		return epoch >= handler.enableEpochsConfig.IsPayableBySCEnableEpoch
+	case core.CleanUpInformativeSCRsFlag:
+		return epoch >= handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch
+	case core.StorageAPICostOptimizationFlag:
+		return epoch >= handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch
+	case core.ESDTRegisterAndSetAllRolesFlag:
+		return epoch >= handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch
+	case core.ScheduledMiniBlocksFlag:
+		return epoch >= handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
+	case core.CorrectJailedNotUnStakedEmptyQueueFlag:
+		return epoch >= handler.enableEpochsConfig.CorrectJailedNotUnstakedEmptyQueueEpoch
+	case core.DoNotReturnOldBlockInBlockchainHookFlag:
+		return epoch >= handler.enableEpochsConfig.DoNotReturnOldBlockInBlockchainHookEnableEpoch
+	case core.AddFailedRelayedTxToInvalidMBsFlag:
+		return epoch < handler.enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch
+	case core.SCRSizeInvariantOnBuiltInResultFlag:
+		return epoch >= handler.enableEpochsConfig.SCRSizeInvariantOnBuiltInResultEnableEpoch
+	case core.CheckCorrectTokenIDForTransferRoleFlag:
+		return epoch >= handler.enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch
+	case core.FailExecutionOnEveryAPIErrorFlag:
+		return epoch >= handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch
+	case core.MiniBlockPartialExecutionFlag:
+		return epoch >= handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch
+	case core.ManagedCryptoAPIsFlag:
+		return epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch
+	case core.ESDTMetadataContinuousCleanupFlag,
+		core.FixAsyncCallbackCheckFlag,
+		core.SendAlwaysFlag,
+		core.ChangeDelegationOwnerFlag:
+		return epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+	case core.DisableExecByCallerFlag:
+		return epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch
+	case core.RefactorContextFlag:
+		return epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch
+	case core.CheckFunctionArgumentFlag:
+		return epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch
+	case core.CheckExecuteOnReadOnlyFlag:
+		return epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch
+	case core.SetSenderInEeiOutputTransferFlag:
+		return epoch >= handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch
+	case core.RefactorPeersMiniBlocksFlag:
+		return epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
+	case core.SCProcessorV2Flag:
+		return epoch >= handler.enableEpochsConfig.SCProcessorV2EnableEpoch
+	case core.FixAsyncCallBackArgsListFlag:
+		return epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch
+	case core.FixOldTokenLiquidityFlag:
+		return epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch
+	case core.RuntimeMemStoreLimitFlag:
+		return epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch
+	case core.RuntimeCodeSizeFixFlag:
+		return epoch >= handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch
+	case core.MaxBlockchainHookCountersFlag:
+		return epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch
+	case core.WipeSingleNFTLiquidityDecreaseFlag:
+		return epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch
+	case core.AlwaysSaveTokenMetaDataFlag:
+		return epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch
+	case core.SetGuardianFlag:
+		return epoch >= handler.enableEpochsConfig.SetGuardianEnableEpoch
+	case core.RelayedNonceFixFlag:
+		return epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch
+	case core.ConsistentTokensValuesLengthCheckFlag:
+		return epoch >= handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch
+	case core.KeepExecOrderOnCreatedSCRsFlag:
+		return epoch >= handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch
+	case core.MultiClaimOnDelegationFlag:
+		return epoch >= handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch
+	case core.ChangeUsernameFlag:
+		return epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch
+	case core.AutoBalanceDataTriesFlag:
+		return epoch >= handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch
+	case core.FixDelegationChangeOwnerOnAccountFlag:
+		return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
+	case core.FixOOGReturnCodeFlag:
+		return epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
+	case core.DeterministicSortOnValidatorsInfoFixFlag:
+		return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+	default:
+		log.Warn("programming error, got unknown flag",
+			"flag", flag,
+			"epoch", epoch,
+			"stack trace", string(debug.Stack()))
+		return false
+	}
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active
