@@ -34,21 +34,23 @@ func NewMetaResolversContainerFactory(
 
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                container,
-		shardCoordinator:         args.ShardCoordinator,
-		messenger:                args.Messenger,
-		store:                    args.Store,
-		marshalizer:              args.Marshalizer,
-		dataPools:                args.DataPools,
-		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
-		dataPacker:               args.DataPacker,
-		triesContainer:           args.TriesContainer,
-		inputAntifloodHandler:    args.InputAntifloodHandler,
-		outputAntifloodHandler:   args.OutputAntifloodHandler,
-		throttler:                thr,
-		isFullHistoryNode:        args.IsFullHistoryNode,
-		preferredPeersHolder:     args.PreferredPeersHolder,
-		payloadValidator:         args.PayloadValidator,
+		container:                       container,
+		shardCoordinator:                args.ShardCoordinator,
+		mainMessenger:                   args.MainMessenger,
+		fullArchiveMessenger:            args.FullArchiveMessenger,
+		store:                           args.Store,
+		marshalizer:                     args.Marshalizer,
+		dataPools:                       args.DataPools,
+		uint64ByteSliceConverter:        args.Uint64ByteSliceConverter,
+		dataPacker:                      args.DataPacker,
+		triesContainer:                  args.TriesContainer,
+		inputAntifloodHandler:           args.InputAntifloodHandler,
+		outputAntifloodHandler:          args.OutputAntifloodHandler,
+		throttler:                       thr,
+		isFullHistoryNode:               args.IsFullHistoryNode,
+		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
+		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,
+		payloadValidator:                args.PayloadValidator,
 	}
 
 	err = base.checkParams()
@@ -221,7 +223,12 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +286,12 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

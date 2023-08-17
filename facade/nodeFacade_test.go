@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -548,10 +549,10 @@ func TestNodeFacade_RestInterface(t *testing.T) {
 func TestNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
-	mapToRet := make(map[string]*state.ValidatorApiResponse)
-	mapToRet["test"] = &state.ValidatorApiResponse{NumLeaderFailure: 5}
+	mapToRet := make(map[string]*accounts.ValidatorApiResponse)
+	mapToRet["test"] = &accounts.ValidatorApiResponse{NumLeaderFailure: 5}
 	node := &mock.NodeStub{
-		ValidatorStatisticsApiCalled: func() (map[string]*state.ValidatorApiResponse, error) {
+		ValidatorStatisticsApiCalled: func() (map[string]*accounts.ValidatorApiResponse, error) {
 			return mapToRet, nil
 		},
 	}
@@ -2103,19 +2104,20 @@ func TestNodeFacade_GetEpochStartDataAPI(t *testing.T) {
 	require.Equal(t, providedResponse, response)
 }
 
-func TestNodeFacade_GetConnectedPeersRatings(t *testing.T) {
+func TestNodeFacade_GetConnectedPeersRatingsOnMainNetwork(t *testing.T) {
 	t.Parallel()
 
 	providedResponse := "ratings"
 	args := createMockArguments()
 	args.Node = &mock.NodeStub{
-		GetConnectedPeersRatingsCalled: func() string {
-			return providedResponse
+		GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
+			return providedResponse, nil
 		},
 	}
 	nf, _ := NewNodeFacade(args)
 
-	response := nf.GetConnectedPeersRatings()
+	response, err := nf.GetConnectedPeersRatingsOnMainNetwork()
+	require.NoError(t, err)
 	require.Equal(t, providedResponse, response)
 }
 

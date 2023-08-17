@@ -47,9 +47,12 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
@@ -59,6 +62,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -133,6 +137,11 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 	return p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -157,16 +166,15 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	}
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             createP2PConfig(initialAddresses),
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -179,21 +187,15 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    &p2pmocks.PeersRatingHandlerStub{},
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -203,24 +205,18 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 }
 
 // CreateMessengerFromConfigWithPeersRatingHandler creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
+func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: p2p.ConnectionWatcherTypePrint,
-		P2pPrivateKey:         mock.NewPrivateKeyMock(),
+		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-	}
-
-	if p2pConfig.Sharding.AdditionalConnections.MaxFullHistoryObservers > 0 {
-		// we deliberately set this, automatically choose full archive node mode
-		arg.NodeOperationMode = p2p.FullArchiveMode
+		Logger:                logger.GetOrCreate("tests/p2p"),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -234,6 +230,11 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 	return p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -252,10 +253,15 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 }
 
 // CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler) p2p.Messenger {
+func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.PeersRatingHandler, p2pKey crypto.PrivateKey) p2p.Messenger {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -265,16 +271,16 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 		},
 	}
 
-	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder)
+	return CreateMessengerFromConfigWithPeersRatingHandler(p2pCfg, peersRatingHanlder, p2pKey)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
 //
-//                             0------------------- 1
-//                             |                    |
-//        2 ------------------ 3 ------------------ 4
-//        |                    |                    |
-//        5                    6                    7
+//	                     0------------------- 1
+//	                     |                    |
+//	2 ------------------ 3 ------------------ 4
+//	|                    |                    |
+//	5                    6                    7
 func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 	peers := createMessengersWithNoDiscovery(8)
 
@@ -296,13 +302,13 @@ func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 
 // CreateFixedNetworkOf14Peers assembles a network as following:
 //
-//                 0
-//                 |
-//                 1
-//                 |
-//  +--+--+--+--+--2--+--+--+--+--+
-//  |  |  |  |  |  |  |  |  |  |  |
-//  3  4  5  6  7  8  9  10 11 12 13
+//	               0
+//	               |
+//	               1
+//	               |
+//	+--+--+--+--+--2--+--+--+--+--+
+//	|  |  |  |  |  |  |  |  |  |  |
+//	3  4  5  6  7  8  9  10 11 12 13
 func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
 	peers := createMessengersWithNoDiscovery(14)
 
@@ -474,7 +480,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
 	switch accountType {
 	case UserAccount:
-		argsAccCreator := state.ArgsAccountCreation{
+		argsAccCreator := factory.ArgsAccountCreator{
 			Hasher:              TestHasher,
 			Marshaller:          TestMarshalizer,
 			EnableEpochsHandler: enableEpochsHandler,
@@ -894,7 +900,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMbRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterHdrRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMetaRcv)),
-				fmt.Sprintf("%d", len(n.Messenger.ConnectedPeers())),
+				fmt.Sprintf("%d", len(n.MainMessenger.ConnectedPeers())),
 			},
 		)
 	}
@@ -926,12 +932,11 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adr := CreateRandomAddress()
 	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              TestHasher,
-		Marshaller:          TestMarshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	account, _ := state.NewUserAccount(adr, argsAccCreation)
+
+	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+
+	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 
 	return adr, account, adb
 }
@@ -1419,10 +1424,10 @@ func ConnectNodes(nodes []Connectable) {
 		for j := i + 1; j < len(nodes); j++ {
 			src := nodes[i]
 			dst := nodes[j]
-			err := src.ConnectTo(dst)
+			err := src.ConnectOnMain(dst)
 			if err != nil {
 				encounteredErrors = append(encounteredErrors,
-					fmt.Errorf("%w while %s was connecting to %s", err, src.GetConnectableAddress(), dst.GetConnectableAddress()))
+					fmt.Errorf("%w while %s was connecting to %s", err, src.GetMainConnectableAddress(), dst.GetMainConnectableAddress()))
 			}
 		}
 	}

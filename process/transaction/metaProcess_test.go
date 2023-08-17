@@ -14,12 +14,13 @@ import (
 	txproc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -45,12 +46,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 }
 
 func createUserAcc(address []byte) state.UserAccountHandler {
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	acc, _ := state.NewUserAccount(address, argsAccCreation)
+	acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	return acc
 }
 
@@ -463,12 +459,7 @@ func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	acntDst, err := state.NewUserAccount(tx.RcvAddr, argsAccCreation)
+	acntDst, err := accounts.NewUserAccount(tx.RcvAddr, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	assert.Nil(t, err)
 
 	called := false
