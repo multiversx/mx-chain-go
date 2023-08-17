@@ -178,12 +178,6 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 	return preprocess.NewTransactionPreprocessor(args)
 }
 
-// SmartContractResultPreProcessorCreator defines the interface of a smart contract result pre-processor creator
-type SmartContractResultPreProcessorCreator interface {
-	CreateSmartContractResultPreProcessor(args preprocess.SmartContractResultPreProcessorCreatorArgs) (process.PreProcessor, error)
-	IsInterfaceNil() bool
-}
-
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
 
 	arg := preprocess.SmartContractResultPreProcessorCreatorArgs{

@@ -5,12 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// SmartContractResultPreProcessorCreator defines the interface of a smart contract result pre-processor creator
-type SmartContractResultPreProcessorCreator interface {
-	CreateSmartContractResultPreProcessor(args SmartContractResultPreProcessorCreatorArgs) (process.PreProcessor, error)
-	IsInterfaceNil() bool
-}
-
 type sovereignSmartContractResultPreProcessorFactory struct {
 	smartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
 }
