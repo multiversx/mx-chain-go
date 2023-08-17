@@ -289,6 +289,11 @@ type EnableEpochsHandler interface {
 	RefactorPeersMiniBlocksEnableEpoch() uint32
 	GetCurrentEpoch() uint32
 
+	IsFlagDefined(flag core.EnableEpochFlag) bool
+	IsFlagEnabledInCurrentEpoch(flag core.EnableEpochFlag) bool
+	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
+
+	// TODO[Sorin]: remove all these methods
 	IsSCDeployFlagEnabledInEpoch(epoch uint32) bool
 	IsBuiltInFunctionsFlagEnabledInEpoch(epoch uint32) bool
 	IsRelayedTransactionsFlagEnabledInEpoch(epoch uint32) bool
