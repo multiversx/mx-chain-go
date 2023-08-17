@@ -2615,7 +2615,8 @@ func addCodeHashInLogEntryTopics(entry *vmcommon.LogEntry, codeHash []byte) {
 	if entry == nil {
 		return
 	}
-	if string(entry.Identifier) != core.SCUpgradeIdentifier && string(entry.Identifier) != core.SCDeployIdentifier {
+	isExpectedIdentifier := string(entry.Identifier) == core.SCUpgradeIdentifier || string(entry.Identifier) == core.SCDeployIdentifier
+	if !isExpectedIdentifier {
 		return
 	}
 
