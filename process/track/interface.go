@@ -51,6 +51,6 @@ type blockBalancerHandler interface {
 
 // BlockTrackerCreator is an interface for creating block trackers
 type BlockTrackerCreator interface {
-	CreateBlockTracker(argBaseTracker ArgShardTracker) (process.BlockTracker, error)
+	CreateBlockTracker(argShardTracker ArgShardTracker) (process.BlockTracker, error)
 	IsInterfaceNil() bool
 }
