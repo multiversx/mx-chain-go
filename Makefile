@@ -91,3 +91,18 @@ lint: lint-install run-lint
 
 install-proto:
 	bash ./install-proto.sh
+
+check-cli-md:
+	cd ./cmd/assessment && go build
+	cd ./cmd/keygenerator && go build
+	cd ./cmd/logviewer && go build
+	cd ./cmd/node && go build
+	cd ./cmd/seednode && go build
+	cd ./cmd/termui && go build
+	cd ./cmd && bash ./CLI.md.sh
+	@status=$$(git status --porcelain | grep CLI); \
+    	if [ ! -z "$${status}" ]; \
+    	then \
+    		echo "Error - please update all CLI.md files by running the 'cli-docs' or 'check-cli-md' from Makefile!"; \
+    		exit 1; \
+    	fi

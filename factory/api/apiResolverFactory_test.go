@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
@@ -103,6 +104,9 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
 		AllowVMQueriesChan: common.GetClosedUnbufferedChannel(),
+		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
+			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
+		},
 		ChainRunType:       common.ChainRunTypeRegular,
 	}
 }

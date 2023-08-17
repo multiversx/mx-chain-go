@@ -77,7 +77,7 @@ func checkArgMiniblockResolver(arg ArgMiniblockResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	err := mbRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -93,9 +93,9 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch)
+		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
-		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch)
+		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source)
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -107,7 +107,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	return err
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID, epoch uint32) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
 	mb, err := mbRes.fetchMbAsByteSlice(hash, epoch)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.Pee
 		return err
 	}
 
-	return mbRes.Send(buffToSend, pid)
+	return mbRes.Send(buffToSend, pid, source)
 }
 
 func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([]byte, error) {
@@ -146,7 +146,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 	return buff, nil
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID, epoch uint32) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
 	b := batch.Batch{}
 	err := mbRes.marshalizer.Unmarshal(&b, mbBuff)
 	if err != nil {
@@ -177,7 +177,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 	}
 
 	for _, buff := range buffsToSend {
-		errSend := mbRes.Send(buff, pid)
+		errSend := mbRes.Send(buff, pid, source)
 		if errSend != nil {
 			return errSend
 		}

@@ -85,15 +85,18 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		ManagedPeers:    &testscommon.ManagedPeersHolderStub{},
 	}
 
+	messenger := &p2pmocks.MessengerStub{
+		ConnectedPeersCalled: func() []core.PeerID {
+			return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+		},
+	}
+
 	return ArgsEpochStartBootstrap{
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger: &p2pmocks.MessengerStub{
-			ConnectedPeersCalled: func() []core.PeerID {
-				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
-			},
-		},
+		MainMessenger:          messenger,
+		FullArchiveMessenger:   messenger,
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,

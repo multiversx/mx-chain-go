@@ -252,7 +252,8 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.Messenger.Close()
+				_ = n.MainMessenger.Close()
+				_ = n.FullArchiveMessenger.Close()
 			}
 		}
 	}()
@@ -322,7 +323,8 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, con
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.Messenger.Close()
+				_ = n.MainMessenger.Close()
+				_ = n.FullArchiveMessenger.Close()
 			}
 		}
 	}()

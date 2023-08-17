@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	configTomlFile       = "config.toml"
-	enableEpochsTomlFile = "enableEpochs.toml"
-	p2pTomlFile          = "p2p.toml"
-	externalTomlFile     = "external.toml"
+	configTomlFile         = "config.toml"
+	enableEpochsTomlFile   = "enableEpochs.toml"
+	p2pTomlFile            = "p2p.toml"
+	fullArchiveP2PTomlFile = "fullArchiveP2P.toml"
+	externalTomlFile       = "external.toml"
 )
 
 var (
@@ -31,7 +32,9 @@ func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config
 		case enableEpochsTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.EpochConfig, newConfig.Path, newConfig.Value)
 		case p2pTomlFile:
-			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.P2pConfig, newConfig.Path, newConfig.Value)
+			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.MainP2pConfig, newConfig.Path, newConfig.Value)
+		case fullArchiveP2PTomlFile:
+			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.FullArchiveP2pConfig, newConfig.Path, newConfig.Value)
 		case externalTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.ExternalConfig, newConfig.Path, newConfig.Value)
 		default:

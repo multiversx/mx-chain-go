@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -246,21 +247,17 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	defer u.printDataTrieStatistics()
 
 	wg := sync.WaitGroup{}
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              u.hasher,
-		Marshaller:          u.marshalizer,
-		EnableEpochsHandler: u.enableEpochsHandler,
-	}
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
-		account, err := state.NewUserAccountFromBytes(leaf.Value(), argsAccCreation)
+		accountData := &accounts.UserAccountData{}
+		err := u.marshalizer.Unmarshal(accountData, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue
 		}
 
-		if common.IsEmptyTrie(account.RootHash) {
+		if common.IsEmptyTrie(accountData.RootHash) {
 			continue
 		}
 
@@ -284,7 +281,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			atomic.AddInt32(&u.numTriesSynced, 1)
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
-		}(account.RootHash, account.Address)
+		}(accountData.RootHash, accountData.Address)
 	}
 
 	wg.Wait()
