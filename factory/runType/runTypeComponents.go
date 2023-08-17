@@ -2,18 +2,15 @@ package runType
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 )
 
 // RunTypeComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type RunTypeComponentsFactoryArgs struct {
-	BlockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
-	EpochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
-	BootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	BlockChainHookHandlerCreator        factory.BlockChainHookHandlerCreator
+	EpochStartBootstrapperCreator       factory.EpochStartBootstrapperCreator
+	BootstrapperFromStorageCreator      factory.BootstrapperFromStorageCreator
 	BlockProcessorCreator               factory.BlockProcessorCreator
 	ForkDetectorCreator                 factory.ForkDetectorCreator
 	BlockTrackerCreator                 factory.BlockTrackerCreator
@@ -25,9 +22,9 @@ type RunTypeComponentsFactoryArgs struct {
 }
 
 type runTypeComponentsFactory struct {
-	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	blockChainHookHandlerCreator        factory.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator       factory.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator      factory.BootstrapperFromStorageCreator
 	blockProcessorCreator               factory.BlockProcessorCreator
 	forkDetectorCreator                 factory.ForkDetectorCreator
 	blockTrackerCreator                 factory.BlockTrackerCreator
@@ -40,9 +37,9 @@ type runTypeComponentsFactory struct {
 
 // runTypeComponents struct holds the components needed for a run type
 type runTypeComponents struct {
-	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	blockChainHookHandlerCreator        factory.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator       factory.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator      factory.BootstrapperFromStorageCreator
 	blockProcessorCreator               factory.BlockProcessorCreator
 	forkDetectorCreator                 factory.ForkDetectorCreator
 	blockTrackerCreator                 factory.BlockTrackerCreator

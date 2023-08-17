@@ -5,11 +5,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeComponents)(nil)
@@ -124,7 +121,7 @@ func (mrc *managedRunTypeComponents) BlockProcessorCreator() factory.BlockProces
 }
 
 // BlockChainHookHandlerCreator returns the blockchain hook handler creator
-func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
+func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() factory.BlockChainHookHandlerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -136,7 +133,7 @@ func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockC
 }
 
 // BootstrapperFromStorageCreator returns the bootstrapper from storage creator
-func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
+func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() factory.BootstrapperFromStorageCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -160,7 +157,7 @@ func (mrc *managedRunTypeComponents) BlockTrackerCreator() factory.BlockTrackerC
 }
 
 // EpochStartBootstrapperCreator returns the epoch start bootstrapper creator
-func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
+func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() factory.EpochStartBootstrapperCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 

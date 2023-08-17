@@ -194,8 +194,8 @@ type processComponentsFactory struct {
 	bootstrapComponents                 factory.BootstrapComponentsHolder
 	statusComponents                    factory.StatusComponentsHolder
 	statusCoreComponents                factory.StatusCoreComponentsHolder
-	blockProcessorCreator               factory.BlockProcessorCreator
 	chainRunType                        common.ChainRunType
+	blockProcessorCreator               factory.BlockProcessorCreator
 	resolverRequestCreator              factory.RequestHandlerCreator
 	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
 	blockTrackerCreator                 factory.BlockTrackerCreator
