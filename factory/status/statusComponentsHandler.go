@@ -277,12 +277,11 @@ func computeConnectedPeers(
 ) {
 	peersInfo := netMessenger.GetConnectedPeersInfo()
 
-	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,fullObs:%d,unknown:%d,",
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
 		len(peersInfo.IntraShardValidators),
 		len(peersInfo.CrossShardValidators),
 		len(peersInfo.IntraShardObservers),
 		len(peersInfo.CrossShardObservers),
-		len(peersInfo.FullHistoryObservers),
 		len(peersInfo.UnknownPeers),
 	)
 	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, peerClassification)
@@ -298,7 +297,6 @@ func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
-	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, mapToString(info.FullHistoryObservers))
 }
 
 func sliceToString(input []string) string {

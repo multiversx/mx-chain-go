@@ -182,6 +182,7 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 		}
 
 		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                hdr.GetShardID(),
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  currentEpoch,
 		})
@@ -221,6 +222,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		ShardID:                   scf.shardCoordinator.SelfId(),
 		RetrialInterval:           common.RetrialIntervalForOutportDriver,
 		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
 		EventNotifierFactoryArgs:  eventNotifierArgs,

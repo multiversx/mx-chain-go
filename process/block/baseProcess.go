@@ -1421,7 +1421,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{HeaderHash: hdrHash})
+	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
 
 func (bp *baseProcessor) updateStateStorage(

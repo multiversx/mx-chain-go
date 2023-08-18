@@ -13,8 +13,11 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.GenesisShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardCoordinator)
 	}
-	if check.IfNil(args.Messenger) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	if check.IfNil(args.MainMessenger) {
+		return fmt.Errorf("%s on main network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return fmt.Errorf("%s on full archive network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
 	}
 	if check.IfNil(args.EconomicsData) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEconomicsData)

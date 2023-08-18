@@ -40,12 +40,12 @@ func (cpas *commonPeerAuthenticationSender) generateMessageBytes(
 	msg.Payload = payloadBytes
 
 	if p2pSkBytes != nil {
-		msg.PayloadSignature, err = cpas.messenger.SignUsingPrivateKey(p2pSkBytes, payloadBytes)
+		msg.PayloadSignature, err = cpas.mainMessenger.SignUsingPrivateKey(p2pSkBytes, payloadBytes)
 		if err != nil {
 			return nil, isTriggered, 0, err
 		}
 	} else {
-		msg.PayloadSignature, err = cpas.messenger.Sign(payloadBytes)
+		msg.PayloadSignature, err = cpas.mainMessenger.Sign(payloadBytes)
 		if err != nil {
 			return nil, isTriggered, 0, err
 		}
