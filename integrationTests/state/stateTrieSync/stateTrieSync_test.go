@@ -53,7 +53,7 @@ func createTestProcessorNodeAndTrieStorage(
 		TrieStore:            mainStorer,
 		GasScheduleMap:       createTestGasMap(),
 	})
-	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
+	_ = node.MainMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
 }
@@ -86,12 +86,12 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -207,12 +207,12 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -254,7 +254,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	go func() {
 		// sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
-		_ = nResolver.Messenger.Close()
+		nResolver.Close()
 		log.Info("resolver node closed, the requester should soon fail in error")
 	}()
 
@@ -315,12 +315,12 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -396,6 +396,10 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 	return acc.GetRootHash()
 }
 
+type snapshotWatcher interface {
+	IsSnapshotInProgress() bool
+}
+
 func TestSyncMissingSnapshotNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -453,7 +457,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	nRequester := nodes[0]
 	nResolver := nodes[1]
 
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 	time.Sleep(integrationTests.SyncDelay)
 
@@ -490,8 +494,11 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 
 	tsm := nRequester.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
-	nRequester.AccntState.SnapshotState(rootHash)
-	for tsm.IsPruningBlocked() {
+	nRequester.AccntState.SnapshotState(rootHash, nRequester.EpochNotifier.CurrentEpoch())
+	sw, ok := nRequester.AccntState.(snapshotWatcher)
+	assert.True(t, ok)
+
+	for sw.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
 	_ = nRequester.AccntState.RecreateTrie(rootHash)

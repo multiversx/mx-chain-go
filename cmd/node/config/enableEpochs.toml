@@ -248,6 +248,9 @@
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 1
 
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 2
+
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
     SCProcessorV2EnableEpoch = 6
 

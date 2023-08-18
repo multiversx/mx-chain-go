@@ -103,11 +103,12 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger: &p2pmocks.MessengerStub{
+		MainMessenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 			},
 		},
+		FullArchiveMessenger: &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
@@ -245,11 +246,21 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilShardCoordinator))
 	})
-	t.Run("nil messenger", func(t *testing.T) {
+	t.Run("nil main messenger", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
-		args.Messenger = nil
+		args.MainMessenger = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.FullArchiveMessenger = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
@@ -1678,14 +1689,14 @@ func TestRequestAndProcessing(t *testing.T) {
 		assert.Error(t, err)
 		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
-	t.Run("failed to create messenger topic", func(t *testing.T) {
+	t.Run("failed to create main messenger topic", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
 		args.GenesisNodesConfig = getNodesConfigMock(1)
 
 		expectedErr := errors.New("expected error")
-		args.Messenger = &p2pmocks.MessengerStub{
+		args.MainMessenger = &p2pmocks.MessengerStub{
 			CreateTopicCalled: func(topic string, identifier bool) error {
 				return expectedErr
 			},

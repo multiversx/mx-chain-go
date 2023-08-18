@@ -21,6 +21,7 @@ type ProcessComponentsStub struct {
 	ShardCoord                           sharding.Coordinator
 	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
+	FullArchiveIntContainer              process.InterceptorsContainer
 	ResContainer                         dataRetriever.ResolversContainer
 	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
@@ -40,7 +41,8 @@ type ProcessComponentsStub struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
 	TxCostSimulator                      factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
@@ -93,6 +95,11 @@ func (pcs *ProcessComponentsStub) ShardCoordinator() sharding.Coordinator {
 // InterceptorsContainer -
 func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsContainer {
 	return pcs.IntContainer
+}
+
+// FullArchiveInterceptorsContainer -
+func (pcs *ProcessComponentsStub) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcs.FullArchiveIntContainer
 }
 
 // ResolversContainer -
@@ -190,7 +197,12 @@ func (pcs *ProcessComponentsStub) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingCollector {
-	return pcs.PeerMapper
+	return pcs.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcs *ProcessComponentsStub) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcs.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -
@@ -198,7 +210,7 @@ func (pcs *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHead
 	return pcs.FallbackHdrValidator
 }
 
-// TransactionCostSimulator -
+// APITransactionEvaluator -
 func (pcs *ProcessComponentsStub) APITransactionEvaluator() factory.TransactionEvaluator {
 	return pcs.TxCostSimulator
 }

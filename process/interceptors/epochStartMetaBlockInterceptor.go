@@ -56,7 +56,7 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 }
 
 // ProcessReceivedMessage will handle received messages containing epoch start meta blocks
-func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	var epochStartMb block.MetaBlock
 	err := e.marshalizer.Unmarshal(&epochStartMb, message.Data())
 	if err != nil {

@@ -663,23 +663,7 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 		return false
 	}
 
-	return isActiveDB(stsm)
-}
-
-func isActiveDB(stsm *snapshotTrieStorageManager) bool {
-	val, err := stsm.Get([]byte(common.ActiveDBKey))
-	if err != nil {
-		log.Debug("isActiveDB get error", "err", err.Error())
-		return false
-	}
-
-	if bytes.Equal(val, []byte(common.ActiveDBVal)) {
-		log.Debug("isActiveDB true")
-		return true
-	}
-
-	log.Debug("isActiveDB invalid value", "value", val)
-	return false
+	return true
 }
 
 func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
