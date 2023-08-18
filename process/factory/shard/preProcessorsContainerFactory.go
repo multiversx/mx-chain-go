@@ -21,28 +21,29 @@ import (
 var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator             sharding.Coordinator
-	store                        dataRetriever.StorageService
-	marshaller                   marshal.Marshalizer
-	hasher                       hashing.Hasher
-	dataPool                     dataRetriever.PoolsHolder
-	pubkeyConverter              core.PubkeyConverter
-	txProcessor                  process.TransactionProcessor
-	scProcessor                  process.SmartContractProcessor
-	scResultProcessor            process.SmartContractResultProcessor
-	rewardsTxProcessor           process.RewardTransactionProcessor
-	accounts                     state.AccountsAdapter
-	requestHandler               process.RequestHandler
-	economicsFee                 process.FeeHandler
-	gasHandler                   process.GasHandler
-	blockTracker                 preprocess.BlockTracker
-	blockSizeComputation         preprocess.BlockSizeComputationHandler
-	balanceComputation           preprocess.BalanceComputationHandler
-	enableEpochsHandler          common.EnableEpochsHandler
-	txTypeHandler                process.TxTypeHandler
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	chainRunType                 common.ChainRunType
+	shardCoordinator                       sharding.Coordinator
+	store                                  dataRetriever.StorageService
+	marshaller                             marshal.Marshalizer
+	hasher                                 hashing.Hasher
+	dataPool                               dataRetriever.PoolsHolder
+	pubkeyConverter                        core.PubkeyConverter
+	txProcessor                            process.TransactionProcessor
+	scProcessor                            process.SmartContractProcessor
+	scResultProcessor                      process.SmartContractResultProcessor
+	rewardsTxProcessor                     process.RewardTransactionProcessor
+	accounts                               state.AccountsAdapter
+	requestHandler                         process.RequestHandler
+	economicsFee                           process.FeeHandler
+	gasHandler                             process.GasHandler
+	blockTracker                           preprocess.BlockTracker
+	blockSizeComputation                   preprocess.BlockSizeComputationHandler
+	balanceComputation                     preprocess.BalanceComputationHandler
+	enableEpochsHandler                    common.EnableEpochsHandler
+	txTypeHandler                          process.TxTypeHandler
+	scheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
+	processedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
+	chainRunType                           common.ChainRunType
+	smartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -178,32 +179,43 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
-	scrPreprocessor, err := preprocess.NewSmartContractResultPreprocessor(
-		ppcf.dataPool.UnsignedTransactions(),
-		ppcf.store,
-		ppcf.hasher,
-		ppcf.marshaller,
-		ppcf.scResultProcessor,
-		ppcf.shardCoordinator,
-		ppcf.accounts,
-		ppcf.requestHandler.RequestUnsignedTransactions,
-		ppcf.gasHandler,
-		ppcf.economicsFee,
-		ppcf.pubkeyConverter,
-		ppcf.blockSizeComputation,
-		ppcf.balanceComputation,
-		ppcf.enableEpochsHandler,
-		ppcf.processedMiniBlocksTracker,
-	)
+
+	arg := preprocess.SmartContractResultPreProcessorCreatorArgs{
+		ScrDataPool:                  ppcf.dataPool.UnsignedTransactions(),
+		Store:                        ppcf.store,
+		Hasher:                       ppcf.hasher,
+		Marshalizer:                  ppcf.marshaller,
+		ScrProcessor:                 ppcf.scResultProcessor,
+		ShardCoordinator:             ppcf.shardCoordinator,
+		Accounts:                     ppcf.accounts,
+		OnRequestSmartContractResult: ppcf.requestHandler.RequestUnsignedTransactions,
+		GasHandler:                   ppcf.gasHandler,
+		EconomicsFee:                 ppcf.economicsFee,
+		PubkeyConverter:              ppcf.pubkeyConverter,
+		BlockSizeComputation:         ppcf.blockSizeComputation,
+		BalanceComputation:           ppcf.balanceComputation,
+		EnableEpochsHandler:          ppcf.enableEpochsHandler,
+		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
+	}
+
+	fact, err := preprocess.NewSmartContractResultPreProcessorFactory()
+	if err != nil {
+		return nil, err
+	}
 
 	switch ppcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return scrPreprocessor, err
+		ppcf.smartContractResultPreProcessorCreator = fact
 	case common.ChainRunTypeSovereign:
-		return preprocess.NewSovereignChainIncomingSCR(scrPreprocessor)
+		ppcf.smartContractResultPreProcessorCreator, err = preprocess.NewSovereignSmartContractResultPreProcessorFactory(fact)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, ppcf.chainRunType)
 	}
+
+	return ppcf.smartContractResultPreProcessorCreator.CreateSmartContractResultPreProcessor(arg)
 }
 
 func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
