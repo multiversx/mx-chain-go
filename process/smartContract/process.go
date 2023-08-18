@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -81,6 +80,9 @@ type scProcessor struct {
 	txLogsProcessor     process.TransactionLogProcessor
 	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
+
+	executableCheckers    map[string]scrCommon.ExecutableChecker
+	mutExecutableCheckers sync.RWMutex
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -201,6 +203,7 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		vmOutputCacher:      args.VMOutputCacher,
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
+		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
 	var err error
@@ -345,6 +348,9 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, err = sc.processVMOutput(&vmInput.VMInput, vmOutput, txHash, tx)
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -385,6 +391,9 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return nil, err
+		}
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
@@ -988,6 +997,9 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		tmpCreatedAsyncCallback := false
 		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(&vmInput.VMInput, newVMOutput, outPutAccounts, tx, txHash)
 		if err != nil {
+			if core.IsGetNodeFromDBError(err) {
+				return vmcommon.ExecutionFailed, err
+			}
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot, vmInput.GasLocked)
 		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
@@ -1085,6 +1097,10 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
+		}
+
+		if core.IsGetNodeFromDBError(err) {
+			return nil, err
 		}
 
 		return vmOutput, nil
@@ -1357,7 +1373,8 @@ func (sc *scProcessor) ProcessIfError(
 	return sc.processIfErrorWithAddedLogs(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked, nil, nil)
 }
 
-func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHandler,
+func (sc *scProcessor) processIfErrorWithAddedLogs(
+	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
@@ -1367,14 +1384,9 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	prevVmOutput *vmcommon.VMOutput,
 	internalVMLogs []*vmcommon.LogEntry,
 ) error {
-	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
-		ReturnCode:    vmcommon.SimulateFailed,
-		ReturnMessage: string(returnMessage),
-	}, 0)
-
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
-		if !errors.IsClosingError(err) {
+		if !core.IsClosingError(err) {
 			log.Warn("revert to snapshot", "error", err.Error())
 		}
 
@@ -1431,6 +1443,12 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+		Logs:          processIfErrorLogs,
+	}, 0)
+
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsSCDeployFlagEnabled() {
@@ -1446,7 +1464,6 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -1728,6 +1745,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	sc.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
@@ -1750,6 +1770,9 @@ func (sc *scProcessor) doDeploySmartContract(
 	results, err := sc.processVMOutput(&vmInput.VMInput, vmOutput, txHash, tx)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
+		if core.IsGetNodeFromDBError(err) {
+			return vmcommon.ExecutionFailed, err
+		}
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
@@ -2812,7 +2835,9 @@ func (sc *scProcessor) processSimpleSCR(
 		return err
 	}
 
-	if isReturnOKTxHandler(scResult) {
+	isTransferValueOnlySCR := len(scResult.Data) == 0 && scResult.Value.Cmp(zero) > 0
+	shouldGenerateCompleteEvent := isReturnOKTxHandler(scResult) || isTransferValueOnlySCR
+	if shouldGenerateCompleteEvent {
 		completedTxLog := createCompleteEventLog(scResult, txHash)
 		ignorableError := sc.txLogsProcessor.SaveLog(txHash, scResult, []*vmcommon.LogEntry{completedTxLog})
 		if ignorableError != nil {
@@ -2821,6 +2846,43 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	return nil
+}
+
+// CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
+func (sc *scProcessor) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	functionName, arguments, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return err
+	}
+
+	if expectedBuiltinFunction != functionName {
+		return process.ErrBuiltinFunctionMismatch
+	}
+
+	gasProvided, err := sc.prepareGasProvided(tx)
+	if err != nil {
+		return err
+	}
+
+	sc.mutExecutableCheckers.RLock()
+	executableChecker, ok := sc.executableCheckers[functionName]
+	sc.mutExecutableCheckers.RUnlock()
+	if !ok {
+		return process.ErrBuiltinFunctionNotExecutable
+	}
+
+	// check if the function is executable
+	return executableChecker.CheckIsExecutable(
+		tx.GetSndAddr(),
+		tx.GetValue(),
+		tx.GetRcvAddr(),
+		gasProvided,
+		arguments,
+	)
 }
 
 func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {

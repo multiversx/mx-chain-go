@@ -26,7 +26,7 @@ func PerformOnDestCallFailParentMock(instanceMock *mock.InstanceMock, config int
 			return instance
 		}
 
-		host.Storage().SetStorage(test.ParentKeyA, test.ParentDataA)
+		_, _ = host.Storage().SetStorage(test.ParentKeyA, test.ParentDataA)
 		host.Output().Finish(test.ParentFinishA)
 
 		retVal := vmhooks.ExecuteOnDestContextWithTypedArgs(

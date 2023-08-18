@@ -41,12 +41,12 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 }
 
 func (tp *tokensProcessor) extractESDTAccounts(
-	txPool *outportcore.Pool,
+	txPool *outportcore.TransactionPool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
 	var err error
 	for _, txLog := range txPool.Logs {
-		for _, event := range txLog.LogHandler.GetLogEvents() {
+		for _, event := range txLog.Log.Events {
 			err = tp.processEvent(event, markedAlteredAccounts)
 			if err != nil {
 				return err

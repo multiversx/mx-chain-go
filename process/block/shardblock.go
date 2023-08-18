@@ -51,7 +51,7 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +119,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processDebugger:               processDebugger,
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:            arguments.ManagedPeersHolder,
 	}
 
 	sp := shardProcessor{
@@ -344,6 +346,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
 		return err
 	}
 
@@ -597,16 +604,25 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
-		HeaderHash:     headerHash,
-		Header:         header,
-		Body:           body,
-		PreviousHeader: lastBlockHeader,
+		HeaderHash:             headerHash,
+		Header:                 header,
+		Body:                   body,
+		PreviousHeader:         lastBlockHeader,
+		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
+		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
 	})
 	if err != nil {
-		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error())
+		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 		return
 	}
-	sp.outportHandler.SaveBlock(argSaveBlock)
+	err = sp.outportHandler.SaveBlock(argSaveBlock)
+	if err != nil {
+		log.Error("shardProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
+		return
+	}
+
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	shardID := sp.shardCoordinator.SelfId()
@@ -1029,6 +1045,7 @@ func (sp *shardProcessor) CommitBlock(
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
 		header,
+		sp.managedPeersHolder,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1077,6 +1094,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }

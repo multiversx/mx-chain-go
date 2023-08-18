@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // NodeStub -
@@ -31,14 +31,14 @@ type NodeStub struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
-	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsApiCalled                   func() (map[string]*accounts.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatingsCalled                 func() string
+	GetConnectedPeersRatingsOnMainNetworkCalled    func() (string, error)
 	GetEpochStartDataAPICalled                     func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetUsernameCalled                              func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                              func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
@@ -52,6 +52,8 @@ type NodeStub struct {
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
+	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
+	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
 }
 
 // GetProof -
@@ -181,7 +183,7 @@ func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi -
-func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return ns.ValidatorStatisticsApiCalled()
 }
 
@@ -213,13 +215,13 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return make([]core.QueryP2PPeerInfo, 0), nil
 }
 
-// GetConnectedPeersRatings -
-func (ns *NodeStub) GetConnectedPeersRatings() string {
-	if ns.GetConnectedPeersRatingsCalled != nil {
-		return ns.GetConnectedPeersRatingsCalled()
+// GetConnectedPeersRatingsOnMainNetwork -
+func (ns *NodeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	if ns.GetConnectedPeersRatingsOnMainNetworkCalled != nil {
+		return ns.GetConnectedPeersRatingsOnMainNetworkCalled()
 	}
 
-	return ""
+	return "", nil
 }
 
 // GetEpochStartDataAPI -
@@ -268,7 +270,10 @@ func (ns *NodeStub) GetAllESDTTokens(address string, options api.AccountQueryOpt
 }
 
 // GetTokenSupply -
-func (ns *NodeStub) GetTokenSupply(_ string) (*api.ESDTSupply, error) {
+func (ns *NodeStub) GetTokenSupply(token string) (*api.ESDTSupply, error) {
+	if ns.GetTokenSupplyCalled != nil {
+		return ns.GetTokenSupplyCalled(token)
+	}
 	return nil, nil
 }
 
@@ -278,6 +283,14 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]
 		return ns.GetAllIssuedESDTsCalled(tokenType, ctx)
 	}
 	return make([]string, 0), nil
+}
+
+// IsDataTrieMigrated -
+func (ns *NodeStub) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	if ns.IsDataTrieMigratedCalled != nil {
+		return ns.IsDataTrieMigratedCalled(address, options)
+	}
+	return false, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -

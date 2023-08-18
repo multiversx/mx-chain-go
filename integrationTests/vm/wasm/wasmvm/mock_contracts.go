@@ -9,6 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-vm-go/executor"
 	contextmock "github.com/multiversx/mx-chain-vm-go/mock/context"
@@ -36,7 +40,7 @@ func InitializeMockContracts(
 func InitializeMockContractsWithVMContainer(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
-	vmContainer process.VirtualMachinesContainer,
+	_ process.VirtualMachinesContainer,
 	mockSCs ...testcommon.MockTestSmartContract,
 ) {
 	InitializeMockContractsWithVMContainerAndVMTypes(t, net, nil, [][]byte{factory.WasmVirtualMachine}, mockSCs...)
@@ -86,14 +90,22 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	require.Nil(t, err)
 
 	address := net.NewAddressWithVM(wallet, vmType)
-	account, _ := state.NewUserAccount(address)
-	account.Balance = MockInitialBalance
-	account.SetCode(address)
-	account.SetCodeHash(address)
-	err = node.AccntState.SaveAccount(account)
+	argsAccCreation := stateFactory.ArgsAccountCreator{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
+
+	account, _ := accountFactory.CreateAccount(address)
+	userAccount := account.(state.UserAccountHandler)
+	_ = userAccount.AddToBalance(MockInitialBalance)
+	userAccount.SetCode(address)
+	userAccount.SetCodeHash(address)
+	err = node.AccntState.SaveAccount(userAccount)
 	require.Nil(t, err)
 
-	return address, account
+	return address, userAccount
 }
 
 // SetCodeMetadata -
@@ -131,7 +143,7 @@ func MakeTestWalletAddress(identifier string) []byte {
 	return makeTestAddress(WalletAddressPrefix, identifier)
 }
 
-func makeTestAddress(prefix []byte, identifier string) []byte {
+func makeTestAddress(_ []byte, identifier string) []byte {
 	numberOfTrailingDots := vmhost.AddressSize - len(vmhost.SCAddressPrefix) - len(identifier)
 	leftBytes := vmhost.SCAddressPrefix
 	rightBytes := []byte(identifier + strings.Repeat(".", numberOfTrailingDots))

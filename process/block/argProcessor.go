@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -67,6 +68,7 @@ type ArgBaseProcessor struct {
 	StatusCoreComponents statusCoreComponentsHolder
 
 	Config                         config.Config
+	PrefsConfig                    config.Preferences
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
 	NodesCoordinator               nodesCoordinator.NodesCoordinator
@@ -89,6 +91,8 @@ type ArgBaseProcessor struct {
 	ScheduledMiniBlocksEnableEpoch uint32
 	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 	ReceiptsRepository             receiptsRepository
+	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
+	ManagedPeersHolder             common.ManagedPeersHolder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

@@ -62,7 +62,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 1000000
+    GovernanceEnableEpoch = 5
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -230,9 +230,6 @@
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
     RefactorPeersMiniBlocksEnableEpoch = 1
 
-    # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCProcessorV2EnableEpoch = 6
-
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
     MaxBlockchainHookCountersEnableEpoch = 1
 
@@ -245,17 +242,44 @@
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
     RuntimeCodeSizeFixEnableEpoch = 1
 
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 1
+
+    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+    SetGuardianEnableEpoch = 1
+
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 2
+
+    # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
+    SCProcessorV2EnableEpoch = 6
+
+    # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
+    AutoBalanceDataTriesEnableEpoch = 5
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 2
+
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
     MultiClaimOnDelegationEnableEpoch = 3
 
+    # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
+    ChangeUsernameEnableEpoch = 2
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 2
+
+    # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+
+    # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+    ScToScLogEventEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 1, Type = "KOSK"}
+        { EnableEpoch = 0, Type = "no-KOSK" },
+        { EnableEpoch = 1, Type = "KOSK" }
     ]
-
-    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    SetGuardianEnableEpoch = 2
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -267,6 +291,5 @@
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
         { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
     ]

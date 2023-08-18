@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -14,56 +15,67 @@ import (
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	pubkeyConverter  core.PubkeyConverter
-	store            dataRetriever.StorageService
-	poolsHolder      dataRetriever.PoolsHolder
-	economicsFee     process.FeeHandler
+	shardCoordinator    sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	pubkeyConverter     core.PubkeyConverter
+	store               dataRetriever.StorageService
+	poolsHolder         dataRetriever.PoolsHolder
+	economicsFee        process.FeeHandler
+	enableEpochsHandler common.EnableEpochsHandler
+}
+
+// ArgsNewIntermediateProcessorsContainerFactory defines the argument list to create a new container factory
+type ArgsNewIntermediateProcessorsContainerFactory struct {
+	ShardCoordinator    sharding.Coordinator
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	PubkeyConverter     core.PubkeyConverter
+	Store               dataRetriever.StorageService
+	PoolsHolder         dataRetriever.PoolsHolder
+	EconomicsFee        process.FeeHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
 func NewIntermediateProcessorsContainerFactory(
-	shardCoordinator sharding.Coordinator,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	pubkeyConverter core.PubkeyConverter,
-	store dataRetriever.StorageService,
-	poolsHolder dataRetriever.PoolsHolder,
-	economicsFee process.FeeHandler,
+	args ArgsNewIntermediateProcessorsContainerFactory,
 ) (*intermediateProcessorsContainerFactory, error) {
 
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(args.PubkeyConverter) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(store) {
+	if check.IfNil(args.Store) {
 		return nil, process.ErrNilStorage
 	}
-	if check.IfNil(poolsHolder) {
+	if check.IfNil(args.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		pubkeyConverter:  pubkeyConverter,
-		poolsHolder:      poolsHolder,
-		store:            store,
-		economicsFee:     economicsFee,
+		shardCoordinator:    args.ShardCoordinator,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		pubkeyConverter:     args.PubkeyConverter,
+		store:               args.Store,
+		poolsHolder:         args.PoolsHolder,
+		economicsFee:        args.EconomicsFee,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -95,17 +107,18 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 }
 
 func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := postprocess.NewIntermediateResultsProcessor(
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.shardCoordinator,
-		ppcm.pubkeyConverter,
-		ppcm.store,
-		block.SmartContractResultBlock,
-		ppcm.poolsHolder.CurrentBlockTxs(),
-		ppcm.economicsFee,
-	)
-
+	args := postprocess.ArgsNewIntermediateResultsProcessor{
+		Hasher:              ppcm.hasher,
+		Marshalizer:         ppcm.marshalizer,
+		Coordinator:         ppcm.shardCoordinator,
+		PubkeyConv:          ppcm.pubkeyConverter,
+		Store:               ppcm.store,
+		BlockType:           block.SmartContractResultBlock,
+		CurrTxs:             ppcm.poolsHolder.CurrentBlockTxs(),
+		EconomicsFee:        ppcm.economicsFee,
+		EnableEpochsHandler: ppcm.enableEpochsHandler,
+	}
+	irp, err := postprocess.NewIntermediateResultsProcessor(args)
 	return irp, err
 }
 

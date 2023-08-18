@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -43,7 +44,10 @@ func CreateAccountWithESDTBalance(
 	}
 	if esdtNonce > 0 {
 		esdtData.TokenMetaData = &esdt.MetaData{
-			Nonce: esdtNonce,
+			Name:    []byte(fmt.Sprintf("Token %d", esdtNonce)),
+			URIs:    [][]byte{[]byte(fmt.Sprintf("URI for token %d", esdtNonce))},
+			Creator: pubKey,
+			Nonce:   esdtNonce,
 		}
 	}
 

@@ -10,9 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +25,7 @@ import (
 
 func TestNewStateImport(t *testing.T) {
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
 	tests := []struct {
 		name    string
 		args    ArgsNewStateImport
@@ -70,6 +72,7 @@ func TestNewStateImport(t *testing.T) {
 				Hasher:              &mock.HasherStub{},
 				TrieStorageManagers: trieStorageManagers,
 				AddressConverter:    &testscommon.PubkeyConverterMock{},
+				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			},
 			exError: nil,
 		},
@@ -86,8 +89,8 @@ func TestImportAll(t *testing.T) {
 	t.Parallel()
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
-	trieStorageManagers[factory.PeerAccountTrie] = &testscommon.StorageManagerStub{}
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = &storageManager.StorageManagerStub{}
 
 	args := ArgsNewStateImport{
 		HardforkStorer:      &mock.HardforkStorerStub{},
@@ -97,6 +100,7 @@ func TestImportAll(t *testing.T) {
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
 		AddressConverter:    &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)
@@ -110,7 +114,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
 
 	hasher := &hashingMocks.HasherMock{}
 	marshahlizer := &mock.MarshalizerMock{}
@@ -132,6 +136,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 		ShardID:             0,
 		StorageConfig:       config.StorageConfig{},
 		AddressConverter:    &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	importState, _ := NewStateImport(args)

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -30,7 +30,7 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 	mbc, err := bootstrap.NewManagedBootstrapComponents(nil)
 
 	require.Nil(t, mbc)
-	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
+	require.Equal(t, errorsMx.ErrNilBootstrapComponentsFactory, err)
 }
 
 func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
@@ -40,7 +40,7 @@ func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 	err := mbc.CheckSubcomponents()
-	require.Equal(t, errorsErd.ErrNilBootstrapComponentsHolder, err)
+	require.Equal(t, errorsMx.ErrNilBootstrapComponentsHolder, err)
 
 	assert.Nil(t, mbc.EpochStartBootstrapper())
 	assert.Nil(t, mbc.EpochBootstrapParams())
@@ -84,7 +84,7 @@ func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 	coreComponents.IntMarsh = nil
 
 	err := mbc.Create()
-	require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataComponentsFactoryCreate))
+	require.True(t, errors.Is(err, errorsMx.ErrBootstrapDataComponentsFactoryCreate))
 }
 
 func TestManagedBootstrapComponents_Close(t *testing.T) {

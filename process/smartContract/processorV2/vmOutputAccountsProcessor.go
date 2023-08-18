@@ -3,6 +3,7 @@ package processorV2
 import (
 	"bytes"
 	"math/big"
+	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -40,7 +41,7 @@ func NewVMOutputAccountsProcessor(
 // Run runs the configured processing steps on vm output
 func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, error) {
 	outputAccounts := process.SortVMOutputInsideData(oap.vmOutput)
-	scResults := make([]data.TransactionHandler, 0, len(outputAccounts))
+	indexedSCResults := make([]internalIndexedScr, 0, len(outputAccounts))
 
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, oap.tx.GetValue())
@@ -52,7 +53,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 			return false, nil, err
 		}
 
-		createdAsyncCallback, scResults = oap.processOutputTransfersStep(outAcc, createdAsyncCallback, scResults)
+		createdAsyncCallback, indexedSCResults = oap.processOutputTransfersStep(outAcc, createdAsyncCallback, indexedSCResults)
 
 		continueWithNextAccount, err := oap.computeSumOfAllDiffStep(acc, outAcc, sumOfAllDiff)
 		if err != nil {
@@ -87,10 +88,28 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 		return false, nil, process.ErrOverallBalanceChangeFromSC
 	}
 
+	sortIndexedScrs(indexedSCResults)
+
+	scResults := unwrapSCRs(indexedSCResults)
+
 	return createdAsyncCallback, scResults, nil
 }
 
-func (oap *VMOutputAccountsProcessor) processOutputTransfersStep(outAcc *vmcommon.OutputAccount, createdAsyncCallback bool, scResults []data.TransactionHandler) (bool, []data.TransactionHandler) {
+func unwrapSCRs(indexedSCResults []internalIndexedScr) []data.TransactionHandler {
+	scResults := make([]data.TransactionHandler, 0, len(indexedSCResults))
+	for _, indexedSCResult := range indexedSCResults {
+		scResults = append(scResults, indexedSCResult.result)
+	}
+	return scResults
+}
+
+func sortIndexedScrs(indexedSCResults []internalIndexedScr) {
+	sort.Slice(indexedSCResults, func(i, j int) bool {
+		return indexedSCResults[i].index < indexedSCResults[j].index
+	})
+}
+
+func (oap *VMOutputAccountsProcessor) processOutputTransfersStep(outAcc *vmcommon.OutputAccount, createdAsyncCallback bool, scResults []internalIndexedScr) (bool, []internalIndexedScr) {
 	tmpCreatedAsyncCallback, newScrs := oap.sc.createSmartContractResults(oap.vmInput, oap.vmOutput, outAcc, oap.tx, oap.txHash)
 	createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 	if len(newScrs) != 0 {

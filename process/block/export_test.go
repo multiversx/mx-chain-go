@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -113,7 +114,7 @@ func NewShardProcessorEmptyWith3shards(
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
 	}
@@ -164,6 +165,8 @@ func NewShardProcessorEmptyWith3shards(
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -496,7 +499,7 @@ func (mp *metaProcessor) GetFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 }
 
 func CheckProcessorNilParameters(arguments ArgBaseProcessor) error {
-	return checkProcessorNilParameters(arguments)
+	return checkProcessorParameters(arguments)
 }
 
 func (bp *baseProcessor) SetIndexOfFirstTxProcessed(miniBlockHeaderHandler data.MiniBlockHeaderHandler) error {

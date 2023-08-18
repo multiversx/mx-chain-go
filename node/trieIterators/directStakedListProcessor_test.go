@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -70,7 +71,7 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, time.Second), nil
+			return createScAccount(addressContainer, validators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -114,7 +115,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createValidatorScAccount(addressContainer, validators, addressContainer, 0), nil
+			return createScAccount(addressContainer, validators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -146,27 +147,32 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)
 }
 
-func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return rootHash, nil
-		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
-			go func() {
-				time.Sleep(timeSleep)
-				for _, leafBuff := range leaves {
-					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChan <- leaf
-				}
+func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
+	dtt := &trieMock.DataTrieTrackerStub{
+		DataTrieCalled: func() common.Trie {
+			return &trieMock.TrieStub{
+				RootCalled: func() ([]byte, error) {
+					return rootHash, nil
+				},
+				GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+					go func() {
+						time.Sleep(timeSleep)
+						for _, leafBuff := range leaves {
+							leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
+							leavesChannels.LeavesChan <- leaf
+						}
 
-				close(leavesChannels.LeavesChan)
-				leavesChannels.ErrChan.Close()
-			}()
+						close(leavesChannels.LeavesChan)
+						leavesChannels.ErrChan.Close()
+					}()
 
-			return nil
+					return nil
+				},
+			}
 		},
-	})
+	}
+
+	acc, _ := accounts.NewUserAccount(address, dtt, &trieMock.TrieLeafParserStub{})
 
 	return acc
 }

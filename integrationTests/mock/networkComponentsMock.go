@@ -8,14 +8,17 @@ import (
 
 // NetworkComponentsStub -
 type NetworkComponentsStub struct {
-	Messenger               p2p.Messenger
-	InputAntiFlood          factory.P2PAntifloodHandler
-	OutputAntiFlood         factory.P2PAntifloodHandler
-	PeerBlackList           process.PeerBlackListCacher
-	PeerHonesty             factory.PeerHonestyHandler
-	PreferredPeersHolder    factory.PreferredPeersHolderHandler
-	PeersRatingHandlerField p2p.PeersRatingHandler
-	PeersRatingMonitorField p2p.PeersRatingMonitor
+	Messenger                        p2p.Messenger
+	MessengerCalled                  func() p2p.Messenger
+	InputAntiFlood                   factory.P2PAntifloodHandler
+	OutputAntiFlood                  factory.P2PAntifloodHandler
+	PeerBlackList                    process.PeerBlackListCacher
+	PeerHonesty                      factory.PeerHonestyHandler
+	PreferredPeersHolder             factory.PreferredPeersHolderHandler
+	PeersRatingHandlerField          p2p.PeersRatingHandler
+	PeersRatingMonitorField          p2p.PeersRatingMonitor
+	FullArchiveNetworkMessengerField p2p.Messenger
+	FullArchivePreferredPeersHolder  factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -45,6 +48,9 @@ func (ncs *NetworkComponentsStub) CheckSubcomponents() error {
 
 // NetworkMessenger -
 func (ncs *NetworkComponentsStub) NetworkMessenger() p2p.Messenger {
+	if ncs.MessengerCalled != nil {
+		return ncs.MessengerCalled()
+	}
 	return ncs.Messenger
 }
 
@@ -76,6 +82,16 @@ func (ncs *NetworkComponentsStub) PeersRatingHandler() p2p.PeersRatingHandler {
 // PeersRatingMonitor -
 func (ncs *NetworkComponentsStub) PeersRatingMonitor() p2p.PeersRatingMonitor {
 	return ncs.PeersRatingMonitorField
+}
+
+// FullArchiveNetworkMessenger -
+func (ncs *NetworkComponentsStub) FullArchiveNetworkMessenger() p2p.Messenger {
+	return ncs.FullArchiveNetworkMessengerField
+}
+
+// FullArchivePreferredPeersHolderHandler -
+func (ncs *NetworkComponentsStub) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncs.FullArchivePreferredPeersHolder
 }
 
 // String -

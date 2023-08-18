@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -54,7 +55,7 @@ func createMockComponentHolders() (
 		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
 	}
@@ -146,6 +147,8 @@ func createMockMetaArguments(
 			ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
+			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -519,6 +522,17 @@ func TestNewMetaProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T)
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilBlockProcessingCutoffHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+	arguments.BlockProcessingCutoffHandler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilBlockProcessingCutoffHandler, err)
 	assert.Nil(t, be)
 }
 
@@ -3143,7 +3157,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
-		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 		enableEpochsHandler.StakingV2EnableEpochField = 0
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
@@ -3176,7 +3190,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			StakingV2EnableEpochField: 10,
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -3378,7 +3392,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		t.Parallel()
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
-		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*testscommon.EnableEpochsHandlerStub)
+		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 		enableEpochsHandler.StakingV2EnableEpochField = 0
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
@@ -3452,7 +3466,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			StakingV2EnableEpochField: 10,
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -3531,7 +3545,7 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsScheduledMiniBlocksFlagEnabledField: false,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
@@ -3549,7 +3563,7 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsScheduledMiniBlocksFlagEnabledField: true,
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub

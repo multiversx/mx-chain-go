@@ -159,10 +159,12 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		msg = " (my turn in multi-key)"
 	}
 	if leader == sr.SelfPubKey() {
+		msg = " (my turn)"
+	}
+	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "proposer")
-		msg = " (my turn)"
 	}
 
 	log.Debug("step 0: preparing the round",
@@ -181,10 +183,10 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		}
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if leader != sr.SelfPubKey() {
+		if leader != sr.SelfPubKey() && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
+			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
 	err = sr.SigningHandler().Reset(pubKeys)
@@ -275,15 +277,18 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	round := sr.RoundHandler().Index()
 
 	roundInfo := &outportcore.RoundInfo{
-		Index:            uint64(round),
+		Round:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
+		Timestamp:        uint64(sr.RoundTimeStamp.Unix()),
 	}
-
-	sr.outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
+	roundsInfo := &outportcore.RoundsInfo{
+		ShardID:    shardId,
+		RoundsInfo: []*outportcore.RoundInfo{roundInfo},
+	}
+	sr.outportHandler.SaveRoundsInfo(roundsInfo)
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

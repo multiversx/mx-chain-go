@@ -18,6 +18,8 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
+    TrieLoadPerNode          = 20000
+    TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -38,6 +40,7 @@
     DelegationOps         = 1000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
+    GetActiveFund         = 50000
     DelegationMgrOps      = 50000000
     ValidatorToDelegation = 500000000
     GetAllNodeStates      = 100000000
@@ -102,6 +105,8 @@
     SetAsyncGroupCallback   = 100000
     SetAsyncContextCallback = 100000
     GetCallbackClosure   = 10000
+    GetCodeMetadata      = 10000
+    IsBuiltinFunction    = 10000
 
 [EthAPICost]
     UseGas              = 100
@@ -696,7 +701,7 @@
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 100
     MaxMemoryGrow = 100
-        Catch = 1
+    Catch = 1
     CatchAll = 1
     Delegate = 1
     F32x4Ceil = 1
