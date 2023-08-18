@@ -121,6 +121,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetGuardianEnabledField                                    bool
 	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
@@ -1054,6 +1055,14 @@ func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRelayedNonceFixEnabledField
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsDeterministicSortOnValidatorsInfoFixEnabledField
 }
 
 // IsKeepExecOrderOnCreatedSCRsEnabled -

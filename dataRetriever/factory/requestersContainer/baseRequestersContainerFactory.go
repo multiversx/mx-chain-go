@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
 	topicsender "github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -22,29 +23,34 @@ const EmptyExcludePeersOnTopic = ""
 var log = logger.GetOrCreate("dataRetriever/factory/requesterscontainer")
 
 type baseRequestersContainerFactory struct {
-	container                   dataRetriever.RequestersContainer
-	shardCoordinator            sharding.Coordinator
-	messenger                   dataRetriever.TopicMessageHandler
-	marshaller                  marshal.Marshalizer
-	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
-	intRandomizer               dataRetriever.IntRandomizer
-	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
-	intraShardTopic             string
-	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
-	preferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
-	peersRatingHandler          dataRetriever.PeersRatingHandler
-	numCrossShardPeers          int
-	numIntraShardPeers          int
-	numTotalPeers               int
-	numFullHistoryPeers         int
+	container                       dataRetriever.RequestersContainer
+	shardCoordinator                sharding.Coordinator
+	mainMessenger                   p2p.Messenger
+	fullArchiveMessenger            p2p.Messenger
+	marshaller                      marshal.Marshalizer
+	uint64ByteSliceConverter        typeConverters.Uint64ByteSliceConverter
+	intRandomizer                   dataRetriever.IntRandomizer
+	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
+	intraShardTopic                 string
+	currentNetworkEpochProvider     dataRetriever.CurrentNetworkEpochProviderHandler
+	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	fullArchivePreferredPeersHolder dataRetriever.PreferredPeersHolderHandler
+	peersRatingHandler              dataRetriever.PeersRatingHandler
+	numCrossShardPeers              int
+	numIntraShardPeers              int
+	numTotalPeers                   int
+	numFullHistoryPeers             int
 }
 
 func (brcf *baseRequestersContainerFactory) checkParams() error {
 	if check.IfNil(brcf.shardCoordinator) {
 		return dataRetriever.ErrNilShardCoordinator
 	}
-	if check.IfNil(brcf.messenger) {
-		return dataRetriever.ErrNilMessenger
+	if check.IfNil(brcf.mainMessenger) {
+		return fmt.Errorf("%w on main network", dataRetriever.ErrNilMessenger)
+	}
+	if check.IfNil(brcf.fullArchiveMessenger) {
+		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilMessenger)
 	}
 	if check.IfNil(brcf.marshaller) {
 		return dataRetriever.ErrNilMarshalizer
@@ -58,8 +64,11 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	if check.IfNil(brcf.currentNetworkEpochProvider) {
 		return dataRetriever.ErrNilCurrentNetworkEpochProvider
 	}
-	if check.IfNil(brcf.preferredPeersHolder) {
-		return dataRetriever.ErrNilPreferredPeersHolder
+	if check.IfNil(brcf.mainPreferredPeersHolder) {
+		return fmt.Errorf("%w on main network", dataRetriever.ErrNilPreferredPeersHolder)
+	}
+	if check.IfNil(brcf.fullArchivePreferredPeersHolder) {
+		return fmt.Errorf("%w on full archive network", dataRetriever.ErrNilPreferredPeersHolder)
 	}
 	if check.IfNil(brcf.peersRatingHandler) {
 		return dataRetriever.ErrNilPeersRatingHandler
@@ -260,18 +269,20 @@ func (brcf *baseRequestersContainerFactory) createOneRequestSenderWithSpecifiedN
 		"topic", topic, "intraShardTopic", brcf.intraShardTopic, "excludedTopic", excludedTopic,
 		"numCrossShardPeers", numCrossShardPeers, "numIntraShardPeers", numIntraShardPeers)
 
-	peerListCreator, err := topicsender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
+	peerListCreator, err := topicsender.NewDiffPeerListCreator(brcf.mainMessenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
 
 	arg := topicsender.ArgTopicRequestSender{
 		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
-			Messenger:            brcf.messenger,
-			TopicName:            topic,
-			OutputAntiflooder:    brcf.outputAntifloodHandler,
-			PreferredPeersHolder: brcf.preferredPeersHolder,
-			TargetShardId:        targetShardId,
+			MainMessenger:                   brcf.mainMessenger,
+			FullArchiveMessenger:            brcf.fullArchiveMessenger,
+			TopicName:                       topic,
+			OutputAntiflooder:               brcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:        brcf.mainPreferredPeersHolder,
+			FullArchivePreferredPeersHolder: brcf.fullArchivePreferredPeersHolder,
+			TargetShardId:                   targetShardId,
 		},
 		Marshaller:                  brcf.marshaller,
 		Randomizer:                  brcf.intRandomizer,

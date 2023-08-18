@@ -94,6 +94,7 @@ type epochFlagsHolder struct {
 	setGuardianFlag                             *atomic.Flag
 	scToScLogEventFlag                          *atomic.Flag
 	relayedNonceFixFlag                         *atomic.Flag
+	deterministicSortOnValidatorsInfoFixFlag    *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
 	multiClaimOnDelegationFlag                  *atomic.Flag
 	changeUsernameFlag                          *atomic.Flag
@@ -193,6 +194,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		setGuardianFlag:                             &atomic.Flag{},
 		scToScLogEventFlag:                          &atomic.Flag{},
 		relayedNonceFixFlag:                         &atomic.Flag{},
+		deterministicSortOnValidatorsInfoFixFlag:    &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
 		consistentTokensValuesCheckFlag:             &atomic.Flag{},
 		multiClaimOnDelegationFlag:                  &atomic.Flag{},
@@ -698,6 +700,11 @@ func (holder *epochFlagsHolder) IsScToScEventLogEnabled() bool {
 // IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
 func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
 	return holder.relayedNonceFixFlag.IsSet()
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled returns true if deterministicSortOnValidatorsInfoFix is enabled
+func (holder *epochFlagsHolder) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return holder.deterministicSortOnValidatorsInfoFixFlag.IsSet()
 }
 
 // IsConsistentTokensValuesLengthCheckEnabled returns true if consistentTokensValuesCheckFlag is enabled

@@ -65,11 +65,13 @@ func TestManagedStatusComponents_Create(t *testing.T) {
 		require.NotNil(t, managedStatusComponents)
 		require.Nil(t, managedStatusComponents.OutportHandler())
 		require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
+		require.Nil(t, managedStatusComponents.ManagedPeersMonitor())
 
 		err = managedStatusComponents.Create()
 		require.NoError(t, err)
 		require.NotNil(t, managedStatusComponents.OutportHandler())
 		require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
+		require.NotNil(t, managedStatusComponents.ManagedPeersMonitor())
 
 		require.Equal(t, factory.StatusComponentsName, managedStatusComponents.String())
 	})
@@ -208,10 +210,6 @@ func TestComputeConnectedPeers(t *testing.T) {
 					0: {"cross-o-0"},
 					1: {"cross-o-1"},
 				},
-				FullHistoryObservers: map[uint32][]string{
-					0: {"fh-0"},
-					1: {"fh-1"},
-				},
 				NumValidatorsOnShard: map[uint32]int{
 					0: 1,
 					1: 1,
@@ -228,14 +226,13 @@ func TestComputeConnectedPeers(t *testing.T) {
 				NumIntraShardObservers:  2,
 				NumCrossShardValidators: 2,
 				NumCrossShardObservers:  2,
-				NumFullHistoryObservers: 2,
 			}
 		},
 		AddressesCalled: func() []string {
 			return []string{"intra-v-0", "intra-v-1", "intra-o-0", "intra-o-1", "cross-v-0", "cross-v-1"}
 		},
 	}
-	expectedPeerClassification := "intraVal:2,crossVal:2,intraObs:2,crossObs:2,fullObs:2,unknown:1,"
+	expectedPeerClassification := "intraVal:2,crossVal:2,intraObs:2,crossObs:2,unknown:1,"
 	cnt := 0
 	appStatusHandler := &statusHandler.AppStatusHandlerStub{
 		SetStringValueHandler: func(key string, value string) {
@@ -263,9 +260,6 @@ func TestComputeConnectedPeers(t *testing.T) {
 				require.Equal(t, common.MetricP2PCrossShardObservers, key)
 				require.Equal(t, "cross-o-0,cross-o-1", value)
 			case 8:
-				require.Equal(t, common.MetricP2PFullHistoryObservers, key)
-				require.Equal(t, "fh-0,fh-1", value)
-			case 9:
 				require.Equal(t, common.MetricP2PPeerInfo, key)
 				require.Equal(t, "intra-v-0,intra-v-1,intra-o-0,intra-o-1,cross-v-0,cross-v-1", value)
 			default:

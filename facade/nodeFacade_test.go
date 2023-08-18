@@ -2129,19 +2129,20 @@ func TestNodeFacade_GetEpochStartDataAPI(t *testing.T) {
 	require.Equal(t, providedResponse, response)
 }
 
-func TestNodeFacade_GetConnectedPeersRatings(t *testing.T) {
+func TestNodeFacade_GetConnectedPeersRatingsOnMainNetwork(t *testing.T) {
 	t.Parallel()
 
 	providedResponse := "ratings"
 	args := createMockArguments()
 	args.Node = &mock.NodeStub{
-		GetConnectedPeersRatingsCalled: func() string {
-			return providedResponse
+		GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
+			return providedResponse, nil
 		},
 	}
 	nf, _ := NewNodeFacade(args)
 
-	response := nf.GetConnectedPeersRatings()
+	response, err := nf.GetConnectedPeersRatingsOnMainNetwork()
+	require.NoError(t, err)
 	require.Equal(t, providedResponse, response)
 }
 

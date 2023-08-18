@@ -120,6 +120,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		outportDataProvider:           arguments.OutportDataProvider,
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:            arguments.ManagedPeersHolder,
 	}
 
 	sp := shardProcessor{
@@ -1044,6 +1045,7 @@ func (sp *shardProcessor) CommitBlock(
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
 		header,
+		sp.managedPeersHolder,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1256,8 +1258,9 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
 				rootHash = schRootHash
 			}
-			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			epoch := header.GetEpoch()
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
+			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {
