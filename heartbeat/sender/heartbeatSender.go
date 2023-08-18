@@ -112,7 +112,8 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
-	sender.messenger.Broadcast(sender.topic, msgBytes)
+	sender.mainMessenger.Broadcast(sender.topic, msgBytes)
+	sender.fullArchiveMessenger.Broadcast(sender.topic, msgBytes)
 
 	return nil
 }

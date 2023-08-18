@@ -1092,9 +1092,9 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetConnectedPeersRatings returns the connected peers ratings
-func (n *Node) GetConnectedPeersRatings() string {
-	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (n *Node) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings(n.networkComponents.NetworkMessenger())
 }
 
 // GetEpochStartDataAPI returns epoch start data of a given epoch

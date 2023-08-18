@@ -183,6 +183,8 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
 	IsInterfaceNil() bool
 }
 
@@ -384,6 +386,7 @@ type EnableEpochsHandler interface {
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsSetGuardianEnabled() bool
 	IsRelayedNonceFixEnabled() bool
+	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool

@@ -478,6 +478,14 @@ func TestP2pConfig(t *testing.T) {
     Port = "` + port + `"
     ThresholdMinConnectedPeers = 0
 
+    [Node.Transports]
+        QUICAddress = "/ip4/0.0.0.0/udp/%d/quic-v1"
+        WebSocketAddress = "/ip4/0.0.0.0/tcp/%d/ws" 
+        WebTransportAddress = "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport"
+        [Node.Transports.TCP]
+            ListenAddress = "/ip4/0.0.0.0/tcp/%d"
+            PreventPortReuse = true
+
 [KadDhtPeerDiscovery]
     Enabled = false
     Type = ""
@@ -499,13 +507,20 @@ func TestP2pConfig(t *testing.T) {
     MaxIntraShardObservers = 0
     MaxCrossShardObservers = 0
     MaxSeeders = 0
-    Type = "` + shardingType + `"
-    [AdditionalConnections]
-        MaxFullHistoryObservers = 0`
+    Type = "` + shardingType + `"`
 
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: port,
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress:    "/ip4/0.0.0.0/tcp/%d",
+					PreventPortReuse: true,
+				},
+				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
+				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
+				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
@@ -793,6 +808,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
     FixDelegationChangeOwnerOnAccountEnableEpoch = 87
 
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 66
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -861,7 +879,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOOGReturnCodeEnableEpoch:                       46,
 			RemoveNonUpdatedStorageEnableEpoch:                47,
 			OptimizeNFTStoreEnableEpoch:                       48,
-			CreateNFTThroughExecByCallerEnableEpoch:           49,
+			CreateNFTThroughExecByCallerEnableEpoch:            49,
 			StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
 			FrontRunningProtectionEnableEpoch:                 51,
 			IsPayableBySCEnableEpoch:                          52,
@@ -912,6 +930,7 @@ func TestEnableEpochConfig(t *testing.T) {
 					NodesToShufflePerShard: 80,
 				},
 			},
+			DeterministicSortOnValidatorsInfoEnableEpoch: 66,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

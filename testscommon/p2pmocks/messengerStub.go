@@ -9,7 +9,6 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedFullHistoryPeersOnTopicCalled  func(topic string) []core.PeerID
 	IDCalled                                func() core.PeerID
 	CloseCalled                             func() error
 	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
@@ -45,15 +44,7 @@ type MessengerStub struct {
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
-}
-
-// ConnectedFullHistoryPeersOnTopic -
-func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
-	if ms.ConnectedFullHistoryPeersOnTopicCalled != nil {
-		return ms.ConnectedFullHistoryPeersOnTopicCalled(topic)
-	}
-
-	return make([]core.PeerID, 0)
+	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 }
 
 // ID -
@@ -359,6 +350,14 @@ func (ms *MessengerStub) SignUsingPrivateKey(skBytes []byte, payload []byte) ([]
 	}
 
 	return make([]byte, 0), nil
+}
+
+// ProcessReceivedMessage -
+func (ms *MessengerStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+	if ms.ProcessReceivedMessageCalled != nil {
+		return ms.ProcessReceivedMessageCalled(message, fromConnectedPeer, source)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

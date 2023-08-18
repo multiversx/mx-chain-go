@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
+	"github.com/multiversx/mx-chain-go/p2p"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -23,12 +24,19 @@ func prepareOpenTopics(
 	selfID := shardCoordinator.SelfId()
 	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
+		antiflood.SetTopicsForAll(
+			common.PeerAuthenticationTopic,
+			selfShardHeartbeatV2Topic,
+			common.ConnectionTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(
+		common.PeerAuthenticationTopic,
+		selfShardHeartbeatV2Topic,
+		common.ConnectionTopic,
+		selfShardTxTopic)
 }
 
 // CreateNode is the node factory
@@ -50,16 +58,7 @@ func CreateNode(
 ) (*Node, error) {
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
-	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
-		networkComponents.PeerBlackListHandler(),
-		networkComponents.PubKeyCacher(),
-		processComponents.PeerShardMapper(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
+	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
 	if err != nil {
 		return nil, err
 	}
@@ -122,4 +121,39 @@ func CreateNode(
 	}
 
 	return nd, nil
+}
+
+func createAndAttachPeerDenialEvaluators(
+	networkComponents factory.NetworkComponentsHandler,
+	processComponents factory.ProcessComponentsHandler,
+) (p2p.PeerDenialEvaluator, error) {
+	mainPeerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.PeerShardMapper(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(mainPeerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	fullArchivePeerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.FullArchivePeerShardMapper(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = networkComponents.FullArchiveNetworkMessenger().SetPeerDenialEvaluator(fullArchivePeerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	return mainPeerDenialEvaluator, nil
 }

@@ -82,7 +82,7 @@ func checkArgTxResolver(arg ArgTxResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	err := txRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -98,9 +98,9 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch)
+		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
-		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch)
+		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source)
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -112,7 +112,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	return err
 }
 
-func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32) error {
+func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	tx, err := txRes.fetchTxAsByteSlice(hash, epoch)
 	if err != nil {
@@ -127,7 +127,7 @@ func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID, ep
 		return err
 	}
 
-	return txRes.Send(buff, pid)
+	return txRes.Send(buff, pid, source)
 }
 
 func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, error) {
@@ -152,7 +152,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 	return buff, nil
 }
 
-func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32) error {
+func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	b := batch.Batch{}
 	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
@@ -186,7 +186,7 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 	}
 
 	for _, buff := range buffsToSend {
-		errSend := txRes.Send(buff, pid)
+		errSend := txRes.Send(buff, pid, source)
 		if errSend != nil {
 			return errSend
 		}

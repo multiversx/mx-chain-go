@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -167,7 +166,8 @@ func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 	argsNetwork := factoryNetwork.NetworkComponentsFactoryArgs{
-		P2pConfig:             *pr.Config.P2pConfig,
+		MainP2pConfig:         *pr.Config.MainP2pConfig,
+		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
@@ -175,7 +175,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		Syncer:                pr.CoreComponents.SyncTimer(),
 		PreferredPeersSlices:  make([]string, 0),
 		BootstrapWaitTime:     1,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: "",
 		CryptoComponents:      pr.CryptoComponents,
 	}
