@@ -97,6 +97,7 @@ type EnableEpochs struct {
 	SetGuardianEnableEpoch                            uint32
 	ScToScLogEventEnableEpoch                         uint32
 	RelayedNonceFixEnableEpoch                        uint32
+	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
 	MultiClaimOnDelegationEnableEpoch                 uint32
 	ChangeUsernameEnableEpoch                         uint32

@@ -461,9 +461,9 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
-// GetConnectedPeersRatings returns the connected peers ratings
-func (nf *nodeFacade) GetConnectedPeersRatings() string {
-	return nf.node.GetConnectedPeersRatings()
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (nf *nodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return nf.node.GetConnectedPeersRatingsOnMainNetwork()
 }
 
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
@@ -583,6 +583,26 @@ func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byt
 // IsDataTrieMigrated returns true if the data trie for the given address is migrated
 func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.AccountQueryOptions) (bool, error) {
 	return nf.node.IsDataTrieMigrated(address, options)
+}
+
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetManagedKeysCount() int {
+	return nf.apiResolver.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nf *nodeFacade) GetManagedKeys() []string {
+	return nf.apiResolver.GetManagedKeys()
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetEligibleManagedKeys()
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetWaitingManagedKeys()
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {

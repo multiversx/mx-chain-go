@@ -240,21 +240,3 @@ func TestDiffPeerListCreator_IntraShardPeersList(t *testing.T) {
 
 	assert.Equal(t, peerList, dplc.IntraShardPeerList())
 }
-
-func TestDiffPeerListCreator_FullHistoryList(t *testing.T) {
-	t.Parallel()
-
-	peerList := []core.PeerID{"pid1", "pid2"}
-	dplc, _ := topicsender.NewDiffPeerListCreator(
-		&mock.MessageHandlerStub{
-			ConnectedFullHistoryPeersOnTopicCalled: func(topic string) []core.PeerID {
-				return peerList
-			},
-		},
-		mainTopic,
-		intraTopic,
-		excludedTopic,
-	)
-
-	assert.Equal(t, peerList, dplc.FullHistoryList())
-}

@@ -2331,11 +2331,9 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 	rootHash, err := addDataTriesForAccountsStartingWithIndex(0, 1, 1, adb)
 	assert.Nil(t, err)
-	err = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
-	assert.Nil(t, err)
 
-	adb.SnapshotState(rootHash)
-	for tsm.IsPruningBlocked() {
+	adb.SnapshotState(rootHash, 1)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(10 * time.Millisecond)
 	}
 

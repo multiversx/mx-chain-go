@@ -36,7 +36,7 @@ func NewShardRequestersContainerFactory(
 		shardIDForTries:          args.ShardIDForTries,
 		chainID:                  args.ChainID,
 		workingDir:               args.WorkingDirectory,
-		snapshotsEnabled:         args.SnapshotsEnabled,
+		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
 	}
 

@@ -102,6 +102,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ChangeUsernameEnableEpoch:                         85,
 		ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
+		DeterministicSortOnValidatorsInfoEnableEpoch:      79,
 		ScToScLogEventEnableEpoch:                         88,
 	}
 }
@@ -230,6 +231,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsRelayedNonceFixEnabled())
 		assert.True(t, handler.IsSetGuardianEnabled())
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 		assert.True(t, handler.IsScToScEventLogEnabled())
 		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
@@ -348,6 +350,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsRelayedNonceFixEnabled())
 		assert.True(t, handler.IsSetGuardianEnabled())
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 		assert.True(t, handler.IsScToScEventLogEnabled())
 		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.True(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
@@ -461,6 +464,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsRelayedNonceFixEnabled())
 		assert.False(t, handler.IsSetGuardianEnabled())
+		assert.False(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 		assert.False(t, handler.IsScToScEventLogEnabled())
 		assert.False(t, handler.IsAutoBalanceDataTriesEnabled())
 		assert.False(t, handler.IsKeepExecOrderOnCreatedSCRsEnabled())
