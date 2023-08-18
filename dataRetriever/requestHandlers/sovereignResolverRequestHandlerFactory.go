@@ -6,6 +6,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// RequestHandlerCreator defines the resolver requester factory handler
+type RequestHandlerCreator interface {
+	CreateRequestHandler(resolverRequestArgs RequestHandlerArgs) (process.RequestHandler, error)
+	IsInterfaceNil() bool
+}
+
 type sovereignResolverRequestHandlerFactory struct {
 	resolverRequestFactoryHandler RequestHandlerCreator
 }

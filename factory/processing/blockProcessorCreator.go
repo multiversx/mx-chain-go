@@ -451,50 +451,60 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 func (pcf *processComponentsFactory) createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 ) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	tcFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
+		pcf.transactionCoordinatorCreator = tcFactory
 	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+		pcf.transactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(tcFactory)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
-	argShardProcessor := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
-
-	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
-	if err != nil {
-		return nil, errors.New("could not create shard block processor: " + err.Error())
-	}
-
-	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
+	//TODO: remove this when the new creator is injected
+	argumentsBaseProcessor.ValidatorStatisticsProcessor = validatorStatisticsProcessor
+	tempBpc, err := block.NewShardBlockProcessorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return shardProcessor, nil
+		pcf.blockProcessorCreator = tempBpc
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainBlockProcessor(
-			shardProcessor,
-			validatorStatisticsProcessor,
-		)
+		pcf.blockProcessorCreator, err = block.NewSovereignBlockProcessorFactory(tempBpc)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	blockProcessor, err := pcf.blockProcessorCreator.CreateBlockProcessor(argumentsBaseProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockProcessor, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(

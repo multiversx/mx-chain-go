@@ -727,19 +727,26 @@ func createTransactionCoordinator(
 	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
 	chainRunType common.ChainRunType,
 ) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	stcf, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: remove assignment of parameter and switch
+	var tempTransactionCoordinatorCreator TransactionCoordinatorCreator
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
+		tempTransactionCoordinatorCreator = stcf
 	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+		tempTransactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(stcf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
 	}
+
+	return tempTransactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func deployInitialSmartContracts(

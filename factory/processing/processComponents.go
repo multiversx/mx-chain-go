@@ -187,15 +187,22 @@ type processComponentsFactory struct {
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                 factory.DataComponentsHolder
-	coreData             factory.CoreComponentsHolder
-	crypto               factory.CryptoComponentsHolder
-	state                factory.StateComponentsHolder
-	network              factory.NetworkComponentsHolder
-	bootstrapComponents  factory.BootstrapComponentsHolder
-	statusComponents     factory.StatusComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
-	chainRunType         common.ChainRunType
+	data                                factory.DataComponentsHolder
+	coreData                            factory.CoreComponentsHolder
+	crypto                              factory.CryptoComponentsHolder
+	state                               factory.StateComponentsHolder
+	network                             factory.NetworkComponentsHolder
+	bootstrapComponents                 factory.BootstrapComponentsHolder
+	statusComponents                    factory.StatusComponentsHolder
+	statusCoreComponents                factory.StatusCoreComponentsHolder
+	blockProcessorCreator               BlockProcessorCreator
+	chainRunType                        common.ChainRunType
+	resolverRequestCreator              RequestHandlerCreator
+	blockTrackerCreator                 BlockTrackerCreator
+	transactionCoordinatorCreator       TransactionCoordinatorCreator
+	headerValidatorCreator              HeaderValidatorCreator
+	forkDetectorCreator                 ForkDetectorCreator
+	validatorStatisticsProcessorCreator ValidatorStatisticsProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -720,26 +727,34 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 func (pcf *processComponentsFactory) createResolverRequestHandler(
 	requestersFinder dataRetriever.RequestersFinder,
 ) (process.RequestHandler, error) {
-	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		requestersFinder,
-		pcf.requestedItemsHandler,
-		pcf.whiteListHandler,
-		common.MaxTxsToRequest,
-		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
-		time.Second,
-	)
+	args := requestHandlers.RequestHandlerArgs{
+		RequestersFinder:      requestersFinder,
+		RequestedItemsHandler: pcf.requestedItemsHandler,
+		WhiteListHandler:      pcf.whiteListHandler,
+		MaxTxsToRequest:       common.MaxTxsToRequest,
+		ShardID:               pcf.bootstrapComponents.ShardCoordinator().SelfId(),
+		RequestInterval:       time.Second,
+	}
+
+	requestHandlerFactory, err := requestHandlers.NewResolverRequestHandlerFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return requestHandler, nil
+		pcf.resolverRequestCreator = requestHandlerFactory
 	case common.ChainRunTypeSovereign:
-		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
+		sovFactory, sovErr := requestHandlers.NewSovereignResolverRequestHandlerFactory(requestHandlerFactory)
+		if sovErr != nil {
+			return nil, sovErr
+		}
+		pcf.resolverRequestCreator = sovFactory
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.resolverRequestCreator.CreateRequestHandler(args)
 }
 
 func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (process.ScheduledTxsExecutionHandler, error) {
@@ -807,19 +822,25 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 }
 
 func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
-	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(args)
+	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return validatorStatisticsProcessor, nil
+		pcf.validatorStatisticsProcessorCreator = validatorStatisticsProcessorFactory
 	case common.ChainRunTypeSovereign:
-		return peer.NewSovereignChainValidatorStatisticsProcessor(validatorStatisticsProcessor)
+		svspf, sovError := peer.NewSovereignValidatorStatisticsProcessorFactory(validatorStatisticsProcessorFactory)
+		if sovError != nil {
+			return nil, sovError
+		}
+		pcf.validatorStatisticsProcessorCreator = svspf
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.validatorStatisticsProcessorCreator.CreateValidatorStatisticsProcessor(args)
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
@@ -891,19 +912,25 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 }
 
 func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
-	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+
+	hvf, err := block.NewShardHeaderValidatorFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return headerValidator, nil
+		pcf.headerValidatorCreator = hvf
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainHeaderValidator(headerValidator)
+		pcf.headerValidatorCreator, err = block.NewSovereignHeaderValidatorFactory(hvf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.headerValidatorCreator.CreateHeaderValidator(argsHeaderValidator)
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
@@ -1384,19 +1411,24 @@ func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker trac
 		ArgBaseTracker: argBaseTracker,
 	}
 
-	blockTracker, err := track.NewShardBlockTrack(arguments)
+	trackerFactory, err := track.NewShardBlockTrackerFactory()
 	if err != nil {
 		return nil, err
 	}
 
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return blockTracker, nil
+		pcf.blockTrackerCreator = trackerFactory
 	case common.ChainRunTypeSovereign:
-		return track.NewSovereignChainShardBlockTrack(blockTracker)
+		pcf.blockTrackerCreator, err = track.NewSovereignBlockTrackerFactory(trackerFactory)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	return pcf.blockTrackerCreator.CreateBlockTracker(arguments)
 }
 
 // -- Resolvers container Factory begin
@@ -1814,19 +1846,30 @@ func (pcf *processComponentsFactory) newForkDetector(
 }
 
 func (pcf *processComponentsFactory) createShardForkDetector(headerBlackList process.TimeCacher, blockTracker process.BlockTracker) (process.ForkDetector, error) {
-	forkDetector, err := sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+	fdf, err := sync.NewShardForkDetectorFactory()
 	if err != nil {
 		return nil, err
 	}
-
 	switch pcf.chainRunType {
 	case common.ChainRunTypeRegular:
-		return forkDetector, nil
+		pcf.forkDetectorCreator = fdf
 	case common.ChainRunTypeSovereign:
-		return sync.NewSovereignChainShardForkDetector(forkDetector)
+		pcf.forkDetectorCreator, err = sync.NewSovereignForkDetectorFactory(fdf)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("%w type %v", errorsMx.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}
+
+	args := sync.ForkDetectorFactoryArgs{
+		RoundHandler:    pcf.coreData.RoundHandler(),
+		HeaderBlackList: headerBlackList,
+		BlockTracker:    blockTracker,
+		GenesisTime:     pcf.coreData.GenesisNodesSetup().GetStartTime(),
+	}
+
+	return pcf.forkDetectorCreator.CreateForkDetector(args)
 }
 
 // prepareNetworkShardingCollectorForMessenger will create the network sharding collector and apply it to the provided network messenger

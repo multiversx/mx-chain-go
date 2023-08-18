@@ -20,6 +20,7 @@ func TestNewSovereignResolverRequestHandlerFactory(t *testing.T) {
 
 	require.Nil(t, err)
 	require.NotNil(t, rrhf)
+	require.IsType(t, &sovereignResolverRequestHandlerFactory{}, rrhf)
 }
 
 func TestSovereignResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T) {
@@ -28,10 +29,15 @@ func TestSovereignResolverRequestHandlerFactory_CreateResolverRequestHandler(t *
 	rf, _ := NewResolverRequestHandlerFactory()
 	rrhf, _ := NewSovereignResolverRequestHandlerFactory(rf)
 
-	rrh, err := rrhf.CreateRequestHandler(getDefaultArgs())
+	rrh, err := rrhf.CreateRequestHandler(RequestHandlerArgs{})
+	require.NotNil(t, err)
+	require.Nil(t, rrh)
+
+	rrh, err = rrhf.CreateRequestHandler(getDefaultArgs())
 
 	require.Nil(t, err)
 	require.NotNil(t, rrh)
+	require.IsType(t, &sovereignResolverRequestHandler{}, rrh)
 }
 
 func TestSovereignResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {

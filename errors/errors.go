@@ -619,3 +619,6 @@ var ErrNilBlockChainHookFactory = errors.New("nil blockchain hook factory")
 
 // ErrNilEpochStartBootstrapperFactory signals that a nil epoch start bootstrapper factory has been provided
 var ErrNilEpochStartBootstrapperFactory = errors.New("nil epoch start bootstrapper factory")
+
+// ErrNilBlockProcessorFactory signals that a nil block processor factory has been provided
+var ErrNilBlockProcessorFactory = errors.New("nil block processor factory")

@@ -34,12 +34,6 @@ type HeaderRequester interface {
 	EpochRequester
 }
 
-// RequestHandlerCreator defines the resolver requester factory handler
-type RequestHandlerCreator interface {
-	CreateRequestHandler(resolverRequestArgs RequestHandlerArgs) (process.RequestHandler, error)
-	IsInterfaceNil() bool
-}
-
 // RequestHandlerArgs holds all dependencies required by the process data factory to create components
 type RequestHandlerArgs struct {
 	RequestersFinder      dataRetriever.RequestersFinder
