@@ -127,6 +127,7 @@ type EnableEpochsHandlerStub struct {
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1010,6 +1011,14 @@ func (stub *EnableEpochsHandlerStub) IsRuntimeCodeSizeFixEnabled() bool {
 
 // IsMaxBlockchainHookCountersFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 

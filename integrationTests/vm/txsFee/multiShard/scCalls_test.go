@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -17,11 +18,15 @@ import (
 )
 
 func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
