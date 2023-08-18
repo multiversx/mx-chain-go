@@ -262,7 +262,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 
-	return nodesConfig, ok
+	return nodesConfig, true
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -695,16 +695,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.mutSavedStateKey.Unlock()
 
 	ihnc.consensusGroupCacher.Clear()
-
-	log.Warn("will run nodes config from meta block")
-	epochToSet := metaHdr.GetEpoch() - 1
-	if epochToSet > 0 {
-		_, err = ihnc.NodesConfigFromMetaBlock(epochToSet)
-		if err != nil {
-			log.Error("failed to set nodes config from metablock", "error", err.Error())
-		}
-	}
-
 }
 
 func (ihnc *indexHashedNodesCoordinator) fillPublicKeyToValidatorMap() {

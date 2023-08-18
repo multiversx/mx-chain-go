@@ -43,15 +43,6 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) err
 	return ihnc.baseLoadState(key, epoch)
 }
 
-func GetNodesCoordinatorRegistryFromStatic(
-	key []byte, // old key
-	storer storage.Storer,
-	lastEpoch uint32,
-	numStoredEpochs uint32,
-) (*NodesCoordinatorRegistry, error) {
-	return nil, nil
-}
-
 func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoDataFromStatic(
 	txHash []byte,
 	epoch uint32,
@@ -92,7 +83,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 
 	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
 
-	debug.PrintStack()
+	debug.PrintStack() // TODO: remove print
 
 	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
@@ -128,7 +119,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 	return allValidatorInfo, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) NodesConfigFromMetaBlock(
+func (ihnc *indexHashedNodesCoordinator) NodesConfigRegistryFromMetaBlock(
 	epoch uint32,
 ) (*NodesCoordinatorRegistry, error) {
 	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
@@ -136,17 +127,10 @@ func (ihnc *indexHashedNodesCoordinator) NodesConfigFromMetaBlock(
 		return nil, err
 	}
 
-	// get shard validators info
-	// from body if no refactored peer miniblocks
-	// from additional saved validator info data
-	//    similar as in EpochStartPrepare?
-
 	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
 	if err != nil {
 		return nil, err
 	}
-
-	// set nodes config as in SetNodesConfigFromValidatorsInfo from lite implementation
 
 	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, metaBlock.GetRandSeed(), validatorsInfo)
 	if err != nil {
@@ -164,17 +148,10 @@ func (ihnc *indexHashedNodesCoordinator) NodesConfigFromStaticStorer(
 		return nil, err
 	}
 
-	// get shard validators info
-	// from body if no refactored peer miniblocks
-	// from additional saved validator info data
-	//    similar as in EpochStartPrepare?
-
 	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
 	if err != nil {
 		return nil, err
 	}
-
-	// set nodes config as in SetNodesConfigFromValidatorsInfo from lite implementation
 
 	return ihnc.nodesConfigFromValidatorsInfo(metaBlock, validatorsInfo)
 }
