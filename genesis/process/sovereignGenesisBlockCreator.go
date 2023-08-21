@@ -7,24 +7,16 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common/enablers"
-	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 type sovereignGenesisBlockCreator struct {
@@ -92,76 +84,13 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	return mapEmptyGenesisBlocks, nil
 }
 
-// in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
-	var dnsSC genesis.InitialSmartContractHandler
-	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
-		if sc.GetType() == genesis.DNSType {
-			dnsSC = sc
-			break
-		}
-	}
-
-	if dnsSC == nil || check.IfNil(dnsSC) {
-		return nil
-	}
-	epochNotifier := forking.NewGenericEpochNotifier()
-	temporaryMetaHeader := &block.MetaBlock{
-		Epoch:     gbc.arg.StartEpochNum,
-		TimeStamp: gbc.arg.GenesisTime,
-	}
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
-	if err != nil {
-		return err
-	}
-	epochNotifier.CheckEpoch(temporaryMetaHeader)
-
-	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:                 gbc.arg.Accounts,
-		PubkeyConv:               gbc.arg.Core.AddressPubKeyConverter(),
-		StorageService:           gbc.arg.Data.StorageService(),
-		BlockChain:               gbc.arg.Data.Blockchain(),
-		ShardCoordinator:         gbc.arg.ShardCoordinator,
-		Marshalizer:              gbc.arg.Core.InternalMarshalizer(),
-		Uint64Converter:          gbc.arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:         builtInFuncs,
-		NFTStorageHandler:        &disabled.SimpleNFTStorage{},
-		GlobalSettingsHandler:    &disabled.ESDTGlobalSettingsHandler{},
-		DataPool:                 gbc.arg.Data.Datapool(),
-		CompiledSCPool:           gbc.arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:            epochNotifier,
-		EnableEpochsHandler:      enableEpochsHandler,
-		NilCompiledSCStore:       true,
-		GasSchedule:              gbc.arg.GasSchedule,
-		Counter:                  counters.NewDisabledCounter(),
-		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
-	}
-	blockChainHook, err := hooks.CreateBlockChainHook(gbc.arg.ChainRunType, argsHook)
-	if err != nil {
-		return err
-	}
-
 	initialAddresses, err := factory.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.MapDNSV2Addresses)
 	if err != nil {
 		return err
 	}
-	for _, address := range initialAddresses {
-		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
-		if errNewAddress != nil {
-			return errNewAddress
-		}
 
-		dnsSC.AddAddressBytes(scResultingAddress)
-
-		encodedSCResultingAddress, err := gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress)
-		if err != nil {
-			return err
-		}
-		dnsSC.AddAddress(encodedSCResultingAddress)
-	}
-
-	return nil
+	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
@@ -219,18 +148,18 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
-	processors2, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	deploySystemSCTxs, err := deploySystemSmartContracts(arg, processors2.txProcessor, processors2.systemSCs)
+	deploySystemSCTxs, err := deploySystemSmartContracts(arg, metaProcessor.txProcessor, metaProcessor.systemSCs)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	indexingData.DeploySystemScTxs = deploySystemSCTxs
 
-	stakingTxs, err := setSovereignStakedData(arg, processors2, nodesListSplitter)
+	stakingTxs, err := setSovereignStakedData(arg, metaProcessor, nodesListSplitter)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -238,36 +167,53 @@ func createSovereignShardGenesisBlock(
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
-			err, arg.ShardCoordinator.SelfId())
+		return nil, nil, nil, fmt.Errorf("%w encountered when creating sovereign genesis block while commiting", err)
 	}
 
-	scrsTxs := indexingData.ScrsTxs
-	scrsTxs2 := processors2.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
-	allScrsTxs := make(map[string]data.TransactionHandler)
-	for scrTxIn1, scrTx := range scrsTxs {
-		allScrsTxs[scrTxIn1] = scrTx
+	err = setRootHash(genesisBlock, rootHash)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	for scrTxIn1, scrTx := range scrsTxs2 {
-		allScrsTxs[scrTxIn1] = scrTx
-	}
-
-	indexingData.ScrsTxs = allScrsTxs
-
-	genesisBlock.SetSignature(rootHash)
-	genesisBlock.SetRootHash(rootHash)
-	genesisBlock.SetPrevRandSeed(rootHash)
-	genesisBlock.SetRandSeed(rootHash)
-
-	err = processors2.vmContainer.Close()
+	err = metaProcessor.vmContainer.Close()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	return genesisBlock, scAddresses, indexingData, nil
+}
 
+func setRootHash(header data.HeaderHandler, rootHash []byte) error {
+	err := header.SetSignature(rootHash)
+	if err != nil {
+		return err
+	}
+	err = header.SetRootHash(rootHash)
+	if err != nil {
+		return err
+	}
+	err = header.SetPrevRandSeed(rootHash)
+	if err != nil {
+		return err
+	}
+
+	return header.SetRandSeed(rootHash)
+}
+
+func mergeScrs(scrTxs1, scrTxs2 map[string]data.TransactionHandler) map[string]data.TransactionHandler {
+	allScrsTxs := make(map[string]data.TransactionHandler)
+	for scrTxIn1, scrTx := range scrTxs1 {
+		allScrsTxs[scrTxIn1] = scrTx
+	}
+
+	for scrTxIn2, scrTx := range scrTxs2 {
+		allScrsTxs[scrTxIn2] = scrTx
+	}
+
+	return allScrsTxs
 }
 
 func setSovereignStakedData(
@@ -322,7 +268,7 @@ func setSovereignStakedData(
 		}
 	}
 
-	log.Debug("meta block genesis",
+	log.Debug("sovereign genesis block",
 		"num nodes staked", len(stakedNodes),
 	)
 
