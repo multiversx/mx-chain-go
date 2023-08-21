@@ -16,7 +16,7 @@ func TestNewGenesisBlockCreatorFactory(t *testing.T) {
 	require.Implements(t, new(GenesisBlockCreatorFactory), factory)
 }
 
-func TestNewGenesisBlockCreatorFactory_CreateGenesisBlockCreator(t *testing.T) {
+func TestGenesisBlockCreatorFactory_CreateGenesisBlockCreator(t *testing.T) {
 	factory := NewGenesisBlockCreatorFactory()
 
 	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
