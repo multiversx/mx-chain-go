@@ -62,11 +62,9 @@ func (ap *sovereignAccountsParser) setTxsPoolAndMiniBlocks(
 	txsPoolPerShard map[uint32]*outportcore.TransactionPool,
 	miniBlocks []*block.MiniBlock,
 ) error {
+	receiverShardID, senderShardID := shardCoordinator.SelfId(), shardCoordinator.SelfId()
 
 	for _, txHandler := range allTxs {
-		receiverShardID := shardCoordinator.SelfId()
-		senderShardID := shardCoordinator.SelfId()
-
 		err := ap.setTxPoolAndMiniBlock(txsPoolPerShard, miniBlocks, txHandler, senderShardID, receiverShardID)
 		if err != nil {
 			return err
