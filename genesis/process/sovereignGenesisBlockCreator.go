@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
@@ -63,18 +62,12 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 
 	shardIDs := make([]uint32, 1)
 	shardIDs[0] = core.SovereignChainShardId
-	argsCreateBlock, err := gbc.baseCreateGenesisBlocks(shardIDs)
+	argsCreateBlock, err := gbc.createGenesisBlocksArgs(shardIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	return gbc.createSovereignHeaders(
-		argsCreateBlock.mapArgsGenesisBlockCreator,
-		argsCreateBlock.mapHardForkBlockProcessor,
-		argsCreateBlock.mapBodies,
-		argsCreateBlock.shardIDs,
-		argsCreateBlock.genesisBlocks,
-	)
+	return gbc.createSovereignHeaders(argsCreateBlock)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
@@ -171,39 +164,27 @@ func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpoc
 	return nil
 }
 
-func (gbc *genesisBlockCreator) createSovereignHeaders(
-	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
-	mapHardForkBlockProcessor map[uint32]update.HardForkBlockProcessor,
-	mapBodies map[uint32]*block.Body,
-	shardIDs []uint32,
-	genesisBlocks map[uint32]data.HeaderHandler,
-) (map[uint32]data.HeaderHandler, error) {
-	var nodesListSplitter genesis.NodesListSplitter
-	var err error
-
-	nodesListSplitter, err = intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
-	if err != nil {
-		return nil, err
-	}
-
-	allScAddresses := make([][]byte, 0)
-
+func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
 	shardID := core.SovereignChainShardId
-	log.Debug("genesisBlockCreator.createHeaders", "shard", shardID)
+	log.Debug("sovereignGenesisBlockCreator.createHeaders", "shard", shardID)
+
 	var genesisBlock data.HeaderHandler
 	var scResults [][]byte
+	var err error
 
 	genesisBlock, scResults, gbc.initialIndexingData[shardID], err = createSovereignShardGenesisBlock(
-		mapArgsGenesisBlockCreator[shardID],
-		mapBodies[shardID],
-		nodesListSplitter,
-		mapHardForkBlockProcessor[shardID],
+		args.mapArgsGenesisBlockCreator[shardID],
+		args.mapBodies[shardID],
+		args.nodesListSplitter,
+		args.mapHardForkBlockProcessor[shardID],
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while generating genesis block for shard %d", err, shardID)
 	}
 
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	allScAddresses := make([][]byte, 0)
 	allScAddresses = append(allScAddresses, scResults...)
 	genesisBlocks[shardID] = genesisBlock
 	err = gbc.saveGenesisBlock(genesisBlock)
@@ -217,8 +198,7 @@ func (gbc *genesisBlockCreator) createSovereignHeaders(
 	}
 
 	gb := genesisBlocks[shardID]
-
-	log.Info("genesisBlockCreator.createHeaders",
+	log.Info("sovereignGenesisBlockCreator.createHeaders",
 		"shard", gb.GetShardID(),
 		"nonce", gb.GetNonce(),
 		"round", gb.GetRound(),
@@ -234,54 +214,9 @@ func createSovereignShardGenesisBlock(
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
-	}
-
-	indexingData := &genesis.IndexingData{
-		DelegationTxs:      make([]data.TransactionHandler, 0),
-		ScrsTxs:            make(map[string]data.TransactionHandler),
-		StakingTxs:         make([]data.TransactionHandler, 0),
-		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
-		DeployInitialScTxs: make([]data.TransactionHandler, 0),
-	}
-
-	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	genesisBlock, scAddresses, indexingData, err := CreateShardGenesisBlock(arg, body, nodesListSplitter, hardForkBlockProcessor)
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	deployMetrics := &deployedScMetrics{}
-
-	scAddresses, scTxs, err := deployInitialSmartContracts(processors, arg, deployMetrics)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	indexingData.DeployInitialScTxs = scTxs
-
-	numSetBalances, err := setBalancesToTrie(arg)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
-			err, arg.ShardCoordinator.SelfId())
-	}
-
-	numStaked, err := increaseStakersNonces(processors, arg)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
-			err, arg.ShardCoordinator.SelfId())
-	}
-
-	delegationResult, delegationTxs, err := executeDelegation(processors, arg, nodesListSplitter)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
-			err, arg.ShardCoordinator.SelfId())
-	}
-	indexingData.DelegationTxs = delegationTxs
-
-	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
-			err, arg.ShardCoordinator.SelfId())
 	}
 
 	processors2, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
@@ -307,7 +242,7 @@ func createSovereignShardGenesisBlock(
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	scrsTxs := indexingData.ScrsTxs
 	scrsTxs2 := processors2.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 
 	allScrsTxs := make(map[string]data.TransactionHandler)
@@ -321,52 +256,18 @@ func createSovereignShardGenesisBlock(
 
 	indexingData.ScrsTxs = allScrsTxs
 
-	log.Info("STARTING TO CREATE STUFF FOR META")
+	genesisBlock.SetSignature(rootHash)
+	genesisBlock.SetRootHash(rootHash)
+	genesisBlock.SetPrevRandSeed(rootHash)
+	genesisBlock.SetRandSeed(rootHash)
 
-	log.Info("ENDED TO CREATE STUFF FOR META")
-
-	log.Debug("shard block genesis",
-		"shard ID", arg.ShardCoordinator.SelfId(),
-		"num delegation SC deployed", deployMetrics.numDelegation,
-		"num other SC deployed", deployMetrics.numOtherTypes,
-		"num set balances", numSetBalances,
-		"num staked directly", numStaked,
-		"total staked on a delegation SC", delegationResult.NumTotalStaked,
-		"total delegation nodes", delegationResult.NumTotalDelegated,
-		"cross shard delegation calls", numCrossShardDelegations,
-		"resulted roothash", rootHash,
-	)
-
-	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
-	header := &block.Header{
-		Epoch:           epoch,
-		Round:           round,
-		Nonce:           nonce,
-		ShardID:         arg.ShardCoordinator.SelfId(),
-		BlockBodyType:   block.StateBlock,
-		PubKeysBitmap:   []byte{1},
-		Signature:       rootHash,
-		RootHash:        rootHash,
-		PrevRandSeed:    rootHash,
-		RandSeed:        rootHash,
-		TimeStamp:       arg.GenesisTime,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		ChainID:         []byte(arg.Core.ChainID()),
-		SoftwareVersion: []byte(""),
-	}
-
-	err = processors.vmContainer.Close()
+	err = processors2.vmContainer.Close()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	err = processors.vmContainersFactory.Close()
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	return genesisBlock, scAddresses, indexingData, nil
 
-	return header, scAddresses, indexingData, nil
 }
 
 func setSovereignStakedData(
@@ -374,7 +275,6 @@ func setSovereignStakedData(
 	processors *genesisProcessors,
 	nodesListSplitter genesis.NodesListSplitter,
 ) ([]data.TransactionHandler, error) {
-
 	scQueryBlsKeys := &process.SCQuery{
 		ScAddress: vm.StakingSCAddress,
 		FuncName:  "isStaked",

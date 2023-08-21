@@ -270,21 +270,15 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 	shardIDs[gbc.arg.ShardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	argsCreateBlock, err := gbc.baseCreateGenesisBlocks(shardIDs)
+	argsCreateBlock, err := gbc.createGenesisBlocksArgs(shardIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	return gbc.createHeaders(
-		argsCreateBlock.mapArgsGenesisBlockCreator,
-		argsCreateBlock.mapHardForkBlockProcessor,
-		argsCreateBlock.mapBodies,
-		argsCreateBlock.shardIDs,
-		argsCreateBlock.genesisBlocks,
-	)
+	return gbc.createHeaders(argsCreateBlock)
 }
 
-func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (*headerCreatorArgs, error) {
+func (gbc *genesisBlockCreator) createGenesisBlocksArgs(shardIDs []uint32) (*headerCreatorArgs, error) {
 	var lastPostMbs []*update.MbInfo
 
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
@@ -323,39 +317,33 @@ func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (*hea
 		}
 	}
 
+	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
+	if err != nil {
+		return nil, err
+	}
+
 	return &headerCreatorArgs{
 		mapArgsGenesisBlockCreator: mapArgsGenesisBlockCreator,
 		mapHardForkBlockProcessor:  mapHardForkBlockProcessor,
 		mapBodies:                  mapBodies,
 		shardIDs:                   shardIDs,
-		genesisBlocks:              make(map[uint32]data.HeaderHandler),
+		nodesListSplitter:          nodesListSplitter,
 	}, nil
 }
 
-func (gbc *genesisBlockCreator) createHeaders(
-	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
-	mapHardForkBlockProcessor map[uint32]update.HardForkBlockProcessor,
-	mapBodies map[uint32]*block.Body,
-	shardIDs []uint32,
-	genesisBlocks map[uint32]data.HeaderHandler,
-) (map[uint32]data.HeaderHandler, error) {
-	var nodesListSplitter genesis.NodesListSplitter
+func (gbc *genesisBlockCreator) createHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
 	var err error
 
-	nodesListSplitter, err = intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
-	if err != nil {
-		return nil, err
-	}
-
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	allScAddresses := make([][]byte, 0)
-	for _, shardID := range shardIDs {
+	for _, shardID := range args.shardIDs {
 		log.Debug("genesisBlockCreator.createHeaders", "shard", shardID)
 		var genesisBlock data.HeaderHandler
 		var scResults [][]byte
 		var chain data.ChainHandler
 
 		if shardID == core.MetachainShardId {
-			metaArgsGenesisBlockCreator := mapArgsGenesisBlockCreator[core.MetachainShardId]
+			metaArgsGenesisBlockCreator := args.mapArgsGenesisBlockCreator[core.MetachainShardId]
 			chain, err = blockchain.NewMetaChain(&statusHandler.NilStatusHandler{})
 			if err != nil {
 				return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
@@ -367,16 +355,16 @@ func (gbc *genesisBlockCreator) createHeaders(
 			}
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
-				mapBodies[core.MetachainShardId],
-				nodesListSplitter,
-				mapHardForkBlockProcessor[core.MetachainShardId],
+				args.mapBodies[core.MetachainShardId],
+				args.nodesListSplitter,
+				args.mapHardForkBlockProcessor[core.MetachainShardId],
 			)
 		} else {
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateShardGenesisBlock(
-				mapArgsGenesisBlockCreator[shardID],
-				mapBodies[shardID],
-				nodesListSplitter,
-				mapHardForkBlockProcessor[shardID],
+				args.mapArgsGenesisBlockCreator[shardID],
+				args.mapBodies[shardID],
+				args.nodesListSplitter,
+				args.mapHardForkBlockProcessor[shardID],
 			)
 		}
 		if err != nil {
@@ -396,7 +384,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 		return nil, err
 	}
 
-	for _, shardID := range shardIDs {
+	for _, shardID := range args.shardIDs {
 		gb := genesisBlocks[shardID]
 
 		log.Info("genesisBlockCreator.createHeaders",
