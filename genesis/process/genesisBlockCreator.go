@@ -395,6 +395,7 @@ func (gbc *genesisBlockCreator) createHeaders(args *headerCreatorArgs) (map[uint
 		)
 	}
 
+	// TODO call here trie pruning on all roothashes not from current shard
 	return genesisBlocks, nil
 }
 
