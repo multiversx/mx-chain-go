@@ -217,52 +217,14 @@ func CreateShardGenesisBlock(
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	//rootHash, err := arg.Accounts.Commit()
-	//if err != nil {
-	//	return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
-	//		err, arg.ShardCoordinator.SelfId())
-	//}
-
-	processors2, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	deploySystemSCTxs, err := deploySystemSmartContracts(arg, processors2.txProcessor, processors2.systemSCs)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	indexingData.DeploySystemScTxs = deploySystemSCTxs
-
-	stakingTxs, err := setStakedData(arg, processors2, nodesListSplitter)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	indexingData.StakingTxs = stakingTxs
+	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	indexingData.ScrsTxs = scrsTxs
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
 			err, arg.ShardCoordinator.SelfId())
 	}
-
-	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	scrsTxs2 := processors2.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-
-	allScrsTxs := make(map[string]data.TransactionHandler)
-	for scrTxIn1, scrTx := range scrsTxs {
-		allScrsTxs[scrTxIn1] = scrTx
-	}
-
-	for scrTxIn1, scrTx := range scrsTxs2 {
-		allScrsTxs[scrTxIn1] = scrTx
-	}
-
-	indexingData.ScrsTxs = allScrsTxs
-
-	log.Info("STARTING TO CREATE STUFF FOR META")
-
-	log.Info("ENDED TO CREATE STUFF FOR META")
 
 	log.Debug("shard block genesis",
 		"shard ID", arg.ShardCoordinator.SelfId(),

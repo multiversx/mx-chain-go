@@ -270,10 +270,21 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 	shardIDs[gbc.arg.ShardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	return gbc.baseCreateGenesisBlocks(shardIDs)
+	argsCreateBlock, err := gbc.baseCreateGenesisBlocks(shardIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return gbc.createHeaders(
+		argsCreateBlock.mapArgsGenesisBlockCreator,
+		argsCreateBlock.mapHardForkBlockProcessor,
+		argsCreateBlock.mapBodies,
+		argsCreateBlock.shardIDs,
+		argsCreateBlock.genesisBlocks,
+	)
 }
 
-func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (map[uint32]data.HeaderHandler, error) {
+func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (*headerCreatorArgs, error) {
 	var lastPostMbs []*update.MbInfo
 
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
@@ -312,15 +323,13 @@ func (gbc *genesisBlockCreator) baseCreateGenesisBlocks(shardIDs []uint32) (map[
 		}
 	}
 
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	err = gbc.createHeaders(mapArgsGenesisBlockCreator, mapHardForkBlockProcessor, mapBodies, shardIDs, genesisBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO call here trie pruning on all roothashes not from current shard
-
-	return genesisBlocks, nil
+	return &headerCreatorArgs{
+		mapArgsGenesisBlockCreator: mapArgsGenesisBlockCreator,
+		mapHardForkBlockProcessor:  mapHardForkBlockProcessor,
+		mapBodies:                  mapBodies,
+		shardIDs:                   shardIDs,
+		genesisBlocks:              make(map[uint32]data.HeaderHandler),
+	}, nil
 }
 
 func (gbc *genesisBlockCreator) createHeaders(
@@ -329,13 +338,13 @@ func (gbc *genesisBlockCreator) createHeaders(
 	mapBodies map[uint32]*block.Body,
 	shardIDs []uint32,
 	genesisBlocks map[uint32]data.HeaderHandler,
-) error {
+) (map[uint32]data.HeaderHandler, error) {
 	var nodesListSplitter genesis.NodesListSplitter
 	var err error
 
 	nodesListSplitter, err = intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	allScAddresses := make([][]byte, 0)
@@ -349,12 +358,12 @@ func (gbc *genesisBlockCreator) createHeaders(
 			metaArgsGenesisBlockCreator := mapArgsGenesisBlockCreator[core.MetachainShardId]
 			chain, err = blockchain.NewMetaChain(&statusHandler.NilStatusHandler{})
 			if err != nil {
-				return fmt.Errorf("'%w' while generating genesis block for metachain", err)
+				return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
 			}
 
 			err = metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
 			if err != nil {
-				return fmt.Errorf("'%w' while setting blockchain for metachain", err)
+				return nil, fmt.Errorf("'%w' while setting blockchain for metachain", err)
 			}
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
@@ -371,20 +380,20 @@ func (gbc *genesisBlockCreator) createHeaders(
 			)
 		}
 		if err != nil {
-			return fmt.Errorf("'%w' while generating genesis block for shard %d", err, shardID)
+			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d", err, shardID)
 		}
 
 		allScAddresses = append(allScAddresses, scResults...)
 		genesisBlocks[shardID] = genesisBlock
 		err = gbc.saveGenesisBlock(genesisBlock)
 		if err != nil {
-			return fmt.Errorf("'%w' while saving genesis block for shard %d", err, shardID)
+			return nil, fmt.Errorf("'%w' while saving genesis block for shard %d", err, shardID)
 		}
 	}
 
 	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, shardID := range shardIDs {
@@ -398,7 +407,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 		)
 	}
 
-	return nil
+	return genesisBlocks, nil
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state

@@ -645,13 +645,8 @@ func setStakedData(
 
 	stakedNodes := nodesListSplitter.GetAllNodes()
 	for _, nodeInfo := range stakedNodes {
-		senderAcc, err := arg.Accounts.LoadAccount(nodeInfo.AddressBytes())
-		if err != nil {
-			return nil, err
-		}
-
 		tx := &transaction.Transaction{
-			Nonce:     senderAcc.GetNonce(),
+			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
 			RcvAddr:   vm.ValidatorSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
@@ -663,7 +658,7 @@ func setStakedData(
 
 		stakingTxs = append(stakingTxs, tx)
 
-		_, err = processors.txProcessor.ProcessTransaction(tx)
+		_, err := processors.txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return nil, err
 		}
