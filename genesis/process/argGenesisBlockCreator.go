@@ -71,4 +71,5 @@ type ArgsGenesisBlockCreator struct {
 	importHandler update.ImportHandler
 
 	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
+	MapDNSV2Addresses       []string
 }
