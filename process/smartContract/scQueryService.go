@@ -265,17 +265,7 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 			return nil, nil, err
 		}
 
-		blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		additionalData := blockHeader.GetAdditionalData()
-		if check.IfNil(additionalData) {
-			return currentHeader, currentHeader.GetRootHash(), nil
-		}
-
-		return blockHeader, additionalData.GetScheduledRootHash(), nil
+		return service.getRootHashForBlock(currentHeader)
 	}
 
 	if query.BlockNonce.HasValue {
@@ -284,20 +274,24 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 			return nil, nil, err
 		}
 
-		blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		additionalData := blockHeader.GetAdditionalData()
-		if check.IfNil(additionalData) {
-			return currentHeader, currentHeader.GetRootHash(), nil
-		}
-
-		return blockHeader, additionalData.GetScheduledRootHash(), nil
+		return service.getRootHashForBlock(currentHeader)
 	}
 
 	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+}
+
+func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
+	blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	additionalData := blockHeader.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return currentHeader, currentHeader.GetRootHash(), nil
+	}
+
+	return blockHeader, additionalData.GetScheduledRootHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
