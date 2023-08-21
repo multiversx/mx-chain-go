@@ -214,7 +214,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses(createGenesisConfig())
+	err := gbc.computeInitialDNSAddresses(createGenesisConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+		err = gbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 		if err != nil {
 			return nil, err
 		}
@@ -395,11 +395,25 @@ func (gbc *genesisBlockCreator) createHeaders(args *headerCreatorArgs) (map[uint
 		)
 	}
 
+	// TODO call here trie pruning on all roothashes not from current shard
 	return genesisBlocks, nil
 }
 
+func (gbc *genesisBlockCreator) computeInitialDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+	isForCurrentShard := func([]byte) bool {
+		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
+		return true
+	}
+	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
+
+	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
+}
+
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(
+	enableEpochsConfig config.EnableEpochs,
+	initialAddresses [][]byte,
+) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -448,11 +462,6 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		return err
 	}
 
-	isForCurrentShard := func([]byte) bool {
-		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
-		return true
-	}
-	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
 		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
 		if errNewAddress != nil {
