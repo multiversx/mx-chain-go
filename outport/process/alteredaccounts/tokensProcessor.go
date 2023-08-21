@@ -85,8 +85,6 @@ func (tp *tokensProcessor) processEvent(
 		log.Debug("cannot extract esdt data", "error", err)
 		return
 	}
-
-	return
 }
 
 func (tp *tokensProcessor) extractEsdtData(
@@ -184,8 +182,6 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 		nonce:       nonce.Uint64(),
 		isNFTCreate: isNFTCreate,
 	}
-
-	return
 }
 
 func (tp *tokensProcessor) isSameShard(address []byte) bool {
