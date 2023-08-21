@@ -47,7 +47,6 @@ type ArgsAlteredAccountsProvider struct {
 }
 
 type alteredAccountsProvider struct {
-	enabledEpochsHandler   common.EnableEpochsHandler
 	shardCoordinator       sharding.Coordinator
 	addressConverter       core.PubkeyConverter
 	accountsDB             state.AccountsAdapter
