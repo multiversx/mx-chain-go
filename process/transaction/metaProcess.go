@@ -35,6 +35,8 @@ type ArgsNewMetaTxProcessor struct {
 	TxTypeHandler       process.TxTypeHandler
 	EconomicsFee        process.FeeHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -61,6 +63,12 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -71,6 +79,8 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 	// backwards compatibility
 	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
@@ -144,20 +154,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	return vmcommon.UserError, nil
-}
-
-// VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
-	if check.IfNil(tx) {
-		return process.ErrNilTransaction
-	}
-
-	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		return err
-	}
-
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

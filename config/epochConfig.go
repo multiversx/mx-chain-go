@@ -93,7 +93,9 @@ type EnableEpochs struct {
 	MaxBlockchainHookCountersEnableEpoch              uint32
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
+	SetGuardianEnableEpoch                            uint32
 	RelayedNonceFixEnableEpoch                        uint32
+	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

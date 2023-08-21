@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -439,7 +440,7 @@ func createMockTransactionCoordinatorArguments(
 		FeeHandler:                   &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EconomicsFee:                 &mock.FeeHandlerStub{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          &testscommon.EnableEpochsHandlerStub{},
@@ -1892,7 +1893,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			},
 			GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 				close(channels.LeavesChan)
-				close(channels.ErrChan)
+				channels.ErrChan.Close()
 				return nil
 			},
 		},
@@ -1936,7 +1937,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
 					close(channels.LeavesChan)
-					close(channels.ErrChan)
+					channels.ErrChan.Close()
 					return expectedErr
 				},
 			},
@@ -1973,7 +1974,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 					return rootHash, nil
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
-					channels.ErrChan <- expectedErr
+					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 					return nil
 				},
@@ -2033,14 +2034,14 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 					if bytes.Equal(rootHash, rh) {
 						calledWithUserAccountRootHash = true
 						close(channels.LeavesChan)
-						close(channels.ErrChan)
+						channels.ErrChan.Close()
 						return nil
 					}
 
 					go func() {
 						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
 						close(channels.LeavesChan)
-						close(channels.ErrChan)
+						channels.ErrChan.Close()
 					}()
 
 					return nil

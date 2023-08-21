@@ -55,6 +55,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -128,6 +130,11 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 	return p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
@@ -152,7 +159,6 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	}
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             createP2PConfig(initialAddresses),
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
@@ -174,7 +180,6 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
@@ -201,7 +206,6 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 func CreateMessengerFromConfigWithPeersRatingHandler(p2pConfig p2pConfig.P2PConfig, peersRatingHandler p2p.PeersRatingHandler) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshalizer:           TestMarshalizer,
-		ListenAddress:         p2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
@@ -229,6 +233,11 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 	return p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -251,6 +260,11 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -265,11 +279,11 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
 //
-//                             0------------------- 1
-//                             |                    |
-//        2 ------------------ 3 ------------------ 4
-//        |                    |                    |
-//        5                    6                    7
+//	                     0------------------- 1
+//	                     |                    |
+//	2 ------------------ 3 ------------------ 4
+//	|                    |                    |
+//	5                    6                    7
 func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 	peers := createMessengersWithNoDiscovery(8)
 
@@ -291,13 +305,13 @@ func CreateFixedNetworkOf8Peers() ([]p2p.Messenger, error) {
 
 // CreateFixedNetworkOf14Peers assembles a network as following:
 //
-//                 0
-//                 |
-//                 1
-//                 |
-//  +--+--+--+--+--2--+--+--+--+--+
-//  |  |  |  |  |  |  |  |  |  |  |
-//  3  4  5  6  7  8  9  10 11 12 13
+//	               0
+//	               |
+//	               1
+//	               |
+//	+--+--+--+--+--2--+--+--+--+--+
+//	|  |  |  |  |  |  |  |  |  |  |
+//	3  4  5  6  7  8  9  10 11 12 13
 func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
 	peers := createMessengersWithNoDiscovery(14)
 
@@ -984,7 +998,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ScProcessor:      &testscommon.SCProcessorMock{},
 		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -1003,6 +1017,9 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
@@ -1667,7 +1684,7 @@ func CreateAndSendTransaction(
 		Version:  MinTransactionVersion,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -1714,7 +1731,7 @@ func CreateAndSendTransactionWithGasLimit(
 		Version:  version,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1755,7 +1772,7 @@ func GenerateTransferTx(
 		ChainID:  chainID,
 		Version:  version,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	signer := TestSingleSigner
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1778,7 +1795,7 @@ func generateTx(
 		ChainID:  ChainID,
 		Version:  MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx

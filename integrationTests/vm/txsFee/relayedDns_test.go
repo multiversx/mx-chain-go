@@ -29,7 +29,6 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
 	rcvAddr := []byte("12345678901234567890123456789110")
-	gasPrice := uint64(10)
 	gasLimit := uint64(500000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
