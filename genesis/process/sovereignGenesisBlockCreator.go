@@ -178,6 +178,16 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = genesisBlock.SetValidatorStatsRootHash(validatorRootHash)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	err = metaProcessor.vmContainer.Close()
 	if err != nil {
 		return nil, nil, nil, err
