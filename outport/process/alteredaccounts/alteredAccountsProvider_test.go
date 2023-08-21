@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -150,6 +151,7 @@ func TestAlteredAccountsProvider_ExtractAlteredAccountsFromPool(t *testing.T) {
 	t.Run("should include receiver from tokens logs", testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTopics)
 	t.Run("should work when an address has balance changes, esdt and nft", testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft)
 	t.Run("should work when an address has multiple nfts with different nonces", testExtractAlteredAccountsFromPoolAddressHasMultipleNfts)
+	t.Run("should work for multi transfer v2", testExtractAlteredAccountsFromPoolMultiTransferEventV2)
 	t.Run("should not return balanceChanged for a receiver on an ESDTTransfer", testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged)
 	t.Run("should return balanceChanged for sender and receiver", testExtractAlteredAccountsFromPoolReceiverShouldHaveBalanceChanged)
 	t.Run("should return balanceChanged only for sender", testExtractAlteredAccountsFromPoolOnlySenderShouldHaveBalanceChanged)
@@ -886,6 +888,109 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 	require.Len(t, res[encodedAddr].Tokens, 2)
 }
 
+func testExtractAlteredAccountsFromPoolMultiTransferEventV2(t *testing.T) {
+	t.Parallel()
+
+	expectedToken1 := esdt.ESDigitalToken{
+		Value: big.NewInt(37),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: 1,
+		},
+	}
+	expectedToken2 := &esdt.ESDigitalToken{
+		Value: big.NewInt(10),
+		TokenMetaData: &esdt.MetaData{
+			Nonce: 1,
+		},
+	}
+	args := getMockArgs()
+	args.EnabledEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsScToScEventLogEnabledField: true,
+	}
+
+	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
+			if string(acnt.AddressBytes()) == "rcv" {
+				return expectedToken2, false, nil
+			}
+			return &expectedToken1, false, nil
+		},
+	}
+	args.AccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(addr []byte) (vmcommon.AccountHandler, error) {
+			return state.NewAccountWrapMock(addr), nil
+		},
+	}
+	aap, _ := NewAlteredAccountsProvider(args)
+
+	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			"hash0": {
+				Transaction: &transaction.Transaction{
+					SndAddr: []byte("addr"),
+					Value:   big.NewInt(0),
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
+		},
+		Logs: []*outportcore.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionMultiESDTNFTTransfer),
+							Topics: [][]byte{
+								[]byte("esdt"),
+								big.NewInt(1).Bytes(),
+								big.NewInt(10).Bytes(),
+								[]byte("rcv"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}, shared.AlteredAccountsOptions{})
+	require.NoError(t, err)
+
+	encodedAddr1, _ := args.AddressConverter.Encode([]byte("addr"))
+	require.Equal(t, &alteredAccount.AlteredAccount{
+		Address: encodedAddr1,
+		Balance: "0",
+		Tokens: []*alteredAccount.AccountTokenData{
+			{
+				Nonce:      1,
+				Identifier: "esdt",
+				Balance:    "37",
+				MetaData: &alteredAccount.TokenMetaData{
+					Nonce: 1,
+				},
+			},
+		},
+	}, res[encodedAddr1])
+
+	encodedAddr2, _ := args.AddressConverter.Encode([]byte("rcv"))
+	require.Equal(t, &alteredAccount.AlteredAccount{
+		Address: encodedAddr2,
+		Balance: "0",
+		Tokens: []*alteredAccount.AccountTokenData{
+			{
+				Nonce:      1,
+				Identifier: "esdt",
+				Balance:    "10",
+				MetaData: &alteredAccount.TokenMetaData{
+					Nonce: 1,
+				},
+			},
+		},
+	}, res[encodedAddr2])
+}
+
 func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	t.Parallel()
 
@@ -1385,5 +1490,6 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		AccountsDB:             &state.AccountsStub{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
+		EnabledEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

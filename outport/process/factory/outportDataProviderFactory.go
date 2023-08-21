@@ -54,6 +54,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		AddressConverter:       arg.AddressConverter,
 		AccountsDB:             arg.AccountsDB,
 		EsdtDataStorageHandler: arg.EsdtDataStorageHandler,
+		EnabledEpochsHandler:   arg.EnableEpochsHandler,
 	})
 	if err != nil {
 		return nil, err

@@ -553,6 +553,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		AddressConverter:       args.CoreComponents.AddressPubKeyConverter(),
 		AccountsDB:             args.StateComponents.AccountsAdapterAPI(),
 		EsdtDataStorageHandler: args.ProcessComponents.ESDTDataStorageHandlerForAPI(),
+		EnabledEpochsHandler:   args.CoreComponents.EnableEpochsHandler(),
 	})
 	if err != nil {
 		return nil, err

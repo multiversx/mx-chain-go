@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -42,9 +43,11 @@ type ArgsAlteredAccountsProvider struct {
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
+	EnabledEpochsHandler   common.EnableEpochsHandler
 }
 
 type alteredAccountsProvider struct {
+	enabledEpochsHandler   common.EnableEpochsHandler
 	shardCoordinator       sharding.Coordinator
 	addressConverter       core.PubkeyConverter
 	accountsDB             state.AccountsAdapter
@@ -64,7 +67,7 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 		shardCoordinator:       args.ShardCoordinator,
 		addressConverter:       args.AddressConverter,
 		accountsDB:             args.AccountsDB,
-		tokensProc:             newTokensProcessor(args.ShardCoordinator),
+		tokensProc:             newTokensProcessor(args.ShardCoordinator, args.EnabledEpochsHandler),
 		esdtDataStorageHandler: args.EsdtDataStorageHandler,
 	}, nil
 }
@@ -359,18 +362,21 @@ func (aap *alteredAccountsProvider) IsInterfaceNil() bool {
 	return aap == nil
 }
 
-func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
-	if check.IfNil(arg.ShardCoordinator) {
+func checkArgAlteredAccountsProvider(args ArgsAlteredAccountsProvider) error {
+	if check.IfNil(args.ShardCoordinator) {
 		return errNilShardCoordinator
 	}
-	if check.IfNil(arg.AddressConverter) {
+	if check.IfNil(args.AddressConverter) {
 		return ErrNilPubKeyConverter
 	}
-	if check.IfNil(arg.AccountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return ErrNilAccountsDB
 	}
-	if check.IfNil(arg.EsdtDataStorageHandler) {
+	if check.IfNil(args.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
+	}
+	if check.IfNil(args.EnabledEpochsHandler) {
+		return core.ErrNilEnableEpochsHandler
 	}
 
 	return nil
