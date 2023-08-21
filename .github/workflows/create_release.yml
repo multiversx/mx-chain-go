@@ -59,10 +59,10 @@ jobs:
       - name: Build
         run: |
           mkdir -p ${BUILD_DIR}
-          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -ldflags="-X main.appVersion=${APP_VER}"
 
       - name: Package
         run: |
