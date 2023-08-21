@@ -42,8 +42,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
-	"github.com/multiversx/mx-chain-go/p2p"
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -947,6 +947,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		EpochConfig:             &pcf.epochConfig,
 		ChainRunType:            pcf.chainRunType,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
+		MapDNSV2Addresses:       pcf.config.BuiltInFunctions.DNSV2Addresses,
 	}
 
 	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
@@ -1912,7 +1913,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
-		ShardCoordinatorFactory:   pcf.shardCoordinatorFactory,
+		ShardCoordinatorFactory:          pcf.shardCoordinatorFactory,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
