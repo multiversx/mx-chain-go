@@ -348,8 +348,6 @@ func getShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
 	}
 	shardIDs[shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	shardIDs = make([]uint32, 1)
-	shardIDs[0] = core.SovereignChainShardId
 	return shardIDs
 }
 
@@ -431,34 +429,48 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		} else {
 			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
 		}
-		senderShardID = core.SovereignChainShardId
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+
+		err := ap.setTxPoolAndMiniBlock(txsPoolPerShard, miniBlocks, txHandler, senderShardID, receiverShardID)
 		if err != nil {
 			return err
 		}
+	}
 
-		tx, ok := txHandler.(*transactionData.Transaction)
-		if !ok {
-			continue
-		}
-		tx.Signature = []byte(common.GenesisTxSignatureString)
-		tx.GasLimit = uint64(0)
+	return nil
+}
 
-		txsPoolPerShard[senderShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
-			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-		}
+func (ap *accountsParser) setTxPoolAndMiniBlock(
+	txsPoolPerShard map[uint32]*outportcore.TransactionPool,
+	miniBlocks []*block.MiniBlock,
+	txHandler coreData.TransactionHandler,
+	senderShardID, receiverShardID uint32,
+) error {
+	txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+	if err != nil {
+		return err
+	}
 
-		txsPoolPerShard[receiverShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
-			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-		}
+	tx, ok := txHandler.(*transactionData.Transaction)
+	if !ok {
+		return nil
+	}
+	tx.Signature = []byte(common.GenesisTxSignatureString)
+	tx.GasLimit = uint64(0)
 
-		for _, miniBlock := range miniBlocks {
-			if senderShardID == miniBlock.GetSenderShardID() &&
-				receiverShardID == miniBlock.GetReceiverShardID() {
-				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-			}
+	txsPoolPerShard[senderShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
+		Transaction: tx,
+		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	txsPoolPerShard[receiverShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
+		Transaction: tx,
+		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	for _, miniBlock := range miniBlocks {
+		if senderShardID == miniBlock.GetSenderShardID() &&
+			receiverShardID == miniBlock.GetReceiverShardID() {
+			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		}
 	}
 
