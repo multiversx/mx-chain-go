@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+)
 
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
@@ -9,13 +12,23 @@ type EnableEpochsHandlerMock struct {
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 }
 
+// GetActivationEpoch -
+func (mock *EnableEpochsHandlerMock) GetActivationEpoch(flag core.EnableEpochFlag) uint32 {
+	switch flag {
+	case common.RefactorPeersMiniBlocksFlag:
+		return mock.RefactorPeersMiniBlocksEnableEpochField
+	default:
+		return 0
+	}
+}
+
 // IsFlagDefined returns true
 func (mock *EnableEpochsHandlerMock) IsFlagDefined(_ core.EnableEpochFlag) bool {
 	return true
 }
 
-// IsFlagEnabledInCurrentEpoch returns true
-func (mock *EnableEpochsHandlerMock) IsFlagEnabledInCurrentEpoch(_ core.EnableEpochFlag) bool {
+// IsFlagEnabled returns true
+func (mock *EnableEpochsHandlerMock) IsFlagEnabled(_ core.EnableEpochFlag) bool {
 	return true
 }
 

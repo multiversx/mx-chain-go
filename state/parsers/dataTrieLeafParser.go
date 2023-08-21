@@ -34,7 +34,7 @@ func NewDataTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enabl
 
 // ParseLeaf returns a new KeyValStorage with the actual key and value
 func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error) {
-	isAutoBalanceDataTriesFlagEnabled := tlp.enableEpochsHandler.IsFlagEnabledInCurrentEpoch(core.AutoBalanceDataTriesFlag)
+	isAutoBalanceDataTriesFlagEnabled := tlp.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag)
 	if isAutoBalanceDataTriesFlagEnabled && version == core.AutoBalanceEnabled {
 		data := &dataTrieValue.TrieLeafData{}
 		err := tlp.marshaller.Unmarshal(data, trieVal)

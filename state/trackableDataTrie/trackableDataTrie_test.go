@@ -160,8 +160,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
@@ -195,7 +195,7 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return false
 			},
 		}
@@ -234,8 +234,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
@@ -283,8 +283,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
@@ -318,8 +318,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
@@ -420,8 +420,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
@@ -469,7 +469,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return false
 			},
 		}
@@ -530,8 +530,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
@@ -580,8 +580,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
@@ -694,8 +694,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
@@ -729,8 +729,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
@@ -772,7 +772,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return false
 			},
 		}
@@ -877,8 +877,8 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			},
 		}
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInCurrentEpochCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == core.AutoBalanceDataTriesFlag
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 
