@@ -515,7 +515,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = hardForkGbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)

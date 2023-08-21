@@ -13,7 +13,7 @@ type GenesisBlockCreatorHandler interface {
 	GetIndexingData() map[uint32]*genesis.IndexingData
 }
 
-// GenesisBlockCreatorFactory defines a GenesisBlockCreatorFactory factory behavior
+// GenesisBlockCreatorFactory defines a genesis block creator factory behavior
 type GenesisBlockCreatorFactory interface {
 	CreateGenesisBlockCreator(args ArgsGenesisBlockCreator) (GenesisBlockCreatorHandler, error)
 	IsInterfaceNil() bool
