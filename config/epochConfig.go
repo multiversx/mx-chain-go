@@ -104,6 +104,7 @@ type EnableEpochs struct {
 	AutoBalanceDataTriesEnableEpoch                   uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
+	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

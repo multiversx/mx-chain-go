@@ -272,6 +272,9 @@
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
     FixDelegationChangeOwnerOnAccountEnableEpoch = 3
 
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
     ScToScLogEventEnableEpoch = 3
 
