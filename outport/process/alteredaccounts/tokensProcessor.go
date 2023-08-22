@@ -69,8 +69,8 @@ func (tp *tokensProcessor) processEvent(
 		return
 	}
 
-	isMultiTransferEventV2 := eventIdentifier == core.BuiltInFunctionMultiESDTNFTTransfer
-	if isMultiTransferEventV2 {
+	isMultiTransferEvent := eventIdentifier == core.BuiltInFunctionMultiESDTNFTTransfer
+	if isMultiTransferEvent {
 		tp.processMultiTransferEvent(event, markedAlteredAccounts)
 		return
 	}
