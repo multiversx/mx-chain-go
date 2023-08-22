@@ -40,16 +40,9 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	if mustDoHardForkImportProcess(gbc.arg) {
-		err := gbc.arg.importHandler.ImportAll()
-		if err != nil {
-			return nil, err
-		}
-
-		err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
-		if err != nil {
-			return nil, err
-		}
+	err := gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	if err != nil {
+		return nil, err
 	}
 
 	shardIDs := make([]uint32, 1)
