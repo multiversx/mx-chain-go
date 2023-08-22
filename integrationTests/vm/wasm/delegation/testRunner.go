@@ -159,14 +159,14 @@ func RunDelegationStressTest(
 					getClaimableRewards.Arguments = [][]byte{copiedAddresses[j]}
 					getUserStakeByType.Arguments = [][]byte{copiedAddresses[j]}
 
-					_, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
+					_, _, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
 						mutExecutionError.Unlock()
 					}
 
-					_, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
+					_, _, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
