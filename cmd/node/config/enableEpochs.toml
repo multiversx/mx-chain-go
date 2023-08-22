@@ -249,7 +249,7 @@
     SetGuardianEnableEpoch = 1
 
     # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
-    DeterministicSortOnValidatorsInfoEnableEpoch = 2
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
