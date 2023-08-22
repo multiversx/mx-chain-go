@@ -7,16 +7,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTokenProcessorProcessEventNotEnoughTopics(t *testing.T) {
+func TestTokenProcessorProcessEventWrongNumberOfTopics(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-	enableEpochsHandler.IsScToScEventLogEnabledField = true
-	tp := newTokensProcessor(&mock.ShardCoordinatorStub{}, enableEpochsHandler)
+	tp := newTokensProcessor(&mock.ShardCoordinatorStub{})
 
 	markedAccounts := make(map[string]*markedAlteredAccount)
 	tp.processEvent(&transaction.Event{
@@ -26,14 +23,20 @@ func TestTokenProcessorProcessEventNotEnoughTopics(t *testing.T) {
 	}, markedAccounts)
 
 	require.Equal(t, 0, len(markedAccounts))
+
+	tp.processEvent(&transaction.Event{
+		Identifier: []byte(core.BuiltInFunctionMultiESDTNFTTransfer),
+		Address:    []byte("addr"),
+		Topics:     [][]byte{[]byte("0"), []byte("1"), []byte("2"), []byte("0"), []byte("1")},
+	}, markedAccounts)
+
+	require.Equal(t, 0, len(markedAccounts))
 }
 
 func TestTokenProcessorProcessEventMultiTransferV2(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-	enableEpochsHandler.IsScToScEventLogEnabledField = true
-	tp := newTokensProcessor(&mock.ShardCoordinatorStub{}, enableEpochsHandler)
+	tp := newTokensProcessor(&mock.ShardCoordinatorStub{})
 
 	markedAccounts := make(map[string]*markedAlteredAccount)
 	tp.processEvent(&transaction.Event{

@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -14,16 +13,15 @@ const (
 	idxTokenIDInTopics         = 0
 	idxTokenNonceInTopics      = 1
 	idxReceiverAddressInTopics = 3
-	minTopicsMultiTransferV2   = 4
+	minTopicsMultiTransfer     = 4
 )
 
 type tokensProcessor struct {
-	enableEpochsHandler common.EnableEpochsHandler
-	shardCoordinator    sharding.Coordinator
-	tokensIdentifier    map[string]struct{}
+	shardCoordinator sharding.Coordinator
+	tokensIdentifier map[string]struct{}
 }
 
-func newTokensProcessor(shardCoordinator sharding.Coordinator, enableEpochsHandler common.EnableEpochsHandler) *tokensProcessor {
+func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor {
 	return &tokensProcessor{
 		tokensIdentifier: map[string]struct{}{
 			core.BuiltInFunctionESDTTransfer:         {},
@@ -39,8 +37,7 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator, enableEpochsHandl
 			core.BuiltInFunctionESDTFreeze:           {},
 			core.BuiltInFunctionESDTUnFreeze:         {},
 		},
-		shardCoordinator:    shardCoordinator,
-		enableEpochsHandler: enableEpochsHandler,
+		shardCoordinator: shardCoordinator,
 	}
 }
 
@@ -72,30 +69,26 @@ func (tp *tokensProcessor) processEvent(
 		return
 	}
 
-	isMultiTransferEventV2 := eventIdentifier == core.BuiltInFunctionMultiESDTNFTTransfer && tp.enableEpochsHandler.IsScToScEventLogEnabled()
+	isMultiTransferEventV2 := eventIdentifier == core.BuiltInFunctionMultiESDTNFTTransfer
 	if isMultiTransferEventV2 {
-		tp.processMultiTransferEventV2(event, markedAlteredAccounts)
+		tp.processMultiTransferEvent(event, markedAlteredAccounts)
 		return
 	}
 
 	nonce := topics[idxTokenNonceInTopics]
 	nonceBigInt := big.NewInt(0).SetBytes(nonce)
-	err := tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
-	if err != nil {
-		log.Debug("cannot extract esdt data", "error", err)
-		return
-	}
+	tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
 }
 
 func (tp *tokensProcessor) extractEsdtData(
 	event data.EventHandler,
 	nonce *big.Int,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
+) {
 	address := event.GetAddress()
 	topics := event.GetTopics()
 	if len(topics) == 0 {
-		return nil
+		return
 	}
 
 	identifier := string(event.GetIdentifier())
@@ -115,13 +108,11 @@ func (tp *tokensProcessor) extractEsdtData(
 		destinationAddress := topics[idxReceiverAddressInTopics]
 		tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts, false)
 	}
-
-	return nil
 }
 
-func (tp *tokensProcessor) processMultiTransferEventV2(event data.EventHandler, markedAlteredAccounts map[string]*markedAlteredAccount) {
+func (tp *tokensProcessor) processMultiTransferEvent(event data.EventHandler, markedAlteredAccounts map[string]*markedAlteredAccount) {
 	topics := event.GetTopics()
-	// MultiESDTNFTTransfer V2 event
+	// MultiESDTNFTTransfer event
 	// N = len(topics)
 	// i := 0; i < N-1; i+=3
 	// {
@@ -130,12 +121,14 @@ func (tp *tokensProcessor) processMultiTransferEventV2(event data.EventHandler, 
 	// 		topics[i+2] --- transferred value
 	// }
 	// topics[N-1]   --- destination address
-	if len(topics) < minTopicsMultiTransferV2 {
+	numOfTopics := len(topics)
+	if numOfTopics < minTopicsMultiTransfer || numOfTopics%3 != 1 {
+		log.Warn("tokensProcessor.processMultiTransferEvent: wrong number of topics", "got", numOfTopics)
 		return
 	}
 
 	address := event.GetAddress()
-	numOfTopics := len(topics)
+
 	destinationAddress := topics[numOfTopics-1]
 	for i := 0; i < numOfTopics-1; i += 3 {
 		tokenID := topics[i]

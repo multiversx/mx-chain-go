@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -43,7 +42,6 @@ type ArgsAlteredAccountsProvider struct {
 	AddressConverter       core.PubkeyConverter
 	AccountsDB             state.AccountsAdapter
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
-	EnabledEpochsHandler   common.EnableEpochsHandler
 }
 
 type alteredAccountsProvider struct {
@@ -66,7 +64,7 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 		shardCoordinator:       args.ShardCoordinator,
 		addressConverter:       args.AddressConverter,
 		accountsDB:             args.AccountsDB,
-		tokensProc:             newTokensProcessor(args.ShardCoordinator, args.EnabledEpochsHandler),
+		tokensProc:             newTokensProcessor(args.ShardCoordinator),
 		esdtDataStorageHandler: args.EsdtDataStorageHandler,
 	}, nil
 }
@@ -373,9 +371,6 @@ func checkArgAlteredAccountsProvider(args ArgsAlteredAccountsProvider) error {
 	}
 	if check.IfNil(args.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
-	}
-	if check.IfNil(args.EnabledEpochsHandler) {
-		return core.ErrNilEnableEpochsHandler
 	}
 
 	return nil

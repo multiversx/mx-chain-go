@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -904,9 +903,6 @@ func testExtractAlteredAccountsFromPoolMultiTransferEventV2(t *testing.T) {
 		},
 	}
 	args := getMockArgs()
-	args.EnabledEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScToScEventLogEnabledField: true,
-	}
 
 	args.EsdtDataStorageHandler = &testscommon.EsdtStorageHandlerStub{
 		GetESDTNFTTokenOnDestinationCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error) {
@@ -1490,6 +1486,5 @@ func getMockArgs() ArgsAlteredAccountsProvider {
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		AccountsDB:             &state.AccountsStub{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
-		EnabledEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
