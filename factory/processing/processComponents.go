@@ -947,7 +947,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		EpochConfig:             &pcf.epochConfig,
 		ChainRunType:            pcf.chainRunType,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
-		MapDNSV2Addresses:       pcf.config.BuiltInFunctions.DNSV2Addresses,
+		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 	}
 
 	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)

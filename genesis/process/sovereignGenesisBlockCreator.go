@@ -78,7 +78,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
-	initialAddresses, err := factory.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.MapDNSV2Addresses)
+	initialAddresses, err := factory.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.DNSV2Addresses)
 	if err != nil {
 		return err
 	}
