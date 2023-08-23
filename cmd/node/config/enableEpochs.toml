@@ -249,25 +249,25 @@
     SetGuardianEnableEpoch = 1
 
     # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
-    DeterministicSortOnValidatorsInfoEnableEpoch = 2
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1
 
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCProcessorV2EnableEpoch = 6
+    SCProcessorV2EnableEpoch = 3
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
-    AutoBalanceDataTriesEnableEpoch = 5
+    AutoBalanceDataTriesEnableEpoch = 3
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 2
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 3
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
     MultiClaimOnDelegationEnableEpoch = 3
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
-    ChangeUsernameEnableEpoch = 2
+    ChangeUsernameEnableEpoch = 3
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 2
+    ConsistentTokensValuesLengthCheckEnableEpoch = 3
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
     FixDelegationChangeOwnerOnAccountEnableEpoch = 3
