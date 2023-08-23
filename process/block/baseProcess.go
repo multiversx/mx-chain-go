@@ -1295,6 +1295,8 @@ func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHan
 		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
 	}
 
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", header.GetEpoch())
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		if body.MiniBlocks[i].Type != block.PeerBlock {
 			continue
@@ -1311,7 +1313,7 @@ func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHan
 			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
 		}
 
-		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblocks", "hash", miniBlockHash)
+		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblock", "miniBlockHash", miniBlockHash)
 	}
 }
 

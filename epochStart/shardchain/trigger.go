@@ -1131,7 +1131,7 @@ func (t *trigger) saveEpochStartBlockToStaticStorer(epoch uint32) (data.HeaderHa
 		return nil, err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put metaBlock into epochStartStaticStorage", "epoch", epoch) // TODO: remove log
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", epoch)
 
 	return epochStartMetablock, nil
 }
@@ -1161,7 +1161,7 @@ func (t *trigger) fetchAndSavePeerMiniBlockToStaticStorer(
 		return nil, err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put miniBlock into epochStartStaticStorage", "miniBlock hash", miniBlockHash) // TODO: remove log?
+	log.Debug("saveEpochStartInfoToStaticStorage: put miniBlock into epochStartStaticStorage", "miniBlockHash", miniBlockHash)
 
 	return miniBlock, nil
 }
@@ -1182,7 +1182,7 @@ func (t *trigger) fetchAndSaveValidatorInfoToStaticStorer(validatorInfoHash []by
 		return err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
+	log.Trace("saveEpochStartInfoToStaticStorage: put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
 
 	return nil
 }

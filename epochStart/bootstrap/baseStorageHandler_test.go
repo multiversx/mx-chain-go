@@ -53,9 +53,7 @@ func TestSaveMiniBlocksFromComponents(t *testing.T) {
 	receivedMiniblocks := make(map[string]*block.MiniBlock)
 	storageService := &storage.ChainStorerStub{
 		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-			if unitType != dataRetriever.MiniBlockUnit {
-				assert.Fail(t, "invalid storage unit type")
-			}
+			assert.Equal(t, dataRetriever.MiniBlockUnit, unitType)
 
 			mb := &block.MiniBlock{}
 			err := marshaller.Unmarshal(mb, value)
