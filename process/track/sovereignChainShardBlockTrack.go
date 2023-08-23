@@ -241,7 +241,7 @@ func (scsbt *sovereignChainShardBlockTrack) getFinalHeader(headerHandler data.He
 
 	_, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
 	if isExtendedShardHeaderReceived {
-		shardID = core.SovereignChainShardId
+		shardID = core.MainChainShardId
 	}
 
 	finalHeader, _, err := scsbt.getFinalHeaderForShard(shardID)
