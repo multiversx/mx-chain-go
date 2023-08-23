@@ -572,6 +572,7 @@ func GetProcessArgs(
 		ChainRunType:               common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
 	}
 }
 

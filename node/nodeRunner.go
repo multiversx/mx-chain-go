@@ -1245,6 +1245,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ChainRunType:               common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

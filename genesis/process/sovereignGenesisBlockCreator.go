@@ -40,16 +40,9 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	if mustDoHardForkImportProcess(gbc.arg) {
-		err := gbc.arg.importHandler.ImportAll()
-		if err != nil {
-			return nil, err
-		}
-
-		err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
-		if err != nil {
-			return nil, err
-		}
+	err := gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	if err != nil {
+		return nil, err
 	}
 
 	shardIDs := make([]uint32, 1)
@@ -85,7 +78,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
-	initialAddresses, err := factory.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.MapDNSV2Addresses)
+	initialAddresses, err := factory.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.DNSV2Addresses)
 	if err != nil {
 		return err
 	}
@@ -95,7 +88,7 @@ func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpoc
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
 	shardID := core.SovereignChainShardId
-	log.Debug("sovereignGenesisBlockCreator.createHeaders", "shard", shardID)
+	log.Debug("sovereignGenesisBlockCreator.createSovereignHeaders", "shard", shardID)
 
 	var genesisBlock data.HeaderHandler
 	var scResults [][]byte
@@ -127,7 +120,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 	}
 
 	gb := genesisBlocks[shardID]
-	log.Info("sovereignGenesisBlockCreator.createHeaders",
+	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
 		"shard", gb.GetShardID(),
 		"nonce", gb.GetNonce(),
 		"round", gb.GetRound(),
