@@ -1,11 +1,13 @@
 package parsing_test
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -30,19 +32,38 @@ func TestNewSovereignAccountsParser(t *testing.T) {
 	})
 }
 
+func txFoundForInitialAccount(tx *outport.TxInfo, accounts []*data.InitialAccount) bool {
+	for _, acc := range accounts {
+		if bytes.Equal(tx.GetTransaction().GetRcvAddr(), acc.AddressBytes()) &&
+			tx.GetTransaction().GetValue().Cmp(acc.GetSupply()) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func requireInitialTxMapContainsAccounts(t *testing.T, txMap map[string]*outport.TxInfo, accounts []*data.InitialAccount) {
+	for _, tx := range txMap {
+		if !txFoundForInitialAccount(tx, accounts) {
+			require.Fail(t, "initial tx not found for accounts")
+		}
+	}
+}
+
 func TestSovereignAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	t.Parallel()
 
 	accParser := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	sovAccParser, _ := parsing.NewSovereignAccountsParser(accParser)
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	accounts := []*data.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 	}
 
-	sovAccParser.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	sovAccParser.SetInitialAccounts(ibs)
+	sovAccParser.SetEntireSupply(big.NewInt(int64(len(accounts)) * balance))
+	sovAccParser.SetInitialAccounts(accounts)
 
 	err := sovAccParser.Process()
 	require.Nil(t, err)
@@ -69,11 +90,5 @@ func TestSovereignAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	require.Equal(t, 1, len(txsPoolPerShard))
 	require.Equal(t, 2, len(txsPoolPerShard[core.SovereignChainShardId].Transactions))
 	require.Equal(t, 0, len(txsPoolPerShard[core.SovereignChainShardId].SmartContractResults))
-
-	idx := 0
-	for _, tx := range txsPoolPerShard[core.SovereignChainShardId].Transactions {
-		require.Equal(t, ibs[idx].GetSupply(), tx.Transaction.GetValue())
-		require.Equal(t, ibs[idx].AddressBytes(), tx.Transaction.GetRcvAddr())
-		idx++
-	}
+	requireInitialTxMapContainsAccounts(t, txsPoolPerShard[core.SovereignChainShardId].Transactions, accounts)
 }
