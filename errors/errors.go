@@ -616,3 +616,6 @@ var ErrNilNodesSetupFactory = errors.New("nil nodes setup factory provided")
 
 // ErrNilRatingsDataFactory signals that a nil ratings data factory has been provided
 var ErrNilRatingsDataFactory = errors.New("nil ratings data factory provided")
+
+// ErrNilGenesisMetaBlockChecker signals that a nil genesis meta block checker has been provided
+var ErrNilGenesisMetaBlockChecker = errors.New("nil genesis meta block checker has been provided")

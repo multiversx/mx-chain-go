@@ -441,6 +441,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		ChainRunType:               common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    factoryProcessing.NewGenesisMetaBlockChecker(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
