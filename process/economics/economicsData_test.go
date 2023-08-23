@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -25,8 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.EconomicsConfig {
 	return &config.EconomicsConfig{
@@ -103,7 +102,9 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag
+			},
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
@@ -117,7 +118,9 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag
+			},
 		},
 		BuiltInFunctionsCostHandler: handler,
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},

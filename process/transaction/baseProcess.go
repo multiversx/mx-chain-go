@@ -158,8 +158,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
-	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabledInEpoch(currentEpoch) {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
 		// backwards compatibility issue when provided gas limit and gas price exceeds the available balance before the
 		// activation of the "penalize too much gas" flag
 		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)

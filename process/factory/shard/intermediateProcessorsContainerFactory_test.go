@@ -3,6 +3,8 @@ package shard_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
@@ -16,8 +18,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func createDataPools() dataRetriever.PoolsHolder {
 	pools := dataRetrieverMock.NewPoolsHolderStub()
@@ -65,7 +65,9 @@ func createMockArgsNewIntermediateProcessorsFactory() shard.ArgsNewIntermediateP
 		PoolsHolder:      createDataPools(),
 		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 	return args

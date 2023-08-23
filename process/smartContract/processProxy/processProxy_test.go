@@ -28,8 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-
 func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
 	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule[common.BaseOpsAPICost] = make(map[string]uint64)
@@ -121,7 +119,9 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 
 		args := createMockSmartContractProcessorArguments()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCProcessorV2FlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SCProcessorV2Flag
+			},
 		}
 
 		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})

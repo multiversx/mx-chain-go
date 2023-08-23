@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -32,9 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/stretchr/testify/assert"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -91,7 +89,9 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.PenalizedTooMuchGasFlag
+			},
 		},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1277,7 +1277,9 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -1545,7 +1547,9 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMetaProtectionFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.MetaProtectionFlag
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -1665,7 +1669,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -1747,7 +1753,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -1829,7 +1837,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -1918,7 +1928,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -2000,7 +2012,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -2013,7 +2027,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsV2FlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.RelayedTransactionsV2Flag
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2080,7 +2096,9 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -2093,7 +2111,9 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRelayedTransactionsFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.RelayedTransactionsFlag
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -2613,7 +2633,9 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
@@ -3228,7 +3250,9 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	t.Run("fix not enabled, should return true", func(t *testing.T) {
 		args := createArgsForTxProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRelayedNonceFixEnabledInEpochCalled: flagActiveFalseHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RelayedNonceFixFlag
+			},
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
 
@@ -3237,7 +3261,9 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	t.Run("fix enabled, different errors should return true", func(t *testing.T) {
 		args := createArgsForTxProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRelayedNonceFixEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RelayedNonceFixFlag
+			},
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
 
@@ -3248,7 +3274,9 @@ func TestTxProcessor_shouldIncreaseNonce(t *testing.T) {
 	t.Run("fix enabled, errors for an un-executable transaction should return false", func(t *testing.T) {
 		args := createArgsForTxProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRelayedNonceFixEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RelayedNonceFixFlag
+			},
 		}
 		txProc, _ := txproc.NewTxProcessor(args)
 

@@ -103,7 +103,6 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 		return 0, process.ErrNilMiniBlockPool
 	}
 
-	currentEpoch := vip.enableEpochsHandler.GetCurrentEpoch()
 	validatorsInfoRestored := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -111,7 +110,7 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		if vip.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+		if vip.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 			err := vip.restoreValidatorsInfo(miniBlock)
 			if err != nil {
 				return validatorsInfoRestored, err

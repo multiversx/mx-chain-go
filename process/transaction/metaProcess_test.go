@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -363,7 +364,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -422,8 +425,9 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		},
 	}
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled: flagActiveFalseHandler,
-		IsESDTFlagEnabledInEpochCalled:                  flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.ESDTFlag
+		},
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -439,7 +443,9 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		return 0, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.ESDTFlag || flag == common.BuiltInFunctionOnMetaFlag
+	}
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)

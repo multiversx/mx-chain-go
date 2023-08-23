@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -53,8 +54,7 @@ func isSmartContractResult(tx data.TransactionHandler) bool {
 }
 
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
-	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
-	if sc.enableEpochsHandler.IsSCDeployFlagEnabledInEpoch(currentEpoch) && isSmartContractResult(tx) {
+	if sc.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) && isSmartContractResult(tx) {
 		return tx.GetGasLimit(), nil
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -3545,10 +3546,6 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveFalseHandler,
-		}
-		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
@@ -3564,7 +3561,9 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ScheduledMiniBlocksFlag
+			},
 		}
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)

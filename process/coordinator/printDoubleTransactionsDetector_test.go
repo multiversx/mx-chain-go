@@ -3,8 +3,10 @@ package coordinator
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -134,7 +136,9 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAddFailedRelayedTxToInvalidMBsFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AddFailedRelayedTxToInvalidMBsFlag
+			},
 		}
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{

@@ -7,8 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -23,8 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func createMockBaseTxProcessor() *baseTxProcessor {
 	baseProc := baseTxProcessor{
@@ -43,7 +43,9 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.PenalizedTooMuchGasFlag
+			},
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
@@ -213,7 +215,9 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		marshalizer: &marshallerMock.MarshalizerMock{},
 		scProcessor: &testscommon.SCProcessorMock{},
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.PenalizedTooMuchGasFlag
+			},
 		},
 		txVersionChecker: &testscommon.TxVersionCheckerStub{},
 		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},

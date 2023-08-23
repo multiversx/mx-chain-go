@@ -264,8 +264,7 @@ func (host *vmContext) Transfer(
 		CallType: vmData.DirectCall,
 	}
 
-	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
-	if host.enableEpochsHandler.IsSetSenderInEeiOutputTransferFlagEnabledInEpoch(currentEpoch) {
+	if host.enableEpochsHandler.IsFlagEnabled(common.SetSenderInEeiOutputTransferFlag) {
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
@@ -327,8 +326,7 @@ func (host *vmContext) mergeContext(currContext *vmContext) {
 }
 
 func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode vmcommon.ReturnCode) {
-	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
-	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
+	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		host.mergeContext(parentContext)
 		return
 	}
@@ -426,8 +424,7 @@ func createDirectCallInput(
 }
 
 func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
-	currentEpoch := host.enableEpochsHandler.GetCurrentEpoch()
-	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
+	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)

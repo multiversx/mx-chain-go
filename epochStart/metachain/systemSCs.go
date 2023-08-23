@@ -178,15 +178,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	nonce uint64,
 	epoch uint32,
 ) error {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly) {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2OwnerFlagInSpecificEpochOnly) {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
@@ -200,28 +199,28 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
@@ -233,7 +232,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		err := s.prepareRewardsData(validatorInfos)
 		if err != nil {
 			return err
@@ -255,7 +254,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsESDTFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly) {
 		err := s.initESDT()
 		if err != nil {
 			//not a critical error
@@ -263,7 +262,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsGovernanceFlagEnabledInSpecificEpochOnly(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
@@ -275,8 +274,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		return nil
 	}
 
@@ -346,8 +344,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
@@ -756,8 +753,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabledInEpoch(currentEpoch) {
+		if s.enableEpochsHandler.IsFlagEnabled(common.SaveJailedAlwaysFlag) {
 			err := s.processSCOutputAccounts(vmOutput)
 			if err != nil {
 				return nil, err

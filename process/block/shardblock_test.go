@@ -5039,7 +5039,9 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	txs := []data.TransactionHandler{tx1, tx2}
 
 	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.ScheduledMiniBlocksFlag
+		},
 	}
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{

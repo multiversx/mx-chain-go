@@ -45,9 +45,6 @@ import (
 
 const setGuardianCost = 250000
 
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-var flagActiveFalseHandler = func(epoch uint32) bool { return false }
-
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
 
@@ -120,7 +117,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SCDeployFlag
+			},
 		},
 		WasmVMChangeLocker: &sync.RWMutex{},
 		VMOutputCacher:     txcache.NewDisabledCache(),
@@ -547,7 +546,9 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.BuiltInFunctionsFlag
+		},
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -709,7 +710,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 		return nil, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.BuiltInFunctionsFlag
+	}
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -769,7 +772,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 		return nil, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.BuiltInFunctionsFlag
+	}
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, actDst)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -813,7 +818,9 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.BuiltInFunctionsFlag
+	}
 	retCode, err := sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
@@ -834,7 +841,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsBuiltInFunctionsFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.BuiltInFunctionsFlag
+		},
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	funcName := "builtIn"
@@ -875,8 +884,9 @@ func TestScProcessor_ExecuteBuiltInFunctionSCRTooBig(t *testing.T) {
 	require.Nil(t, err)
 
 	_ = acntSrc.AddToBalance(big.NewInt(100))
-	enableEpochsHandlerStub.IsSCRSizeInvariantOnBuiltInResultFlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.BuiltInFunctionsFlag || flag == common.SCRSizeInvariantOnBuiltInResultFlag || flag == common.SCRSizeInvariantCheckFlag
+	}
 	retCode, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
@@ -2405,7 +2415,9 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 		},
 	}
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.PenalizedTooMuchGasFlag
+		},
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2431,7 +2443,9 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
-	enableEpochsHandlerStub.IsPenalizedTooMuchGasFlagEnabledInEpochCalled = flagActiveFalseHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return false
+	}
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
@@ -2783,7 +2797,9 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled: flagActiveFalseHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return false
+		},
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandler
 	arguments.AccountsDB = accountsDB
@@ -2848,7 +2864,9 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 		require.Equal(t, vmData.AsynchronousCallBack, lastScTx.CallType)
 		require.Equal(t, []byte(nil), lastScTx.Data)
 	})
-	enableEpochsHandler.IsFixAsyncCallBackArgsListFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.FixAsyncCallBackArgsListFlag
+	}
 
 	_, scTxs, err = sc.processSCOutputAccounts(
 		&vmcommon.VMInput{CallType: vmData.AsynchronousCall},
@@ -2894,7 +2912,9 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.MultiESDTTransferFixOnCallBackFlag
+		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -3329,7 +3349,9 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		},
 	}
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag
+		},
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 
@@ -3348,8 +3370,9 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandlerStub.IsBuiltInFunctionsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.BuiltInFunctionsFlag || flag == common.SCDeployFlag || flag == common.BuiltInFunctionOnMetaFlag
+	}
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
@@ -3486,7 +3509,9 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.PenalizedTooMuchGasFlag
+		},
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -3567,9 +3592,9 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:            flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
-		IsRepairCallbackFlagEnabledInEpochCalled:      flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.PenalizedTooMuchGasFlag || flag == common.RepairCallbackFlag
+		},
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -3630,7 +3655,9 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	}
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsMultiESDTTransferFixOnCallBackFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.MultiESDTTransferFixOnCallBackFlag
+		},
 	}
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -3778,8 +3805,9 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 		},
 	}
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:     flagActiveTrueHandler,
-		IsStakingV2FlagEnabledAfterEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.StakingV2FlagAfterEpoch
+		},
 	}
 
 	sc, err := NewSmartContractProcessor(arguments)
@@ -3868,8 +3896,9 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 				},
 			}
 			arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsSCDeployFlagEnabledInEpochCalled:     flagActiveTrueHandler,
-				IsStakingV2FlagEnabledAfterEpochCalled: flagActiveTrueHandler,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SCDeployFlag || flag == common.StakingV2FlagAfterEpoch
+				},
 			}
 
 			sc, err := NewSmartContractProcessor(arguments)
@@ -4051,9 +4080,9 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 	}
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:                         flagActiveTrueHandler,
-		IsCleanUpInformativeSCRsFlagEnabledInEpochCalled:           flagActiveTrueHandler,
-		IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.CleanUpInformativeSCRsFlag || flag == common.OptimizeGasUsedInCrossMiniBlocksFlag
+		},
 	}
 
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4084,7 +4113,9 @@ func TestProcessSCRSizeTooBig(t *testing.T) {
 	err := sc.checkSCRSizeInvariant(scrs)
 	assert.Nil(t, err)
 
-	enableEpochsHandlerStub.IsSCRSizeInvariantCheckFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.SCRSizeInvariantCheckFlag
+	}
 	err = sc.checkSCRSizeInvariant(scrs)
 	assert.Equal(t, err, process.ErrResultingSCRIsTooBig)
 }
@@ -4139,7 +4170,9 @@ func TestCleanInformativeOnlySCRs(t *testing.T) {
 	assert.Equal(t, len(finalSCRs), len(scrs))
 	assert.Equal(t, 1, len(logs))
 
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.CleanUpInformativeSCRsFlag
+	}
 	finalSCRs, logs = sc.cleanInformativeOnlySCRs(scrs)
 	assert.Equal(t, 1, len(finalSCRs))
 	assert.Equal(t, 1, len(logs))
@@ -4274,7 +4307,9 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag
+			},
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
@@ -4384,8 +4419,9 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled:            flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.PenalizedTooMuchGasFlag
+		},
 	}
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -4403,7 +4439,9 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 		TooMuchGasProvidedMessage, 1, 10)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
 
-	enableEpochsHandlerStub.IsCleanUpInformativeSCRsFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.SCDeployFlag || flag == common.PenalizedTooMuchGasFlag || flag == common.CleanUpInformativeSCRsFlag
+	}
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 10}
 	sc.penalizeUserIfNeeded(tx, []byte("txHash"), vmData.DirectCall, 11, vmOutput)
 	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",

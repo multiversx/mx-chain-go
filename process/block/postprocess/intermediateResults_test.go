@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -25,9 +26,6 @@ import (
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-var flagActiveFalseHandler = func(epoch uint32) bool { return false }
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
@@ -44,7 +42,9 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		CurrTxs:      &mock.TxForCurrentBlockStub{},
 		EconomicsFee: &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 
@@ -638,7 +638,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		},
 	}
 	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveFalseHandler,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return false
+		},
 	}
 	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
@@ -685,7 +687,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 
-	enableEpochHandler.IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.KeepExecOrderOnCreatedSCRsFlag
+	}
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
 

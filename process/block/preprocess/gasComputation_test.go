@@ -20,8 +20,8 @@ import (
 
 func createEnableEpochsHandler() common.EnableEpochsHandler {
 	return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled: func(epoch uint32) bool {
-			return true
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag
 		},
 	}
 }

@@ -3,6 +3,8 @@ package metachain_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -14,8 +16,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
@@ -31,7 +31,9 @@ func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermedi
 		PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 	return args

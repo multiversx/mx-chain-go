@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -29,7 +30,9 @@ func createMockArguments() ArgNewTxTypeHandler {
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ESDTMetadataContinuousCleanupFlag
+			},
 		},
 	}
 }

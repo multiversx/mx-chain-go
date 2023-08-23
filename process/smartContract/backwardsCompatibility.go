@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -56,9 +57,8 @@ func (sc *scProcessor) addToDevRewardsV1(address []byte, gasUsed uint64, gasPric
 
 	consumedFee := core.SafeMul(gasPrice, gasUsed)
 
-	currentEpoch := sc.enableEpochsHandler.GetCurrentEpoch()
 	var devRwd *big.Int
-	if sc.enableEpochsHandler.IsStakingV2FlagEnabledAfterEpoch(currentEpoch) {
+	if sc.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
 		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	} else {
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())

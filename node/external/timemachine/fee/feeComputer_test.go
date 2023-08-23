@@ -6,7 +6,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -22,11 +24,14 @@ func createEconomicsData() process.EconomicsDataHandler {
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		Economics:                   &economicsConfig,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledInEpochCalled: func(epoch uint32) bool {
-				return epoch >= 124
-			},
-			IsGasPriceModifierFlagEnabledInEpochCalled: func(epoch uint32) bool {
-				return epoch >= 180
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.PenalizedTooMuchGasFlag {
+					return epoch >= 124
+				}
+				if flag == common.GasPriceModifierFlag {
+					return epoch >= 180
+				}
+				return false
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},

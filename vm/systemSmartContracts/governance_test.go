@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -58,7 +59,9 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:   10,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGovernanceFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.GovernanceFlag
+			},
 		},
 	}
 }
@@ -304,11 +307,15 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledInEpochCalled = flagActiveFalseHandler
+	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return false
+	}
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.GovernanceFlag
+	}
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)

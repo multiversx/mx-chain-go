@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -46,7 +47,6 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func FeeHandlerMock() *economicsmocks.EconomicsHandlerStub {
 	return &economicsmocks.EconomicsHandlerStub{
@@ -560,7 +560,9 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		PoolsHolder:      initDataPool([]byte("test_hash1")),
 		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -2197,7 +2199,9 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		PoolsHolder:      tdp,
 		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -2259,7 +2263,9 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 			},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsKeepExecOrderOnCreatedSCRsEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.KeepExecOrderOnCreatedSCRsFlag
+			},
 		},
 	}
 	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -3693,8 +3699,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxAccumulatedFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.ScheduledMiniBlocksFlag || flag == common.MiniBlockPartialExecutionFlag
+	}
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3777,8 +3784,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Equal(t, process.ErrMaxDeveloperFeesExceeded, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.ScheduledMiniBlocksFlag || flag == common.MiniBlockPartialExecutionFlag
+	}
 
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
@@ -3858,8 +3866,9 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	assert.Nil(t, err)
 
-	enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
-	enableEpochsHandlerStub.IsMiniBlockPartialExecutionFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.ScheduledMiniBlocksFlag || flag == common.MiniBlockPartialExecutionFlag
+	}
 
 	header = &block.Header{
 		AccumulatedFees:  big.NewInt(101),
@@ -4090,7 +4099,9 @@ func TestTransactionCoordinator_getFinalCrossMiniBlockInfos(t *testing.T) {
 		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 		tc, _ := NewTransactionCoordinator(args)
-		enableEpochsHandlerStub.IsScheduledMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+			return flag == common.ScheduledMiniBlocksFlag
+		}
 
 		mbInfo1 := &data.MiniBlockInfo{Hash: []byte(hash1)}
 		mbInfo2 := &data.MiniBlockInfo{Hash: []byte(hash2)}

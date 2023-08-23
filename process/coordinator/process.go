@@ -817,8 +817,7 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	header data.HeaderHandler,
 ) []*data.MiniBlockInfo {
 
-	currentEpoch := tc.enableEpochsHandler.GetCurrentEpoch()
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return crossMiniBlockInfos
 	}
 
@@ -1097,8 +1096,7 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 }
 
 func (tc *transactionCoordinator) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	currentEpoch := tc.enableEpochsHandler.GetCurrentEpoch()
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return headerHandler.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, tc.shardCoordinator.SelfId())
@@ -1160,13 +1158,12 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		"total gas penalized", tc.gasHandler.TotalGasPenalized(),
 	)
 
-	currentEpoch := tc.enableEpochsHandler.GetCurrentEpoch()
 	txsToBeReverted, indexOfLastTxProcessed, shouldRevert, err := preproc.ProcessMiniBlock(
 		miniBlock,
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabledInEpoch(currentEpoch),
+		tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag),
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
 	)
@@ -1199,7 +1196,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabledInEpoch(currentEpoch) {
+			if tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}
@@ -1542,8 +1539,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 		if miniBlock.Type == block.SmartContractResultBlock {
 			continue
 		}
-		currentEpoch := tc.enableEpochsHandler.GetCurrentEpoch()
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1610,8 +1606,7 @@ func (tc *transactionCoordinator) verifyFees(
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
 
-	currentEpoch := tc.enableEpochsHandler.GetCurrentEpoch()
-	if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
@@ -1626,7 +1621,7 @@ func (tc *transactionCoordinator) verifyFees(
 		if miniBlock.Type == block.PeerBlock {
 			continue
 		}
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())

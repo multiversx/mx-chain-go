@@ -111,8 +111,7 @@ func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2,
 }
 
 func (v *validatorSC) saveRegistrationData(key []byte, validator *ValidatorDataV2) error {
-	currentEpoch := v.enableEpochsHandler.GetCurrentEpoch()
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !v.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		return v.saveRegistrationDataV1(key, validator)
 	}
 

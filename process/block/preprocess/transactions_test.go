@@ -45,8 +45,6 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-
 type txInfoHolder struct {
 	hash []byte
 	buff []byte
@@ -864,7 +862,9 @@ func TestTransactions_GetTotalGasConsumedShouldWork(t *testing.T) {
 	totalGasConsumed := preprocessor.getTotalGasConsumed()
 	assert.Equal(t, gasProvided, totalGasConsumed)
 
-	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.OptimizeGasUsedInCrossMiniBlocksFlag
+	}
 	totalGasConsumed = preprocessor.getTotalGasConsumed()
 	assert.Equal(t, gasProvided-gasRefunded-gasPenalized, totalGasConsumed)
 
@@ -905,7 +905,9 @@ func TestTransactions_UpdateGasConsumedWithGasRefundedAndGasPenalizedShouldWork(
 	assert.Equal(t, uint64(5), gasInfo.gasConsumedByMiniBlockInReceiverShard)
 	assert.Equal(t, uint64(10), gasInfo.totalGasConsumedInSelfShard)
 
-	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.OptimizeGasUsedInCrossMiniBlocksFlag
+	}
 	gasRefunded = 10
 	gasPenalized = 1
 	preprocessor.updateGasConsumedWithGasRefundedAndGasPenalized([]byte("txHash"), &gasInfo)
@@ -1331,7 +1333,9 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	assert.Equal(t, 0, len(txsToBeReverted))
 	assert.Equal(t, 0, indexOfLastTxProcessed)
 
-	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.OptimizeGasUsedInCrossMiniBlocksFlag
+	}
 	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
@@ -1445,7 +1449,9 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	splitMiniBlocks := preprocessor.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
 	assert.Equal(t, 3, len(splitMiniBlocks))
 
-	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledInEpochCalled = flagActiveTrueHandler
+	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
+		return flag == common.OptimizeGasUsedInCrossMiniBlocksFlag
+	}
 	splitMiniBlocks = preprocessor.splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks)
 	assert.Equal(t, 4, len(splitMiniBlocks))
 
@@ -1948,7 +1954,9 @@ func TestTransactions_ComputeCacheIdentifier(t *testing.T) {
 					shardCoordinator: coordinator,
 				},
 				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+					IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+						return flag == common.ScheduledMiniBlocksFlag
+					},
 				},
 			},
 		}
@@ -2044,7 +2052,9 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 
 	t.Run("feat scheduled activated", func(t *testing.T) {
 		txs.basePreProcess.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.ScheduledMiniBlocksFlag
+			},
 		}
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)

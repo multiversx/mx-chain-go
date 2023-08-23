@@ -128,7 +128,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		return 0, err
 	}
 
-	currentEpoch := txProc.enableEpochsHandler.GetCurrentEpoch()
 	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.SCDeployment:
@@ -136,11 +135,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabledInEpoch(currentEpoch) {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.BuiltInFunctionOnMetaFlag) {
 			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
 		}
 
-		if txProc.enableEpochsHandler.IsESDTFlagEnabledInEpoch(currentEpoch) {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
 	}
