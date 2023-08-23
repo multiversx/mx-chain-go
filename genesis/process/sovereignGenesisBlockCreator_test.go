@@ -3,14 +3,24 @@
 package process
 
 import (
+	"encoding/hex"
+	"math"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
+	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,6 +33,7 @@ func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
 func createSovereignGenesisBlockCreator(t *testing.T) GenesisBlockCreatorHandler {
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return sgbc
@@ -73,4 +84,71 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	require.Nil(t, err)
 	require.Len(t, blocks, 1)
 	require.Contains(t, blocks, core.SovereignChainShardId)
+
+	indexingData := sgbc.GetIndexingData()
+	require.Len(t, indexingData, 1)
+
+	sovereignIdxData := indexingData[core.SovereignChainShardId]
+	require.Len(t, sovereignIdxData.DeployInitialScTxs, 1)
+	require.Len(t, sovereignIdxData.DeploySystemScTxs, 4)
+	require.Len(t, sovereignIdxData.DelegationTxs, 3)
+	require.Len(t, sovereignIdxData.StakingTxs, 0)
+	require.Len(t, sovereignIdxData.ScrsTxs, getRequiredNumScrsTxs(indexingData, core.SovereignChainShardId))
+}
+
+func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+
+	acc := &state.AccountWrapMock{
+		Balance: big.NewInt(1),
+	}
+	acc.IncreaseNonce(4)
+	args.Accounts = &state.AccountsStub{
+		LoadAccountCalled: func(addr []byte) (vmcommon.AccountHandler, error) {
+			return acc, nil
+		},
+	}
+	initialNode := &sharding.InitialNode{
+		Address: "addr",
+	}
+	nodesSpliter := &mock.NodesListSplitterStub{
+		GetAllNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
+			return []nodesCoordinator.GenesisNodeInfoHandler{initialNode}
+		},
+	}
+	expectedTx := &transaction.Transaction{
+		Nonce:     acc.GetNonce(),
+		Value:     new(big.Int).Set(args.GenesisNodePrice),
+		RcvAddr:   vm.ValidatorSCAddress,
+		SndAddr:   initialNode.AddressBytes(),
+		GasPrice:  0,
+		GasLimit:  math.MaxUint64,
+		Data:      []byte("stake@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString(initialNode.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
+		Signature: nil,
+	}
+	processors := &genesisProcessors{
+		txProcessor: &testscommon.TxProcessorStub{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				require.Equal(t, expectedTx, transaction)
+
+				return vmcommon.Ok, nil
+			},
+		},
+		queryService: &nodeMock.SCQueryServiceStub{
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+				require.Equal(t, &process.SCQuery{
+					ScAddress: vm.StakingSCAddress,
+					FuncName:  "isStaked",
+					Arguments: [][]byte{initialNode.PubKeyBytes()}}, query)
+
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+			},
+		},
+	}
+
+	txs, err := setSovereignStakedData(args, processors, nodesSpliter)
+	require.Nil(t, err)
+	require.Equal(t, []data.TransactionHandler{expectedTx}, txs)
 }

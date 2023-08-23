@@ -88,7 +88,7 @@ func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpoc
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
 	shardID := core.SovereignChainShardId
-	log.Debug("sovereignGenesisBlockCreator.createHeaders", "shard", shardID)
+	log.Debug("sovereignGenesisBlockCreator.createSovereignHeaders", "shard", shardID)
 
 	var genesisBlock data.HeaderHandler
 	var scResults [][]byte
@@ -120,7 +120,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 	}
 
 	gb := genesisBlocks[shardID]
-	log.Info("sovereignGenesisBlockCreator.createHeaders",
+	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
 		"shard", gb.GetShardID(),
 		"nonce", gb.GetNonce(),
 		"round", gb.GetRound(),
