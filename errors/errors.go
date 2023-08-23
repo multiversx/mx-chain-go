@@ -610,3 +610,9 @@ var ErrNilShardCoordinatorFactory = errors.New("nil shard coordinator factory pr
 
 // ErrNilGenesisBlockFactory signals that a nil genesis block factory has been provided
 var ErrNilGenesisBlockFactory = errors.New("nil genesis block factory has been provided")
+
+// ErrNilNodesSetupFactory signals that a nil nodes setup factory has been provided
+var ErrNilNodesSetupFactory = errors.New("nil nodes setup factory provided")
+
+// ErrNilRatingsDataFactory signals that a nil ratings data factory has been provided
+var ErrNilRatingsDataFactory = errors.New("nil ratings data factory provided")

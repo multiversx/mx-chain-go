@@ -57,6 +57,7 @@ type CoreComponentsFactoryArgs struct {
 	WorkingDirectory         string
 	ChanStopNodeProcess      chan endProcess.ArgEndProcess
 	GenesisNodesSetupFactory sharding.GenesisNodesSetupFactory
+	RatingsDataFactory       rating.RatingsDataFactory
 }
 
 // coreComponentsFactory is responsible for creating the core components
@@ -72,6 +73,7 @@ type coreComponentsFactory struct {
 	workingDir               string
 	chanStopNodeProcess      chan endProcess.ArgEndProcess
 	genesisNodesSetupFactory sharding.GenesisNodesSetupFactory
+	ratingsDataFactory       rating.RatingsDataFactory
 }
 
 // coreComponents is the DTO used for core components
@@ -115,7 +117,10 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	if check.IfNil(args.GenesisNodesSetupFactory) {
-		return nil, errNilNodesSetupFactory
+		return nil, errors.ErrNilNodesSetupFactory
+	}
+	if check.IfNil(args.RatingsDataFactory) {
+		return nil, errors.ErrNilRatingsDataFactory
 	}
 
 	return &coreComponentsFactory{
@@ -130,6 +135,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		chanStopNodeProcess:      args.ChanStopNodeProcess,
 		nodesFilename:            args.NodesFilename,
 		genesisNodesSetupFactory: args.GenesisNodesSetupFactory,
+		ratingsDataFactory:       args.RatingsDataFactory,
 	}, nil
 }
 
@@ -302,7 +308,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		MetaMinNodes:             genesisNodesConfig.MinNumberOfMetaNodes(),
 		RoundDurationMiliseconds: genesisNodesConfig.GetRoundDuration(),
 	}
-	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
+	ratingsData, err := ccf.ratingsDataFactory.CreateRatingsData(ratingDataArgs)
 	if err != nil {
 		return nil, err
 	}

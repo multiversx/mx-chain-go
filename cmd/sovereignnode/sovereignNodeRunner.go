@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
@@ -1415,6 +1416,7 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess:      chanStopNodeProcess,
 		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewSovereignRatingsDataFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
