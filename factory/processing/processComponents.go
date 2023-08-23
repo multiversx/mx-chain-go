@@ -42,8 +42,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
-	"github.com/multiversx/mx-chain-go/p2p"
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -163,7 +163,8 @@ type ProcessComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	ChainRunType         common.ChainRunType
 
-	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
+	ShardCoordinatorFactory    sharding.ShardCoordinatorFactory
+	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
 }
 
 type processComponentsFactory struct {
@@ -199,7 +200,8 @@ type processComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	chainRunType         common.ChainRunType
 
-	shardCoordinatorFactory sharding.ShardCoordinatorFactory
+	shardCoordinatorFactory    sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -210,33 +212,34 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                  args.Config,
-		epochConfig:             args.EpochConfig,
-		prefConfigs:             args.PrefConfigs,
-		importDBConfig:          args.ImportDBConfig,
-		accountsParser:          args.AccountsParser,
-		smartContractParser:     args.SmartContractParser,
-		gasSchedule:             args.GasSchedule,
-		nodesCoordinator:        args.NodesCoordinator,
-		data:                    args.Data,
-		coreData:                args.CoreData,
-		crypto:                  args.Crypto,
-		state:                   args.State,
-		network:                 args.Network,
-		bootstrapComponents:     args.BootstrapComponents,
-		statusComponents:        args.StatusComponents,
-		requestedItemsHandler:   args.RequestedItemsHandler,
-		whiteListHandler:        args.WhiteListHandler,
-		whiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		maxRating:               args.MaxRating,
-		systemSCConfig:          args.SystemSCConfig,
-		importStartHandler:      args.ImportStartHandler,
-		historyRepo:             args.HistoryRepo,
-		epochNotifier:           args.CoreData.EpochNotifier(),
-		statusCoreComponents:    args.StatusCoreComponents,
-		flagsConfig:             args.FlagsConfig,
-		chainRunType:            args.ChainRunType,
-		shardCoordinatorFactory: args.ShardCoordinatorFactory,
+		config:                     args.Config,
+		epochConfig:                args.EpochConfig,
+		prefConfigs:                args.PrefConfigs,
+		importDBConfig:             args.ImportDBConfig,
+		accountsParser:             args.AccountsParser,
+		smartContractParser:        args.SmartContractParser,
+		gasSchedule:                args.GasSchedule,
+		nodesCoordinator:           args.NodesCoordinator,
+		data:                       args.Data,
+		coreData:                   args.CoreData,
+		crypto:                     args.Crypto,
+		state:                      args.State,
+		network:                    args.Network,
+		bootstrapComponents:        args.BootstrapComponents,
+		statusComponents:           args.StatusComponents,
+		requestedItemsHandler:      args.RequestedItemsHandler,
+		whiteListHandler:           args.WhiteListHandler,
+		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
+		maxRating:                  args.MaxRating,
+		systemSCConfig:             args.SystemSCConfig,
+		importStartHandler:         args.ImportStartHandler,
+		historyRepo:                args.HistoryRepo,
+		epochNotifier:              args.CoreData.EpochNotifier(),
+		statusCoreComponents:       args.StatusCoreComponents,
+		flagsConfig:                args.FlagsConfig,
+		chainRunType:               args.ChainRunType,
+		shardCoordinatorFactory:    args.ShardCoordinatorFactory,
+		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
 	}, nil
 }
 
@@ -944,9 +947,10 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		EpochConfig:             &pcf.epochConfig,
 		ChainRunType:            pcf.chainRunType,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
+		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 	}
 
-	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
+	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1909,7 +1913,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
-		ShardCoordinatorFactory:   pcf.shardCoordinatorFactory,
+		ShardCoordinatorFactory:          pcf.shardCoordinatorFactory,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -2069,6 +2073,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
+	}
+	if check.IfNil(args.GenesisBlockCreatorFactory) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
 	}
 
 	return nil

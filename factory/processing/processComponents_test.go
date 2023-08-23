@@ -25,6 +25,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	genesisMocks "github.com/multiversx/mx-chain-go/genesis/mock"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -238,8 +239,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		ChainRunType:            common.ChainRunTypeRegular,
-		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		ChainRunType:               common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -578,6 +580,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.ShardCoordinatorFactory = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil genesis block creator factory, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.GenesisBlockCreatorFactory = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisBlockFactory))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {
