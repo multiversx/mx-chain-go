@@ -982,4 +982,7 @@ const (
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
+	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
+	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
+	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
 )

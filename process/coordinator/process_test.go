@@ -2585,7 +2585,12 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			BlockGasAndFeesReCheckEnableEpochField: 1,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.BlockGasAndFeesReCheckFlag {
+					return 1
+				}
+				return 0
+			},
 		},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},

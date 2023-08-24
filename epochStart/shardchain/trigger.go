@@ -754,7 +754,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		return false, 0
 	}
 
-	if metaHdr.GetEpoch() >= t.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, metaHdr.GetEpoch()) {
 		missingValidatorsInfoHashes, validatorsInfo, err := t.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 		if err != nil {
 			t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)

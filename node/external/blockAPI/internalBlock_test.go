@@ -1077,7 +1077,12 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					RefactorPeersMiniBlocksEnableEpochField: 5,
+					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+						if flag == common.RefactorPeersMiniBlocksFlag {
+							return epoch >= 5
+						}
+						return false
+					},
 				},
 			}, nil)
 

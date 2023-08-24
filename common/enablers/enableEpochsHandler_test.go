@@ -133,7 +133,7 @@ func TestNewEnableEpochsHandler(t *testing.T) {
 	})
 }
 
-func TestNewEnableEpochsHandler_Getters(t *testing.T) {
+func TestNewEnableEpochsHandler_GetCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
 	cfg := createEnableEpochsConfig()
@@ -144,25 +144,6 @@ func TestNewEnableEpochsHandler_Getters(t *testing.T) {
 	handler.EpochConfirmed(currentEpoch, 0)
 
 	require.Equal(t, currentEpoch, handler.GetCurrentEpoch())
-	require.Equal(t, cfg.ScheduledMiniBlocksEnableEpoch, handler.ScheduledMiniBlocksEnableEpoch())
-	assert.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.BlockGasAndFeesReCheckEnableEpoch())
-	require.Equal(t, cfg.StakingV2EnableEpoch, handler.StakingV2EnableEpoch())
-	require.Equal(t, cfg.SwitchJailWaitingEnableEpoch, handler.SwitchJailWaitingEnableEpoch())
-	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.BalanceWaitingListsEnableEpoch())
-	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.WaitingListFixEnableEpoch())
-	require.Equal(t, cfg.MultiESDTTransferFixOnCallBackOnEnableEpoch, handler.MultiESDTTransferAsyncCallBackEnableEpoch())
-	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.FixOOGReturnCodeEnableEpoch())
-	require.Equal(t, cfg.RemoveNonUpdatedStorageEnableEpoch, handler.RemoveNonUpdatedStorageEnableEpoch())
-	require.Equal(t, cfg.CreateNFTThroughExecByCallerEnableEpoch, handler.CreateNFTThroughExecByCallerEnableEpoch())
-	require.Equal(t, cfg.FailExecutionOnEveryAPIErrorEnableEpoch, handler.FixFailExecutionOnErrorEnableEpoch())
-	require.Equal(t, cfg.ManagedCryptoAPIsEnableEpoch, handler.ManagedCryptoAPIEnableEpoch())
-	require.Equal(t, cfg.DisableExecByCallerEnableEpoch, handler.DisableExecByCallerEnableEpoch())
-	require.Equal(t, cfg.RefactorContextEnableEpoch, handler.RefactorContextEnableEpoch())
-	require.Equal(t, cfg.CheckExecuteOnReadOnlyEnableEpoch, handler.CheckExecuteReadOnlyEnableEpoch())
-	require.Equal(t, cfg.StorageAPICostOptimizationEnableEpoch, handler.StorageAPICostOptimizationEnableEpoch())
-	require.Equal(t, cfg.MiniBlockPartialExecutionEnableEpoch, handler.MiniBlockPartialExecutionEnableEpoch())
-	require.Equal(t, cfg.RefactorPeersMiniBlocksEnableEpoch, handler.RefactorPeersMiniBlocksEnableEpoch())
-	require.Equal(t, cfg.RelayedNonceFixEnableEpoch, handler.RelayedNonceFixEnableEpoch())
 }
 
 func TestEnableEpochsHandler_IsFlagDefined(t *testing.T) {
@@ -302,6 +283,9 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
 	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.BlockGasAndFeesReCheckFlag))
+	require.True(t, handler.IsFlagEnabled(common.BalanceWaitingListsFlag))
+	require.True(t, handler.IsFlagEnabled(common.WaitingListFixFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -404,6 +388,9 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.GetActivationEpoch(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.GetActivationEpoch(common.FixOOGReturnCodeFlag))
 	require.Equal(t, cfg.DeterministicSortOnValidatorsInfoEnableEpoch, handler.GetActivationEpoch(common.DeterministicSortOnValidatorsInfoFixFlag))
+	require.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag))
+	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.GetActivationEpoch(common.BalanceWaitingListsFlag))
+	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.GetActivationEpoch(common.WaitingListFixFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

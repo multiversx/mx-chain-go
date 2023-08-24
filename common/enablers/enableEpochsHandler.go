@@ -115,6 +115,8 @@ var allFlagsDefined = map[core.EnableEpochFlag]struct{}{
 	common.FixDelegationChangeOwnerOnAccountFlag:              {},
 	common.FixOOGReturnCodeFlag:                               {},
 	common.DeterministicSortOnValidatorsInfoFixFlag:           {},
+	common.BlockGasAndFeesReCheckFlag:                         {},
+	common.BalanceWaitingListsFlag:                            {},
 }
 
 type enableEpochsHandler struct {
@@ -361,6 +363,12 @@ func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFl
 		return epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
 	case common.DeterministicSortOnValidatorsInfoFixFlag:
 		return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+	case common.BlockGasAndFeesReCheckFlag:
+		return epoch >= handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
+	case common.BalanceWaitingListsFlag:
+		return epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
+	case common.WaitingListFixFlag:
+		return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
 	// TODO[Sorin]: add new flag + check for DynamicGasCostForDataTrieStorageLoadEnableEpoch after merge from rc/v1.6.0
 	default:
 		log.Warn("IsFlagEnabledInEpoch: programming error, got unknown flag",
@@ -549,6 +557,12 @@ func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag
 		return handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
 	case common.DeterministicSortOnValidatorsInfoFixFlag:
 		return handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+	case common.BlockGasAndFeesReCheckFlag:
+		return handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
+	case common.BalanceWaitingListsFlag:
+		return handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
+	case common.WaitingListFixFlag:
+		return handler.enableEpochsConfig.WaitingListFixEnableEpoch
 	default:
 		log.Warn("GetActivationEpoch: programming error, got unknown flag",
 			"flag", flag,

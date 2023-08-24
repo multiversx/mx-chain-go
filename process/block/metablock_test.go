@@ -3192,7 +3192,12 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			StakingV2EnableEpochField: 10,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.StakingV2Flag {
+					return epoch >= 10
+				}
+				return false
+			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -3468,7 +3473,12 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			StakingV2EnableEpochField: 10,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.StakingV2Flag {
+					return epoch >= 10
+				}
+				return false
+			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 

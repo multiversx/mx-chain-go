@@ -13,8 +13,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1333,8 +1335,13 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 				NodesToShufflePerShard: uint32(numNodesToShuffle),
 			},
 		},
-		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
-			WaitingListFixEnableEpochField: uint32(waitingListFixEnableEpoch),
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.WaitingListFixFlag {
+					return epoch >= uint32(waitingListFixEnableEpoch)
+				}
+				return false
+			},
 		},
 	}
 
@@ -1405,8 +1412,13 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 				NodesToShufflePerShard: uint32(numNodesToShuffle),
 			},
 		},
-		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
-			WaitingListFixEnableEpochField: uint32(waitingListFixEnableEpoch),
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.WaitingListFixFlag {
+					return epoch >= uint32(waitingListFixEnableEpoch)
+				}
+				return false
+			},
 		},
 	}
 
@@ -2945,7 +2957,7 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 		if epoch == orderedConfigs[(i+1)%len(orderedConfigs)].EpochEnable {
 			i++
 		}
-		shuffler.UpdateShufflerConfig(epoch)
+		shuffler.updateShufflerConfig(epoch)
 		require.Equal(t, orderedConfigs[i], shuffler.activeNodesConfig)
 	}
 }
