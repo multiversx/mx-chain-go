@@ -1189,7 +1189,7 @@ func (t *trigger) fetchAndSaveValidatorInfoToStaticStorer(validatorInfoHash []by
 
 func (t *trigger) savePeerMiniBlocksToStaticStorer(header data.HeaderHandler) error {
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
-		if miniBlockHeader.GetTypeInt32() != block.PeerBlock {
+		if miniBlockHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
