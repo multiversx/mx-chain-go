@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -331,8 +332,8 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		getLatestStorageEpochCalled := false
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-		enterPruningBufferingModeCalled := false
-		exitPruningBufferingModeCalled := false
+		enterPruningBufferingModeCalled := atomic.Flag{}
+		exitPruningBufferingModeCalled := atomic.Flag{}
 		tsm := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				getLatestStorageEpochCalled = true
@@ -344,10 +345,10 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				return false
 			},
 			EnterPruningBufferingModeCalled: func() {
-				enterPruningBufferingModeCalled = true
+				enterPruningBufferingModeCalled.SetValue(true)
 			},
 			ExitPruningBufferingModeCalled: func() {
-				exitPruningBufferingModeCalled = true
+				exitPruningBufferingModeCalled.SetValue(true)
 			},
 		}
 
@@ -357,8 +358,8 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		}
 
 		assert.True(t, getLatestStorageEpochCalled)
-		assert.True(t, enterPruningBufferingModeCalled)
-		assert.True(t, exitPruningBufferingModeCalled)
+		assert.True(t, enterPruningBufferingModeCalled.IsSet())
+		assert.True(t, exitPruningBufferingModeCalled.IsSet())
 	})
 	t.Run("tsm signals that a snapshot should not be taken", func(t *testing.T) {
 		t.Parallel()
@@ -372,8 +373,8 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 			},
 		}
 		sm, _ := state.NewSnapshotsManager(args)
-		enterPruningBufferingModeCalled := false
-		exitPruningBufferingModeCalled := false
+		enterPruningBufferingModeCalled := atomic.Flag{}
+		exitPruningBufferingModeCalled := atomic.Flag{}
 		tsm := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
 				return 5, nil
@@ -384,10 +385,10 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				return false
 			},
 			EnterPruningBufferingModeCalled: func() {
-				enterPruningBufferingModeCalled = true
+				enterPruningBufferingModeCalled.SetValue(true)
 			},
 			ExitPruningBufferingModeCalled: func() {
-				exitPruningBufferingModeCalled = true
+				exitPruningBufferingModeCalled.SetValue(true)
 			},
 		}
 
@@ -397,8 +398,8 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		}
 
 		assert.True(t, shouldTakeSnapshotCalled)
-		assert.True(t, enterPruningBufferingModeCalled)
-		assert.True(t, exitPruningBufferingModeCalled)
+		assert.True(t, enterPruningBufferingModeCalled.IsSet())
+		assert.True(t, exitPruningBufferingModeCalled.IsSet())
 	})
 	t.Run("snapshot with errors does not mark active and does not remove lastSnapshot", func(t *testing.T) {
 		t.Parallel()
