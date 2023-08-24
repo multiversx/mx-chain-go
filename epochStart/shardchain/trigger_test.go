@@ -792,7 +792,7 @@ func TestTrigger_SaveEpochStartInfoToStaticStorage(t *testing.T) {
 					PutCalled: func(key, data []byte) error {
 						switch putCalls {
 						case 0:
-							epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+							epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
 							require.Equal(t, epochStartBootstrapKey, key)
 						case 1:
 							require.Equal(t, mbHeaderHash1, key)
