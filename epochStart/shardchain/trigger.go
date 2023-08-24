@@ -1125,7 +1125,7 @@ func (t *trigger) saveEpochStartBlockToStaticStorer(epoch uint32) (data.HeaderHa
 		return nil, err
 	}
 
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
 	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, marshalledMetaBlock)
 	if err != nil {
 		return nil, err
@@ -1151,12 +1151,12 @@ func (t *trigger) fetchAndSavePeerMiniBlockToStaticStorer(
 		return nil, errors.ErrWrongTypeAssertion
 	}
 
-	marshalizedMiniBlock, err := t.marshaller.Marshal(miniBlock)
+	marshalledMiniBlock, err := t.marshaller.Marshal(miniBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.epochStartStaticStorage.Put(miniBlockHash, marshalizedMiniBlock)
+	err = t.epochStartStaticStorage.Put(miniBlockHash, marshalledMiniBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -1189,7 +1189,7 @@ func (t *trigger) fetchAndSaveValidatorInfoToStaticStorer(validatorInfoHash []by
 
 func (t *trigger) savePeerMiniBlocksToStaticStorer(header data.HeaderHandler) error {
 	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
-		if miniBlockHeader.GetTypeInt32() != int32(block.PeerBlock) {
+		if miniBlockHeader.GetTypeInt32() != block.PeerBlock {
 			continue
 		}
 

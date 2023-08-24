@@ -479,11 +479,13 @@ func (vic *validatorInfoCreator) saveValidatorInfo(miniBlock *block.MiniBlock) {
 		err = vic.validatorInfoStorage.Put(validatorInfoHash, marshalledData)
 		if err != nil {
 			log.Debug("validatorInfoCreator.saveValidatorInfo.Put", "hash", validatorInfoHash, "error", err)
+			continue
 		}
 
 		err = vic.epochStartStaticStorage.Put(validatorInfoHash, marshalledData)
 		if err != nil {
 			log.Debug("validatorInfoCreator.epochStartStaticStorage.Put", "hash", validatorInfoHash, "error", err)
+			continue
 		}
 
 		log.Trace("saveValidatorInfo: put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
