@@ -103,7 +103,12 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
 	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	stub.StakingV2EnableEpochField = 1
+	stub.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		if flag == common.StakingV2FlagAfterEpoch {
+			return epoch > 1
+		}
+		return false
+	}
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics
 

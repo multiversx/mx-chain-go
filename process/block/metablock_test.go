@@ -3159,7 +3159,9 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
 		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.StakingV2EnableEpochField = 0
+		enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.StakingV2Flag
+		}
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		wasCalled := false
@@ -3399,7 +3401,9 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
 		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.StakingV2EnableEpochField = 0
+		enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.StakingV2Flag
+		}
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		mb := &block.MetaBlock{
