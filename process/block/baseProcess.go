@@ -105,7 +105,7 @@ type baseProcessor struct {
 	historyRepo            dblookupext.HistoryRepository
 	epochNotifier          process.EpochNotifier
 	enableEpochsHandler    common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
+	roundNotifier          process.RoundNotifier
 	enableRoundsHandler    process.EnableRoundsHandler
 	vmContainerFactory     process.VirtualMachinesContainerFactory
 	vmContainer            process.VirtualMachinesContainer
@@ -587,6 +587,11 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	hdrsForBlockStr := ""
+	for _, hdr := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		hdrsForBlockStr += fmt.Sprintf("{ep: %d, sh: %d, nonce: %d, usedin block: %v}, ", hdr.hdr.GetEpoch(), hdr.hdr.GetShardID(), hdr.hdr.GetNonce(), hdr.usedInBlock)
+	}
+	log.Error("REMOVE_ME: sortHeadersForCurrentBlockByNonce", "hdrsForCurrBlock", hdrsForBlockStr)
 	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
@@ -897,6 +902,10 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	headersPool := bp.dataPool.Headers()
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
+	//if finality == 0 {
+	//	lastFinalityAttestingHeader++ // in case of a 0 finality
+	//}
+	//lastFinalityAttestingHeader++ // TODO: remove me: test only
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
 		log.Error("REMOVE_ME: requestMissingFinalityAttestingHeaders", "i", i, "finality", finality, "lastFinalityAttestingHeader", lastFinalityAttestingHeader)
 		headers, headersHashes, err := headersPool.GetHeadersByNonceAndShardId(i, shardID)
@@ -909,6 +918,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 		}
 
 		for index := range headers {
+			log.Error("REMOVE_ME: requestMissingFinalityAttestingHeaders checkpoint 8", "shard", shardID, "nonce", i, "lastFinalityAttestingHeader", lastFinalityAttestingHeader)
 			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[index])] = &hdrInfo{
 				hdr:         headers[index],
 				usedInBlock: false,

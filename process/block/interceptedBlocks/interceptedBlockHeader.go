@@ -111,7 +111,7 @@ func (inHdr *InterceptedHeader) isEpochCorrect() bool {
 		"grace period", process.EpochChangeGracePeriod,
 		"bool value", inHdr.hdr.GetRound() <= inHdr.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod)
 
-	chainParameters, err := inHdr.chainParametersHandler.ChainParametersForEpoch(inHdr.epochStartTrigger.Epoch())
+	chainParameters, err := inHdr.chainParametersHandler.ChainParametersForEpoch(inHdr.hdr.GetEpoch())
 	if err != nil {
 		log.Error("REMOVE_ME: InterceptedHeader.isEpochCorrect: cannot compute chain parameters. Will use the current ones", "epoch", inHdr.hdr.GetEpoch(), "error", err)
 		chainParameters = inHdr.chainParametersHandler.CurrentChainParameters()

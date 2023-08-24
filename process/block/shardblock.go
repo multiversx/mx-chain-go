@@ -597,7 +597,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if nextBlocksVerified < finality {
-		for i := uint64(0); i < uint64(finality); i++ {
+		for i := uint64(0); i <= uint64(finality); i++ {
 			go sp.requestHandler.RequestMetaHeaderByNonce(lastVerifiedHdr.GetNonce() + i)
 		}
 		// TODO: update to request as much block as the meta finality for epoch

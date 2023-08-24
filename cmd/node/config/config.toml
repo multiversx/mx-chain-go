@@ -40,16 +40,14 @@
    # Make sure that this is greater than the unbonding period!
    SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
-   # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
-    ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 5, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
-        { EnableEpoch = 3, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
-        { EnableEpoch = 4, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 0, MetaFinality = 1 },
-        { EnableEpoch = 5, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 1 },
-        { EnableEpoch = 6, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 2 },
-        { EnableEpoch = 7, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
-        { EnableEpoch = 8, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 0 },
-        { EnableEpoch = 9, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 }
+   ChainParametersByEpoch = [
+         { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 5, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
+         { EnableEpoch = 3, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
+         { EnableEpoch = 5, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 0, MetaFinality = 1 },
+         { EnableEpoch = 7, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 1 },
+         { EnableEpoch = 9, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 2, MetaFinality = 2 },
+         { EnableEpoch = 11, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 1, MetaFinality = 1 },
+         { EnableEpoch = 13, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 7, MetachainConsensusGroupSize = 7, MetachainMinNumNodes = 7, Hysteresis = 0.2, Adaptivity = false, ShardFinality = 0, MetaFinality = 1 }
    ]
 
 [Versions]

@@ -304,7 +304,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
 		Epoch:                  0,
 		Validity:               process.MetaBlockValidity,
-		ChainParametersHandler: e.CoreComponents.ChainParametersHandler(),
+		ChainParametersHandler: e.coreComponents.ChainParametersHandler(),
 		PeerMiniBlocksSyncer:   peerMiniBlocksSyncer,
 		RoundHandler:           e.roundHandler,
 		AppStatusHandler:       e.statusCoreComponents.AppStatusHandler(),

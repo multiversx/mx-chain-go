@@ -121,6 +121,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	log.Error("baseBlockTrack.receivedHeader", "nonce", headerHandler.GetNonce(), "epoch", headerHandler.GetEpoch(), "shard", headerHandler.GetShardID())
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
@@ -576,6 +577,7 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 
 // AddHeaderFromPool adds into tracker pool header with the given shard and nonce if it exists in headers pool
 func (bbt *baseBlockTrack) AddHeaderFromPool(shardID uint32, nonce uint64) {
+	log.Error("REMOVE_ME: baseBlockTrack.AddHeaderFromPool", "shard id", shardID, "nonce", nonce)
 	headers, hashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
 	if err != nil {
 		log.Trace("baseBlockTrack.AddHeaderFromPool", "error", err.Error())

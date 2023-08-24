@@ -1,6 +1,7 @@
 package track
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -267,6 +268,10 @@ func (bp *blockProcessor) getNextHeader(
 		return
 	}
 
+	sortedHdrsStr := ""
+	for _, hdr := range sortedHeaders {
+		sortedHdrsStr += fmt.Sprintf("[sh: %d, ep: %d, nonce: %d], ", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetNonce())
+	}
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 		if currHeader.GetNonce() > prevHeader.GetNonce()+1 {
@@ -278,8 +283,22 @@ func (bp *blockProcessor) getNextHeader(
 			continue
 		}
 
+		log.Error("REMOVE_ME: getNextHeader: finality check",
+			"sh id", currHeader.GetShardID(),
+			"epoch", currHeader.GetEpoch(),
+			"nonce", currHeader.GetNonce(),
+			"chain parameters epoch", chainParametersEpoch,
+			"sorted hdrs", sortedHdrsStr,
+		)
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1, chainParametersEpoch)
 		if err != nil {
+			log.Error("REMOVE_ME: getNextHeader: finality check - header not final",
+				"sh id", currHeader.GetShardID(),
+				"epoch", currHeader.GetEpoch(),
+				"nonce", currHeader.GetNonce(),
+				"chain parameters epoch", chainParametersEpoch,
+				"error", err,
+			)
 			continue
 		}
 
@@ -304,15 +323,39 @@ func (bp *blockProcessor) checkHeaderFinality(
 	numFinalityAttestingHeaders := uint64(0)
 
 	finality := bp.getCurrentFinality(header.GetShardID(), header.GetEpoch())
-
+	//finalityForCurrentShard := bp.getCurrentFinality(header.GetShardID(), chainParametersEpoch)
+	//if finality > finalityForCurrentShard {
+	//	finality = finalityForCurrentShard
+	//}
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 
-		if currHeader.GetShardID() == core.MetachainShardId {
-			finality = bp.getCurrentFinality(core.MetachainShardId, currHeader.GetEpoch())
-		}
+		//if currHeader.GetShardID() == core.MetachainShardId {
+		//	finality = bp.getCurrentFinality(core.MetachainShardId, currHeader.GetEpoch())
+		//}
 
+		log.Error("\tREMOVE_ME: checkHeaderFinality",
+			"sh id", currHeader.GetShardID(),
+			"epoch", currHeader.GetEpoch(),
+			"nonce", currHeader.GetNonce(),
+			"finality", finality,
+			"reference header epoch", header.GetEpoch(),
+			"reference header nonce", header.GetNonce(),
+			"chain parameters epoch", chainParametersEpoch,
+		)
 		if numFinalityAttestingHeaders >= uint64(finality) || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
+			log.Error("\t\tREMOVE_ME: checkHeaderFinality not final - break",
+				"sh id", currHeader.GetShardID(),
+				"epoch", currHeader.GetEpoch(),
+				"nonce", currHeader.GetNonce(),
+				"chain parameters epoch", chainParametersEpoch,
+				"numFinalityAttestingHeaders", numFinalityAttestingHeaders,
+				"finality", finality,
+				"cur header nonce", currHeader.GetNonce(),
+				"prev header nonce + 1", prevHeader.GetNonce()+1,
+				"numFinalityAttestingHeaders >= uint64(finality)", numFinalityAttestingHeaders >= uint64(finality),
+				"currHeader.GetNonce() > prevHeader.GetNonce()+1", currHeader.GetNonce() > prevHeader.GetNonce()+1,
+			)
 			break
 		}
 
@@ -326,12 +369,12 @@ func (bp *blockProcessor) checkHeaderFinality(
 	}
 
 	if numFinalityAttestingHeaders < uint64(finality) {
-		//log.Error("REMOVE_ME: blockProcessor.checkHeaderFinality numFinalityAttestingHeaders < uint64(finality)",
-		//	"numFinalityAttestingHeaders", numFinalityAttestingHeaders,
-		//	"finality", finality,
-		//	"epoch", header.GetEpoch(),
-		//	"shard", header.GetShardID(),
-		//	"nonce", header.GetNonce())
+		log.Error("REMOVE_ME: blockProcessor.checkHeaderFinality numFinalityAttestingHeaders < uint64(finality)",
+			"numFinalityAttestingHeaders", numFinalityAttestingHeaders,
+			"finality", finality,
+			"epoch", header.GetEpoch(),
+			"shard", header.GetShardID(),
+			"nonce", header.GetNonce())
 		//debug.PrintStack()
 		return process.ErrHeaderNotFinal
 	}
@@ -446,6 +489,9 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, epoch uint32) {
 	finality := bp.getCurrentFinality(shardID, epoch)
 	toNonce := fromNonce + uint64(finality)
+	//if toNonce == fromNonce {
+	//	toNonce++ // in case of 0 finality
+	//}
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Trace("requestHeaders.RequestHeaderByNonce",
 			"shard", shardID,
