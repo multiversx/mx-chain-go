@@ -184,6 +184,8 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
 	IsInterfaceNil() bool
 }
 
@@ -391,6 +393,7 @@ type EnableEpochsHandler interface {
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool

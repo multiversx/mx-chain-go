@@ -1,19 +1,15 @@
 package state
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"time"
 )
 
 // LastSnapshotStarted -
 const LastSnapshotStarted = lastSnapshot
-
-// IsSnapshotInProgress -
-func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
-	return &adb.isSnapshotInProgress
-}
 
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
@@ -33,11 +29,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 // GetObsoleteHashes -
 func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
-}
-
-// WaitForCompletionIfAppropriate -
-func (adb *AccountsDB) WaitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
-	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // GetCode -
@@ -74,4 +65,43 @@ func (accountsDB *accountsDBApi) SetCurrentBlockInfo(blockInfo common.BlockInfo)
 // EmptyErrChanReturningHadContained -
 func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
+}
+
+// SetSnapshotInProgress -
+func (sm *snapshotsManager) SetSnapshotInProgress() {
+	sm.isSnapshotInProgress.SetValue(true)
+}
+
+// SetLastSnapshotInfo -
+func (sm *snapshotsManager) SetLastSnapshotInfo(rootHash []byte, epoch uint32) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sm.lastSnapshot = &snapshotInfo{
+		rootHash: rootHash,
+		epoch:    epoch,
+	}
+}
+
+// GetLastSnapshotInfo -
+func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
+}
+
+// GetStorageEpochChangeWaitArgs -
+func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
+	return storageEpochChangeWaitArgs{
+		Epoch:                         1,
+		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
+		SnapshotWaitTimeout:           time.Second,
+		TrieStorageManager:            &storageManager.StorageManagerStub{},
+	}
+}
+
+// WaitForStorageEpochChange
+func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
+	return sm.waitForStorageEpochChange(args)
 }
