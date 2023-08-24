@@ -549,7 +549,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 		GetCalled: func(key []byte) ([]byte, error) {
 			var data []byte
 
-			if bytes.Equal(key, []byte(common.EpochStartStaticBootstrapKeyPrefix+fmt.Sprint(epoch))) {
+			if bytes.Equal(key, []byte(common.EpochStartStaticBlockKeyPrefix+fmt.Sprint(epoch))) {
 				data, _ = json.Marshal(&block.MetaBlock{
 					Epoch: epoch,
 					MiniBlockHeaders: []block.MiniBlockHeader{

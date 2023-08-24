@@ -215,7 +215,7 @@ func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(
 func (ihnc *indexHashedNodesCoordinator) metaBlockFromStaticStorer(
 	epoch uint32,
 ) (data.HeaderHandler, error) {
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
 	metaBlockBytes, err := ihnc.epochStartStaticStorer.Get(epochStartBootstrapKey)
 	if err != nil {
 		return nil, err
