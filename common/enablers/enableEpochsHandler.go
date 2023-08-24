@@ -363,7 +363,7 @@ func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFl
 		return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
 	// TODO[Sorin]: add new flag + check for DynamicGasCostForDataTrieStorageLoadEnableEpoch after merge from rc/v1.6.0
 	default:
-		log.Warn("programming error, got unknown flag",
+		log.Warn("IsFlagEnabledInEpoch: programming error, got unknown flag",
 			"flag", flag,
 			"epoch", epoch,
 			"stack trace", string(debug.Stack()))
@@ -373,8 +373,188 @@ func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFl
 
 // GetActivationEpoch returns the activation epoch of the provided flag
 func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag) uint32 {
-	// TODO[Sorin]: implement this
-	return 0
+	switch flag {
+	case common.SCDeployFlag:
+		return handler.enableEpochsConfig.SCDeployEnableEpoch
+	case common.BuiltInFunctionsFlag:
+		return handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch
+	case common.RelayedTransactionsFlag:
+		return handler.enableEpochsConfig.RelayedTransactionsEnableEpoch
+	case common.PenalizedTooMuchGasFlag:
+		return handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch
+	case common.SwitchJailWaitingFlag:
+		return handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch
+	case common.BelowSignedThresholdFlag:
+		return handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch
+	case common.TransactionSignedWithTxHashFlag:
+		return handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch
+	case common.MetaProtectionFlag:
+		return handler.enableEpochsConfig.MetaProtectionEnableEpoch
+	case common.AheadOfTimeGasUsageFlag:
+		return handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch
+	case common.GasPriceModifierFlag:
+		return handler.enableEpochsConfig.GasPriceModifierEnableEpoch
+	case common.RepairCallbackFlag:
+		return handler.enableEpochsConfig.RepairCallbackEnableEpoch
+	case common.SenderInOutTransferFlag:
+		return handler.enableEpochsConfig.SenderInOutTransferEnableEpoch
+	case common.StakeFlag:
+		return handler.enableEpochsConfig.StakeEnableEpoch
+	case common.StakingV2Flag:
+		return handler.enableEpochsConfig.StakingV2EnableEpoch
+	case common.DoubleKeyProtectionFlag:
+		return handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch
+	case common.ESDTFlag:
+		return handler.enableEpochsConfig.ESDTEnableEpoch
+	case common.GovernanceFlag:
+		return handler.enableEpochsConfig.GovernanceEnableEpoch
+	case common.DelegationManagerFlag:
+		return handler.enableEpochsConfig.DelegationManagerEnableEpoch
+	case common.DelegationSmartContractFlag:
+		return handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
+	case common.CorrectLastUnJailedFlag:
+		return handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
+	case common.RelayedTransactionsV2Flag:
+		return handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch
+	case common.UnBondTokensV2Flag:
+		return handler.enableEpochsConfig.UnbondTokensV2EnableEpoch
+	case common.SaveJailedAlwaysFlag:
+		return handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch
+	case common.ReDelegateBelowMinCheckFlag:
+		return handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch
+	case common.ValidatorToDelegationFlag:
+		return handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch
+	case common.IncrementSCRNonceInMultiTransferFlag:
+		return handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch
+	case common.ESDTMultiTransferFlag,
+		common.ESDTNFTImprovementV1Flag:
+		return handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch
+	case common.GlobalMintBurnFlag:
+		return handler.enableEpochsConfig.GlobalMintBurnDisableEpoch
+	case common.ESDTTransferRoleFlag:
+		return handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch
+	case common.BuiltInFunctionOnMetaFlag,
+		common.TransferToMetaFlag:
+		return handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
+	case common.ComputeRewardCheckpointFlag:
+		return handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch
+	case common.SCRSizeInvariantCheckFlag:
+		return handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch
+	case common.BackwardCompSaveKeyValueFlag:
+		return handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch
+	case common.ESDTNFTCreateOnMultiShardFlag:
+		return handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch
+	case common.MetaESDTSetFlag:
+		return handler.enableEpochsConfig.MetaESDTSetEnableEpoch
+	case common.AddTokensToDelegationFlag:
+		return handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch
+	case common.MultiESDTTransferFixOnCallBackFlag:
+		return handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch
+	case common.OptimizeGasUsedInCrossMiniBlocksFlag:
+		return handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch
+	case common.CorrectFirstQueuedFlag:
+		return handler.enableEpochsConfig.CorrectFirstQueuedEpoch
+	case common.DeleteDelegatorAfterClaimRewardsFlag:
+		return handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch
+	case common.RemoveNonUpdatedStorageFlag:
+		return handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch
+	case common.OptimizeNFTStoreFlag,
+		common.SaveToSystemAccountFlag,
+		common.CheckFrozenCollectionFlag,
+		common.ValueLengthCheckFlag,
+		common.CheckTransferFlag:
+		return handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+	case common.CreateNFTThroughExecByCallerFlag:
+		return handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch
+	case common.StopDecreasingValidatorRatingWhenStuckFlag:
+		return handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch
+	case common.FrontRunningProtectionFlag:
+		return handler.enableEpochsConfig.FrontRunningProtectionEnableEpoch
+	case common.PayableBySCFlag:
+		return handler.enableEpochsConfig.IsPayableBySCEnableEpoch
+	case common.CleanUpInformativeSCRsFlag:
+		return handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch
+	case common.StorageAPICostOptimizationFlag:
+		return handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch
+	case common.ESDTRegisterAndSetAllRolesFlag:
+		return handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch
+	case common.ScheduledMiniBlocksFlag:
+		return handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
+	case common.CorrectJailedNotUnStakedEmptyQueueFlag:
+		return handler.enableEpochsConfig.CorrectJailedNotUnstakedEmptyQueueEpoch
+	case common.DoNotReturnOldBlockInBlockchainHookFlag:
+		return handler.enableEpochsConfig.DoNotReturnOldBlockInBlockchainHookEnableEpoch
+	case common.AddFailedRelayedTxToInvalidMBsFlag:
+		return handler.enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch
+	case common.SCRSizeInvariantOnBuiltInResultFlag:
+		return handler.enableEpochsConfig.SCRSizeInvariantOnBuiltInResultEnableEpoch
+	case common.CheckCorrectTokenIDForTransferRoleFlag:
+		return handler.enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch
+	case common.FailExecutionOnEveryAPIErrorFlag:
+		return handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch
+	case common.MiniBlockPartialExecutionFlag:
+		return handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch
+	case common.ManagedCryptoAPIsFlag:
+		return handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch
+	case common.ESDTMetadataContinuousCleanupFlag,
+		common.FixAsyncCallbackCheckFlag,
+		common.SendAlwaysFlag,
+		common.ChangeDelegationOwnerFlag:
+		return handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+	case common.DisableExecByCallerFlag:
+		return handler.enableEpochsConfig.DisableExecByCallerEnableEpoch
+	case common.RefactorContextFlag:
+		return handler.enableEpochsConfig.RefactorContextEnableEpoch
+	case common.CheckFunctionArgumentFlag:
+		return handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch
+	case common.CheckExecuteOnReadOnlyFlag:
+		return handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch
+	case common.SetSenderInEeiOutputTransferFlag:
+		return handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch
+	case common.RefactorPeersMiniBlocksFlag:
+		return handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
+	case common.SCProcessorV2Flag:
+		return handler.enableEpochsConfig.SCProcessorV2EnableEpoch
+	case common.FixAsyncCallBackArgsListFlag:
+		return handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch
+	case common.FixOldTokenLiquidityFlag:
+		return handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch
+	case common.RuntimeMemStoreLimitFlag:
+		return handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch
+	case common.RuntimeCodeSizeFixFlag:
+		return handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch
+	case common.MaxBlockchainHookCountersFlag:
+		return handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch
+	case common.WipeSingleNFTLiquidityDecreaseFlag:
+		return handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch
+	case common.AlwaysSaveTokenMetaDataFlag:
+		return handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch
+	case common.SetGuardianFlag:
+		return handler.enableEpochsConfig.SetGuardianEnableEpoch
+	case common.RelayedNonceFixFlag:
+		return handler.enableEpochsConfig.RelayedNonceFixEnableEpoch
+	case common.ConsistentTokensValuesLengthCheckFlag:
+		return handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch
+	case common.KeepExecOrderOnCreatedSCRsFlag:
+		return handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch
+	case common.MultiClaimOnDelegationFlag:
+		return handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch
+	case common.ChangeUsernameFlag:
+		return handler.enableEpochsConfig.ChangeUsernameEnableEpoch
+	case common.AutoBalanceDataTriesFlag:
+		return handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch
+	case common.FixDelegationChangeOwnerOnAccountFlag:
+		return handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
+	case common.FixOOGReturnCodeFlag:
+		return handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
+	case common.DeterministicSortOnValidatorsInfoFixFlag:
+		return handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+	default:
+		log.Warn("GetActivationEpoch: programming error, got unknown flag",
+			"flag", flag,
+			"stack trace", string(debug.Stack()))
+		return 0
+	}
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active
