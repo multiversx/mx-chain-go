@@ -90,7 +90,7 @@ func Test_newBlockProcessorCreatorForShard_Failed(t *testing.T) {
 			DataPool:          dataRetrieverTests.NewPoolsHolderMock(),
 			MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 		}
-		dataComponents.SetBlockchain(processCompArgs.Data.Blockchain())
+		_ = dataComponents.SetBlockchain(processCompArgs.Data.Blockchain())
 		processCompMockArgs.Data = dataComponents
 
 		pcf, err := processComp.NewProcessComponentsFactory(processCompMockArgs)
